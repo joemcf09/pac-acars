@@ -171,3 +171,5 @@ html[data-theme="dark"] .ls-wrap .kicker { color: #ff8f8f; }
 .ck-banner.pass { border-color: #25844b; background: var(--ok-wash); color: var(--ok-ink); }
 .ck-banner.fail { border-color: var(--red); background: var(--red-wash); color: var(--ink); }
 .ck-banner b { font-size: 15.5px; }
+/* checkride result in the logbook's Result column */
+.lb-ck { display: inline-block; margin: 4px 0 0 !important; white-space: nowrap; cursor: help; }

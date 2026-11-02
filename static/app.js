@@ -1505,12 +1505,14 @@ async function loadLogbook() {
     ["Flights", fmt(t.flights)], ["Block hours", t.block_hours], ["Cargo moved", fmt(t.cargo_lbs) + " lb"],
     ["Points", fmt(t.points)], ["Average landing", t.avg_landing != null ? t.avg_landing + " fpm" : "–"], ["Average score", t.avg_score ?? "–"],
   ].map(([k, v]) => `<div><span>${k}</span><b>${v}</b></div>`).join("");
-  $("#lbNote").textContent = "Totals count accepted flights only." + (pireps.some(p => p.demo) ? " Demo flights are listed but never counted." : "");
+  const careerDiffers = t.career_hours != null && (Math.abs(t.career_hours - t.block_hours) >= 0.1 || t.career_flights !== t.flights);
+  $("#lbNote").textContent = "Totals count accepted flights only." + (pireps.some(p => p.demo) ? " Demo flights are listed but never counted." : "")
+    + (careerDiffers ? ` For rank and pay, failed checkrides don't count: career ${t.career_hours} h over ${t.career_flights} flight${t.career_flights === 1 ? "" : "s"}.` : "");
   $("#lbBody").innerHTML = pireps.map(p => `<tr data-id="${p.id}">
     <td>${new Date(p.filed_at * 1000).toISOString().substr(0, 10)}</td><td><b>${esc(p.flight_number)}</b></td><td>${esc(p.mission_title)}</td>
     <td>${p.dep} – ${p.arr}</td><td>${esc(S.fleet[p.aircraft]?.icao || p.aircraft)}</td><td>${hm(p.block_min)}</td>
     <td>${p.landing_rate ?? "–"} fpm</td><td>${fmt(p.fuel_used_lbs)} lb</td><td>${p.source === "Manual" ? "Unscored · Manual" : `${p.score} (${p.grade})`}</td>
-    <td><span class="badge b-${p.status.split(" ")[0]} ${p.status.includes("late") ? "late" : ""}">${esc(p.status)}</span>${p.demo ? '<span class="badge b-demo">Demo</span>' : ""}</td>
+    <td><span class="badge b-${p.status.split(" ")[0]} ${p.status.includes("late") ? "late" : ""}">${esc(p.status)}</span>${p.demo ? '<span class="badge b-demo">Demo</span>' : ""}${p.checkride_result ? `<span class="tag ${p.checkride_result.passed ? "green" : ""} lb-ck" title="${esc(p.checkride_result.passed ? "All checkride standards met" : "Reason: " + p.checkride_result.reasons.join(", "))}">${p.checkride_result.kind === "type" ? esc(p.checkride_result.family || "Type") : "Line"} checkride ${p.checkride_result.passed ? "passed" : "not passed"}</span>` : ""}</td>
     <td>${p.demo ? "–" : `<span class="tag ${p.review_status === "Accepted" ? "green" : p.review_status === "Pending" ? "amber" : ""}" style="margin:0">${esc(p.review_status || "Accepted")}</span>`}</td>
     <td>${fmt(p.points)}</td></tr>`).join("")
     || `<tr><td colspan="12" class="empty">No flights logged yet. Fly a mission and file the PIREP to start your logbook.</td></tr>`;

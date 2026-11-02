@@ -3088,6 +3088,14 @@ def logbook():
     with db() as con:
         rows = [dict(r) for r in con.execute("SELECT * FROM pireps WHERE pilot_id=? ORDER BY filed_at DESC", (pid,))]
     for r in rows:
+        try:
+            d = json.loads(r.get("detail") or "{}")
+        except (ValueError, TypeError):
+            d = {}
+        tc, lc = d.get("type_checkride") or {}, d.get("checkride") or {}
+        ck = ({"kind": "type", "family": tc.get("family"), "passed": bool(tc.get("passed")), "reasons": tc.get("reasons") or []} if tc
+              else {"kind": "line", "passed": bool(lc.get("passed")), "reasons": lc.get("reasons") or []} if lc else None)
+        r["checkride_result"] = ck
         r.pop("detail", None)
     live = [r for r in rows if not r["demo"] and r.get("review_status", "Accepted") == "Accepted"]
     for r in rows:
@@ -3099,6 +3107,8 @@ def logbook():
         "avg_landing": round(sum(r["landing_rate"] for r in live if r["landing_rate"] is not None) / sum(r["landing_rate"] is not None for r in live)) if any(r["landing_rate"] is not None for r in live) else None,
         "avg_score": round(sum(r["score"] for r in live if r["score"] is not None) / sum(r["score"] is not None for r in live)) if any(r["score"] is not None for r in live) else None,
     }
+    car = va.career(pid)       # what counts for rank and pay: failed checkrides are left out
+    totals.update(career_hours=car["pac_hours"], career_flights=car["flights"])
     return jsonify({"pireps": rows, "totals": totals, "pilot": pid})
 
 
