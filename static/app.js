@@ -542,6 +542,13 @@ function discordWidget(site) {   // the live Discord server widget on the home p
 }
 function filingIcao() { const c = String(S.settings?.filing_icao || "").toUpperCase(); return /^[A-Z]{3}$/.test(c) ? c : "PGC"; }
 function atcCallsign(m) { return (m.operator?.code || filingIcao()) + m.id.replace(/\D/g, ""); }
+/* A partner airline's real tail for a contract flight: the same pick as the server's partner_tail() */
+function partnerTail(m, ac) {
+  if (!m?.contract) return null;
+  const regs = (S.partners || {})[m.operator?.key]?.registrations?.[ac] || [];
+  if (!regs.length) return null;
+  return regs[[...`${m.id}|${ac}`].reduce((a, ch) => a + ch.charCodeAt(0), 0) % regs.length];
+}
 function simbriefUrl(m, ac) {
   const fl = S.fleet[ac];
   const num = m.id.replace(/\D/g, "");
@@ -550,6 +557,7 @@ function simbriefUrl(m, ac) {
     cargo: (Math.min(m.payload_lbs, fl.max_payload_lbs) / 1000).toFixed(1), pax: "0", units: "LBS", callsign: al + num,
     manualrmk: m.operator ? `PAC PILOT HIRED TO FILL IN FOR ${m.operator.name.toUpperCase()} CREW SHORTAGE. ${m.id} FLOWN BY ${(displayName(S.profile || {}) || "PAC CAPTAIN").toUpperCase()} ${S.profile?.pilot_id || ""}`.trim() : `CALLSIGN PAGANI. PAGANI AIR CARGO MISSION ${m.id} ${m.title.toUpperCase()}` });
   if (S.airframe && (S.airframes || []).some(a => a.reg === S.airframe && a.type === ac)) p.set("reg", S.airframe);
+  else if (partnerTail(m, ac)) p.set("reg", partnerTail(m, ac));      // the partner's own aircraft, not SimBrief's default tail
   if (S.extraFuel > 0) p.set("addedfuel", (S.extraFuel / 1000).toFixed(1));   // the pilot's discretionary extra fuel, in thousands of lb
   const h = S.planHelp?.[`${m.id}|${ac}`];
   if (h && S.usePlanHelp !== false) {  // the planning helper's suggestions, pre-filled in SimBrief
@@ -675,7 +683,9 @@ function paneAircraft(m) {
     <div class="ac-pick" role="radiogroup" aria-label="Aircraft">${fleetOrder(m).map(a => { const lock = lockedByRank(m, a);
       return `<label title="${lock ? "Unlocks at " + esc(rankFor(a)) : ""}" style="${lock ? "opacity:.5" : ""}"><input type="radio" name="ac" value="${a}" ${S.aircraft === a ? "checked" : ""} ${lock ? "disabled" : ""}>${esc(S.fleet[a].name)}${m.aircraft.includes(a) ? " ★" : ""}${S.fleet[a].sim === "X-Plane" ? ' <small class="muted">XP</small>' : ""}${lock ? " · " + esc(rankFor(a)) : needsRating(m, a) ? ` · <small class="muted" title="Fly the ${esc(needsRating(m, a))} type checkride from Career › Type ratings first">needs ${esc(needsRating(m, a))} rating</small>` : ""}</label>`; }).join("")}</div>
     ${capacityNote(m, S.aircraft)}`;
-  const tail = m.contract ? `<div class="notice">You fly <b>${esc(m.operator.name)}</b>'s aircraft under callsign <b>${esc(m.operator.callsign)}</b> (${esc(m.id)}). No PAC airframe is used: load any ${esc(S.fleet[S.aircraft]?.name || "")} livery you like.</div>`
+  const ptail = partnerTail(m, S.aircraft);
+  const poss = n => /s$/i.test(n) ? `${n}'` : `${n}'s`;   // "UPS Airlines'", "Atlas Air's"
+  const tail = m.contract ? `<div class="notice">You fly <b>${esc(poss(m.operator.name))}</b> ${ptail ? `<b>${esc(ptail)}</b>, one of their ${esc(S.fleet[S.aircraft]?.name || "")}s,` : "aircraft"} under callsign <b>${esc(m.operator.callsign)}</b> (${esc(m.id)}). No PAC airframe is used${ptail ? `: SimBrief gets ${esc(ptail)} as the registration. Load ${esc(m.operator.name)} livery if you have it.` : `: load any ${esc(S.fleet[S.aircraft]?.name || "")} livery you like.`}</div>`
     : `<h3 class="dp-h">Airframe</h3>${airframePicker(m, S.aircraft)}`;
   return `${types}${tail}<details class="journey-help"><summary>Aircraft missing? Understand travel and ferry options</summary>${travelGuideHTML()}</details>`;
 }
@@ -1090,7 +1100,7 @@ function renderAcars() {
     <div id="releasePreflight">${paperNote(b)}</div>
     <div class="strip">
       <div><div class="fn">${esc(b.flight_number)}</div></div>
-      <div class="rt"><b>${m.origin.icao}</b> to <b>${m.destination.icao}</b>${o?.alternate ? ` · alternate ${o.alternate.icao}` : ""}<br>${esc(S.fleet[b.aircraft].name)}${b.airframe ? " · " + esc(b.airframe) : o?.registration ? " · " + esc(o.registration) : ""} · ${fmt(o?.payload_lbs || Math.min(m.payload_lbs, S.fleet[b.aircraft].max_payload_lbs))} lb ${esc(m.category.toLowerCase())} cargo</div>
+      <div class="rt"><b>${m.origin.icao}</b> to <b>${m.destination.icao}</b>${o?.alternate ? ` · alternate ${o.alternate.icao}` : ""}<br>${esc(S.fleet[b.aircraft].name)}${b.airframe ? " · " + esc(b.airframe) : b.partner_reg ? " · " + esc(b.partner_reg) : o?.registration ? " · " + esc(o.registration) : ""} · ${fmt(o?.payload_lbs || Math.min(m.payload_lbs, S.fleet[b.aircraft].max_payload_lbs))} lb ${esc(m.category.toLowerCase())} cargo</div>
       <div class="controls">
         <span class="conn" id="conn"><i></i><span>Not tracking</span></span>
         <a class="btn ghost" href="/dispatch" target="_blank" rel="noopener" id="dispatchBtn">${needsSignature(b) ? "Review and sign paperwork" : "Dispatch release"}</a>
@@ -3738,11 +3748,16 @@ async function refreshReleaseGate() {
     S.booking.release_required = d.signature_required;
     const panel = document.getElementById('releasePreflight');
     if (panel) panel.innerHTML = paperNote(S.booking);
+    const btn = document.getElementById('dispatchBtn');   // the ACARS strip's button follows the signature too
+    if (btn) btn.textContent = needsSignature(S.booking) ? "Review and sign paperwork" : "Dispatch release";
     if (location.hash === '#bids') await loadBids();
   } catch (e) { /* Keep last state; server independently enforces the start gate. */ }
   finally { releaseRefreshing = false; }
 }
 window.addEventListener('focus', refreshReleaseGate);
+// the release was signed in its own tab (which then closes itself): update ACARS straight away
+try { new BroadcastChannel("pac-release").onmessage = () => refreshReleaseGate(); } catch (_) {}
+window.addEventListener('storage', e => { if (e.key === "pac-release-signed") refreshReleaseGate(); });
 document.addEventListener('visibilitychange', () => { if (!document.hidden) refreshReleaseGate(); });
 function needsRating(m, ac) {   // the family's type rating, while ratings are required ("" when not needed)
   const r = S.ratings;

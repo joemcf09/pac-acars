@@ -38,7 +38,55 @@
       "flight_range": [
         1,
         1999
-      ]
+      ],
+      "registrations": {
+        "MD11F": [
+          "N601FE",
+          "N602FE",
+          "N603FE",
+          "N604FE",
+          "N605FE",
+          "N606FE",
+          "N607FE",
+          "N608FE",
+          "N609FE",
+          "N610FE",
+          "N612FE",
+          "N613FE",
+          "N614FE",
+          "N615FE",
+          "N616FE",
+          "N617FE",
+          "N618FE",
+          "N619FE",
+          "N620FE",
+          "N623FE"
+        ],
+        "B77F": [
+          "N841FD",
+          "N847FD",
+          "N850FD",
+          "N851FD",
+          "N859FD",
+          "N860FD",
+          "N861FD"
+        ],
+        "B763F": [
+          "N101FE",
+          "N102FE",
+          "N103FE"
+        ],
+        "B752F": [
+          "N910FD",
+          "N926FD",
+          "N935FD",
+          "N936FD"
+        ],
+        "A306F": [
+          "N650FE",
+          "N664FE"
+        ]
+      }
     },
     "ups": {
       "key": "ups",
@@ -75,7 +123,57 @@
       "flight_range": [
         2000,
         2999
-      ]
+      ],
+      "registrations": {
+        "A306F": [
+          "N120UP",
+          "N121UP",
+          "N124UP",
+          "N126UP",
+          "N129UP",
+          "N136UP",
+          "N139UP",
+          "N142UP",
+          "N143UP",
+          "N146UP",
+          "N148UP",
+          "N152UP",
+          "N153UP",
+          "N154UP",
+          "N156UP",
+          "N161UP",
+          "N162UP",
+          "N163UP",
+          "N164UP",
+          "N165UP",
+          "N169UP",
+          "N170UP",
+          "N172UP",
+          "N173UP"
+        ],
+        "B763F": [
+          "N364UP",
+          "N371UP",
+          "N373UP",
+          "N374UP",
+          "N376UP",
+          "N390UP"
+        ],
+        "B752F": [
+          "N410UP",
+          "N456UP"
+        ],
+        "MD11F": [
+          "N273UP",
+          "N276UP"
+        ],
+        "B748F": [
+          "N606UP",
+          "N607UP",
+          "N609UP",
+          "N612UP"
+        ]
+      }
     },
     "qatar": {
       "key": "qatar",
@@ -110,7 +208,13 @@
       "flight_range": [
         8000,
         8999
-      ]
+      ],
+      "registrations": {
+        "B77F": [
+          "A7-BFA",
+          "A7-BFC"
+        ]
+      }
     },
     "emirates": {
       "key": "emirates",
@@ -142,7 +246,15 @@
       "flight_range": [
         9000,
         9899
-      ]
+      ],
+      "registrations": {
+        "B77F": [
+          "A6-EFE",
+          "A6-EFI",
+          "A6-EFT",
+          "A6-EFW"
+        ]
+      }
     },
     "cathay": {
       "key": "cathay",
@@ -172,7 +284,15 @@
       "flight_range": [
         20,
         99
-      ]
+      ],
+      "registrations": {
+        "B748F": [
+          "B-LJA",
+          "B-LJB",
+          "B-LJC",
+          "B-LJF"
+        ]
+      }
     },
     "atlas": {
       "key": "atlas",
@@ -204,7 +324,24 @@
       "flight_range": [
         5000,
         5999
-      ]
+      ],
+      "registrations": {
+        "B748F": [
+          "N850GT",
+          "N851GT",
+          "N852GT"
+        ],
+        "B77F": [
+          "N702GT",
+          "N704GT",
+          "N710GT"
+        ],
+        "B763F": [
+          "N640GT",
+          "N641GT",
+          "N642GT"
+        ]
+      }
     }
   }
 }

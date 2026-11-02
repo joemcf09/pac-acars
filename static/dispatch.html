@@ -453,10 +453,12 @@ function handlingLines(d) {
 }
 
 /* ---------------- the captain's signature ---------------- */
+const qsLayout = () => new URLSearchParams(location.search).get("layout") || "";
 const zulu = ts => { const x = new Date(ts * 1000).toISOString(); return `${x.substr(11, 2)}${x.substr(14, 2)}Z`; };
 function setupSigning(d, pid) {
   const s = d.signed;
   if (s) { $("#signedTag").textContent = `✓ Signed ${zulu(s.at)}`; $("#signedTag").hidden = false; }
+  if (s && new URLSearchParams(location.search).get("signed")) $("#signedTag").textContent += " · you can close this tab and go back to ACARS";
   if (pid || s) return;
   if (d.release_amended) $("#amended").hidden = false;
   $("#signBtn").hidden = false;
@@ -478,7 +480,13 @@ function setupSigning(d, pid) {
         body: JSON.stringify({ reviewed: true, notoc: !!dg, requested_at: d.requested_at, revision: d.revision }) });
       const j = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(j.error || "Could not sign the release.");
-      location.reload();
+      // signed: tell the ACARS tab, then close this tab and return the pilot to where they came from
+      try { const bc = new BroadcastChannel("pac-release"); bc.postMessage({ signed: true, flight: d.flight }); bc.close(); } catch (_) {}
+      try { localStorage.setItem("pac-release-signed", String(Date.now())); } catch (_) {}
+      $("#signDlg").close();
+      window.close();
+      // a browser only lets a page close a tab it opened fresh; if this tab stays open, show the signed release instead
+      setTimeout(() => { if (!window.closed) location.replace(location.pathname + "?signed=1" + (qsLayout() ? "&layout=" + qsLayout() : "")); }, 400);
     } catch (e) { $("#signMsg").textContent = e.message; ready(); }
   };
 }

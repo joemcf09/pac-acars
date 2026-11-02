@@ -189,7 +189,7 @@ def generate(booking, fleet, pilot, now=None):
         "flight": booking["flight_number"], "mission_id": m["id"], "mission_title": m["title"], "category": m.get("category"),
         "priority": m.get("priority"), "briefing": m.get("briefing", ""), "cargo": m.get("cargo", ""), "scenario": m.get("scenario"),
         "date": std.strftime("%d %b %Y").upper(), "std": std.strftime("%H%MZ"), "sta": sta.strftime("%H%MZ"), "block_min": block,
-        "aircraft": code, "aircraft_name": ac.get("name", code), "icao": ac.get("icao", ""), "tail": booking.get("airframe") or ofp.get("registration") or ("Partner aircraft" if m.get("contract") else "—"),
+        "aircraft": code, "aircraft_name": ac.get("name", code), "icao": ac.get("icao", ""), "tail": booking.get("airframe") or booking.get("partner_reg") or ofp.get("registration") or ("Partner aircraft" if m.get("contract") else "—"),
         "origin": m["origin"], "destination": m["destination"], "alternate": ofp.get("alternate"),
         "route": ofp.get("route") or "", "cruise": f"FL{round((ofp.get('cruise_ft') or 0) / 100):03d}" if ofp.get("cruise_ft") else "",
         "distance_nm": ofp.get("distance_nm") or m.get("distance_nm"), "ofp_id": ofp.get("request_id") or "",

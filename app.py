@@ -538,7 +538,7 @@ def build_pirep(booking, rec: FlightRecorder):
         "mission_id": m["id"], "mission_title": m["title"], "category": m["category"],
         "flight_number": booking["flight_number"], "aircraft": booking["aircraft"],
         "aircraft_name": FLEET.get(booking["aircraft"], {}).get("name", booking["aircraft"]),
-        "registration": ofp.get("registration", ""), "dep": rec.origin["icao"], "arr": arr_icao,
+        "registration": booking.get("partner_reg") or ofp.get("registration", ""), "dep": rec.origin["icao"], "arr": arr_icao,
         "planned_arr": dest["icao"], "block_min": round(block_min, 1), "flight_min": round(flight_min, 1),
         "target_block_min": target, "distance_nm": round(rec.distance_nm), "fuel_used_lbs": round(fuel_used),
         "trip_burn_lbs": round(trip_burn) if trip_burn is not None else None,
@@ -1043,6 +1043,16 @@ def filing_icao(st=None):
     return code if re.fullmatch(r"[A-Z]{3}", code) else "PGC"
 
 
+def partner_tail(m, ac):
+    """The partner airline's registration for a contract flight: one of its real tails for that type, always the same
+    for the same flight and type (the browser picks it the same way). None when PAC has no list for that type."""
+    op = (m.get("operator") or {}).get("key")
+    regs = ((PARTNERS.get(op) or {}).get("registrations") or {}).get(ac) or []
+    if not m.get("contract") or not regs:
+        return None
+    return regs[sum(ord(ch) for ch in f"{m['id']}|{ac}") % len(regs)]
+
+
 def site_flight_number(ofp, mission_id):
     """The flight number PAC shows for a booking. A SimBrief plan filed under PAC's network code still shows as PAC."""
     if not (ofp and ofp.get("flight_number")):
@@ -1473,7 +1483,7 @@ def create_booking():
     ofp = body.get("ofp")
     fn = site_flight_number(ofp, m["id"])
     booking = {"mission": m, "aircraft": ac, "ofp": ofp, "flight_number": fn, "requested_at": time.time(),
-               "airframe": frame["reg"] if frame else None}
+               "airframe": frame["reg"] if frame else None, "partner_reg": partner_tail(m, ac)}
     # the preliminary load sheet the pilot reviewed: same units, positions and waybills on the release
     booking["manifest_seed"] = manifest_seed_ok(body.get("manifest_seed")) or prelim_seed(m, ac)
     booking["dispatch"] = dispatch.generate(booking, FLEET, dispatch_pilot())
