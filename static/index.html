@@ -1,0 +1,289 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="description" content="Fly with Pagani Air Cargo, a virtual cargo airline for MSFS and X-Plane. Explore worldwide freight missions, a varied fleet and a welcoming pilot community.">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pagani Air Cargo · ACARS</title>
+<link rel="icon" href="/static/favicon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Saira:wdth,wght@75..125,300..800&family=IBM+Plex+Mono:wght@400;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/static/vendor/leaflet/leaflet.css">
+<script src="/static/vendor/leaflet/leaflet.js"></script>
+<script>
+  // the theme is set before anything draws, so there's no white flash in dark mode
+  (function () {
+    var pref = localStorage.getItem("pac-theme") || "auto";
+    var dark = pref === "dark" || (pref === "auto" && window.matchMedia && matchMedia("(prefers-color-scheme: dark)").matches);
+    document.documentElement.dataset.theme = dark ? "dark" : "light";
+    // the design: "loadsheet" (new) or "classic"
+    document.documentElement.dataset.design = localStorage.getItem("pac-design") || "loadsheet";
+  })();
+</script>
+<link rel="stylesheet" href="/static/app.css?v=cargo-experience-20261021">
+<link rel="stylesheet" href="/static/theme-loadsheet.css">
+<link rel="stylesheet" href="/static/usability.css?v=20261021">
+<link rel="stylesheet" href="/static/navigation.css?v=20261021">
+<link rel="stylesheet" href="/static/problem-reports.css?v=20261021">
+<link rel="stylesheet" href="/static/profile-panel.css?v=20261021">
+<link rel="stylesheet" href="/static/home-board.css?v=20261021">
+<link rel="stylesheet" href="/static/home-layout.css?v=20261022">
+<link rel="stylesheet" href="/static/mission-accents.css?v=20261022">
+<link rel="stylesheet" href="/static/pilot-experience.css?v=20261022">
+<link rel="stylesheet" href="/static/flight-planning.css?v=20261101">
+</head>
+<body>
+<header class="pac-nav-v2">
+  <a class="brand" href="#home" aria-label="Pagani Air Cargo home" style="color:inherit;text-decoration:none"><img src="/static/pac-wordmark-white.png" alt="Pagani Air Cargo"><span>Flight Operations</span></a>
+  <button id="navToggle" aria-expanded="false" aria-controls="mainNav">Menu ☰</button><nav id="mainNav" aria-label="Main"><button data-view="home">Home</button><button data-view="dashboard">Dashboard</button><button data-view="missions">Missions</button><button data-view="bids">My bids<span class="nav-badge" id="bidsCount" hidden>1</span></button><button data-view="acars">ACARS</button><div class="nav-group"><button class="nav-disclosure" aria-expanded="false" aria-controls="navGroup0">Operations <span aria-hidden="true">▾</span></button><div class="nav-panel" id="navGroup0" hidden><button data-view="fleet">Fleet</button><button data-view="live">Live map</button><button data-view="stations">Stations</button></div></div><div class="nav-group"><button class="nav-disclosure" aria-expanded="false" aria-controls="navGroup1">My career <span aria-hidden="true">▾</span></button><div class="nav-panel" id="navGroup1" hidden><button data-view="career">Career</button><button data-view="logbook">Logbook</button><button data-view="stats">My stats</button><button data-view="shop">Shop</button><button data-view="finance">Finance</button></div></div><div class="nav-group"><button class="nav-disclosure" aria-expanded="false" aria-controls="navGroup2">Crew room <span aria-hidden="true">▾</span></button><div class="nav-panel" id="navGroup2" hidden><button data-view="pilots">Pilots</button><button data-view="gallery">Gallery</button><button data-view="updates">What’s new <span id="pxUpdateCount" class="nav-badge" hidden></span></button></div></div><div class="nav-group"><button class="nav-disclosure" aria-expanded="false" aria-controls="navGroup3">Resources <span aria-hidden="true">▾</span></button><div class="nav-panel" id="navGroup3" hidden><button data-view="downloads">Downloads</button><button data-view="handbook">Handbook</button><button data-view="reports">Report a problem</button></div></div><button data-view="staff">Staff</button></nav>
+  <div class="pilot">
+    <a href="#bids" id="bidPill" class="bid-pill" hidden onclick="show('bids');return false" title="Your current bid"></a>
+    <div class="nav-group account-group"><button id="pilotChip" aria-label="Pilot account" class="pilot-chip nav-disclosure" aria-expanded="false" aria-controls="accountMenu"><img id="pilotThumb" alt=""><span id="pilotLabel"></span><span aria-hidden="true">▾</span></button>
+    <div id="accountMenu" class="nav-panel" hidden><button onclick="show('profile')">My profile</button><button id="openSettings">Settings</button><button id="signOutBtn" hidden>Sign out</button></div></div>
+    <button id="signInBtn" class="signin-btn" hidden>Sign in</button>
+  </div>
+</header>
+
+<main>
+<section class="view" id="view-updates" hidden><div id="updatesRoot"></div></section>
+<section class="view" id="view-reports" hidden><div id="reportsRoot"></div></section>
+  <!-- ================= Home ================= -->
+  <section class="view" id="view-dashboard" hidden><div id="pilotBriefing" class="pilot-briefing" aria-label="Pilot briefing"></div></section>
+  <section class="view" id="view-home" hidden><div id="homeRoot"></div></section>
+  <!-- ================= Downloads ================= -->
+  <section class="view" id="view-downloads" hidden><div id="downloadsRoot"></div></section>
+  <!-- ================= Stations ================= -->
+  <section class="view" id="view-stations" hidden><div id="stationsRoot"></div></section>
+  <!-- ================= Pilots ================= -->
+  <section class="view" id="view-pilots" hidden><div id="pilotsRoot"></div></section>
+  <!-- ================= My stats ================= -->
+  <section class="view" id="view-stats" hidden><div id="statsRoot"></div></section>
+  <!-- ================= My bids ================= -->
+  <section class="view" id="view-bids" hidden><div id="bidsRoot"></div></section>
+  <!-- ================= Gallery ================= -->
+  <section class="view" id="view-gallery" hidden><div id="galleryRoot"></div></section>
+  <!-- ================= Finance ================= -->
+  <section class="view" id="view-finance" hidden><div id="financeRoot"></div></section>
+  <!-- ================= Live map ================= -->
+  <section class="view" id="view-live" hidden><div id="liveRoot"></div></section>
+  <!-- ================= PAC shop ================= -->
+  <section class="view" id="view-shop" hidden><div id="shopRoot"></div></section>
+  <!-- ================= Career ================= -->
+  <section class="view" id="view-career" hidden><div id="careerRoot"></div></section>
+  <!-- ================= Handbook ================= -->
+  <section class="view" id="view-handbook" hidden><div id="handbookRoot"></div></section>
+  <!-- ================= Staff ================= -->
+  <section class="view" id="view-staff" hidden><div id="staffRoot"></div></section>
+
+  <!-- ================= Missions ================= -->
+  <section class="view" id="view-missions" hidden>
+    <div class="mb-heading"><div><h1>Where will you fly next?</h1><p>A quick sector, a different destination, or something worth making time for.</p></div><button type="button" class="btn ghost" onclick="openPilotGuide('cargo')">Help me choose</button></div>
+    <div id="heldBanner"></div>
+    <div class="pilot-strip" id="pilotStrip"></div>
+    <details class="journey-help ux-activity-guide"><summary>Campaign, featured shipment, tour or rotation?</summary>
+      <div class="ux-activity-grid">
+        <article><h3>Cargo campaign</h3><p>A shared delivery target. Qualifying accepted cargo arrivals count during its date window. Open the campaign to see destinations and progress.</p></article>
+        <article><h3>Shipment of the Week</h3><p>A featured cargo story to inspire your next flight. Its flight finder shows destination matches; the story itself does not reserve cargo or add pay.</p></article>
+        <article><h3>Tour</h3><p>A journey through a series of legs. Follow the tour's order and aircraft requirements; its details explain the completion reward.</p></article>
+        <article><h3>Rotation</h3><p>A sequence of flights to work through. Review the next leg and its requirements on the Rotations board.</p></article>
+      </div>
+    </details>
+    <div id="featuredShipment"></div>
+    <section id="boardCampaignPanel" aria-label="Cargo campaigns"></section>
+    <details id="boardInspiration" class="mb-inspiration"><summary>Need inspiration? Suggested flights from your station</summary><div id="boardSuggestions"></div></details>
+    <div class="mb-entry"><button type="button" onclick="document.querySelector('[data-board=charter]').click()">Create a charter →</button><button type="button" onclick="document.querySelector('[data-board=events]').click()">Events &amp; tours →</button><button type="button" onclick="show('career/qualifications')">Checkrides &amp; free training travel →</button></div>
+    <div class="board-tabs" role="tablist" aria-label="Flight type">
+      <button role="tab" data-board="all">All flights</button>
+      <button role="tab" data-board="missions">Missions</button>
+      <button role="tab" data-board="urgent">Urgent <span class="count" id="urgentCount" hidden></span></button>
+      <button role="tab" data-board="jobs">Job board <span class="count" id="jobsCount" hidden></span></button>
+      <button role="tab" data-board="partners">Partners</button>
+      <button role="tab" data-board="network">Scheduled network</button>
+      <button role="tab" data-board="rotations">Rotations</button>
+      <button role="tab" data-board="events">Events &amp; tours</button>
+      <button role="tab" data-board="charter">Charter</button>
+    </div>
+    <div class="board-head">
+      <div>
+        <h1 id="boardTitle">Mission board</h1>
+        <p class="muted" id="boardCount" style="margin:6px 0 0"></p>
+      </div>
+
+    </div>
+    <div id="missionBrowseTools"></div>
+    <details id="browseDetails" class="ux-browse-details"><summary id="browseSummary">More filters & sorting</summary><div class="filters" id="filters"></div><div class="filters" id="sortBar"></div></details>
+    <div id="netMapWrap" hidden><div id="netMap"></div></div>
+    <div class="board">
+      <div class="manifest" id="manifest" tabindex="-1" aria-label="Matching flights"></div>
+      <div id="boardPagination"></div>
+      <aside class="dossier" id="dossier" tabindex="-1" aria-label="Flight briefing" hidden></aside>
+    </div>
+  </section>
+
+  <!-- ================= ACARS ================= -->
+  <section class="view" id="view-acars" hidden>
+    <div id="acarsDownload"></div>
+    <div class="acars" id="acars"></div>
+    <div id="pirepPanel"></div>
+  </section>
+
+  <!-- ================= Fleet ================= -->
+  <section class="view" id="view-fleet" hidden>
+    <div id="fleetRoot"></div>
+  </section>
+
+  <!-- ================= Profile ================= -->
+  <section class="view" id="view-profile" hidden>
+    <div id="profileRoot"></div>
+  </section>
+
+  <!-- ================= Logbook ================= -->
+  <section class="view" id="view-logbook" hidden>
+    <h1>Pilot logbook</h1><div id="latestDeliveryReceipt"></div>
+    <p class="muted" id="lbNote" style="margin:6px 0 0"></p>
+    <div class="totals" id="totals"></div>
+    <div class="table-wrap"><table class="lb">
+      <thead><tr><th>Date</th><th>Flight</th><th>Mission</th><th>Route</th><th>Aircraft</th><th>Block</th><th>Landing</th><th>Fuel used</th><th>Score</th><th>Result</th><th>Review</th><th>Points</th></tr></thead>
+      <tbody id="lbBody"></tbody>
+    </table></div>
+  </section>
+</main>
+
+<dialog id="signinDlg" class="auth-dlg">
+  <div class="dlg-head"><h2>Sign in to PAC</h2><button data-close aria-label="Close">×</button></div>
+  <form class="dlg-body" id="signinForm">
+    <p class="muted" id="signinWhy" style="margin:0;font-size:14px">Pilots sign in with their PAC pilot ID.</p>
+    <div class="field"><label for="si_id">Pilot ID</label><input id="si_id" name="pilot_id" autocomplete="username" placeholder="PAC0123" required style="text-transform:uppercase"></div>
+    <div class="field"><label for="si_pw">Password</label><input id="si_pw" name="password" type="password" autocomplete="current-password" required></div>
+    <label style="display:flex;gap:8px;align-items:center;font-size:14px"><input type="checkbox" id="si_keep" checked style="accent-color:var(--red)"> Keep me signed in on this computer</label>
+    <div class="auth-err" id="signinErr" role="alert"></div>
+    <button class="btn" type="submit">Sign in</button>
+    <p class="muted" style="margin:0;font-size:13px">Forgot your password? Ask PAC staff for a sign-in link. Not a PAC pilot yet? <a href="#apply" onclick="document.getElementById('signinDlg').close();show('home');setTimeout(()=>document.getElementById('apply')?.scrollIntoView({behavior:'smooth'}),300);return false" style="color:var(--red)">Apply to fly</a>.</p>
+  </form>
+</dialog>
+
+<dialog id="setupDlg" class="auth-dlg">
+  <div class="dlg-head"><h2>Secure your airline</h2></div>
+  <form class="dlg-body" id="setupForm">
+    <p style="margin:0;font-size:14.5px">PAC now has sign-in. Choose a password for your pilot account <b id="setupId">PAC0001</b>.</p>
+    <p class="muted" style="margin:0;font-size:13px">Your logbook, career, wallet, settings and everything else stay exactly as they are: the password is simply added to your existing pilot record. You'll use it here and in PAC ACARS.</p>
+    <div class="field"><label for="su_pw">New password</label><input id="su_pw" type="password" autocomplete="new-password" required minlength="8"></div>
+    <div class="field"><label for="su_pw2">Type it again</label><input id="su_pw2" type="password" autocomplete="new-password" required minlength="8"></div>
+    <p class="muted" style="margin:0;font-size:12.5px">At least 8 characters. A short sentence you'll remember works well.</p>
+    <div class="auth-err" id="setupErr" role="alert"></div>
+    <button class="btn" type="submit">Set my password</button>
+  </form>
+</dialog>
+
+<dialog id="inviteDlg" class="auth-dlg">
+  <div class="dlg-head"><h2 id="inviteTitle">Welcome to PAC</h2><button data-close aria-label="Close">×</button></div>
+  <form class="dlg-body" id="inviteForm">
+    <p style="margin:0;font-size:14.5px" id="inviteText">Choose a password for your pilot account.</p>
+    <div class="field"><label for="iv_pw">New password</label><input id="iv_pw" type="password" autocomplete="new-password" required minlength="8"></div>
+    <div class="field"><label for="iv_pw2">Type it again</label><input id="iv_pw2" type="password" autocomplete="new-password" required minlength="8"></div>
+    <div class="auth-err" id="inviteErr" role="alert"></div>
+    <button class="btn" type="submit">Set my password and sign in</button>
+  </form>
+</dialog>
+
+<dialog id="letterDlg" class="dlg">
+  <form method="dialog" class="dlg-head"><h2 id="letterTitle">Letter</h2><button class="x" aria-label="Close">×</button></form>
+  <div class="dlg-body" id="letterBody"></div>
+</dialog>
+
+<dialog id="linkDlg" class="auth-dlg">
+  <div class="dlg-head"><h2 id="linkTitle">Sign-in link</h2><button data-close aria-label="Close">×</button></div>
+  <div class="dlg-body">
+    <p style="margin:0;font-size:14.5px" id="linkText"></p>
+    <div class="row" style="flex-wrap:nowrap"><input id="linkUrl" readonly style="flex:1;border:1px solid var(--line);border-radius:3px;padding:8px 10px;font-family:var(--mono);font-size:12.5px">
+      <button class="btn small" type="button" id="linkCopy">Copy</button></div>
+    <p class="muted" style="margin:0;font-size:13px">The link works once and expires after 7 days. Send it privately, for example by Discord message or email. Making a new link cancels the old one.</p>
+  </div>
+</dialog>
+
+<dialog id="settingsDlg">
+  <div class="dlg-head"><h2>Settings</h2><button data-close aria-label="Close">×</button></div>
+  <form class="dlg-body" id="settingsForm" method="dialog">
+    <p class="muted" style="margin:0;font-size:13px">Your photo, bio and type ratings are on your <a href="#profile" onclick="document.getElementById('settingsDlg').close();show('profile');return false" style="color:var(--red)">profile page</a>. You can edit your name on your profile. Your pilot ID is assigned by staff.</p>
+    <div class="grid2">
+      <div class="field"><label for="s_sbu">SimBrief username</label><input id="s_sbu" name="simbrief_username" autocomplete="off"></div>
+      <div class="field"><label for="s_sbi">or SimBrief pilot ID</label><input id="s_sbi" name="simbrief_userid" inputmode="numeric"></div>
+    </div>
+    <label style="display:flex;gap:10px;align-items:flex-start;font-size:14px;cursor:pointer"><input type="checkbox" id="s_repo" name="allow_ground_reposition" style="margin-top:4px;accent-color:var(--red)">
+      <span><b>Allow ground repositioning</b><br><span class="muted" style="font-size:13px">GSX or slew moves on the ground (gate to runway, runway to stand) are logged but not penalised. Turn off to score them as position jumps. Moves in the air are always penalised.</span></span></label>
+    <div class="grid2">
+      <div class="field"><label for="s_vat">VATSIM CID (optional)</label><input id="s_vat" name="vatsim_cid" inputmode="numeric" autocomplete="off"></div>
+      <div class="field"><label for="s_ivao">IVAO VID (optional)</label><input id="s_ivao" name="ivao_vid" inputmode="numeric" autocomplete="off"></div>
+    </div>
+    <p class="muted" style="margin:-6px 0 0;font-size:13px">If you fly connected to VATSIM or IVAO, PAC ACARS checks the public network feed during the flight and adds a 10% bonus.</p>
+    <div id="discordLink" class="discord-link" hidden></div>
+    <div class="field"><label for="s_map">Map style</label>
+      <select id="s_map" name="map_style"><option value="dark">Dark</option><option value="street">Street</option><option value="satellite">Satellite</option><option value="offline">Offline outline</option></select></div>
+    <p class="muted" style="margin:0;font-size:13px">Your SimBrief pilot ID is under Account Settings on simbrief.com. Simulator, X-Plane address and demo settings are in the PAC ACARS app (Settings).</p>
+    <div class="row"><button class="btn" type="submit" value="save">Save settings</button></div>
+  </form>
+  <div class="dlg-body" style="border-top:1px solid var(--line)">
+    <div class="field"><label for="themeSel">Appearance (this computer)</label>
+      <select id="themeSel"><option value="auto">Automatic: follow Windows</option><option value="light">Light</option><option value="dark">Dark</option></select></div>
+    <div class="field"><label for="designSel">Design</label>
+      <select id="designSel"><option value="loadsheet">Load Sheet (side rail, bold markings)</option><option value="classic">Classic (red top bar)</option></select></div>
+  </div>
+  <form class="dlg-body" id="passwordForm" style="border-top:1px solid var(--line)">
+    <h3 style="margin:0">Password</h3>
+    <div class="grid2">
+      <div class="field"><label for="pw_cur">Current password</label><input id="pw_cur" type="password" autocomplete="current-password" required></div>
+      <div class="field"><label for="pw_new">New password</label><input id="pw_new" type="password" autocomplete="new-password" required minlength="8"></div>
+    </div>
+    <div class="row"><button class="btn ghost small" type="submit">Change password</button><span class="auth-err" id="pwErr" role="alert"></span></div>
+  </form>
+</dialog>
+
+<dialog id="detailDlg" class="wide">
+  <div class="dlg-head"><h2 id="detailTitle">PIREP</h2><button data-close aria-label="Close">×</button></div>
+  <div class="dlg-body" id="detailBody"></div>
+</dialog>
+
+<dialog id="shotDlg" class="wide" style="max-width:1400px">
+  <div class="dlg-head"><h2 id="shotTitle">Screenshot</h2><button data-close aria-label="Close">×</button></div>
+  <div class="dlg-body" id="shotBody" style="padding:0"></div>
+</dialog>
+
+<dialog id="msgDlg">
+  <div class="dlg-head"><h2>Maintenance write-up</h2><button data-close aria-label="Close">×</button></div>
+  <div class="dlg-body"><form id="msgForm" class="msg-form"></form></div>
+</dialog>
+
+<dialog id="jumpDlg">
+  <div class="dlg-head"><h2>Jumpseat</h2><button data-close aria-label="Close">×</button></div>
+  <div class="dlg-body">
+    <p style="margin:0" id="jsFrom"></p>
+    <div class="field ap-field"><label for="js_to">Travel to</label><input id="js_to" placeholder="ICAO, IATA, city or airport" autocomplete="off"><ul class="ap-list" id="js_list" hidden></ul></div>
+    <div class="js-picks" id="jsPicks"></div>
+    <div id="jsQuote"></div>
+    <div class="row"><button class="btn" id="jsGo" type="button" disabled>Travel</button><span class="muted" style="font-size:13px" id="jsBal"></span></div>
+  </div>
+</dialog>
+
+<dialog id="licenceDlg" class="wide">
+  <div class="dlg-head"><h2>Pilot licence</h2><button data-close aria-label="Close">×</button></div>
+  <div class="dlg-body">
+    <div class="licence-pair"><figure><canvas id="licFront" width="1712" height="1080" aria-label="Licence front"></canvas><figcaption>Front</figcaption></figure>
+      <figure><canvas id="licBack" width="1712" height="1080" aria-label="Licence back"></canvas><figcaption>Back</figcaption></figure></div>
+    <div class="row"><button class="btn" id="licDlFront" type="button">Download front</button><button class="btn ghost" id="licDlBack" type="button">Download back</button>
+      <span class="muted" style="font-size:13px">PNG images. Updates automatically when your profile, rank or ratings change.</span></div>
+  </div>
+</dialog>
+
+<dialog id="photoDlg" class="photo-dlg" aria-label="Aircraft photo">
+  <button data-close aria-label="Close" class="photo-close">×</button>
+  <img id="photoBig" alt="">
+  <p id="photoCap"></p>
+</dialog>
+
+<div class="toast" id="toast" role="status" hidden></div>
+
+<script src="/static/cargo-programs.js?v=cargo-experience-20261021"></script>
+<script src="/static/problem-reports.js?v=20261021"></script>
+<script src="/static/app.js?v=flight-planning-20261101b"></script>
+</body>
+</html>

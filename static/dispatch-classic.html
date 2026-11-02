@@ -1,0 +1,309 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dispatch release · Pagani Air Cargo</title>
+<link rel="icon" href="/static/favicon.png">
+<link href="https://fonts.googleapis.com/css2?family=Saira:wdth,wght@75..125,300..800&family=IBM+Plex+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root{--red:#C80000;--ink:#1E2126;--steel:#5E6470;--line:#D5D8DD;--paper:#fff;--font:"Saira",system-ui,sans-serif;--mono:"IBM Plex Mono",ui-monospace,Consolas,monospace}
+*{box-sizing:border-box}
+html{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+body{margin:0;background:#5b5f66;font-family:var(--font);font-stretch:95%;color:var(--ink);font-size:12.5px;line-height:1.4}
+.toolbar{position:sticky;top:0;z-index:5;background:var(--ink);color:#fff;display:flex;gap:12px;align-items:center;padding:10px 18px}
+.toolbar b{font-stretch:115%}
+.toolbar .sp{flex:1}
+.toolbar button,.toolbar a{background:var(--red);color:#fff;border:0;border-radius:3px;padding:8px 16px;font:700 14px var(--font);cursor:pointer;text-decoration:none}
+.toolbar a.ghost{background:transparent;border:1px solid rgba(255,255,255,.4)}
+.toolbar button,.toolbar a,.toolbar b,#tbInfo{white-space:nowrap}
+.toolbar .seg a{background:transparent;border-radius:0;padding:8px 12px;color:#C9CED6}
+.toolbar .seg a.on{background:#fff;color:var(--ink)}
+@media screen and (max-width:900px){#tbInfo{display:none}}
+.page{width:210mm;min-height:297mm;margin:18px auto;background:var(--paper);box-shadow:0 10px 30px rgba(0,0,0,.35);padding:12mm 13mm 16mm;position:relative;display:flex;flex-direction:column}
+.band{display:flex;align-items:center;justify-content:space-between;background:var(--red);color:#fff;margin:-12mm -13mm 8mm;padding:7mm 13mm 6mm}
+.band img{height:30px;display:block}
+.band .doc{text-align:right}
+.band .doc b{display:block;font-size:22px;font-weight:800;font-stretch:120%;letter-spacing:.03em}
+.band .doc span{font-size:12px;opacity:.9;font-family:var(--mono)}
+.flightline{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;border-bottom:3px solid var(--ink);padding-bottom:4mm;margin-bottom:5mm}
+.fl-num{font-size:38px;font-weight:800;font-stretch:125%;line-height:1}
+.fl-route{font-size:26px;font-weight:800;font-stretch:120%}
+.fl-route small{display:block;font-size:12px;font-weight:500;font-stretch:95%;color:var(--steel);text-align:right}
+h2{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--red);margin:5mm 0 2mm;font-weight:800}
+.grid{display:grid;gap:0;border:1px solid var(--line);border-bottom:0;border-right:0}
+.grid>div{border-right:1px solid var(--line);border-bottom:1px solid var(--line);padding:5px 8px;min-height:40px}
+.grid span{display:block;font-size:9.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--steel)}
+.grid b{font-size:14px;font-variant-numeric:tabular-nums}
+.grid small{display:block;color:var(--steel);font-size:10.5px}
+.g4{grid-template-columns:repeat(4,1fr)}.g3{grid-template-columns:repeat(3,1fr)}.g2{grid-template-columns:repeat(2,1fr)}
+.cols{display:grid;grid-template-columns:1fr 1fr;gap:6mm}
+.brief{border-left:4px solid var(--red);background:#faf6f6;padding:8px 10px;margin:0}
+.mono{font-family:var(--mono);font-size:11.5px;word-break:break-word}
+.route{border:1px solid var(--line);padding:8px 10px;background:#fafafa}
+.sig{display:grid;grid-template-columns:1fr 1fr;gap:8mm;margin-top:auto;padding-top:12mm}
+table.dense td{padding:2px 6px;font-size:10px}
+table.dense .shc{font-size:8.5px;margin-bottom:0}
+.sig div{border-top:1.5px solid var(--ink);padding-top:4px;font-size:10.5px;color:var(--steel)}
+.sig .hand{font-family:"Segoe Script","Brush Script MT",cursive;font-size:22px;color:#233a8a;margin:-34px 0 8px;display:block;height:30px}
+.stamp{position:absolute;right:22mm;bottom:52mm;transform:rotate(-10deg);background:rgba(255,255,255,.6);border:3px solid var(--red);color:var(--red);font-weight:800;font-stretch:120%;padding:4px 12px;font-size:18px;letter-spacing:.12em;opacity:.85;border-radius:4px}
+.stamp small{display:block;font-size:9px;letter-spacing:.1em;text-align:center}
+table{border-collapse:collapse;width:100%;font-size:11px}
+th{text-align:left;font-size:9.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--steel);border-bottom:2px solid var(--ink);padding:5px 6px}
+td{border-bottom:1px solid var(--line);padding:4px 6px;vertical-align:top;font-variant-numeric:tabular-nums}
+td.num,th.num{text-align:right}
+tr.dg td{background:#fff1f1}
+.shc{display:inline-block;font-family:var(--mono);font-size:9.5px;font-weight:600;border:1px solid var(--ink);padding:0 3px;margin:0 2px 2px 0;border-radius:2px}
+.shc.dg{border-color:var(--red);background:var(--red);color:#fff}
+tfoot td{font-weight:800;border-top:2px solid var(--ink);border-bottom:0}
+.legend{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:10.5px;color:var(--steel);margin-top:3mm}
+.plan{border:1px solid var(--line);padding:4mm;background:#fbfbfc}
+.plan svg{width:100%;height:auto;display:block}
+.notoc-head{background:var(--ink);color:#fff;padding:8px 12px;display:flex;justify-content:space-between;align-items:center;margin-bottom:4mm}
+.notoc-head b{font-size:18px;font-stretch:115%}
+.diamond{display:inline-grid;place-items:center;width:30px;height:30px;transform:rotate(45deg);border:2px solid var(--ink);margin:4px 8px 4px 4px;vertical-align:middle}
+.diamond i{transform:rotate(-45deg);font-style:normal;font-weight:800;font-size:12px}
+.foot{position:absolute;left:13mm;right:13mm;bottom:7mm;display:flex;justify-content:space-between;font-size:9px;color:var(--steel);letter-spacing:.04em}
+.barcode{height:34px}
+.wx-block{border:1px solid var(--line);margin-bottom:5mm}
+.wx-head{display:flex;justify-content:space-between;align-items:center;background:#f4f5f7;padding:6px 10px;border-bottom:1px solid var(--line)}
+.wx-head b{font-size:16px;font-stretch:115%}
+.fcat{display:inline-block;font:800 10.5px var(--font);letter-spacing:.06em;padding:2px 7px;border-radius:2px;color:#fff}
+.fcat.VFR{background:#1f9d55}.fcat.MVFR{background:#2b6fd6}.fcat.IFR{background:#d62b2b}.fcat.LIFR{background:#b02bd6}.fcat.NA{background:#8E96A3}
+.wx-body{padding:8px 10px;display:grid;gap:6px}
+.wx-body .lbl{font-size:9.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--steel)}
+.err{max-width:600px;margin:80px auto;background:#fff;padding:30px;border-radius:4px;text-align:center}
+.seg{display:inline-flex;border:1px solid rgba(255,255,255,.35);margin-right:4px}
+.seg a{padding:7px 12px;color:#C9CED6;text-decoration:none;font-weight:600;font-size:14px}
+.seg a.on{background:#fff;color:#1E2126}
+@media print{
+  body{background:#fff;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  .toolbar{display:none}
+  .page{margin:0;box-shadow:none;page-break-after:always;min-height:297mm;height:auto}
+  .page:last-child{page-break-after:auto}
+  @page{size:A4;margin:0}
+}
+@media screen and (max-width:820px){.page{width:auto;margin:10px;padding:14px}.band{margin:-14px -14px 14px;padding:14px}.g4{grid-template-columns:repeat(2,1fr)}.cols{grid-template-columns:1fr}.stamp{display:none}}
+[hidden]{display:none !important}
+</style>
+</head>
+<body>
+<div class="toolbar"><b>Dispatch paperwork</b><span id="tbInfo"></span><span class="sp"></span><span class="seg" role="group" aria-label="Layout"><a id="toNew" href="/dispatch?layout=new">New</a><a class="on" href="#" aria-current="true">Classic</a></span><a class="ghost" id="navigraph" href="https://charts.navigraph.com/" target="_blank" rel="noopener" hidden>Navigraph Charts</a><a class="ghost" href="/#acars">Back to ACARS</a><button onclick="print()">Print / save as PDF</button></div>
+<div id="doc"></div>
+<script>
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const fmt = n => n == null || isNaN(n) ? "—" : Math.round(n).toLocaleString("en-US");
+const kg = lb => lb == null ? "" : `${fmt(lb / 2.20462)} kg`;
+const hm = m => m == null ? "—" : `${Math.floor(m / 60)}h ${String(Math.round(m % 60)).padStart(2, "0")}m`;
+
+function barcode(text) {
+  let x = 0, bars = "", seed = [...text].reduce((a, c) => (a * 31 + c.charCodeAt(0)) >>> 0, 7);
+  for (let i = 0; i < 70; i++) { seed = (seed * 1103515245 + 12345) >>> 0; const w = 1 + (seed >> 16) % 3; if (i % 2 === 0) bars += `<rect x="${x}" y="0" width="${w}" height="30"/>`; x += w; }
+  return `<svg class="barcode" viewBox="0 0 ${x} 34" preserveAspectRatio="none" style="width:${x * 1.4}px"><g fill="#1E2126">${bars}</g><text x="${x / 2}" y="34" font-size="5" text-anchor="middle" font-family="IBM Plex Mono, monospace">${esc(text)}</text></svg>`;
+}
+
+function loadingPlan(d) {
+  const byPos = Object.fromEntries(d.positions.map(p => [p.pos, p]));
+  const main = d.deck.main, lower = d.deck.lower, wide = ["PMC"].includes(d.deck.uld);
+  const perRow = wide ? Math.ceil(main.length / 2) : main.length;
+  const W = 1000, cell = Math.min(58, (W - 190) / perRow), gap = 3;
+  const x0 = 95, rows = wide ? 2 : 1, mh = wide ? 46 : 58, H = 60 + rows * (mh + gap) + (lower.length ? 90 : 20);
+  const y0 = 30;
+  let s = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Loading plan">`;
+  // fuselage
+  const fx1 = x0 + perRow * (cell + gap) + 30, fy = y0 - 12, fh = rows * (mh + gap) + 21;
+  s += `<path d="M${x0 - 10},${fy} L${fx1},${fy} Q${fx1 + 70},${fy} ${fx1 + 90},${fy + fh / 2} Q${fx1 + 70},${fy + fh} ${fx1},${fy + fh} L${x0 - 10},${fy + fh} Q${x0 - 75},${fy + fh} ${x0 - 85},${fy + fh / 2} Q${x0 - 75},${fy} ${x0 - 10},${fy} Z" fill="#fff" stroke="#1E2126" stroke-width="2"/>`;
+  s += `<text x="${x0 - 60}" y="${fy + fh / 2 + 4}" font-size="11" fill="#5E6470" font-family="Saira, Segoe UI, sans-serif">NOSE</text>`;
+  const box = (p, x, y, w, h) => {
+    const u = byPos[p];
+    const fill = !u ? "#f4f5f7" : u.dg ? "#ffe3e3" : "#e9ecf1", stroke = u?.dg ? "#C80000" : u ? "#1E2126" : "#c5c9cf";
+    return `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="3" fill="${fill}" stroke="${stroke}" stroke-width="${u?.dg ? 2.2 : 1.2}" ${u ? "" : 'stroke-dasharray="4 3"'}/>
+      <text x="${x + w / 2}" y="${y + 14}" text-anchor="middle" font-size="10.5" font-weight="700" font-family="IBM Plex Mono, Consolas, monospace" fill="#1E2126">${esc(p)}</text>
+      ${u ? `<text x="${x + w / 2}" y="${y + h - 16}" text-anchor="middle" font-size="9.5" font-family="IBM Plex Mono, Consolas, monospace" fill="#1E2126">${(u.weight_lbs / 1000).toFixed(1)}k</text>
+      <text x="${x + w / 2}" y="${y + h - 5}" text-anchor="middle" font-size="8.5" font-family="IBM Plex Mono, Consolas, monospace" fill="${u.dg ? "#C80000" : "#5E6470"}">${esc(u.dg || u.shc[0] || "")}</text>` : ""}`;
+  };
+  main.forEach((p, i) => {
+    const r = wide ? i % 2 : 0, c = wide ? Math.floor(i / 2) : i;
+    s += box(p, x0 + c * (cell + gap), y0 + r * (mh + gap), cell, mh);
+  });
+  s += `<text x="${x0}" y="${fy - 6}" font-size="11" font-weight="700" fill="#1E2126" font-family="Saira, Segoe UI, sans-serif">MAIN DECK · ${esc(d.deck.uld)}</text>`;
+  if (lower.length) {
+    const ly = fy + fh + 30, lw = lower[0].includes("BULK") ? 150 : Math.min(62, (W - 190) / lower.length);
+    s += `<text x="${x0}" y="${ly - 6}" font-size="11" font-weight="700" fill="#1E2126" font-family="Saira, Segoe UI, sans-serif">LOWER DECK · ${esc(d.deck.luld)}</text>`;
+    lower.forEach((p, i) => { s += box(p, x0 + i * (lw + (lower[0].includes("BULK") ? 180 : gap)), ly, lw, 50); });
+  }
+  return s + `</svg>`;
+}
+
+function render(d) {
+  document.title = `${d.flight} dispatch · Pagani Air Cargo`;
+  if (d.simbrief_request_id) { $("#navigraph").href = "https://charts.navigraph.com/flights/simbrief-instant-import?requestId=" + encodeURIComponent(d.simbrief_request_id); $("#navigraph").hidden = false; }
+  $("#tbInfo").textContent = `${d.flight} · ${d.origin.icao}–${d.destination.icao} · ${d.date}`;
+  const f = d.fuel || {}, w = d.weights || {}, t = d.totals;
+  const landFuel = f.block_fuel_lbs && f.trip_fuel_lbs ? f.block_fuel_lbs - (f.taxi_fuel_lbs || 0) - f.trip_fuel_lbs : null;
+  const threeCrew = /Engineer/i.test(d.aircraft_name) || ["B722F", "B742F"].includes(d.aircraft);
+  const head = (title, sub) => `<div class="band"><img src="/static/pac-wordmark-white.png" alt="Pagani Air Cargo"><div class="doc"><b>${title}</b><span>${sub}</span></div></div>`;
+  const foot = n => `<div class="foot"><span>PAGANI AIR CARGO · OPERATIONS CONTROL CENTER KCVG · FOR FLIGHT SIMULATION USE ONLY</span><span>${esc(d.release_no)} · PAGE ${n}</span></div>`;
+  const op = d.operator;
+  const cust = op ? `<div style="display:flex;align-items:center;gap:10px;margin-top:6px">${op.logo ? `<img src="${esc(op.logo)}" alt="${esc(op.name)}" style="height:28px;width:auto;max-width:150px;object-fit:contain">` : ""}<span style="font-size:11px;color:var(--steel)">Operated by ${esc(op.name)} · callsign ${esc(op.callsign)} · PAC captain on crew hire</span></div>` : "";
+  const flightline = `<div class="flightline"><div><div class="fl-num">${esc(d.flight)}</div><div style="color:var(--steel)">${esc(d.mission_title)}</div>${cust}</div>
+    <div class="fl-route">${esc(d.origin.icao)} → ${esc(d.destination.icao)}<small>${esc(d.origin.name || "")} to ${esc(d.destination.name || "")}</small></div></div>`;
+
+  let html = `<section class="page">${head("DISPATCH RELEASE", `${d.release_no} · ${d.date}`)}${flightline}
+    <div class="stamp">RELEASED<small>PAC OCC · ${esc(d.date)}</small></div>
+    <div class="grid g4">
+      <div><span>Date</span><b>${esc(d.date)}</b></div>
+      <div><span>Aircraft</span><b>${esc(d.icao)}</b><small>${esc(d.aircraft_name)}</small></div>
+      <div><span>Registration</span><b>${esc(d.tail)}</b></div>
+      <div><span>Mission</span><b>${esc(d.category || "")}</b><small>${esc(d.priority || "")} priority</small></div>
+      <div><span>Departure</span><b>${esc(d.origin.icao)}</b><small>STD ${esc(d.std)}</small></div>
+      <div><span>Destination</span><b>${esc(d.destination.icao)}</b><small>STA ${esc(d.sta)}</small></div>
+      <div><span>Alternate</span><b>${esc(d.alternate?.icao || "—")}</b><small>${esc(d.alternate?.name || "")}</small></div>
+      <div><span>Cost Index</span><b>${esc(d.paper?.cost_index == null || String(d.paper.cost_index).trim() === "" ? "Not provided" : String(d.paper.cost_index))}</b><small>Imported SimBrief OFP</small></div>
+      <div><span>Block / distance</span><b>${hm(d.block_min)}</b><small>${fmt(d.distance_nm)} nm${d.cruise ? " · " + esc(d.cruise) : ""}</small></div>
+    </div>
+    <div class="cols">
+      <div><h2>Crew</h2><div class="grid g2">
+        <div style="grid-column:1/-1"><span>Pilot in command</span><b>${esc(d.captain?.name || "")}</b><small>${esc(d.captain?.id || "")} · ${esc(d.captain?.rank || "")}</small></div>
+        <div><span>First officer</span><b>—</b><small>Crew scheduling</small></div>
+        <div><span>${threeCrew ? "Flight engineer" : "Loadmaster"}</span><b>—</b><small>${threeCrew ? "Three-crew aircraft" : "Ground handling"}</small></div>
+      </div></div>
+      <div><h2>Fuel (lb)</h2><div class="grid g2">
+        <div><span>Block fuel</span><b>${fmt(f.block_fuel_lbs)}</b><small>${kg(f.block_fuel_lbs)}</small></div>
+        <div><span>Taxi</span><b>${fmt(f.taxi_fuel_lbs)}</b></div>
+        <div><span>Trip</span><b>${fmt(f.trip_fuel_lbs)}</b></div>
+        <div><span>Reserve</span><b>${fmt(f.reserve_fuel_lbs)}</b></div>
+        <div style="grid-column:1/-1"><span>Planned landing fuel</span><b>${fmt(landFuel)}</b>${f.block_fuel_lbs ? "" : `<small>Fuel figures come from your SimBrief OFP. Import one before printing for full figures.</small>`}</div>
+      </div></div>
+    </div>
+    <div class="cols">
+      <div><h2>Weights (lb)</h2><div class="grid g2">
+        <div><span>Payload</span><b>${fmt(w.payload_lbs)}</b><small>${kg(w.payload_lbs)} · max ${fmt(w.max_payload_lbs)}</small></div>
+        <div><span>Zero fuel weight</span><b>${fmt(w.zfw_lbs)}</b></div>
+        <div><span>Takeoff weight</span><b>${fmt(w.tow_lbs)}</b><small>MTOW ${fmt(w.mtow_lbs)}</small></div>
+        <div><span>Landing weight</span><b>${fmt(w.ldw_lbs)}</b></div>
+      </div></div>
+      <div><h2>Cargo</h2><div class="grid g2">
+        <div><span>Units / pieces</span><b>${d.ferry ? "—" : `${t.units} / ${fmt(t.pieces)}`}</b></div>
+        <div><span>Manifest weight</span><b>${d.ferry ? "0" : fmt(t.weight_lbs)}</b></div>
+        <div style="grid-column:1/-1"><span>Dangerous goods</span><b style="color:${d.dg.length ? "var(--red)" : "inherit"}">${d.ferry ? "Ferry flight, no cargo" : d.dg.length ? `YES · NOTOC attached (${d.dg.length} ${d.dg.length === 1 ? "entry" : "entries"})` : "None on board"}</b></div>
+      </div></div>
+    </div>
+    <h2>Deferred defects</h2>${(d.defects || []).length ? `<table><thead><tr><th>ATA</th><th>Defect</th><th>Category</th><th>Fix by</th></tr></thead><tbody>
+      ${d.defects.map(x => `<tr><td class="mono"><b>${String(x.ata).padStart(2, "0")}</b></td><td>${esc(x.description)}<br><small style="color:var(--steel)">${esc(x.ata_name || "")}${x.flight ? " · reported on " + esc(x.flight) : ""}</small></td>
+        <td>${x.severity === "grounding" ? "GROUNDING" : "CAT " + esc(x.category || "")}</td><td class="mono">${x.due ? new Date(x.due * 1000).toISOString().substr(0, 10) : "—"}</td></tr>`).join("")}</tbody></table>`
+      : `<p class="brief" style="margin:0">No deferred defects on ${esc(d.tail)}.</p>`}
+    <h2>Briefing</h2><p class="brief">${esc(d.briefing)}</p>
+    <h2>Route${d.ofp_id ? ` · OFP ${esc(d.ofp_id)}` : ""}</h2><div class="route mono">${esc(d.route || "Direct routing per SimBrief OFP. Import your OFP before printing to include the route.")}</div>
+    <div class="sig">
+      <div><span class="hand">PAC Dispatch</span>Released by: PAC Operations Control, Cincinnati · ${esc(d.date)} ${esc(d.std)}</div>
+      <div><span class="hand"></span>Accepted by pilot in command: ${esc(d.captain?.name || "")} · signature</div>
+    </div>
+    <div style="display:flex;justify-content:space-between;align-items:flex-end;margin-top:5mm">${barcode(d.release_no)}<span style="font-size:10px;color:var(--steel);max-width:95mm;text-align:right">Flight released in accordance with the Pagani Air Cargo operations manual. The pilot in command confirms review of weather, NOTAMs and the operational flight plan.</span></div>
+    ${foot(1)}</section>`;
+
+  html += `<section class="page">${head("CARGO MANIFEST", `${d.release_no} · ${d.date}`)}${flightline}
+    <div class="grid g4" style="margin-bottom:4mm">
+      <div><span>Registration</span><b>${esc(d.tail)}</b></div><div><span>Units</span><b>${d.ferry ? "—" : t.units}</b></div>
+      <div><span>Pieces</span><b>${d.ferry ? "—" : fmt(t.pieces)}</b></div><div><span>Total weight</span><b>${fmt(t.weight_lbs)} lb</b><small>${kg(t.weight_lbs)}</small></div>
+    </div>
+    <h2>Loading plan</h2><div class="plan">${loadingPlan(d)}</div>
+    <div class="legend"><span>▢ grey: loaded</span><span style="color:var(--red)">▢ red: dangerous goods</span><span>▢ dashed: empty</span><span>Weights in thousands of lb</span></div>
+    ${d.ferry ? `<h2>Manifest</h2><p class="brief"><b>FERRY FLIGHT. NO CARGO ON BOARD.</b> Aircraft positioning only.</p>` : `
+    <h2>Manifest</h2><table class="${d.positions.length > 16 ? "dense" : ""}"><thead><tr><th>Pos</th><th>Unit</th><th>Air waybill</th><th>Contents</th><th>SHC</th><th class="num">Pcs</th><th class="num">Weight lb</th><th class="num">kg</th></tr></thead><tbody>
+      ${d.positions.map(p => `<tr class="${p.dg ? "dg" : ""}"><td class="mono"><b>${esc(p.pos)}</b></td><td class="mono">${esc(p.unit)}</td><td class="mono">${esc(p.awb)}</td><td>${esc(p.contents)}</td>
+        <td>${p.shc.map(c => `<span class="shc ${c === p.dg ? "dg" : ""}">${esc(c)}</span>`).join("")}</td><td class="num">${fmt(p.pieces)}</td><td class="num">${fmt(p.weight_lbs)}</td><td class="num">${fmt(p.weight_lbs / 2.20462)}</td></tr>`).join("")}
+      </tbody><tfoot><tr><td colspan="5">Total · main deck ${fmt(t.main_lbs)} lb · lower deck ${fmt(t.lower_lbs)} lb</td><td class="num">${fmt(t.pieces)}</td><td class="num">${fmt(t.weight_lbs)}</td><td class="num">${fmt(t.weight_lbs / 2.20462)}</td></tr></tfoot></table>
+    <div class="legend">${d.shc.map(c => `<span><span class="shc">${esc(c.code)}</span> ${esc(c.name)}</span>`).join("")}</div>
+    ${(d.onward || []).length ? `<h2>Onward to Pagani Remote Aviation</h2>
+    <p class="brief">Village freight consolidated in unit <b>${esc(d.onward[0].pos)}</b> (weight included above). Hand it to PRA at ${esc(d.destination.icao)}; it is trucked to Merrill Field and flown out on the Kodiak.</p>
+    <table class="dense"><thead><tr><th>Ref</th><th>To</th><th>Contents</th><th>Consignee</th><th>SHC</th><th class="num">Pcs</th><th class="num">Weight lb</th></tr></thead><tbody>
+      ${d.onward.map(x => `<tr><td class="mono">${esc(x.ref)}</td><td class="mono"><b>${esc(x.dest)}</b></td><td>${esc(x.desc)}<br><small>${esc(x.why)}</small></td><td>${esc(x.consignee)}</td>
+        <td>${(x.shc || []).map(c => `<span class="shc">${esc(c)}</span>`).join("")}</td><td class="num">${fmt(x.pcs)}</td><td class="num">${fmt(x.lb)}</td></tr>`).join("")}
+    </tbody></table>` : ""}
+    ${d.dg.length ? `<p class="brief" style="margin-top:4mm;border-color:var(--red)"><b>Dangerous goods on board.</b> See the NOTOC on the next page before departure.</p>` : `<p class="brief" style="margin-top:4mm">No dangerous goods on board.</p>`}`}
+    <div class="sig"><div><span class="hand">R. Okafor</span>Loading supervisor · ${esc(d.origin.icao)}</div><div><span class="hand"></span>Pilot in command · load accepted</div></div>
+    ${foot(2)}</section>`;
+
+  if (d.dg.length) {
+    html += `<section class="page">${head("NOTOC", "Special load · notification to captain")}${flightline}
+      <div class="notoc-head"><b>DANGEROUS GOODS ON BOARD</b><span class="mono">${esc(d.flight)} · ${esc(d.tail)} · ${esc(d.date)}</span></div>
+      <table><thead><tr><th>Air waybill</th><th>UN / ID</th><th>Proper shipping name</th><th>Class</th><th class="num">Pkgs</th><th class="num">Net qty</th><th>IMP</th><th>Pos</th><th>CAO</th></tr></thead><tbody>
+      ${d.dg.map(g => `<tr class="dg"><td class="mono">${esc(g.awb)}</td><td class="mono"><b>${esc(g.un)}</b></td><td>${esc(g.name)}</td>
+        <td><span class="diamond"><i>${esc(g.cls)}</i></span>${g.sub ? `<small>(${esc(g.sub)})</small>` : ""}</td><td class="num">${g.pieces}</td><td class="num">${esc(g.net)}</td>
+        <td><span class="shc dg">${esc(g.imp)}</span></td><td class="mono"><b>${esc(g.pos)}</b></td><td>${g.cao ? "YES" : "NO"}</td></tr>`).join("")}
+      </tbody></table>
+      <h2>Other special loads</h2>
+      <table><thead><tr><th>Pos</th><th>Contents</th><th>SHC</th><th class="num">Weight lb</th></tr></thead><tbody>
+        ${d.positions.filter(p => !p.dg && p.shc.some(c => !["GEN", "COU", "MAL", "ECC"].includes(c))).slice(0, 10).map(p => `<tr><td class="mono"><b>${esc(p.pos)}</b></td><td>${esc(p.contents)}</td><td>${p.shc.map(c => `<span class="shc">${esc(c)}</span>`).join("")}</td><td class="num">${fmt(p.weight_lbs)}</td></tr>`).join("") || `<tr><td colspan="4">None</td></tr>`}
+      </tbody></table>
+      <p class="brief" style="margin-top:5mm;border-color:var(--red)">There is no evidence that any damaged or leaking packages containing dangerous goods have been loaded on this aircraft. In an emergency, inform ATC of the dangerous goods on board and their positions.</p>
+      <div class="sig"><div><span class="hand">R. Okafor</span>Loading supervisor · ${esc(d.origin.icao)}</div><div><span class="hand"></span>Pilot in command · NOTOC received</div></div>
+      ${foot(3)}</section>`;
+  }
+  $("#doc").innerHTML = html;
+}
+
+function renumber() {
+  const pages = [...document.querySelectorAll(".page")];
+  pages.forEach((p, i) => { const f = p.querySelector(".foot span:last-child"); if (f) f.textContent = f.textContent.replace(/PAGE \d+.*/, `PAGE ${i + 1} OF ${pages.length}`); });
+}
+
+async function addWeather(d) {
+  const ids = [d.origin.icao, d.destination.icao, d.alternate?.icao].filter(Boolean);
+  let w;
+  try {
+    const res = await fetch("/api/weather?taf=1&ids=" + ids.join(","));
+    w = await res.json();
+    if (!res.ok) throw new Error(w.error);
+  } catch (e) { w = { _error: e.message || "Weather unavailable." }; }
+  const now = new Date().toISOString().substr(11, 5).replace(":", "") + "Z";
+  const block = (label, icao) => {
+    const x = w[icao] || {}, m = x.metar;
+    return `<div class="wx-block"><div class="wx-head"><span><b>${esc(icao)}</b> · ${label}</span><span class="fcat ${m ? m.category : "NA"}">${m ? m.category : "NO DATA"}</span></div>
+      <div class="wx-body"><div><div class="lbl">METAR</div><div class="mono">${esc(m ? m.raw : "Not available")}</div></div>
+      ${m ? `<div><div class="lbl">Decoded</div>${esc(m.summary)}</div>` : ""}
+      <div><div class="lbl">TAF</div><div class="mono" style="white-space:pre-wrap">${esc(x.taf ? x.taf.lines.join("\n") : "Not available")}</div></div></div></div>`;
+  };
+  const sec = document.createElement("section");
+  sec.className = "page";
+  sec.innerHTML = `<div class="band"><img src="/static/pac-wordmark-white.png" alt="Pagani Air Cargo"><div class="doc"><b>WEATHER</b><span>${esc(d.release_no)} · printed ${now}</span></div></div>
+    <div class="flightline"><div><div class="fl-num">${esc(d.flight)}</div><div style="color:var(--steel)">${esc(d.mission_title)}</div></div><div class="fl-route">${esc(d.origin.icao)} → ${esc(d.destination.icao)}<small>Reports current at ${now}</small></div></div>
+    ${w._error ? `<p class="brief">${esc(w._error)} Check weather in your simulator or flight planner before departure.</p>` :
+      block("Departure", d.origin.icao) + block("Destination", d.destination.icao) + (d.alternate?.icao ? block("Alternate", d.alternate.icao) : "")}
+    <p class="brief" style="margin-top:auto">Source: Aviation Weather Center (aviationweather.gov). Weather changes: check the latest reports and ATIS before departure and before descent. The simulator's weather may differ from real-world reports.</p>
+    <div class="foot"><span>PAGANI AIR CARGO · OPERATIONS CONTROL CENTER KCVG · FOR FLIGHT SIMULATION USE ONLY</span><span>${esc(d.release_no)} · PAGE 0</span></div>`;
+  const first = document.querySelector(".page");
+  first.after(sec);
+  renumber();
+}
+
+(async () => {
+  const pid = new URLSearchParams(location.search).get("pirep");
+  document.getElementById("toNew").href = "/dispatch?layout=new" + (pid ? `&pirep=${encodeURIComponent(pid)}` : "");
+  document.getElementById("toNew").onclick = () => { try { localStorage.setItem("pac-dispatch-layout", "new"); } catch (e) { /* fine */ } };
+  try { localStorage.setItem("pac-dispatch-layout", "classic"); } catch (e) { /* fine */ }
+  try {
+    const res = await fetch(pid ? `/api/dispatch/pirep/${pid}` : "/api/dispatch");
+    const d = await res.json().catch(() => ({ error: `The ACARS server answered with an error (HTTP ${res.status}). Close the ACARS window, start it again, and check its console for details.` }));
+    if (!res.ok) throw new Error(d.error || "Could not load the dispatch release.");
+    render(d);
+    const briefingLink=document.createElement('a');
+    briefingLink.href='/dispatch?layout=new'+(pid?'&pirep='+encodeURIComponent(pid):'');
+    briefingLink.textContent='Performance & NOTAMs';
+    document.querySelector('.toolbar').append(briefingLink);
+    renumber();
+    if (!pid && !d.signed) {        // signing, shipment details and ground handling live in the new layout
+      const a = document.createElement("a");
+      a.href = "/dispatch?sign=1"; a.textContent = "Sign release"; a.style.cssText = "background:#C80000;border-color:#C80000;color:#fff";
+      document.querySelector(".toolbar button").before(a);
+    }
+    if (!pid) addWeather(d);
+  } catch (e) {
+    $("#doc").innerHTML = `<div class="err"><h2 style="color:var(--red);letter-spacing:0;text-transform:none;font-size:22px">No dispatch paperwork</h2><p>${esc(e.message)}</p><p><a href="/#missions">Go to the mission board</a></p></div>`;
+  }
+})();
+</script>
+</body>
+</html>

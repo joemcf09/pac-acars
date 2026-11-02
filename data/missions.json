@@ -1,0 +1,413 @@
+[
+  {
+    "id": "PAC001",
+    "title": "Line checkride: Cincinnati to Nashville",
+    "category": "Checkride",
+    "priority": "Standard",
+    "origin": {
+      "icao": "KCVG",
+      "name": "Cincinnati/Northern Kentucky Intl",
+      "lat": 39.0488,
+      "lon": -84.6678
+    },
+    "destination": {
+      "icao": "KBNA",
+      "name": "Nashville Intl",
+      "lat": 36.1245,
+      "lon": -86.6782
+    },
+    "aircraft": [
+      "B738F"
+    ],
+    "cargo": "Overnight express parcels",
+    "payload_lbs": 30000,
+    "target_block_min": 75,
+    "reward": 150,
+    "briefing": "Your line checkride on the 737-800BCF. Fly a normal company sector by the book: SimBrief plan, gate departure, 250 kt below 10,000 ft, a stable approach and a landing softer than 400 fpm with no bounce, then park and shut down. ACARS grades it automatically. Score 80 or better to pass and join the line as a Second Officer. Going over 250 kt below 10,000 ft, a bounce or a landing over 1.5 G fails the checkride, whatever the score."
+  },
+  {
+    "id": "PAC101",
+    "title": "Hurricane recovery for Puerto Rico",
+    "category": "Humanitarian",
+    "priority": "Critical",
+    "origin": {
+      "icao": "KCVG",
+      "name": "Cincinnati/Northern Kentucky Intl",
+      "lat": 39.0488,
+      "lon": -84.6678
+    },
+    "destination": {
+      "icao": "TJSJ",
+      "name": "Luis Muñoz Marín Intl",
+      "lat": 18.4394,
+      "lon": -66.0018
+    },
+    "aircraft": [
+      "MD11F",
+      "A306F",
+      "B77F"
+    ],
+    "cargo": "Generators, water, satellite phones and medical stock",
+    "payload_lbs": 95000,
+    "target_block_min": 225,
+    "reward": 700,
+    "briefing": "Out of our main hub at Cincinnati. The island grid is down after a direct hit and San Juan is running on backup power. Expect ATC delays and a congested cargo ramp. Plan holding fuel and brief a possible diversion to your alternate."
+  },
+  {
+    "id": "PAC102",
+    "title": "Tornado relief for Oklahoma City",
+    "category": "Humanitarian",
+    "priority": "High",
+    "origin": {
+      "icao": "KCVG",
+      "name": "Cincinnati/Northern Kentucky Intl",
+      "lat": 39.0488,
+      "lon": -84.6678
+    },
+    "destination": {
+      "icao": "KOKC",
+      "name": "Will Rogers World",
+      "lat": 35.3931,
+      "lon": -97.6007
+    },
+    "aircraft": [
+      "B738F",
+      "B722F",
+      "A306F"
+    ],
+    "cargo": "Tarps, chainsaws, shelter kits and first-aid supplies",
+    "payload_lbs": 36000,
+    "target_block_min": 150,
+    "reward": 400,
+    "briefing": "An EF4 tornado has cut through the southern suburbs overnight. Relief pallets are staged on the Cincinnati hub ramp. Spring storms are still active across the Plains, so check the weather en route and be ready to deviate."
+  },
+  {
+    "id": "PAC501",
+    "title": "Hurricane relief for Port-au-Prince",
+    "category": "Humanitarian",
+    "priority": "Critical",
+    "origin": {
+      "icao": "KMIA",
+      "name": "Miami Intl",
+      "lat": 25.7959,
+      "lon": -80.287
+    },
+    "destination": {
+      "icao": "MTPP",
+      "name": "Toussaint Louverture Intl",
+      "lat": 18.58,
+      "lon": -72.2925
+    },
+    "aircraft": [
+      "B738F",
+      "B722F",
+      "A306F"
+    ],
+    "cargo": "Water purification units, tarpaulins, diesel generators",
+    "payload_lbs": 38000,
+    "target_block_min": 125,
+    "reward": 450,
+    "briefing": "A Category 4 storm has cut power across southern Haiti. Relief pallets are staged at the Miami cargo ramp. Expect a busy, single-runway field with limited ground handling on arrival. Plan fuel for a return without refuelling at MTPP."
+  },
+  {
+    "id": "PAC712",
+    "title": "Cold-chain vaccines to Nairobi",
+    "category": "Medical",
+    "priority": "Critical",
+    "origin": {
+      "icao": "EBLG",
+      "name": "Liège Airport",
+      "lat": 50.6374,
+      "lon": 5.4432
+    },
+    "destination": {
+      "icao": "HKJK",
+      "name": "Jomo Kenyatta Intl",
+      "lat": -1.3192,
+      "lon": 36.9278
+    },
+    "aircraft": [
+      "B77F",
+      "MD11F"
+    ],
+    "cargo": "Temperature-controlled vaccine containers (+2 to +8 °C)",
+    "payload_lbs": 95000,
+    "target_block_min": 520,
+    "reward": 900,
+    "briefing": "Active cooling containers have a 14-hour hold-over. Every minute on the ground counts, so keep taxi and holding to a minimum. HKJK sits at 5,330 ft: check your landing performance for a hot, high arrival."
+  },
+  {
+    "id": "PAC318",
+    "title": "Earthquake response into Kathmandu",
+    "category": "Humanitarian",
+    "priority": "Critical",
+    "origin": {
+      "icao": "VIDP",
+      "name": "Indira Gandhi Intl",
+      "lat": 28.5665,
+      "lon": 77.1031
+    },
+    "destination": {
+      "icao": "VNKT",
+      "name": "Tribhuvan Intl",
+      "lat": 27.6966,
+      "lon": 85.3591
+    },
+    "aircraft": [
+      "B722F",
+      "B738F",
+      "A306F"
+    ],
+    "cargo": "Search-and-rescue kit, field tents, medical stores",
+    "payload_lbs": 32000,
+    "target_block_min": 100,
+    "reward": 700,
+    "briefing": "A M7.2 quake struck the Kathmandu valley overnight. Tribhuvan is open on a single runway with terrain on every side. Fly the published approach exactly and brief the missed approach before top of descent."
+  },
+  {
+    "id": "PAC044",
+    "title": "AOG spare engine to Anchorage",
+    "category": "Urgent",
+    "priority": "High",
+    "origin": {
+      "icao": "KSEA",
+      "name": "Seattle-Tacoma Intl",
+      "lat": 47.4502,
+      "lon": -122.3088
+    },
+    "destination": {
+      "icao": "PANC",
+      "name": "Ted Stevens Anchorage Intl",
+      "lat": 61.1744,
+      "lon": -149.9964
+    },
+    "aircraft": [
+      "B738F",
+      "B722F",
+      "A306F"
+    ],
+    "cargo": "CFM56-7B spare engine on transport stand",
+    "payload_lbs": 21000,
+    "target_block_min": 220,
+    "reward": 400,
+    "briefing": "A customer airliner is grounded in Anchorage with a failed engine. The spare leaves on the next available lift, which is you. The load is heavy and concentrated, so keep the handling smooth."
+  },
+  {
+    "id": "PAC880",
+    "title": "Power transformer to Dubai",
+    "category": "Heavy lift",
+    "priority": "Standard",
+    "origin": {
+      "icao": "EDDP",
+      "name": "Leipzig/Halle",
+      "lat": 51.4239,
+      "lon": 12.2364
+    },
+    "destination": {
+      "icao": "OMDW",
+      "name": "Al Maktoum Intl",
+      "lat": 24.896,
+      "lon": 55.1614
+    },
+    "aircraft": [
+      "B748F"
+    ],
+    "cargo": "Grid transformer and cooling units, loaded via nose door",
+    "payload_lbs": 240000,
+    "target_block_min": 370,
+    "reward": 800,
+    "briefing": "Outsized single-piece load for a desert substation project. You will be close to MTOW, so plan a long take-off run and a gentle initial climb."
+  },
+  {
+    "id": "PAC266",
+    "title": "Semiconductor rush to Anchorage",
+    "category": "Urgent",
+    "priority": "High",
+    "origin": {
+      "icao": "RCTP",
+      "name": "Taoyuan Intl",
+      "lat": 25.0777,
+      "lon": 121.2328
+    },
+    "destination": {
+      "icao": "PANC",
+      "name": "Ted Stevens Anchorage Intl",
+      "lat": 61.1744,
+      "lon": -149.9964
+    },
+    "aircraft": [
+      "B748F",
+      "B77F"
+    ],
+    "cargo": "Wafer shipments for a North American fab line",
+    "payload_lbs": 190000,
+    "target_block_min": 475,
+    "reward": 750,
+    "briefing": "A production line is waiting on these wafers. Late arrival costs the customer a shift. Plan the most efficient track across the Pacific and keep your block time tight."
+  },
+  {
+    "id": "PAC150",
+    "title": "Winter resupply for Iqaluit",
+    "category": "Humanitarian",
+    "priority": "Standard",
+    "origin": {
+      "icao": "CYUL",
+      "name": "Montréal-Trudeau",
+      "lat": 45.4706,
+      "lon": -73.7408
+    },
+    "destination": {
+      "icao": "CYFB",
+      "name": "Iqaluit Airport",
+      "lat": 63.7564,
+      "lon": -68.5558
+    },
+    "aircraft": [
+      "B738F",
+      "B722F",
+      "A306F"
+    ],
+    "cargo": "Fresh food, heating parts and medical supplies",
+    "payload_lbs": 36000,
+    "target_block_min": 175,
+    "reward": 500,
+    "briefing": "Sealift season is over and the community depends on air cargo until spring. Expect contaminated runway conditions and low visibility. Carry generous extra fuel."
+  },
+  {
+    "id": "PAC903",
+    "title": "Field hospital to Amman",
+    "category": "Medical",
+    "priority": "High",
+    "origin": {
+      "icao": "LIMC",
+      "name": "Milano Malpensa",
+      "lat": 45.6306,
+      "lon": 8.7281
+    },
+    "destination": {
+      "icao": "OJAI",
+      "name": "Queen Alia Intl",
+      "lat": 31.7226,
+      "lon": 35.9932
+    },
+    "aircraft": [
+      "MD11F",
+      "B77F"
+    ],
+    "cargo": "Modular field hospital, surgical sets, oxygen concentrators",
+    "payload_lbs": 150000,
+    "target_block_min": 250,
+    "reward": 650,
+    "briefing": "Departing our European hub at Malpensa. The hospital modules will be forwarded by road to a border clinic. Oxygen concentrators are classed as dangerous goods: note the NOTOC in your remarks."
+  },
+  {
+    "id": "PAC221",
+    "title": "Blood plasma to Johannesburg",
+    "category": "Medical",
+    "priority": "Critical",
+    "origin": {
+      "icao": "EGSS",
+      "name": "London Stansted",
+      "lat": 51.885,
+      "lon": 0.235
+    },
+    "destination": {
+      "icao": "FAOR",
+      "name": "O. R. Tambo Intl",
+      "lat": -26.1392,
+      "lon": 28.246
+    },
+    "aircraft": [
+      "MD11F",
+      "B77F",
+      "B748F"
+    ],
+    "cargo": "Frozen plasma in dry-ice containers",
+    "payload_lbs": 70000,
+    "target_block_min": 655,
+    "reward": 950,
+    "briefing": "Overnight long-haul with a hard delivery window at FAOR. Dry ice sublimates in flight, so the load planners have limited the quantity. Arrive on time and on the planned fuel."
+  },
+  {
+    "id": "PAC377",
+    "title": "Cyclone recovery for Fiji",
+    "category": "Humanitarian",
+    "priority": "High",
+    "origin": {
+      "icao": "YSSY",
+      "name": "Sydney Kingsford Smith",
+      "lat": -33.9461,
+      "lon": 151.1772
+    },
+    "destination": {
+      "icao": "NFFN",
+      "name": "Nadi Intl",
+      "lat": -17.7554,
+      "lon": 177.4434
+    },
+    "aircraft": [
+      "B738F"
+    ],
+    "cargo": "Roofing kits, chainsaws, solar lanterns",
+    "payload_lbs": 30000,
+    "target_block_min": 240,
+    "reward": 550,
+    "briefing": "A long over-water sector for a narrowbody. Check your ETOPS alternates and do not skimp on fuel. Nadi ground crews are working reduced shifts."
+  },
+  {
+    "id": "PAC012",
+    "title": "Night express to Barcelona",
+    "category": "Express",
+    "priority": "Standard",
+    "origin": {
+      "icao": "LIMC",
+      "name": "Milano Malpensa",
+      "lat": 45.6306,
+      "lon": 8.7281
+    },
+    "destination": {
+      "icao": "LEBL",
+      "name": "Barcelona El Prat",
+      "lat": 41.2971,
+      "lon": 2.0785
+    },
+    "aircraft": [
+      "B722F",
+      "B738F",
+      "A306F"
+    ],
+    "cargo": "Overnight parcels and documents",
+    "payload_lbs": 42000,
+    "target_block_min": 105,
+    "reward": 250,
+    "briefing": "The bread-and-butter run out of our European hub. Sort cut-off is 02:30 local at LEBL. A clean, on-time sector is all the network asks."
+  },
+  {
+    "id": "PAC640",
+    "title": "Hypercar shipment to Miami",
+    "category": "Premium",
+    "priority": "Standard",
+    "origin": {
+      "icao": "LIMC",
+      "name": "Milano Malpensa",
+      "lat": 45.6306,
+      "lon": 8.7281
+    },
+    "destination": {
+      "icao": "KMIA",
+      "name": "Miami Intl",
+      "lat": 25.7959,
+      "lon": -80.287
+    },
+    "aircraft": [
+      "B77F",
+      "B748F",
+      "MD11F"
+    ],
+    "cargo": "Three show cars in climate-controlled crates",
+    "payload_lbs": 60000,
+    "target_block_min": 620,
+    "reward": 850,
+    "briefing": "Customer cars for a Florida exhibition. Handling is white-glove from the factory gate to the showroom. The customer grades us on a smooth ride, so keep the landing soft."
+  }
+]

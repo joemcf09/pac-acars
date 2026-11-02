@@ -1,0 +1,25 @@
+# The PAC Discord bot (PAC Operations), next to the PAC website. It waits quietly until staff switch it on in
+# Staff › Site and rules › Discord bot. Put this at /etc/systemd/system/pac-discord.service, then:
+#   sudo systemctl daemon-reload && sudo systemctl enable --now pac-discord
+
+[Unit]
+Description=Pagani Air Cargo Discord bot
+After=network-online.target pac.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=pac
+WorkingDirectory=/home/pac/pac-acars
+Environment=PAC_URL=http://127.0.0.1:5050
+Environment=PYTHONUNBUFFERED=1
+ExecStart=/home/pac/pac-acars/.venv/bin/python discord_bot.py
+Restart=always
+RestartSec=10
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ProtectHome=read-only
+
+[Install]
+WantedBy=multi-user.target

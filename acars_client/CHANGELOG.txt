@@ -1,0 +1,48 @@
+PAC ACARS - CHANGELOG
+=====================
+
+1.0.8 (October 2026)
+--------------------
+Fixed
+- Altitude now matches your cockpit altimeter. PAC ACARS used to show the
+  aircraft's true height above sea level, which drifts away from the flight
+  level when the air is warmer or colder than standard (for example 37,500 ft
+  while cruising at FL360 on a warm day). It now shows what the altimeter
+  shows, in the app, in the flight log and on the website's live map.
+  Nothing else changes: landing, takeoff and approach checks still use the
+  height above the ground, as before.
+
+1.0.7 (October 2026)
+--------------------
+Fixed
+- Arrival stands at airports that aren't PAC hubs. PAC ACARS used to make up a
+  stand number there, which at the real airport was usually a passenger gate.
+  It now sends you to the cargo ramp: park on any free cargo stand. PAC hubs
+  (CVG, HKG, MIA, MXP, DWC, ANC) still give you PAC's own cargo stand.
+- US spelling: "PAC CARGO CENTER STAND" at Cincinnati.
+
+Good to know
+- Update by downloading 1.0.7 from Downloads on the PAC website and installing
+  over the old version. Saved flights and settings are kept.
+
+1.0.6 (October 2026)
+--------------------
+Fixed
+- Flights stuck on "Taxi in" with aircraft whose parking brake PAC ACARS
+  can't read (seen with some X-Plane 11 add-ons). Stopped on the ground with
+  all engines off for 60 seconds now puts you on block, brake or not. With a
+  normal brake reading it still takes 5 seconds, as before.
+
+New
+- "File anyway" button once you've landed: if PAC ACARS doesn't go on block
+  with your aircraft, you can still file. Those PIREPs go to staff review.
+- Taxi-in hint: after landing, PAC ACARS tells you how to finish the flight
+  (stop at the stand, parking brake set, engines off, keep PAC ACARS open).
+- Closing the window during a flight now asks what you want: keep tracking
+  in the system tray, or save the flight and quit (resume it later).
+
+Good to know
+- PAC ACARS is built and tested on MSFS 2024 and X-Plane 12. X-Plane 11 and
+  MSFS 2020 should work; tell us in #pilot-help if something doesn't.
+- Update by downloading 1.0.6 from Downloads on the PAC website and installing
+  over the old version. Saved flights and settings are kept.

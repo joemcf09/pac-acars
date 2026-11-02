@@ -1,0 +1,21 @@
+# Caddy sits in front of PAC: it gets a real HTTPS certificate for you, renews it automatically,
+# and passes requests to PAC. Put this at /etc/caddy/Caddyfile and run: sudo systemctl reload caddy
+
+pac-va.com, www.pac-va.com {
+	encode zstd gzip
+
+	# PAC itself
+	reverse_proxy 127.0.0.1:5050
+
+	# uploads (backups, liveries) can be large
+	request_body {
+		max_size 2GB
+	}
+
+	log {
+		output file /var/log/caddy/pac.log {
+			roll_size 20MB
+			roll_keep 5
+		}
+	}
+}

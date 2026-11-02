@@ -1,0 +1,517 @@
+<!doctype html>
+<html lang="en" data-design="loadsheet">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PAC ACARS</title>
+<link rel="icon" href="/static/favicon.png">
+<link href="https://fonts.googleapis.com/css2?family=Saira:wdth,wght@75..125,300..800&family=IBM+Plex+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root{--red:#C80000;--bg:#15171b;--panel:#1E2126;--line:#2e3239;--text:#E8EAED;--dim:#8E96A3;--green:#4BD07F;--amber:#FFC845;--cyan:#7CC4FF;
+  --font:"Saira",system-ui,sans-serif;--mono:"IBM Plex Mono",Consolas,monospace}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--text);font-family:var(--font);font-stretch:95%;font-size:14px}
+header{display:flex;align-items:center;gap:10px;background:var(--red);padding:10px 14px}
+header img{height:22px}
+header b{font-size:15px;letter-spacing:.06em;font-stretch:120%}
+header .sp{flex:1}
+.dot{display:inline-block;width:9px;height:9px;border-radius:50%;background:#888;margin-right:6px;vertical-align:1px}
+.dot.ok{background:var(--green)}.dot.bad{background:#ff6b6b}.dot.warn{background:var(--amber)}
+main{padding:12px 14px;display:flex;flex-direction:column;gap:12px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:4px;padding:12px}
+.flight{display:flex;justify-content:space-between;align-items:flex-end;gap:10px}
+.fn{font-size:26px;font-weight:800;font-stretch:120%;line-height:1}
+.route{font-size:18px;font-weight:700;font-stretch:115%}
+.muted{color:var(--dim)}
+.small{font-size:12px}
+button,select,input,textarea{font:inherit}
+.btn{background:var(--red);color:#fff;border:0;border-radius:3px;padding:8px 14px;font-weight:700;cursor:pointer}
+.btn.ghost{background:transparent;border:1px solid #4a4f58;color:var(--text)}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+select,input,textarea{background:#101215;color:var(--text);border:1px solid var(--line);border-radius:3px;padding:7px 9px}
+.phase{display:flex;align-items:center;justify-content:space-between;background:#101215;border-radius:3px;padding:8px 10px}
+.phase b{font-size:17px;color:#fff;font-stretch:115%}
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--line);border:1px solid var(--line);border-radius:3px;overflow:hidden}
+.grid div{background:var(--panel);padding:8px 10px}
+.grid span{display:block;font-size:11px;color:var(--dim)}
+.grid b{font-size:19px;font-variant-numeric:tabular-nums}
+.oooi{display:grid;grid-template-columns:repeat(4,1fr);text-align:center;font-family:var(--mono);font-size:13px}
+.oooi span{display:block;font-family:var(--font);font-size:11px;color:var(--dim)}
+.log{background:#0c0d10;border-radius:3px;font-family:var(--mono);font-size:12px;line-height:1.45;max-height:300px;overflow:auto;padding:8px 10px}
+.log div{display:grid;grid-template-columns:44px 1fr;gap:6px;border-bottom:1px solid #1a1c20;padding:3px 0}
+.log .z{color:var(--dim)}
+.log .phase-m{color:#ff8a8a}.log .oooi-m{color:#fff;font-weight:600}.log .warn{color:var(--amber)}.log .wx{color:var(--cyan)}
+.log .dl{color:#fff}.log .dl::before{content:"▲ ";color:var(--dim)}.log .ul{color:#7CE3A1}.log .ul::before{content:"▼ "}
+.tabs{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:8px}
+.tabs button{background:#101215;color:var(--text);border:1px solid var(--line);border-radius:3px;padding:5px 9px;cursor:pointer;font-size:12.5px}
+.tabs button.on{background:var(--text);color:#111}
+.mform{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.mform .full{grid-column:1/-1}
+.mform label{display:block;font-size:11.5px;color:var(--dim);margin-bottom:3px}
+.mform input,.mform select{width:100%}
+.notice{border-left:4px solid var(--amber);background:#2a2618;padding:8px 10px;border-radius:2px;font-size:13px}
+.notice.err{border-color:#ff6b6b;background:#2b1a1a}
+.notice.ok{border-color:var(--green);background:#15271c}
+.grade{font-size:48px;font-weight:800;font-stretch:120%;line-height:1}
+details summary{cursor:pointer;color:var(--dim);font-size:13px}
+.hidden{display:none!important}
+/* MSG light, compact toggle */
+.hbtn{background:rgba(0,0,0,.25);color:#fff;border:1px solid rgba(255,255,255,.35);border-radius:3px;padding:3px 8px;font:700 11px var(--font);letter-spacing:.08em;cursor:pointer}
+.msg-light{background:#3a2f10;border-color:#8a6d1e;color:#6b5a2a}
+.msg-light.on{background:var(--amber);color:#1a1300;border-color:#fff;animation:blink 1s steps(2,start) infinite}
+@keyframes blink{to{visibility:hidden}}
+@media (prefers-reduced-motion:reduce){.msg-light.on{animation:none}}
+/* flight plan */
+.ofp{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--line);border:1px solid var(--line);border-radius:3px;overflow:hidden;margin-top:8px}
+.ofp div{background:var(--panel);padding:6px 8px}.ofp span{display:block;font-size:10.5px;color:var(--dim)}.ofp b{font-size:14px;font-variant-numeric:tabular-nums}
+.route{font-family:var(--mono);font-size:11.5px;color:var(--dim);margin-top:8px;word-break:break-word}
+/* landing card */
+.lcard{display:grid;grid-template-columns:auto 1fr;gap:12px;align-items:center;margin:8px 0}
+.lrate{font-size:40px;font-weight:800;font-stretch:120%;line-height:1}
+.lverdict{font-weight:700;letter-spacing:.08em;font-size:12px}
+.lfacts{display:grid;grid-template-columns:repeat(2,1fr);gap:4px 12px;font-size:12.5px}
+.lfacts b{color:#fff}
+.gbadge{display:inline-grid;place-items:center;width:46px;height:46px;background:var(--red);font-size:28px;font-weight:800;border-radius:3px}
+/* compact strip */
+#strip{display:none}
+body.compact header, body.compact main > :not(#strip){display:none!important}
+body.compact main{padding:6px}
+body.compact #strip{display:block}
+.strip{background:var(--panel);border:1px solid var(--line);border-radius:4px;padding:8px 10px}
+.strip .top{display:flex;align-items:center;gap:8px}
+.strip .top b{font-stretch:115%}
+.strip .nums{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;margin:6px 0;font-variant-numeric:tabular-nums}
+.strip .nums span{display:block;font-size:10px;color:var(--dim)}.strip .nums b{font-size:17px}
+.strip .last{font-family:var(--mono);font-size:11.5px;color:#7CE3A1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* ---------------- Load Sheet design (matches the website): stencil markings, Barlow, square paperwork ---------------- */
+@font-face{font-family:"Barlow";src:url("/static/fonts/barlow-400.woff2") format("woff2");font-weight:400;font-display:swap}
+@font-face{font-family:"Barlow";src:url("/static/fonts/barlow-500.woff2") format("woff2");font-weight:500;font-display:swap}
+@font-face{font-family:"Barlow";src:url("/static/fonts/barlow-600.woff2") format("woff2");font-weight:600;font-display:swap}
+@font-face{font-family:"Barlow";src:url("/static/fonts/barlow-700.woff2") format("woff2");font-weight:700;font-display:swap}
+@font-face{font-family:"Big Shoulders Stencil Display";src:url("/static/fonts/big-shoulders-stencil.woff2") format("woff2");font-weight:100 900;font-display:swap}
+html[data-design="loadsheet"]{--font:"Barlow","Segoe UI",system-ui,sans-serif;--stencil:"Big Shoulders Stencil Display","Barlow",Impact,sans-serif}
+html[data-design="loadsheet"] body{font-family:var(--font);font-stretch:100%;font-size:14.5px}
+html[data-design="loadsheet"] header{background:var(--panel);padding:0 12px 0 0;border-bottom:1px solid var(--line);gap:8px}
+html[data-design="loadsheet"] header .brandblk{display:flex;align-items:center;gap:8px;background:var(--red);padding:11px 14px;align-self:stretch}
+html[data-design="loadsheet"] header b{font:700 14px var(--font);letter-spacing:.04em}
+html[data-design="loadsheet"] .fn,html[data-design="loadsheet"] .route,html[data-design="loadsheet"] .phase b,
+html[data-design="loadsheet"] #sFn,html[data-design="loadsheet"] .lrate{font-family:var(--stencil);font-stretch:100%;font-weight:800;letter-spacing:.02em}
+html[data-design="loadsheet"] .fn{font-size:34px}
+html[data-design="loadsheet"] .route{font-size:22px;color:var(--text)}
+html[data-design="loadsheet"] .phase b{font-size:22px}
+html[data-design="loadsheet"] #sFn{font-size:22px}
+html[data-design="loadsheet"] .lrate{font-size:48px}
+html[data-design="loadsheet"] .card,html[data-design="loadsheet"] .btn,html[data-design="loadsheet"] .hbtn,html[data-design="loadsheet"] .grid,
+html[data-design="loadsheet"] .phase,html[data-design="loadsheet"] select,html[data-design="loadsheet"] input,html[data-design="loadsheet"] textarea,
+html[data-design="loadsheet"] .strip,html[data-design="loadsheet"] .ofp,html[data-design="loadsheet"] .gbadge{border-radius:0}
+html[data-design="loadsheet"] .card{border-left:3px solid var(--line)}
+html[data-design="loadsheet"] #flightCard{border-left-color:var(--red)}
+html[data-design="loadsheet"] .grid span,html[data-design="loadsheet"] .ofp span{font-size:11.5px}
+html[data-design="loadsheet"] .grid b,html[data-design="loadsheet"] .ofp b{font-stretch:100%}
+</style>
+</head>
+<body>
+<header><span class="brandblk"><img src="/static/pac-wordmark-white.png" alt="PAC"><b>ACARS</b></span><span class="sp"></span>
+  <button class="hbtn msg-light" id="msgLight" type="button" title="New messages from PAC Operations" aria-live="polite">MSG</button>
+  <button class="hbtn" id="compactBtn" type="button" title="Compact mode: a slim strip that stays on top">Compact</button>
+  <span class="small" id="conn"><span class="dot"></span>…</span></header>
+<main>
+  <div id="strip" class="strip" role="region" aria-label="Compact flight strip">
+    <div class="top"><b id="sFn">PAC</b><span class="muted small" id="sRoute"></span><span class="sp" style="flex:1"></span>
+      <button class="hbtn msg-light" id="sMsg" type="button">MSG</button><button class="hbtn" id="sExpand" type="button" title="Back to the full window">Full</button></div>
+    <div class="nums"><div><span id="sPhase">Phase</span><b id="sAlt">–</b></div><div><span>IAS / GS</span><b id="sSpd">–</b></div><div><span>V/S</span><b id="sVs">–</b></div><div><span>To go</span><b id="sDtg">–</b></div></div>
+    <div class="last" id="sLast">No messages</div>
+  </div>
+  <div id="update"></div>
+  <div id="siteNotice"></div>
+  <div id="msg"></div>
+
+  <section class="card" id="flightCard" aria-live="polite"></section>
+
+  <section class="card hidden" id="ofpCard"></section>
+
+  <section class="card" id="controls">
+    <div class="row">
+      <select id="source" aria-label="Simulator"><option>MSFS</option><option>X-Plane</option><option>Demo</option></select>
+      <button class="btn" id="startBtn">Start tracking</button>
+      <button class="btn ghost hidden" id="resumeBtn">Resume flight</button>
+      <button class="btn ghost hidden" id="stopBtn">Abort</button>
+      <span class="small" id="simState"></span>
+    </div>
+    <div class="notice hidden" id="resumeNote" style="margin-top:10px"></div>
+  </section>
+
+  <section class="card hidden" id="live">
+    <div class="phase"><span class="muted small">Phase</span><b id="phase">–</b><span class="small muted" id="block"></span></div>
+    <div class="small" id="waitFor" hidden style="margin:6px 0 2px;padding:7px 10px;border-left:3px solid var(--amber,#E0A100);background:rgba(224,161,0,.08)"></div>
+    <div class="grid" style="margin-top:8px">
+      <div><span>Altitude</span><b id="alt">–</b></div><div><span>IAS</span><b id="ias">–</b></div><div><span>GS</span><b id="gs">–</b></div>
+      <div><span>V/S</span><b id="vs">–</b></div><div><span>Fuel</span><b id="fob">–</b></div><div><span>To go</span><b id="dtg">–</b></div>
+    </div>
+    <div class="oooi" style="margin-top:8px"><div><span>Out</span><b id="o_out">––––</b></div><div><span>Off</span><b id="o_off">––––</b></div><div><span>On</span><b id="o_on">––––</b></div><div><span>In</span><b id="o_in">––––</b></div></div>
+  </section>
+
+  <section class="card hidden" id="comms">
+    <div class="row" style="justify-content:space-between;margin-bottom:8px"><b>Dispatch</b><button class="btn ghost" id="wxBtn" type="button">WX</button></div>
+    <div class="tabs" role="tablist">
+      <button data-mt="delay" class="on">Delay</button><button data-mt="divert">Divert</button><button data-mt="fuel">Fuel</button>
+      <button data-mt="eta">ETA</button><button data-mt="fault">Fault</button><button data-mt="text">Text</button>
+    </div>
+    <form class="mform" id="mform"></form>
+  </section>
+
+  <section class="card hidden" id="logCard">
+    <b>ACARS messages</b>
+    <div class="log" id="log" style="margin-top:8px"></div>
+  </section>
+
+  <section class="card hidden" id="fileCard"></section>
+
+  <details class="card">
+    <summary>Settings</summary>
+    <div class="mform" style="margin-top:10px">
+      <div class="full"><label for="cfgServer">PAC website address</label><input id="cfgServer" placeholder="https://pac-va.com" spellcheck="false" autocomplete="off">
+        <span class="small muted" id="cfgServerHint"></span></div>
+      <div><label for="cfgXp">X-Plane address</label><input id="cfgXp"></div>
+      <div><label for="cfgDemo">Demo speed-up</label><input id="cfgDemo" type="number" min="1" max="600"></div>
+      <label class="full" style="display:flex;gap:8px;align-items:center;color:var(--text)"><input type="checkbox" id="cfgTop" style="width:auto"> Keep this window on top (native window, after a restart)</label>
+      <div class="full"><label for="cfgDesign">Design</label><select id="cfgDesign"><option value="loadsheet">Load Sheet (stencil markings)</option><option value="classic">Classic</option></select></div>
+      <label class="full" style="display:flex;gap:8px;align-items:center;color:var(--text)"><input type="checkbox" id="cfgChime" style="width:auto"> Chime for new ACARS messages</label>
+      <div><label for="cfgVol">Chime volume</label><input id="cfgVol" type="range" min="0.05" max="1" step="0.05"></div>
+      <div style="display:flex;align-items:flex-end"><button class="btn ghost" type="button" id="testChime">Test chime</button></div>
+      <label class="full" style="display:flex;gap:8px;align-items:center;color:var(--text)"><input type="checkbox" id="cfgTray" style="width:auto"> Minimise and close to the tray while a flight is tracked</label>
+      <div class="full"><label for="cfgWin">Window (after a restart of PAC ACARS)</label><select id="cfgWin">
+        <option value="auto">Automatic (recommended): Edge app window</option><option value="app">Edge or Chrome app window</option><option value="webview">Built-in window</option></select></div>
+      <div class="full row"><button class="btn ghost" id="cfgSave" type="button">Save settings</button><span class="small muted" id="ver"></span></div>
+      <div class="full row" id="whoRow" style="justify-content:space-between;border-top:1px solid var(--line);padding-top:10px"><span class="small" id="whoText"></span>
+        <button class="btn ghost" type="button" id="signOutApp">Sign out</button></div>
+    </div>
+  </details>
+</main>
+<script>
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const fmt = n => n == null || isNaN(n) ? "–" : Math.round(n).toLocaleString("en-US");
+const PHASES = { PREFLIGHT: "Preflight", PUSHBACK: "Pushback", TAXI_OUT: "Taxi out", TAKEOFF: "Takeoff roll", INITIAL_CLIMB: "Initial climb", CLIMB: "Climb",
+  CRUISE: "Cruise", DESCENT: "Descent", APPROACH: "Approach", GO_AROUND: "Go-around", LANDING: "Landing rollout", TAXI_IN: "Taxi in", ARRIVED: "On block" };
+let S = {}, pollT = null, lastLogLen = 0, cfgLoaded = false, pickedSource = false, shownServer = null;  // pickedSource: the pilot chose a simulator by hand
+
+async function api(path, body) {
+  // every request has a time limit, so nothing in the window can ever hang waiting for an answer
+  const ctl = new AbortController(), limit = setTimeout(() => ctl.abort(), body === undefined ? 5000 : 25000);
+  try {
+    const res = await fetch(path, { signal: ctl.signal, ...(body === undefined ? {} : { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }) });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error || `Error ${res.status}`);
+    return data;
+  } catch (e) {
+    if (e.name === "AbortError") throw new Error("PAC ACARS didn't answer in time. Try again.");
+    throw e;
+  } finally { clearTimeout(limit); }
+}
+/* a button that shows it's working and can't be pressed twice */
+async function busy(btn, label, fn) {
+  if (!btn || btn.disabled) return;
+  const was = btn.textContent; btn.disabled = true; if (label) btn.textContent = label;
+  try { return await fn(); } finally { btn.disabled = false; btn.textContent = was; }
+}
+function note(text, kind = "") { $("#msg").innerHTML = text ? `<div class="notice ${kind}">${text}</div>` : ""; if (text && kind !== "err") setTimeout(() => { if ($("#msg").textContent.includes(text.replace(/<[^>]+>/g, "").slice(0, 20))) $("#msg").innerHTML = ""; }, 7000); }
+const zulu = t => t ? new Date(t * 1000).toISOString().substr(11, 5).replace(":", "") + "Z" : "––––";
+
+/* ---------------- ACARS chime ---------------- */
+let actx = null;
+// In the native window the chime is played by Windows (PAC ACARS itself), never by the web engine.
+// Only when PAC ACARS runs in a browser tab does the page make the sound.
+function audio() { if (S.native) return null; try { actx = actx || new (window.AudioContext || window.webkitAudioContext)(); if (actx.state === "suspended") actx.resume(); } catch (e) { actx = null; } return actx; }
+document.addEventListener("click", () => { if (S.version && !S.native) audio(); }, { capture: true });  // browsers only allow sound after a click
+function chime(force = false) {
+  const cfg = S.config || {};
+  if (S.native) { if (force) api("/api/chime", {}).catch(() => {}); return; }
+  if (!force && cfg.chime === false) return;
+  const ctx = audio(); if (!ctx) return;
+  const vol = Math.max(0.02, Math.min(1, +(cfg.chime_volume ?? 0.5))) * 0.35;
+  [[1175, 0], [880, 0.22]].forEach(([f, at]) => {   // a soft two-tone "ding-dong", like a cockpit ACARS alert
+    const o = ctx.createOscillator(), g = ctx.createGain();
+    o.type = "sine"; o.frequency.value = f; o.connect(g); g.connect(ctx.destination);
+    const t = ctx.currentTime + at;
+    g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(vol, t + 0.02); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.9);
+    o.start(t); o.stop(t + 0.95);
+  });
+}
+const UP = ["ul", "wx"];
+let seenUplinks = null;
+async function ack() { try { await api("/api/ack", {}); } catch (e) { } S.unread = 0; paintLight(); }
+function paintLight() { ["#msgLight", "#sMsg"].forEach(id => $(id).classList.toggle("on", (S.unread || 0) > 0)); $("#msgLight").title = S.unread ? `${S.unread} new ${S.unread === 1 ? "message" : "messages"} from PAC Operations` : "No new messages"; }
+
+/* ---------------- flight plan ---------------- */
+function ofpCard(bk) {
+  const o = bk.ofp, n = v => v ? fmt(v) : "–";
+  if (!o) return `<div class="row" style="justify-content:space-between"><b>Flight plan</b><button class="btn ghost" id="ofpBtn" type="button">Fetch OFP from SimBrief</button></div>
+    <p class="muted small" style="margin:6px 0 0">Plan the flight in SimBrief (the website's SimBrief button fills it in), then fetch it here for fuel checks, the loadsheet and the dispatch release.</p>`;
+  return `<div class="row" style="justify-content:space-between"><b>Flight plan${o.request_id ? ` <span class="muted small">OFP ${esc(o.request_id)}</span>` : ""}</b><button class="btn ghost" id="ofpBtn" type="button">Refresh OFP</button></div>
+    <div class="ofp"><div><span>Cruise</span><b>${o.cruise_ft ? "FL" + String(Math.round(o.cruise_ft / 100)).padStart(3, "0") : "–"}</b></div><div><span>Block time</span><b>${o.est_block_min ? Math.floor(o.est_block_min / 60) + "h " + String(o.est_block_min % 60).padStart(2, "0") + "m" : "–"}</b></div><div><span>Alternate</span><b>${esc(o.alternate?.icao || "–")}</b></div>
+      <div><span>Block fuel</span><b>${n(o.block_fuel_lbs)}</b></div><div><span>Trip fuel</span><b>${n(o.trip_fuel_lbs)}</b></div><div><span>Reserve</span><b>${n(o.reserve_fuel_lbs)}</b></div>
+      <div><span>Payload</span><b>${n(o.payload_lbs)}</b></div><div><span>ZFW</span><b>${n(o.zfw_lbs)}</b></div><div><span>TOW</span><b>${n(o.tow_lbs)}</b></div></div>
+    ${o.route ? `<details><summary>Route</summary><div class="route">${esc(o.route)}</div></details>` : ""}`;
+}
+async function fetchOfp() {
+  const b = $("#ofpBtn"); if (b) { b.disabled = true; b.textContent = "Fetching…"; }
+  try { const r = await api("/api/ofp", {}); note("OFP imported." + (r.warnings?.length ? " " + esc(r.warnings.join(" ")) : ""), r.warnings?.length ? "" : "ok"); lastOfpKey = ""; refresh(); }
+  catch (e) { note(esc(e.message), "err"); if (b) { b.disabled = false; b.textContent = "Fetch OFP from SimBrief"; } }
+}
+let lastOfpKey = "";
+
+/* ---------------- landing card ---------------- */
+const VERDICT = r => r == null ? "" : r >= -100 ? "BUTTER" : r >= -250 ? "SMOOTH" : r >= -400 ? "FIRM" : r >= -600 ? "HEAVY" : "HARD";
+const VCOL = r => r == null ? "#fff" : r >= -100 ? "#4BD07F" : r >= -250 ? "#A6E05A" : r >= -400 ? "#FFC845" : r >= -600 ? "#FF8A3D" : "#FF4D4D";
+function landingCard(d) {
+  if (!d) return "";
+  const la = d.landing_analysis || {}, ta = d.takeoff_analysis || {}, w = la.wind || {};
+  const side = ft => ft == null ? "–" : Math.abs(ft) < 1 ? "on centreline" : `${fmt(Math.abs(ft))} ft ${ft > 0 ? "R" : "L"}`;
+  return `<div class="lcard"><div><div class="lrate" style="color:${VCOL(d.landing_rate)}">${d.landing_rate ?? "–"}</div><div class="lverdict" style="color:${VCOL(d.landing_rate)}">FPM · ${VERDICT(d.landing_rate)}</div></div>
+      <div class="lfacts"><span>G <b>${d.landing_g != null ? Number(d.landing_g).toFixed(2) : "–"}</b></span><span>Runway <b>${esc(la.runway ? `${la.airport} ${la.runway}` : "–")}</b></span>
+        <span>Touchdown <b>${la.touchdown_ft != null ? fmt(la.touchdown_ft) + " ft" : "–"}</b></span><span>Centreline <b>${side(la.centerline_ft)}</b></span>
+        <span>Float <b>${la.float_s != null ? la.float_s + " s" : "–"}</b></span><span>Approach <b>${la.stable === true ? "stable" : la.stable === false ? "unstable" : "–"}</b></span>
+        ${w.text ? `<span style="grid-column:1/-1">Wind <b>${esc(w.text)}</b>${w.cross_kt != null ? ` · ${w.cross_kt} kt crosswind ${esc(w.cross_from || "")}` : ""}</span>` : ""}
+        ${ta.rotate_ias ? `<span style="grid-column:1/-1">Takeoff <b>${esc(ta.runway ? ta.airport + " " + ta.runway : "")}</b> rotate ${ta.rotate_ias} kt · ${ta.rotation_rate}°/s · liftoff ${ta.liftoff_pitch}°</span>` : ""}</div></div>`;
+}
+
+/* ---------------- compact mode ---------------- */
+function showCompact(on) {  // the strip itself (the engine sizes an app window; the built-in window sizes itself)
+  document.body.classList.toggle("compact", !!on);
+  S.compact = !!on;
+  if (window.pywebview?.api?.compact) window.pywebview.api.compact(!!on);
+}
+function setCompact(on) {    // the Compact / Full buttons
+  showCompact(on);
+  api("/api/compact", { on: !!on }).catch(() => {});   // the engine resizes the window and remembers it (tray menu)
+}
+
+let lastCmd = null;
+function runCommand(c) {
+  if (!c || c.id === lastCmd) return;
+  const first = lastCmd === null; lastCmd = c.id;
+  if (first && c.cmd === "show") return;  // a fresh window is already in front
+  if (c.cmd === "show" && window.pywebview?.api?.show) window.pywebview.api.show();
+  if (c.cmd === "compact") showCompact(!!c.on);
+}
+
+function applyDesign() { const d = S.config?.design || "loadsheet"; if (document.documentElement.dataset.design !== d) document.documentElement.dataset.design = d; }
+
+function render() {
+  const h = S.hello || {}, bk = h.booking, st = S.status, cfg = S.config || {};
+  const newer = (a, b) => { const x = String(a || "").split(".").map(Number), y = String(b || "").split(".").map(Number); for (let i = 0; i < 3; i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); } return false; };
+  const upd = $("#update");
+  if (upd) upd.innerHTML = newer(h.latest_app, S.version) ? `<div class="notice">PAC ACARS ${esc(h.latest_app)} is available. <a style="color:var(--cyan)" href="${esc(cfg.server)}/#acars" target="_blank" rel="noopener">Download it from the PAC website</a>.</div>` : "";
+  applyDesign();
+  S.unread = S.unread ?? 0;
+  runCommand(S.win_cmd);
+  const upl = (st?.messages || []).filter(m => UP.includes(m.kind));
+  if (seenUplinks !== null && upl.length > seenUplinks) chime();
+  seenUplinks = st ? upl.length : null;
+  paintLight();
+  if (S.compact !== undefined && document.body.classList.contains("compact") !== !!S.compact) document.body.classList.toggle("compact", !!S.compact);
+  // flight plan card (redrawn only when the plan changes, so the Route panel stays open)
+  const oc = $("#ofpCard"), ok = bk ? JSON.stringify([bk.flight_number, bk.ofp?.request_id, !!bk.ofp, !!(st && st.tracking && st.phase !== "PREFLIGHT")]) : "";
+  oc.classList.toggle("hidden", !bk || !!S.result);
+  if (bk && ok !== lastOfpKey) { lastOfpKey = ok; oc.innerHTML = ofpCard(bk); const b = $("#ofpBtn"); if (b) { b.onclick = fetchOfp; b.disabled = !!(st && st.tracking && st.phase !== "PREFLIGHT"); } }
+  // compact strip
+  const l0 = st?.live || {};
+  $("#sFn").textContent = bk ? bk.flight_number : "PAC ACARS";
+  $("#sRoute").textContent = bk ? `${bk.mission.origin.icao}–${bk.mission.destination.icao}` : "";
+  $("#sPhase").textContent = st ? (PHASES[st.phase] || st.phase) : "Not tracking";
+  $("#sAlt").textContent = l0.alt_ft != null ? fmt(l0.alt_ft) : "–";
+  $("#sSpd").textContent = l0.ias != null ? `${fmt(l0.ias)}/${fmt(l0.gs)}` : "–";
+  $("#sVs").textContent = l0.vs_fpm != null ? (l0.vs_fpm > 0 ? "+" : "") + fmt(l0.vs_fpm) : "–";
+  $("#sDtg").textContent = st?.dtg_nm != null ? fmt(st.dtg_nm) : "–";
+  const lastUp = upl[upl.length - 1];
+  $("#sLast").textContent = lastUp ? `${lastUp.z} ${lastUp.text}` : (st ? "No messages yet" : "Start tracking in the full window");
+  $("#whoText").textContent = S.signed_in_as ? `Signed in as ${S.signed_in_as.name} (${S.signed_in_as.id})` : "Not signed in";
+  $("#signOutApp").hidden = !S.signed_in_as;
+  $("#conn").innerHTML = S.server_ok ? `<span class="dot ok"></span>PAC website` : `<span class="dot bad"></span>Website offline`;
+  if (cfg.server !== shownServer && document.activeElement !== $("#cfgServer")) { $("#cfgServer").value = cfg.server || ""; shownServer = cfg.server; }
+  const nonDefault = S.default_server && cfg.server !== S.default_server;
+  $("#cfgServerHint").innerHTML = nonDefault ? `PAC's website is ${esc(S.default_server)}. <a href="#" style="color:var(--cyan)" onclick="useDefaultSite();return false">Use it</a>` : "";
+  $("#siteNotice").innerHTML = S.site_notice ? `<div class="notice"><span>${esc(S.site_notice)}</span> <a href="#" style="color:var(--cyan)" onclick="dismissNotice();return false">OK</a></div>` : "";
+  if (!cfgLoaded) { $("#cfgXp").value = cfg.xplane_host || ""; $("#cfgDemo").value = cfg.demo_speedup || 60; $("#cfgTop").checked = !!cfg.always_on_top; $("#source").value = cfg.source || "MSFS";
+    $("#cfgWin").value = cfg.window_mode || "auto";
+    $("#cfgDesign").value = cfg.design || "loadsheet";
+    $("#cfgChime").checked = cfg.chime !== false; $("#cfgVol").value = cfg.chime_volume ?? 0.5; $("#cfgTray").checked = cfg.close_to_tray !== false; $("#ver").textContent = `PAC ACARS ${S.version}`; cfgLoaded = true; }
+  if (S.auth_needed && !st) {
+    if (!$("#appSignin")) {
+      $("#flightCard").innerHTML = `<form id="appSignin" class="mform"><b class="full" style="font-size:16px">Sign in to PAC</b>
+        <p class="full muted small" style="margin:0">PAC ACARS signs in once with your pilot ID and password, then stays signed in.</p>
+        <div><label for="asId">Pilot ID</label><input id="asId" autocomplete="username" placeholder="PAC0001" style="text-transform:uppercase" required></div>
+        <div><label for="asPw">Password</label><input id="asPw" type="password" autocomplete="current-password" required></div>
+        <div class="full"><button class="btn" type="submit">Sign in</button></div>
+        <p class="full muted small" style="margin:0">No password yet? Sign in on the PAC website first (or ask staff for a sign-in link).</p></form>`;
+      $("#appSignin").onsubmit = async e => {
+        e.preventDefault();
+        await busy(e.target.querySelector("button"), "Signing in…", async () => {
+          try { const r = await api("/api/login", { pilot_id: $("#asId").value.trim(), password: $("#asPw").value }); note(`Signed in as ${esc(r.pilot.name)}.`, "ok"); poll(); }
+          catch (err) { note(esc(err.message), "err"); }
+        });
+      };
+    }
+  } else if (!S.server_ok && !st) {
+    const offer = S.default_server && cfg.server !== S.default_server;
+    $("#flightCard").innerHTML = `<b>Can't reach the PAC website</b><p class="small" style="margin:6px 0 4px">${esc(S.server_error || "")}</p>
+      ${offer ? `<p class="muted small" style="margin:0 0 4px">PAC's website is ${esc(S.default_server)}.</p>` : ""}
+      ${S.server_detail ? `<p class="muted small" style="margin:0 0 10px;opacity:.7">Details: ${esc(S.server_detail)}</p>` : `<div style="height:6px"></div>`}
+      <div class="row">${offer ? `<button class="btn" onclick="useDefaultSite()">Use ${esc(S.default_server.replace(/^https?:\/\//, ""))}</button>` : ""}<button class="btn ghost" onclick="refresh()">Try again</button></div>`;
+  } else if (S.result) {
+    const r = S.result;
+    $("#flightCard").innerHTML = `${landingCard(r)}<div class="row" style="gap:14px"><div class="grade">${esc(r.grade || "")}</div><div><b style="font-size:17px">${esc(r.flight_number || "")} filed</b><br>
+      <span class="muted small">${esc(r.score ?? "")}/100 · ${fmt(r.points)} points${r.paid ? ` · $${fmt(r.paid.total)} paid` : ""}${r.review_status === "Pending" ? " · waiting for staff review" : ""}</span></div></div>
+      <div class="row" style="margin-top:10px"><button class="btn" onclick="done()">Next flight</button><a class="btn ghost" href="${esc(cfg.server)}/#logbook" target="_blank" rel="noopener">Open logbook</a></div>`;
+  } else if (!bk) {
+    $("#flightCard").innerHTML = `<b>No flight booked</b><p class="muted small" style="margin:6px 0 10px">Book a flight on the PAC website, then refresh here.</p>
+      <div class="row"><button class="btn ghost" onclick="refresh()">Refresh</button><a class="btn ghost" href="${esc(cfg.server)}/#missions" target="_blank" rel="noopener">Open mission board</a></div>`;
+  } else {
+    const m = bk.mission, ac = h.aircraft || {};
+    $("#flightCard").innerHTML = `<div class="flight"><div><div class="fn">${esc(bk.flight_number)}</div><div class="muted small">${esc(m.title)}</div></div>
+      <div style="text-align:right"><div class="route">${esc(m.origin.icao)} → ${esc(m.destination.icao)}</div><div class="muted small">${esc(ac.name || bk.aircraft)}${bk.airframe ? " · " + esc(bk.airframe) : ""}${m.operator ? " · " + esc(m.operator.callsign) : ""}</div></div></div>
+      <div class="row small muted" style="margin-top:8px"><span>${fmt(m.payload_lbs)} lb ${esc(m.cargo || "")}</span><span style="flex:1"></span><a style="color:var(--cyan)" href="${esc(cfg.server)}/dispatch" target="_blank" rel="noopener">Dispatch release</a></div>`;
+  }
+  const tracking = !!(st && st.tracking), have = !!st;
+  $("#startBtn").classList.toggle("hidden", tracking || !bk || !!S.result || (have && st.complete) || !!S.resumable);
+  $("#resumeBtn").classList.toggle("hidden", !S.resumable || tracking || !!S.result);
+  const sv = S.saved, rn = $("#resumeNote");
+  rn.classList.toggle("hidden", !(S.resumable && !tracking && sv));
+  if (sv) rn.innerHTML = `This flight is under way: saved in <b>${esc(PHASES[sv.phase] || sv.phase)}</b> at ${new Date(sv.at * 1000).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })} on ${esc(sv.where)}${sv.source ? ` (${esc(sv.source)})` : ""}. Load the aircraft where you left off in the simulator, check the simulator below, then press <b>Resume flight</b>. <b>Abort</b> discards it.`;
+  // simulator: follow the detected one (or the last used for this type) until the pilot picks one
+  if (!tracking && !pickedSource && S.suggested_source && $("#source").value !== S.suggested_source) $("#source").value = S.suggested_source;
+  const why = !pickedSource && $("#source").value === S.suggested_source ? ({ detected: `${S.suggested_source} detected`, "last used": "last used for this aircraft" }[S.suggested_why] || "") : "";
+  $("#stopBtn").classList.toggle("hidden", !(have || S.resumable) || !!S.result || S.handed_over);
+  $("#source").disabled = tracking;
+  $("#simState").innerHTML = tracking ? (st.connected ? `<span class="dot ok"></span>${esc(S.source)} connected` : st.error ? `<span class="dot bad"></span>${esc(st.error)}` : `<span class="dot warn"></span>Connecting to ${esc(S.source)}…`)
+    : why ? `<span class="muted">${esc(why)}</span>` : "";
+  for (const id of ["live", "comms", "logCard"]) $("#" + id).classList.toggle("hidden", !have);
+  if (have) {
+    const l = st.live || {};
+    $("#phase").textContent = PHASES[st.phase] || st.phase || "–";
+    const age = st.data_age, stale = st.tracking && st.connected && age != null && age > 5;
+    const wf = stale ? `No data from the simulator for ${Math.round(age)} s. Is the sim paused on a menu, or is another program using its data port?`
+      : st.tracking ? st.waiting_for : null;
+    $("#waitFor").hidden = !wf; if (wf) $("#waitFor").textContent = wf;
+    $("#block").textContent = st.block_elapsed_s ? `Block ${Math.floor(st.block_elapsed_s / 3600)}:${String(Math.floor(st.block_elapsed_s % 3600 / 60)).padStart(2, "0")}` : "";
+    $("#alt").textContent = l.alt_ft != null ? fmt(l.alt_ft) : "–"; $("#ias").textContent = fmt(l.ias); $("#gs").textContent = fmt(l.gs);
+    $("#vs").textContent = l.vs_fpm != null ? (l.vs_fpm > 0 ? "+" : "") + fmt(l.vs_fpm) : "–"; $("#fob").textContent = fmt(l.fuel_lbs); $("#dtg").textContent = st.dtg_nm != null ? fmt(st.dtg_nm) + " nm" : "–";
+    const o = st.oooi || {}; $("#o_out").textContent = zulu(o.out); $("#o_off").textContent = zulu(o.off); $("#o_on").textContent = zulu(o.on); $("#o_in").textContent = zulu(o.in);
+    const msgs = st.messages || [], count = st.msg_count ?? msgs.length;
+    if (count !== lastLogLen) {
+      const log = $("#log"), atEnd = log.scrollHeight - log.scrollTop - log.clientHeight < 40;
+      const row = m => `<div><span class="z">${m.z}</span><span class="${m.kind === "phase" ? "phase-m" : m.kind === "oooi" ? "oooi-m" : m.kind === "warn" ? "warn" : m.kind === "wx" ? "wx" : m.kind === "dl" ? "dl" : m.kind === "ul" ? "ul" : ""}">${esc(m.text)}</span></div>`;
+      const fresh = count - lastLogLen;
+      if (lastLogLen > 0 && fresh > 0 && fresh <= msgs.length) {
+        log.insertAdjacentHTML("beforeend", msgs.slice(-fresh).map(row).join(""));   // only the new lines
+        while (log.children.length > 150) log.firstElementChild.remove();
+      } else {
+        log.innerHTML = msgs.map(row).join("");                                     // first time, or a new flight
+      }
+      if (atEnd || !lastLogLen) log.scrollTop = log.scrollHeight;
+      lastLogLen = count;
+    }
+  }
+  const fc = $("#fileCard");
+  if (have && (st.complete || S.handed_over) && !S.result) {
+    const d = S.draft;
+    fc.classList.remove("hidden");
+    if (!fc.dataset.shown) {
+      fc.dataset.shown = "1";
+      fc.innerHTML = `<b>On block</b>${d ? `${landingCard(d)}<div class="row" style="gap:12px;margin:4px 0 8px"><span class="gbadge">${esc(d.grade)}</span><div class="small">${d.score}/100 · ${fmt(d.points)} points${d.pay ? ` · pay $${fmt(d.pay.total)}` : ""}<br><span class="muted">${esc(d.status)}${d.review_status === "Pending" ? " · will go to staff review" : ""}</span></div></div>` : `<p class="muted small">Sending the flight to the website…</p>`}
+        <textarea id="remarks" rows="2" style="width:100%" placeholder="Remarks for dispatch (optional)"></textarea>
+        <div class="row" style="margin-top:8px"><button class="btn" id="fileBtn">File PIREP</button><a class="btn ghost" href="${esc(cfg.server)}/#acars" target="_blank" rel="noopener">Full report on the website</a></div>`;
+      $("#fileBtn").onclick = filePirep;
+    } else if (d && !fc.dataset.draft) { fc.dataset.shown = ""; fc.dataset.draft = "1"; render(); }
+  } else if (have && st.tracking && (st.oooi || {}).on && !st.complete && !S.handed_over && !S.result) {
+    fc.classList.remove("hidden"); fc.dataset.draft = "";
+    if (fc.dataset.shown !== "anyway") {
+      fc.dataset.shown = "anyway";
+      fc.innerHTML = `<b>Landed</b><p class="muted small" style="margin:4px 0 8px">The flight ends at the stand: parking brake set, engines off. If PAC ACARS doesn't go on block with your aircraft, you can file anyway. That PIREP goes to staff review.</p>
+        <button class="btn ghost" id="anywayBtn">File anyway</button>`;
+      $("#anywayBtn").onclick = fileAnyway;
+    }
+  } else { fc.classList.add("hidden"); fc.dataset.shown = ""; fc.dataset.draft = ""; }
+}
+
+async function poll() {
+  clearTimeout(pollT);
+  try { S = await api("/api/state"); render(); } catch (e) { /* app busy or restarting: try again */ }
+  finally { pollT = setTimeout(poll, 1000); }
+}
+async function useDefaultSite() { try { S = await api("/api/site/default", {}); render(); } catch (e) { note(esc(e.message), "err"); } }
+async function dismissNotice() { await api("/api/notice/dismiss", {}); S.site_notice = null; render(); }
+async function refresh() { try { S = await api("/api/refresh", {}); render(); } catch (e) { note(esc(e.message), "err"); } }
+async function start(resume = false) {
+  const btn = resume ? $("#resumeBtn") : $("#startBtn");
+  if (btn.disabled) return;
+  btn.disabled = true; setTimeout(() => { btn.disabled = false; }, 4000);
+  try { const r = await api("/api/start", { source: $("#source").value, resume }); note(r.warning ? esc(r.warning) : resume ? "Flight resumed." : "Tracking started. Your flight appears live on the PAC website.", r.warning ? "" : "ok"); lastLogLen = 0; poll(); }
+  catch (e) { note(esc(e.message), "err"); }
+}
+async function done() { await api("/api/done", {}); S.result = null; refresh(); }
+async function fileAnyway() {
+  if (!confirm("File this flight now, without going on block?\n\nUse this only if PAC ACARS won't go on block with your aircraft. The PIREP goes to staff review.")) return;
+  const btn = $("#anywayBtn"); btn.disabled = true;
+  try { const r = await api("/api/file", { force: true, remarks: "Filed with File anyway: PAC ACARS did not detect on block." }); note(`PIREP filed: ${esc(r.result.flight_number)} graded ${esc(r.result.grade)}. It goes to staff review.`, "ok"); poll(); }
+  catch (e) { note(esc(e.message), "err"); btn.disabled = false; }
+}
+async function filePirep() {
+  const btn = $("#fileBtn"); btn.disabled = true;
+  try { const r = await api("/api/file", { remarks: $("#remarks").value }); note(`PIREP filed: ${esc(r.result.flight_number)} graded ${esc(r.result.grade)}.`, "ok"); poll(); }
+  catch (e) { note(esc(e.message), "err"); btn.disabled = false; }
+}
+$("#startBtn").onclick = () => start(false);
+$("#source").onchange = () => { pickedSource = true; };
+$("#msgLight").onclick = () => { ack(); const l = $("#log"); if (l) { l.scrollTop = l.scrollHeight; $("#logCard").scrollIntoView({ behavior: "smooth", block: "nearest" }); } };
+$("#sMsg").onclick = ack;
+$("#compactBtn").onclick = () => setCompact(true);
+$("#sExpand").onclick = () => setCompact(false);  // (the engine's tray menu can switch it too)
+$("#testChime").onclick = () => chime(true);
+$("#signOutApp").onclick = async () => { try { await api("/api/logout", {}); note("Signed out of PAC ACARS."); poll(); } catch (e) { note(esc(e.message), "err"); } };
+$("#resumeBtn").onclick = () => start(true);
+$("#stopBtn").onclick = async () => { if (!confirm("Abort this flight? Nothing will be filed.")) return; await api("/api/stop", {}); lastLogLen = 0; note("Flight aborted."); poll(); };
+$("#wxBtn").onclick = e => busy(e.currentTarget, "WX…", async () => {
+  try { const r = await api("/api/wx", {}); note(`Weather requested for ${esc((r.stations || []).join(" and "))}. It arrives in the ACARS log in a few seconds.`); }
+  catch (err) { note(esc(err.message), "err"); }
+});
+$("#cfgSave").onclick = async () => { if ($("#cfgSave").disabled) return; $("#cfgSave").disabled = true; setTimeout(() => { $("#cfgSave").disabled = false; }, 1500);
+  const before = (S.config || {}).server; let r;
+  try { r = await api("/api/config", { server: $("#cfgServer").value.trim(), xplane_host: $("#cfgXp").value.trim(), demo_speedup: +$("#cfgDemo").value || 60, always_on_top: $("#cfgTop").checked,
+  window_mode: $("#cfgWin").value, design: $("#cfgDesign").value, chime: $("#cfgChime").checked, chime_volume: +$("#cfgVol").value, close_to_tray: $("#cfgTray").checked }); } catch (e) { note(esc(e.message), "err"); return; }
+  note(r.config.server !== before ? `Settings saved. PAC ACARS now uses ${esc(r.config.server)}: sign in there.` : "Settings saved.", "ok"); shownServer = null; refresh(); };
+
+const ATA = [[5, "Inspections"], [21, "Air conditioning / pressurisation"], [22, "Autoflight"], [23, "Communications"], [24, "Electrical"], [26, "Fire protection"],
+  [27, "Flight controls"], [28, "Fuel"], [29, "Hydraulics"], [30, "Ice and rain"], [31, "Indicating"], [32, "Landing gear and brakes"], [33, "Lights"],
+  [34, "Navigation"], [36, "Pneumatic"], [49, "APU"], [50, "Cargo compartments"], [52, "Doors"], [53, "Fuselage"], [71, "Power plant"], [80, "Engine starting"]];
+const FORMS = {
+  delay: `<div><label for="f1">Minutes</label><input id="f1" name="minutes" type="number" min="1" max="600" value="15"></div><div><label for="f2">Cause</label><select id="f2" name="reason"><option>ATC</option><option>WEATHER</option><option>GROUND HANDLING</option><option>LATE CARGO</option><option>TECHNICAL</option></select></div>`,
+  divert: `<div><label for="f1">Airport (ICAO)</label><input id="f1" name="icao" maxlength="4" style="text-transform:uppercase"></div><div><label for="f2">Reason</label><select id="f2" name="reason"><option>WEATHER</option><option>MEDICAL</option><option>TECHNICAL</option><option>FUEL</option><option>SECURITY</option><option>RUNWAY CLOSED</option></select></div>`,
+  fuel: `<p class="full small muted" style="margin:0">Sends your fuel on board; dispatch compares it with your OFP.</p>`,
+  eta: `<p class="full small muted" style="margin:0">Asks dispatch for your ETA.</p>`,
+  fault: `<div class="full"><label for="f1">System</label><select id="f1" name="ata">${ATA.map(([n, l]) => `<option value="${n}" ${n === 49 ? "selected" : ""}>ATA ${String(n).padStart(2, "0")} · ${l}</option>`).join("")}</select></div>
+    <div class="full"><label for="f2">Fault</label><input id="f2" name="description" maxlength="300" placeholder="What's wrong"></div>
+    <div><label for="f3">Keep flying?</label><select id="f3" name="severity"><option value="deferred">Yes, defer it</option><option value="grounding">No, ground it</option></select></div>
+    <div><label for="f4">Fix within</label><select id="f4" name="category"><option value="C">10 days (C)</option><option value="B">3 days (B)</option></select></div>`,
+  text: `<div class="full"><label for="f1">Message</label><input id="f1" name="text" maxlength="160" placeholder="e.g. Request stand"></div>`,
+};
+function drawForm(t) {
+  document.querySelectorAll("[data-mt]").forEach(b => b.classList.toggle("on", b.dataset.mt === t));
+  const f = $("#mform"); f.dataset.type = t;
+  f.innerHTML = FORMS[t] + `<div class="full"><button class="btn" type="submit">Send</button></div>`;
+}
+document.querySelectorAll("[data-mt]").forEach(b => b.onclick = () => drawForm(b.dataset.mt));
+$("#mform").onsubmit = async e => {
+  e.preventDefault();
+  const f = e.target, body = { type: f.dataset.type, ...Object.fromEntries(new FormData(f).entries()) };
+  await busy(f.querySelector("button[type=submit]"), "Sending…", async () => {
+    try { await api("/api/message", body); note("Sent. PAC Operations will reply in the log."); drawForm(f.dataset.type); } catch (err) { note(esc(err.message), "err"); }
+  });
+};
+drawForm("delay");
+refresh().then(poll);
+</script>
+</body>
+</html>

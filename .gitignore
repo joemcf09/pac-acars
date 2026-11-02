@@ -1,0 +1,60 @@
+# ------------------------------------------------------------------------------
+# PAC: what Git must never upload.
+# Code and PAC's public reference data go to GitHub; pilots' records, keys and
+# uploads stay on the server (and in its backups).
+# ------------------------------------------------------------------------------
+
+# ---- secrets: never commit these ----
+data/secret_key
+data/bot_secret
+data/simbrief_api_key
+data/settings.json
+.env
+*.pem
+*.key
+
+# ---- the airline's live data: logbook, pilots, uploads ----
+data/*
+# ...except PAC's own reference data, which ships with the code
+!data/fleet.json
+!data/fleet_custom.json
+!data/missions.json
+!data/airports.json
+!data/runways.json
+!data/routes.json
+!data/partners.json
+
+# ---- Python and local tooling ----
+.venv/
+venv/
+__pycache__/
+*.pyc
+*.log
+*.pid
+
+# ---- old copies and one-off backups (Git keeps the history now) ----
+*.bak*
+*.before-*
+*.zip
+
+# ---- PAC ACARS app: local files and build output ----
+acars_client/config.json
+acars_client/flight_state.pkl
+acars_client/build/dist/
+acars_client/build/work/
+acars_client/build/Output/
+acars_client/acars.log
+acars_client/pac-acars.pid
+acars_client/chime.wav
+acars_client/window-profile/
+static/downloads/*
+!static/downloads/.keep
+*.exe
+site_url.py
+
+# ---- editors and operating systems ----
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+desktop.ini

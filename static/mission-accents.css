@@ -1,0 +1,15 @@
+/* Category accents are descriptive; only the actual urgent flag marks priority. */
+.waybill.mb-card{border-top:4px solid var(--mb-accent,#adb6c2)}
+.mb-card.mb-accent-urgent{--mb-accent:#ce0000;border-left:5px solid #ce0000}
+.mb-card.mb-accent-relief{--mb-accent:#208467}
+.mb-card.mb-accent-express{--mb-accent:#b57918}
+.mb-card.mb-accent-heavy{--mb-accent:#6b57a0}
+.mb-card.mb-accent-medical{--mb-accent:#167e9a}
+.mb-card .mb-work-label{display:flex;align-items:center;gap:8px;flex-wrap:wrap;min-width:0}
+.mb-card .mb-card-top{align-items:flex-start;gap:12px}
+.mb-card .mb-urgent-label{display:inline-block;background:#c80000;color:#fff;padding:4px 7px;border-radius:3px;font-size:11px;font-weight:800;letter-spacing:.04em;white-space:nowrap}
+.mb-card.mb-accent-urgent .mb-card-top{background:#fff0ef;border-radius:3px;padding:8px;margin-bottom:12px}
+.mb-card.mb-accent-urgent .mb-title{color:#a40000}
+html[data-theme="dark"] .mb-card.mb-accent-urgent .mb-card-top{background:#442021}
+html[data-theme="dark"] .mb-card.mb-accent-urgent .mb-title{color:#ffb9b4}
+.waybill.mb-card:focus-visible{outline:3px solid var(--red);outline-offset:3px}

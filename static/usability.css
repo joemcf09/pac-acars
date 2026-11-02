@@ -1,0 +1,26 @@
+/* Fix intrinsic sizing rather than hiding page overflow. Wide tables scroll locally. */
+main,.view,.profile-bar,.board-head,.section-h{min-width:0;max-width:100%}
+.career-path{grid-template-columns:repeat(6,minmax(0,1fr))}
+.career-path>*,.profile-bar>*,.board-head>*,.section-h>*{min-width:0}
+.table-wrap{max-width:100%;overflow-x:auto}
+.ux-activity-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:20px;padding:16px 0}
+.ux-activity-grid h3{margin:0 0 6px}.ux-activity-grid p{margin:0;color:var(--steel);font-size:14px}
+.ux-browse-details{border:1px solid var(--line);background:var(--white);padding:12px 16px;margin:12px 0 20px;border-radius:4px}
+.ux-browse-details summary{cursor:pointer;font-weight:600}.ux-browse-details .filters{margin:14px 0 0;display:flex;flex-wrap:wrap;gap:8px}
+.ux-wallet-help{flex-basis:100%;font-size:13px}.ux-wallet-help button{font-size:inherit}
+html:not([data-design="loadsheet"]) body>header{height:auto;min-height:64px;flex-wrap:wrap;gap:10px 18px;padding:10px 20px}
+html:not([data-design="loadsheet"]) body>header nav{height:44px;min-height:44px;flex-wrap:nowrap;gap:0;margin:0}
+html:not([data-design="loadsheet"]) body>header nav>button,html:not([data-design="loadsheet"]) .nav-more>button{height:44px;padding:0 12px}
+html:not([data-design="loadsheet"]) .nav-more{height:44px}
+html:not([data-design="loadsheet"]) body>header .pilot{max-width:100%;flex-wrap:wrap;margin-left:auto}
+.pilot-chip{min-width:0;max-width:100%}.pilot-chip>span{overflow-wrap:anywhere}
+.ux-wallet-help .journey-text-button{color:var(--red)}
+html[data-theme="dark"] .ux-wallet-help .journey-text-button{color:#ffb0b0}
+@media(max-width:1560px){html:not([data-design="loadsheet"]) body>header nav{order:3;flex-basis:100%}}
+@media(max-width:1080px){.career-path{grid-template-columns:repeat(3,minmax(0,1fr))}.ux-activity-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+html:not([data-design="loadsheet"]) body>header nav{order:3;flex-basis:100%}}
+@media(max-width:640px){.career-path{grid-template-columns:repeat(2,minmax(0,1fr))}.ux-activity-grid{grid-template-columns:1fr}
+html:not([data-design="loadsheet"]) body>header{position:relative;padding:10px 12px}
+html:not([data-design="loadsheet"]) body>header .pilot{margin-left:0}
+html:not([data-design="loadsheet"]) body>header nav{height:auto;flex-wrap:wrap}
+.ux-browse-details input,.ux-browse-details select{max-width:100%;min-width:0}}

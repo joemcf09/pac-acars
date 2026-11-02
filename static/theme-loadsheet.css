@@ -1,0 +1,277 @@
+/* ==========================================================================
+   PAC "Load Sheet" design
+   Same colours as the classic look; a different way of using them.
+   - An ink rail down the left, like a flight-deck side panel, with the PAC block in red.
+   - Tall, bold Big Shoulders lettering (like the markings on cargo containers) only for page titles,
+     flight numbers and airport codes. Barlow for everything else.
+   - Square corners and hairline rules, like printed ramp paperwork.
+   Everything is scoped to html[data-design="loadsheet"], so the classic look is untouched.
+   ========================================================================== */
+
+/* bundled fonts (static/fonts, SIL Open Font License) */
+@font-face { font-family: "Barlow"; src: url("/static/fonts/barlow-400.woff2") format("woff2"); font-weight: 400; font-style: normal; font-display: swap; }
+@font-face { font-family: "Barlow"; src: url("/static/fonts/barlow-500.woff2") format("woff2"); font-weight: 500; font-style: normal; font-display: swap; }
+@font-face { font-family: "Barlow"; src: url("/static/fonts/barlow-600.woff2") format("woff2"); font-weight: 600; font-style: normal; font-display: swap; }
+@font-face { font-family: "Barlow"; src: url("/static/fonts/barlow-700.woff2") format("woff2"); font-weight: 700; font-style: normal; font-display: swap; }
+@font-face { font-family: "Barlow"; src: url("/static/fonts/barlow-400-italic.woff2") format("woff2"); font-weight: 400; font-style: italic; font-display: swap; }
+@font-face { font-family: "Big Shoulders Display"; src: url("/static/fonts/big-shoulders-display.woff2") format("woff2"); font-weight: 100 900; font-style: normal; font-display: swap; }
+@font-face { font-family: "Big Shoulders Stencil Display"; src: url("/static/fonts/big-shoulders-stencil.woff2") format("woff2"); font-weight: 100 900; font-style: normal; font-display: swap; }
+
+html[data-design="loadsheet"] {
+  --font: "Barlow", "Segoe UI", system-ui, sans-serif;
+  /* titles, flight numbers and airport codes: solid letters read better than the stencil cut (pilot feedback, Nov 2026) */
+  --stencil: "Big Shoulders Display", "Barlow Condensed", Impact, sans-serif;
+  --rail: 236px;
+  --rail-bg: #1E2126;          /* ink */
+  --rail-text: #C9CED6;
+  --rail-hover: rgba(255, 255, 255, .06);
+}
+html[data-design="loadsheet"][data-theme="dark"] {
+  --rail-bg: #0F1114;
+  --rail-hover: rgba(255, 255, 255, .05);
+}
+
+/* ---------------- base type ---------------- */
+html[data-design="loadsheet"] body {
+  font-family: var(--font);
+  font-stretch: 100%;
+  font-size: 15.5px;
+  line-height: 1.5;
+}
+html[data-design="loadsheet"] h1 {
+  font-family: var(--stencil);
+  font-stretch: 100%;
+  font-weight: 800;
+  font-size: 46px;
+  line-height: 1;
+  letter-spacing: .01em;
+}
+html[data-design="loadsheet"] h2 { font-stretch: 100%; font-weight: 700; letter-spacing: -.005em; }
+html[data-design="loadsheet"] h3 { font-weight: 700; }
+html[data-design="loadsheet"] .section-h { margin: 44px 0 16px; padding-top: 14px; border-top: 1px solid var(--line); }
+html[data-design="loadsheet"] .section-h h2 { font-size: 23px; }
+html[data-design="loadsheet"] .profile-bar { align-items: flex-end; gap: 18px; padding-bottom: 6px; }
+
+/* ---------------- the rail ---------------- */
+html[data-design="loadsheet"] header {
+  position: fixed;
+  inset: 0 auto 0 0;
+  width: var(--rail);
+  height: auto;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0;
+  padding: 0 0 18px;
+  background: var(--rail-bg);
+  color: var(--rail-text);
+  overflow-y: auto;
+  scrollbar-width: thin;
+}
+html[data-design="loadsheet"] header .brand {
+  background: var(--red);
+  padding: 22px 22px 18px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  margin: 0;
+}
+html[data-design="loadsheet"] header .brand img { height: 30px; width: auto; }
+html[data-design="loadsheet"] header .brand span {
+  display: block;
+  color: #fff;
+  font-size: 13.5px;
+  font-weight: 600;
+  opacity: .92;
+  border: 0;
+  padding: 0;
+  margin: 0;
+}
+
+html[data-design="loadsheet"] header nav {
+  flex-direction: column;
+  height: auto;
+  margin: 14px 0 0;
+  overflow: visible;
+  gap: 1px;
+}
+/* every page listed in the rail: no More menu needed */
+html[data-design="loadsheet"] header nav .nav-extra { display: flex !important; }
+html[data-design="loadsheet"] header nav .nav-extra.auth-hidden { display: none !important; }
+html[data-design="loadsheet"] header .nav-more { display: none !important; }
+html[data-design="loadsheet"] header nav > button {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  height: 40px;
+  padding: 0 22px 0 19px;
+  border: 0;
+  border-left: 3px solid transparent;
+  border-bottom: 0;
+  background: none;
+  color: var(--rail-text);
+  font: 500 15px/1 var(--font);
+  text-align: left;
+  cursor: pointer;
+}
+html[data-design="loadsheet"] header nav > button:hover { background: var(--rail-hover); color: #fff; }
+html[data-design="loadsheet"] header nav > button[aria-current="true"] {
+  color: #fff;
+  font-weight: 700;
+  border-left-color: var(--red);
+  background: rgba(200, 0, 0, .16);
+}
+html[data-design="loadsheet"] header nav > button:focus-visible { outline: 2px solid #fff; outline-offset: -2px; }
+html[data-design="loadsheet"] header .nav-badge { background: var(--red); color: #fff; }
+
+/* pilot, flight pill, settings and sign-in at the foot of the rail */
+html[data-design="loadsheet"] header .pilot {
+  margin: auto 0 0 0;
+  padding: 16px 18px 0;
+  border-top: 1px solid rgba(255, 255, 255, .08);
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
+}
+html[data-design="loadsheet"] header .bid-pill {
+  justify-content: flex-start;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, .05);
+  border-color: rgba(255, 255, 255, .14);
+  padding: 8px 10px;
+}
+html[data-design="loadsheet"] header .bid-pill .rt { display: inline !important; }
+html[data-design="loadsheet"] header .pilot-chip { color: #fff; gap: 10px; padding: 2px 0; }
+html[data-design="loadsheet"] header .pilot-chip span { display: inline !important; font-weight: 600; }
+html[data-design="loadsheet"] header .pilot > button {
+  width: 100%;
+  height: 36px;
+  border-radius: 2px;
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, .22);
+  color: var(--rail-text);
+  font: 600 14px var(--font);
+}
+html[data-design="loadsheet"] header .pilot > button:hover { border-color: #fff; color: #fff; }
+html[data-design="loadsheet"] header .pilot > .signin-btn { background: var(--red) !important; border-color: var(--red) !important; color: #fff !important; }
+
+/* ---------------- the page beside the rail ---------------- */
+html[data-design="loadsheet"] main {
+  margin-left: var(--rail);
+  max-width: 1320px;
+  padding: 34px 44px 60px;
+}
+html[data-design="loadsheet"] .dossier,
+html[data-design="loadsheet"] .handbook nav.toc { top: 24px; }
+
+/* ---------------- stencil markings: flight numbers and airport codes ---------------- */
+html[data-design="loadsheet"] .route .icao,
+html[data-design="loadsheet"] .st-icao,
+html[data-design="loadsheet"] .strip .fn,
+html[data-design="loadsheet"] .live-card .fn,
+html[data-design="loadsheet"] .bid-fn,
+html[data-design="loadsheet"] .bid-route b,
+html[data-design="loadsheet"] .recap-head b {
+  font-family: var(--stencil);
+  font-weight: 800;
+  letter-spacing: .02em;
+  font-stretch: 100%;
+}
+html[data-design="loadsheet"] .route .icao { font-size: 34px; line-height: 1; }
+html[data-design="loadsheet"] .strip .fn { font-size: 34px; }
+html[data-design="loadsheet"] .bid-fn { font-size: 42px; }
+html[data-design="loadsheet"] .bid-route { font-size: 32px; }
+
+/* ---------------- paperwork: square corners, hairline rules ---------------- */
+html[data-design="loadsheet"] .btn { border-radius: 0; font-family: var(--font); letter-spacing: .01em; }
+html[data-design="loadsheet"] .btn.small { border-radius: 0; }
+html[data-design="loadsheet"] .waybill,
+html[data-design="loadsheet"] .dossier,
+html[data-design="loadsheet"] .bid-card,
+html[data-design="loadsheet"] .rec,
+html[data-design="loadsheet"] .rating,
+html[data-design="loadsheet"] .coll,
+html[data-design="loadsheet"] .recap { border-radius: 0; }
+html[data-design="loadsheet"] .waybill { border-color: var(--line); }
+html[data-design="loadsheet"] .waybill:hover { border-color: var(--ink); }
+html[data-design="loadsheet"] .waybill[aria-selected="true"] { border-color: var(--red); box-shadow: inset 0 0 0 1px var(--red); }
+html[data-design="loadsheet"] .tag { border-radius: 0; font-family: var(--font); }
+html[data-design="loadsheet"] .chip { border-radius: 0; }
+html[data-design="loadsheet"] input,
+html[data-design="loadsheet"] select,
+html[data-design="loadsheet"] textarea { border-radius: 0; font-family: var(--font); }
+html[data-design="loadsheet"] dialog { border-radius: 0; }
+
+/* the recap card and stat tiles read like a load sheet: a ruled grid */
+html[data-design="loadsheet"] .stat-tiles b,
+html[data-design="loadsheet"] .ph-row b { font-stretch: 100%; font-weight: 700; }
+
+/* ---------------- full-width sections start at the rail, not the window edge ---------------- */
+html[data-design="loadsheet"] .hero { width: calc(100vw - var(--rail)); margin: -34px 0 0 -44px; }
+html[data-design="loadsheet"] .stat-band { width: calc(100vw - var(--rail)); margin-left: -44px; }
+html[data-design="loadsheet"] body { overflow-x: hidden; }
+
+/* the home headline is where the stencil lands hardest */
+html[data-design="loadsheet"] .hero h1 {
+  font-family: var(--stencil);
+  font-weight: 800;
+  font-stretch: 100%;
+  font-size: 66px;
+  line-height: .98;
+  letter-spacing: .01em;
+  max-width: 16ch;
+}
+
+/* section labels in sentence case, not capitals */
+html[data-design="loadsheet"] .kicker { text-transform: none; letter-spacing: 0; font-size: 14.5px; }
+html[data-design="loadsheet"] .recap-head span { text-transform: none; letter-spacing: 0; font-size: 14px; }
+
+/* ---------------- phones and small windows: the rail folds into a top bar ---------------- */
+@media (max-width: 960px) {
+  html[data-design="loadsheet"] header {
+    position: sticky;
+    inset: auto;
+    top: 0;
+    width: auto;
+    height: auto;
+    flex-direction: row;
+    align-items: center;
+    padding: 0 12px 0 0;
+    overflow-x: auto;
+    overflow-y: hidden;
+  }
+  html[data-design="loadsheet"] header .brand { padding: 14px 16px; flex-direction: row; align-items: center; }
+  html[data-design="loadsheet"] header .brand span { display: none; }
+  html[data-design="loadsheet"] header .brand img { height: 22px; }
+  html[data-design="loadsheet"] header nav { flex-direction: row; margin: 0 6px; }
+  html[data-design="loadsheet"] header nav > button {
+    width: auto;
+    height: 52px;
+    padding: 0 12px;
+    border-left: 0;
+    border-bottom: 3px solid transparent;
+    white-space: nowrap;
+  }
+  html[data-design="loadsheet"] header nav > button[aria-current="true"] { border-bottom-color: var(--red); background: none; }
+  html[data-design="loadsheet"] header .pilot {
+    margin: 0 0 0 auto;
+    padding: 0;
+    border: 0;
+    flex-direction: row;
+    align-items: center;
+  }
+  html[data-design="loadsheet"] header .pilot > button { width: auto; padding: 0 12px; white-space: nowrap; }
+  html[data-design="loadsheet"] header .pilot-chip span,
+  html[data-design="loadsheet"] header .bid-pill .rt { display: none !important; }
+  html[data-design="loadsheet"] main { margin-left: 0; padding: 22px 18px 50px; }
+  html[data-design="loadsheet"] .hero { width: 100vw; margin: -22px 0 0 -18px; }
+  html[data-design="loadsheet"] .stat-band { width: 100vw; margin-left: -18px; }
+  html[data-design="loadsheet"] .hero h1 { font-size: 44px; }
+  html[data-design="loadsheet"] h1 { font-size: 36px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html[data-design="loadsheet"] * { transition: none !important; }
+}

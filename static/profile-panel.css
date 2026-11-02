@@ -1,0 +1,6 @@
+/* Keep the insignia with the portrait, rather than pinned to the card bottom. */
+.crew-photo .profile-rank-block{display:flex;flex-direction:column;align-items:center;gap:8px;width:100%;margin-top:12px;padding-top:22px;border-top:1px solid #ffffff55;color:#fff;text-align:center}
+.crew-photo .profile-rank-block img.insignia{width:144px;max-width:100%;height:auto;aspect-ratio:3/5;object-fit:contain;margin:0;border:0;background:transparent;box-shadow:0 6px 18px #0004}
+.profile-rank-caption{font-size:18px;font-weight:700;line-height:1.3}.profile-pilot-id{font-size:13px;letter-spacing:1.5px;opacity:.85}
+@media(max-width:1080px){.crew-photo .profile-rank-block{width:auto;flex:1;margin:0;padding:0 12px;border:0;min-width:130px}.crew-photo .profile-rank-block img.insignia{width:108px}.profile-rank-caption{font-size:16px}}
+@media(max-width:420px){.crew-photo .profile-rank-block img.insignia{width:90px}.crew-photo .profile-rank-block{min-width:100px;padding:0}.crew-photo:has(.profile-rank-block){padding:20px;gap:16px}.crew-photo:has(.profile-rank-block)>img{width:140px}}

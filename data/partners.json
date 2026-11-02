@@ -1,0 +1,210 @@
+{
+  "partners": {
+    "fedex": {
+      "key": "fedex",
+      "name": "FedEx Express",
+      "logo": "/static/partners/fedex-express.png",
+      "hub": "KMEM",
+      "hub_name": "Memphis World Hub",
+      "network": [
+        "KMEM",
+        "KIND",
+        "KOAK",
+        "KEWR",
+        "KAFW",
+        "PANC",
+        "KLAX",
+        "KMIA",
+        "KSEA",
+        "KDEN",
+        "KPHX",
+        "KBOS",
+        "LFPG",
+        "ZGGG"
+      ],
+      "relationship": "FedEx hires PAC captains when its own crews run short: sickness, duty limits after weather, or a training backlog on a type.",
+      "logo_source": "https://commons.wikimedia.org/wiki/File:FedEx_Express.svg",
+      "logo_license": "Public domain",
+      "logo_artist": "FedEx Express",
+      "code": "FDX",
+      "callsign": "FEDEX",
+      "types": [
+        "MD11F",
+        "B77F",
+        "B763F",
+        "B752F",
+        "A306F"
+      ],
+      "flight_range": [
+        1,
+        1999
+      ]
+    },
+    "ups": {
+      "key": "ups",
+      "name": "UPS Airlines",
+      "logo": "/static/partners/ups-airlines.png",
+      "hub": "KSDF",
+      "hub_name": "Worldport, Louisville",
+      "network": [
+        "KSDF",
+        "KONT",
+        "KPHL",
+        "KRFD",
+        "KDFW",
+        "KMIA",
+        "KSEA",
+        "KBOS",
+        "EDDK",
+        "PANC",
+        "VHHH"
+      ],
+      "relationship": "UPS brings in PAC captains to keep Worldport rotations flying when crew scheduling runs dry.",
+      "logo_source": "https://commons.wikimedia.org/wiki/File:UPS_Logo_Shield_2017.svg",
+      "logo_license": "Public domain",
+      "logo_artist": "Unknown authorUnknown author",
+      "code": "UPS",
+      "callsign": "UPS",
+      "types": [
+        "B748F",
+        "MD11F",
+        "B763F",
+        "B752F",
+        "A306F"
+      ],
+      "flight_range": [
+        2000,
+        2999
+      ]
+    },
+    "qatar": {
+      "key": "qatar",
+      "name": "Qatar Airways Cargo",
+      "logo": "/static/partners/qatar-airways-cargo.png",
+      "hub": "OTHH",
+      "hub_name": "Hamad International, Doha",
+      "network": [
+        "OTHH",
+        "EBLG",
+        "LIMC",
+        "EDDF",
+        "EHAM",
+        "LFPG",
+        "KORD",
+        "KATL",
+        "VHHH",
+        "HKJK",
+        "FAOR",
+        "VIDP"
+      ],
+      "relationship": "Qatar Airways Cargo borrows type-rated PAC captains to cover gaps on its Doha freighter rotations.",
+      "logo_source": "https://commons.wikimedia.org/wiki/File:Qatar_Airways_logo.svg",
+      "logo_license": "Public domain",
+      "logo_artist": "Qatar Airways",
+      "code": "QTR",
+      "callsign": "QATARI",
+      "types": [
+        "B77F",
+        "B748F"
+      ],
+      "flight_range": [
+        8000,
+        8999
+      ]
+    },
+    "emirates": {
+      "key": "emirates",
+      "name": "Emirates SkyCargo",
+      "logo": "/static/partners/emirates-skycargo.png",
+      "hub": "OMDB",
+      "hub_name": "Dubai International",
+      "network": [
+        "OMDB",
+        "OMDW",
+        "LIMC",
+        "EHAM",
+        "EDDF",
+        "KORD",
+        "VHHH",
+        "HKJK",
+        "FAOR",
+        "VIDP"
+      ],
+      "relationship": "Emirates SkyCargo calls on PAC's 777F captains when its own roster is stretched.",
+      "logo_source": "https://commons.wikimedia.org/wiki/File:Emirates_SkyCargo_Logo.svg",
+      "logo_license": "Public domain",
+      "logo_artist": "Emirates SkyCargo",
+      "code": "UAE",
+      "callsign": "EMIRATES",
+      "types": [
+        "B77F"
+      ],
+      "flight_range": [
+        9000,
+        9899
+      ]
+    },
+    "cathay": {
+      "key": "cathay",
+      "name": "Cathay Cargo",
+      "logo": "/static/partners/cathay-cargo.png",
+      "hub": "VHHH",
+      "hub_name": "Hong Kong International",
+      "network": [
+        "VHHH",
+        "PANC",
+        "KORD",
+        "KJFK",
+        "KLAX",
+        "EDDF",
+        "EHAM",
+        "LIMC"
+      ],
+      "relationship": "Cathay Cargo uses PAC 747-8F captains to cover crew shortages on its transpacific and European freighters.",
+      "logo_source": "https://commons.wikimedia.org/wiki/File:Cathay_Pacific_Ltd._logo.svg",
+      "logo_license": "Public domain",
+      "logo_artist": "Cathay Pacific",
+      "code": "CPA",
+      "callsign": "CATHAY",
+      "types": [
+        "B748F"
+      ],
+      "flight_range": [
+        20,
+        99
+      ]
+    },
+    "atlas": {
+      "key": "atlas",
+      "name": "Atlas Air",
+      "logo": "/static/partners/atlas-air.png",
+      "hub": "KCVG",
+      "hub_name": "Cincinnati/Northern Kentucky",
+      "network": [
+        "KCVG",
+        "KMIA",
+        "PANC",
+        "KORD",
+        "KJFK",
+        "KONT",
+        "EDDP",
+        "VHHH"
+      ],
+      "relationship": "Atlas Air shares the Cincinnati ramp with PAC and borrows PAC captains when its crews are out of hours.",
+      "logo_source": "https://commons.wikimedia.org/wiki/File:Atlas_Air_Worldwide_logo.svg",
+      "logo_license": "CC BY-SA 4.0",
+      "logo_artist": "Atlas Air Worldwide Holdings, Inc.",
+      "code": "GTI",
+      "callsign": "GIANT",
+      "types": [
+        "B748F",
+        "B77F",
+        "B763F"
+      ],
+      "flight_range": [
+        5000,
+        5999
+      ]
+    }
+  }
+}

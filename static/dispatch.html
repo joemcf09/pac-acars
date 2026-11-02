@@ -1,0 +1,535 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dispatch release · Pagani Air Cargo</title>
+<link rel="icon" href="/static/favicon.png">
+<style>
+/* Printed operational paperwork: fixed-width text in aligned columns, the way dispatch systems print it. */
+@font-face { font-family: "Courier Prime"; src: url("/static/fonts/courier-prime-400.woff2") format("woff2"); font-weight: 400; font-display: swap; }
+@font-face { font-family: "Courier Prime"; src: url("/static/fonts/courier-prime-700.woff2") format("woff2"); font-weight: 700; font-display: swap; }
+:root { --paper: #FDFDFB; --ink: #111; --mono: "Courier Prime", "Courier New", Courier, monospace; }
+* { box-sizing: border-box; }
+html, body { margin: 0; background: #6B7078; }
+body { font-family: var(--mono); color: var(--ink); }
+
+/* screen toolbar (not printed) */
+.bar { position: sticky; top: 0; z-index: 5; display: flex; align-items: center; gap: 10px; padding: 10px 18px; background: #1E2126; color: #fff;
+       font: 600 14px "Segoe UI", system-ui, sans-serif; }
+.bar .sp { flex: 1; }
+.bar a, .bar button, #barTitle { white-space: nowrap; }
+#barTitle { overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.bar a, .bar button { font: 600 14px "Segoe UI", system-ui, sans-serif; color: #fff; text-decoration: none; padding: 7px 14px; border: 1px solid rgba(255,255,255,.35); background: none; cursor: pointer; }
+.bar .primary { background: #C80000; border-color: #C80000; }
+.bar .quiet { border-color: transparent; color: #C9CED6; }
+
+/* the sheets */
+#doc { padding: 26px 0 60px; display: flex; flex-direction: column; align-items: center; gap: 26px; }
+.page { width: 210mm; height: 297mm; background: var(--paper); padding: 12mm 12mm 10mm; display: flex; flex-direction: column;
+        box-shadow: 0 2px 10px rgba(0,0,0,.35); position: relative; }
+.head { display: flex; justify-content: space-between; align-items: flex-start; gap: 8mm; }
+.head img.logo { height: 7.5mm; filter: invert(1) contrast(1.4); margin-top: 1mm; }
+.head .ids { flex: 1; font-size: 9.6pt; line-height: 1.25; }
+.head .ids b { font-size: 11pt; }
+.bc { text-align: center; font-size: 7.5pt; letter-spacing: .12em; }
+.bc svg { display: block; height: 11mm; }
+pre.t { font-family: var(--mono); font-size: 9pt; line-height: 1.22; margin: 0; white-space: pre; color: var(--ink); }
+pre.t b { font-weight: 700; }
+.body { flex: 1; margin-top: 2.5mm; }
+.foot { margin-top: 4mm; }
+.copy { position: absolute; top: 4.5mm; right: 12mm; font: 700 7.5pt var(--mono); letter-spacing: .14em; }
+.err { background: #fff; padding: 30px; max-width: 640px; font-family: "Segoe UI", system-ui, sans-serif; }
+
+@media print {
+  @page { size: A4; margin: 0; }
+  html, body { background: #fff; }
+  .bar { display: none; }
+  #doc { padding: 0; gap: 0; }
+  .page { box-shadow: none; background: #fff; page-break-after: always; break-after: page; }
+  .page:last-child { page-break-after: auto; break-after: auto; }
+}
+/* small screens only: never shrink the printed page */
+@media screen and (max-width: 860px) { .page { zoom: .48; } }
+@media print { .page { zoom: 1 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
+.seg { display: inline-flex; border: 1px solid rgba(255,255,255,.35); }
+.seg a { border: 0 !important; padding: 7px 12px !important; color: #C9CED6 !important; }
+.seg a.on { background: #fff; color: #1E2126 !important; }
+[hidden]{display:none !important}
+/* the captain's signature */
+.bar .signed { font-weight: 600; color: #9BE29B; padding: 7px 4px; }
+dialog.sign { border: 0; padding: 0; max-width: 520px; width: calc(100% - 32px); font: 15px/1.45 "Segoe UI", system-ui, sans-serif; color: #1E2126; }
+dialog.sign::backdrop { background: rgba(10, 12, 16, .6); }
+dialog.sign .in { padding: 22px 24px 20px; }
+dialog.sign h2 { margin: 0 0 6px; font-size: 19px; }
+dialog.sign p { margin: 0 0 14px; color: #4A505A; }
+dialog.sign label { display: flex; gap: 10px; align-items: flex-start; margin: 0 0 12px; cursor: pointer; }
+dialog.sign input[type=checkbox] { margin-top: 3px; width: 17px; height: 17px; flex: none; }
+dialog.sign .dg { background: #FFF4D6; border-left: 4px solid #C88A00; padding: 10px 12px; margin: 0 0 12px; }
+dialog.sign .row { display: flex; gap: 10px; justify-content: flex-end; margin-top: 18px; }
+dialog.sign button { font: 600 14px "Segoe UI", system-ui, sans-serif; padding: 9px 16px; border: 1px solid #C9CED6; background: #fff; cursor: pointer; }
+dialog.sign button.go { background: #C80000; border-color: #C80000; color: #fff; }
+dialog.sign button.go:disabled { opacity: .45; cursor: default; }
+dialog.sign .msg { color: #C80000; font-size: 14px; min-height: 1em; margin: 6px 0 0; }
+.amended { background: #FFF4D6; color: #3A2E00; font: 600 14px "Segoe UI", system-ui, sans-serif; padding: 10px 18px; text-align: center; }
+</style>
+</head>
+<body>
+<div class="bar"><span id="barTitle">Dispatch release</span><span class="sp"></span>
+  <span class="seg" role="group" aria-label="Layout"><a class="on" href="#" aria-current="true">New</a><a id="classic" href="/static/dispatch-classic.html">Classic</a></span>
+  <a id="navigraph" href="https://charts.navigraph.com/" target="_blank" rel="noopener" hidden>Navigraph Charts</a>
+  <a href="/#acars">Back to ACARS</a>
+  <span class="signed" id="signedTag" hidden></span>
+  <button class="primary" id="signBtn" hidden>Sign release</button>
+  <label>NOTAM print scope <select id="notamScope"><option value="airports">Airports</option><option value="all">All imported</option><option value="none">Omit imported NOTAMs</option></select></label>
+  <button class="primary" id="printBtn" onclick="print()">Print / save as PDF</button></div>
+<div class="amended" id="amended" hidden>Your SimBrief plan changed the fuel and weights, so this is an amended release. Review it and sign again.</div>
+<main id="doc"><div class="err">Loading the release…</div></main>
+<dialog class="sign" id="signDlg"><form method="dialog" class="in" id="signForm">
+  <h2>Sign the dispatch release</h2>
+  <p id="signWho">As pilot in command, you accept this flight as planned.</p>
+  <label><input type="checkbox" id="ckReview"><span>I have reviewed the weather, NOTAMs, fuel, weights and the load for this flight.</span></label>
+  <div class="dg" id="dgBox" hidden><label style="margin:0"><input type="checkbox" id="ckNotoc"><span id="dgText">I have received the NOTOC and know what dangerous goods are on board and where they are loaded.</span></label></div>
+  <p class="msg" id="signMsg"></p>
+  <div class="row"><button type="button" id="signCancel">Not yet</button><button type="button" class="go" id="signGo" disabled>Sign release</button></div>
+</form></dialog>
+
+<script>
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
+const W = 84;                                    // columns on the sheet
+const U = s => String(s ?? "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase();  // plain capitals, no accents
+const L = (s, n) => String(s ?? "").padEnd(n).slice(0, n);          // left-aligned column
+const R = (s, n) => String(s ?? "").padStart(n).slice(-n);           // right-aligned column
+const N = v => v == null || v === "" || isNaN(v) ? "" : String(Math.round(v));
+const rule = (ch = "-") => ch.repeat(W);
+const MON = ["JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"];
+const hhmm = min => { min = Math.max(0, Math.round(min || 0)); return `${String(Math.floor(min / 60)).padStart(2, "0")}:${String(min % 60).padStart(2, "0")}`; };
+const wrap = (text, width = W, indent = 0) => {
+  const out = []; let line = "";
+  U(text).replace(/\s+/g, " ").trim().split(" ").forEach(w => {
+    if ((line + " " + w).trim().length > width - indent) { out.push(" ".repeat(indent) + line.trim()); line = w; } else line += " " + w;
+  });
+  if (line.trim()) out.push(" ".repeat(indent) + line.trim());
+  return out;
+};
+const gc = (a1, o1, a2, o2) => { const r = Math.PI / 180, h = Math.sin((a2 - a1) * r / 2) ** 2 + Math.cos(a1 * r) * Math.cos(a2 * r) * Math.sin((o2 - o1) * r / 2) ** 2; return 2 * 3440.065 * Math.asin(Math.sqrt(h)); };
+const latlon = (lat, lon) => {
+  const f = (v, p, n, d) => { const a = Math.abs(v), deg = Math.floor(a), min = (a - deg) * 60; return `${v >= 0 ? p : n}${String(deg).padStart(d, "0")}${min.toFixed(1).padStart(4, "0")}`; };
+  return `${f(lat, "N", "S", 2)} ${f(lon, "E", "W", 3)}`;
+};
+
+/* ---------------- Code 39 barcode (the document number) ---------------- */
+const C39 = { "0": "nnnwwnwnn", "1": "wnnwnnnnw", "2": "nnwwnnnnw", "3": "wnwwnnnnn", "4": "nnnwwnnnw", "5": "wnnwwnnnn", "6": "nnwwwnnnn", "7": "nnnwnnwnw",
+  "8": "wnnwnnwnn", "9": "nnwwnnwnn", A: "wnnnnwnnw", B: "nnwnnwnnw", C: "wnwnnwnnn", D: "nnnnwwnnw", E: "wnnnwwnnn", F: "nnwnwwnnn", G: "nnnnnwwnw",
+  H: "wnnnnwwnn", I: "nnwnnwwnn", J: "nnnnwwwnn", K: "wnnnnnnww", L: "nnwnnnnww", M: "wnwnnnnwn", N: "nnnnwnnww", O: "wnnnwnnwn", P: "nnwnwnnwn",
+  Q: "nnnnnnwww", R: "wnnnnnwwn", S: "nnwnnnwwn", T: "nnnnwnwwn", U: "wwnnnnnnw", V: "nwwnnnnnw", W: "wwwnnnnnn", X: "nwnnwnnnw", Y: "wwnnwnnnn",
+  Z: "nwwnwnnnn", "-": "nwnnnnwnw", ".": "wwnnnnwnn", " ": "nwwnnnwnn", "*": "nwnnwnwnn" };
+function barcode(text) {
+  const s = "*" + U(text).replace(/[^0-9A-Z\-. ]/g, "") + "*";
+  let x = 0, bars = "";
+  for (const ch of s) {
+    [...(C39[ch] || C39["-"])].forEach((e, i) => { const w = e === "w" ? 3 : 1; if (i % 2 === 0) bars += `<rect x="${x}" y="0" width="${w}" height="40"/>`; x += w; });
+    x += 1;  // gap between characters
+  }
+  return `<svg viewBox="0 0 ${x} 40" preserveAspectRatio="none" style="width:${Math.round(x * 0.9)}px">${bars}</svg>`;
+}
+
+/* ---------------- sheets ---------------- */
+const PAGES = [];
+function sheet(title, form, lines) { for(let i=0;i<lines.length;i+=48) PAGES.push({title:title+(i?" (CONT)":""),form,lines:lines.slice(i,i+48)}); }
+function renderPages(d) {
+  const p = d.paper, now = new Date(), iso = now.toISOString();
+  const pr = `${iso.substr(8, 2)}${MON[now.getUTCMonth()]}${iso.substr(2, 2)} ${iso.substr(11, 2)}${iso.substr(14, 2)}Z`;
+  const occ = p.iata[d.origin.icao] || "CVG";
+  $("#doc").innerHTML = PAGES.map((pg, i) => `<section class="page">
+    <div class="copy">CAPTAIN COPY</div>
+    <div class="head"><img class="logo" src="/static/pac-wordmark-white.png" alt="Pagani Air Cargo">
+      <div class="ids"><b>PAGANI AIR CARGO</b><br>OPERATIONS CONTROL CENTER CVG<br>${esc(pg.title)}</div>
+      <div class="bc">${barcode(d.release_no)}${esc(d.release_no)}</div></div>
+    <pre class="t">${esc(L("FORM " + pg.form, 42) + R(`${d.flight}/${d.date.slice(0, 6).replace(/ /g, "")}  ${d.origin.icao}-${d.destination.icao}`, W - 42))}
+${rule("=")}</pre>
+    <div class="body"><pre class="t">${pg.lines.join("\n")}</pre></div>
+    <pre class="t foot">${rule("-")}
+${esc(L(`PRINTED ${pr}  OCC-${occ}/T14`, 36) + L("FOR FLIGHT SIMULATION USE ONLY", 32) + R(`PAGE ${i + 1} OF ${PAGES.length}`, W - 68))}</pre></section>`).join("");
+}
+
+/* ---------------- page 1: dispatch release ---------------- */
+function validUntil(std) { const h = parseInt(std.slice(0, 2), 10); return `${String((h + 3) % 24).padStart(2, "0")}${std.slice(2, 4)}Z`; }
+function releasePage(d) {
+  const p = d.paper, f = d.fuel || {}, w = d.weights || {}, lim = p.limits, ls = p.loadsheet;
+  const ia = i => p.iata[i] || i.slice(-3);
+  const cap = d.captain || {};
+  const capShort = U((cap.name || "").replace(/^Capt\.?\s*/i, "").replace(/^(\S)\S*\s+/, "$1. "));
+  const block = f.block_fuel_lbs || ls.block, taxi = f.taxi_fuel_lbs || ls.taxi, trip = f.trip_fuel_lbs || ls.trip;
+  const burn = d.perf?.burn_pph || (trip / Math.max(.5, (d.block_min - 20) / 60));
+  const finres = f.reserve_fuel_lbs || Math.round(burn * .5);
+  const cont = p.contingency || Math.round(trip * .05);
+  const ktas = d.perf?.ktas || 450;
+  const altnNm = d.alternate?.lat != null ? gc(d.destination.lat, d.destination.lon, d.alternate.lat, d.alternate.lon) : 0;
+  const rem = block - taxi - trip - cont - finres;
+  const altn = d.alternate ? Math.max(0, Math.min(rem, Math.round(burn * (altnNm / ktas + .25)))) : 0;
+  const extra = rem - altn, mintof = trip + cont + altn + finres, tof = block - taxi;
+  const t = lbs => hhmm(Math.abs(lbs) / burn * 60);
+  const out = [];
+  out.push(`<b>${esc(L("DISPATCH RELEASE", 42) + R("RELEASE NBR " + d.release_no, W - 42))}</b>`, "");
+  out.push(esc(L(`FLT NBR    ${d.flight}`, 28) + L(`DATE  ${d.date.replace(/ /g, "")}`, 24) + L("TYPE OF OPS  IFR / CARGO", 32)));
+  out.push(esc(L(`CALLSIGN   ${p.callsign}`, 28) + L(`SELCAL ${p.selcal}`, 24) + L(`OFP NBR      ${d.ofp_id || "NOT FILED"}`, 32)));
+  if (p.atc_callsign) out.push(esc(L(`ATC FPL    ${p.atc_callsign}`, 28) + L(`RMK/CALLSIGN ${String(p.callsign || "").split(" ")[0]}`, 56)));
+  out.push(esc(L(`ACFT       ${d.icao}  ${d.tail}`, 28) + L(U(d.aircraft_name), 24) + L(`CREW         ${ls.crew}`, 32)));
+  out.push(esc(L(`PIC        CAPT ${capShort}`, 28) + L(`${cap.id || ""}  ${p.pic_cert}`, 24) + L(U(p.captain_rank || cap.rank || ""), 32)));
+  out.push("", "<b>ROUTING</b>", esc(L("", 6) + L("STATION", 14) + L("STD/STA", 9) + L("NAME", 55)));
+  out.push(esc(L("DEP", 6) + L(`${d.origin.icao}/${ia(d.origin.icao)}`, 14) + L(d.std, 9) + L(U(d.origin.name), 55)));
+  if (d.dep_stand?.stand && d.dep_stand.icao === d.origin.icao) out.push(esc(L("", 6) + L("STAND " + d.dep_stand.stand, 14) + L("", 9) + L(U(d.dep_stand.info || ""), 55)));
+  out.push(esc(L("DEST", 6) + L(`${d.destination.icao}/${ia(d.destination.icao)}`, 14) + L(d.sta, 9) + L(U(d.destination.name), 55)));
+  if (d.arr_stand?.stand && d.arr_stand.icao === d.destination.icao) out.push(esc(L("", 6) + L("STAND " + d.arr_stand.stand, 14) + L("", 9) + L("PAC STAND ON ARRIVAL", 55)));
+  else out.push(esc(L("", 6) + L("CARGO RAMP", 14) + L("", 9) + L("ANY FREE CARGO STAND, NOT A PASSENGER GATE", 55)));
+  out.push(esc(L("ALTN", 6) + L(d.alternate ? `${d.alternate.icao}/${ia(d.alternate.icao)}` : "NIL", 14) + L(d.alternate ? `${Math.round(altnNm)}NM` : "", 9) + L(U(d.alternate?.name || ""), 55)));
+  out.push("", esc(L(`CRZ ${d.cruise || "----"}`, 14) + L(`GND DIST ${N(d.distance_nm)}NM`, 22) + L(`BLOCK TIME ${hhmm(d.block_min)}`, 22) + L(`FLT PLAN FILED ${p.fltplan_filed}`, 26)));
+  out.push(esc("COST INDEX  " + (p.cost_index == null || String(p.cost_index).trim() === "" ? "NOT PROVIDED" : String(p.cost_index))));
+  out.push("", "<b>ROUTE</b>");
+  wrap(`${d.origin.icao} ${d.route || "DIRECT"} ${d.destination.icao}`, W).forEach(l => out.push(esc(l)));
+  out.push("", `<b>${esc(L("FUEL", 44) + R("TIME", 12) + R("LBS", 14))}</b>`);
+  const fl = (label, time, lbs, bold) => { const s = esc(L(label, 44) + R(time, 12) + R(N(lbs), 14)); out.push(bold ? `<b>${s}</b>` : s); };
+  fl(`TRIP          ${d.destination.icao}`, hhmm(d.block_min - 20), trip);
+  fl("CONTINGENCY   5 PCT TRIP", t(cont), cont);
+  fl(`ALTERNATE     ${d.alternate?.icao || "NIL"}`, t(altn), altn);
+  fl("FINAL RESERVE 30 MIN HOLD", "00:30", finres);
+  fl("MINIMUM TAKEOFF FUEL", "", mintof);
+  fl(extra >= 0 ? "EXTRA         DISCRETIONARY" : "BELOW MINIMUM TAKEOFF FUEL", t(extra), extra);
+  fl("TAKEOFF FUEL", "", tof);
+  fl("TAXI", "", taxi);
+  fl("BLOCK FUEL", "", block, true);
+  d._minFuel = mintof;
+  out.push(esc(L(`MINIMUM RELEASE FUEL ${N(mintof)} LBS`, 44) + R(`(${N(block / 2.20462)} KG BLOCK)`, 26)));
+  const pl = [w.zfw_lbs || ls.zfw, w.tow_lbs || ls.tow, w.ldw_lbs || ls.law], lm = [lim.mzfw, lim.mtow, lim.mlw];
+  const marg = pl.map((v, i) => lm[i] - v), lowest = Math.min(...marg);
+  out.push("", `<b>${esc(L("WEIGHTS", 30) + R("PLANNED", 14) + R("LIMIT", 14) + R("MARGIN", 14))}</b>`);
+  ["ZERO FUEL WEIGHT", "TAKEOFF WEIGHT", "LANDING WEIGHT"].forEach((k, i) =>
+    out.push(esc(L(k, 30) + R(N(pl[i]), 14) + R(N(lm[i]), 14) + R(N(marg[i]), 14) + (marg[i] === lowest ? "  L" : ""))));
+  out.push(esc(L("PAYLOAD", 30) + R(N(w.payload_lbs || ls.payload), 14) + R(N(lim.max_payload), 14)));
+  out.push("", "<b>MEL / CDL / DEFERRED ITEMS</b>");
+  if (!(d.defects || []).length) out.push("NIL");
+  (d.defects || []).forEach(x => {
+    out.push(esc(L(`ATA ${x.ata ?? ""}`, 8) + L(x.category ? `CAT ${x.category}` : U(x.severity || ""), 8) + L(x.due ? `DUE ${new Date(x.due * 1000).toISOString().slice(0, 10)}` : "", 16)));
+    wrap(x.description || "", W, 4).forEach(l => out.push(esc(l)));
+  });
+  out.push("", "<b>CARGO</b>");
+  out.push(esc(L(`${d.totals.units} ULD`, 10) + L(`${d.totals.pieces} PCS`, 12) + L(`${N(d.totals.weight_lbs)} LBS`, 14) + L(`SHC ${(d.shc || []).map(s => s.code).join(" ") || "NIL"}`, 22) + L((d.dg || []).length ? "DG ON BOARD - NOTOC ATT" : "NO DG", 26)));
+  out.push(esc(`MISSION    ${d.mission_id} ${U(d.category || "")} / ${U(d.priority || "STANDARD")} PRIORITY${d.operator ? `  OPERATED FOR ${U(d.operator.name)}` : ""}`));
+  out.push("", "<b>DISPATCH REMARKS</b>");
+  wrap(d.briefing || "NIL", W).forEach(l => out.push(esc(l)));
+  if ((p.notams || []).length) out.push(esc(`COMPANY NOTAMS IN FORCE: ${p.notams.length}. SEE WEATHER AND NOTAMS.`));
+  out.push("", "<b>RELEASE</b>");
+  wrap(`THIS FLIGHT IS RELEASED UNDER THE PAGANI AIR CARGO OPERATIONS MANUAL. THE PILOT IN COMMAND AND THE DISPATCHER AGREE THE FLIGHT CAN BE MADE SAFELY AS PLANNED. RELEASE VALID UNTIL ${validUntil(d.std)} UNLESS AMENDED.`, W).forEach(l => out.push(esc(l)));
+  out.push("", esc(L("DISPATCHER", 14) + L(p.dispatcher.name, 22) + L(p.dispatcher.cert, 16) + L(`/S/ ELECTRONICALLY SIGNED ${p.issued_at ? zulu(p.issued_at) : d.std}`, 32)));
+  out.push("", esc(L("PIC", 14) + L(`CAPT ${capShort}`, 22) + L(p.pic_cert, 16) + (d.signed ? `/S/ ELECTRONICALLY SIGNED ${zulu(d.signed.at)}` : "SIGNATURE ...................")));
+  out.push("I HAVE REVIEWED THE WEATHER, NOTAMS, FUEL AND LOAD FOR THIS FLIGHT.");
+  return out;
+}
+
+/* ---------------- navigation log (when the SimBrief plan carries waypoints) ---------------- */
+function navlogLines(d) {
+  const imported = d.paper?.briefing;
+  if(imported?.navlog?.length) {
+    const showTime = v => v == null || v === '' || !Number.isFinite(Number(v)) ? '--:--' : hhmm(Number(v)/60);
+    const out = sourceLines('SOURCE: SIMBRIEF NAVLOG / PLANNED VALUES - NO FIXED-SPEED RECALCULATION');
+    out.push(esc(L('WAYPOINT',16)+R('LEG NM',10)+R('LEG TIME',12)+R('ELAPSED',12)+R('FUEL '+(imported.units||'?'),16)));
+    imported.navlog.forEach(f => out.push(esc(L(f.ident||'----',16)+R(N(f.distance)||'--',10)+R(showTime(f.time_leg),12)+R(showTime(f.time_total),12)+R(N(f.fuel_plan_onboard)||'--',16))));
+    out.push(...sourceLines('Missing imported fields remain blank or dashed. Times are elapsed plan times.'));
+    return out;
+  }
+  const pts = (d.navlog || []).filter(p => p[0] != null && p[1] != null);
+  if (pts.length < 3) return null;
+  const all = [[d.origin.lat, d.origin.lon, d.origin.icao], ...pts.filter(p => p[2] !== d.origin.icao && p[2] !== d.destination.icao), [d.destination.lat, d.destination.lon, d.destination.icao]];
+  const ktas = d.perf?.ktas || 450;
+  const total = all.slice(1).reduce((s, p, i) => s + gc(all[i][0], all[i][1], p[0], p[1]), 0);
+  const out = [`<b>${esc(L("WAYPOINT", 11) + L("POSITION", 19) + R("DIST", 6) + R("ACC", 7) + R("REM", 7) + R("ETE", 7) + R("ACC", 7) + "   ETA    ATA   FUEL")}</b>`];
+  let acc = 0;
+  all.forEach((p, i) => {
+    const leg = i ? gc(all[i - 1][0], all[i - 1][1], p[0], p[1]) : 0; acc += leg;
+    out.push(esc(L(U(p[2] || "----"), 11) + L(latlon(p[0], p[1]), 19) + R(i ? N(leg) : "", 6) + R(N(acc), 7) + R(N(total - acc), 7) + R(i ? hhmm(leg / ktas * 60) : "", 7) + R(hhmm(acc / ktas * 60), 7) + "   ....   ....  ....."));
+  });
+  out.push("", ...wrap(`TOTAL ${N(total)}NM  ETE ${hhmm(total / ktas * 60)} AT ${ktas}KT TAS (NO WIND). ETA, ATA AND FUEL COLUMNS FOR CREW ENTRY.`, W).map(esc));
+  return out;
+}
+
+/* ---------------- weather and NOTAMs ---------------- */
+async function weatherLines(d) {
+  const ids = [d.origin.icao, d.destination.icao, d.alternate?.icao].filter(Boolean);
+  const out = [`<b>${esc(L("WEATHER BRIEFING", 44) + R("SOURCE AVIATIONWEATHER.GOV", W - 44))}</b>`, ""];
+  let w = {};
+  try { const res = await fetch("/api/weather?taf=1&ids=" + ids.join(",")); w = await res.json(); if (!res.ok) throw new Error(w.error); }
+  catch (e) { out.push(...wrap("WEATHER NOT AVAILABLE AT TIME OF PRINT. OBTAIN CURRENT REPORTS BEFORE DEPARTURE.", W).map(esc), ""); w = {}; }
+  [["DEPARTURE", d.origin.icao], ["DESTINATION", d.destination.icao], ["ALTERNATE", d.alternate?.icao]].filter(x => x[1]).forEach(([role, icao]) => {
+    const x = w[icao] || {};
+    out.push(`<b>${esc(L(`${icao}/${d.paper.iata[icao] || icao.slice(-3)}`, 12) + role)}</b>`);
+    const sa = wrap(x.metar?.raw || "NIL", W, 4); sa[0] = "SA  " + sa[0].trimStart(); sa.forEach(l => out.push(esc(l)));
+    const taf = x.taf?.lines || [];
+    if (!taf.length) out.push("FT  NIL");
+    taf.forEach((ln, i) => wrap(ln, W, i ? 6 : 4).forEach((l, j) => out.push(esc(i === 0 && j === 0 ? "FT  " + l.trimStart() : l))));
+    out.push("");
+  });
+  out.push("<b>NOTAMS</b>");
+  const nt = d.paper.notams || [], yy = String(new Date().getUTCFullYear()).slice(2);
+  if (!nt.length) out.push("COMPANY NOTAMS  NIL");
+  nt.forEach((n, i) => { out.push(esc(`CO NOTAM ${String(n.id || i + 1).padStart(4, "0")}/${yy}  ${U(n.title)}`)); wrap(n.body || "", W, 4).forEach(l => out.push(esc(l))); });
+  out.push("", ...wrap("SEE IMPORTED BRIEFING PAGES FOR SIMBRIEF NOTAMS WHEN AVAILABLE. PRINT SCOPE MAY EXCLUDE EN-ROUTE NOTAMS. CHECK CURRENT BRIEFING BEFORE DEPARTURE.", W).map(esc));
+  return out;
+}
+
+/* Imported reports are escaped text; no supplier HTML is executed. */
+function sourceLines(text){
+ const out=[];
+ for(const original of String(text||'').replace(/\r/g,'').split('\n')){
+  let line=original.replace(/\t/g,'    ');
+  while(line.length>W){let cut=line.lastIndexOf(' ',W);if(cut<1)cut=W;out.push(esc(line.slice(0,cut)));line=line.slice(cut).trimStart();}
+  out.push(esc(line));
+ }
+ return out;
+}
+function briefingHeader(b){
+ const stamp=Number(b.generated),date=stamp&&Number.isFinite(stamp)?new Date(stamp*1000).toISOString():'UNKNOWN';
+ return sourceLines(`SOURCE: SIMBRIEF OFP ${b.request_id||'UNKNOWN'} / GENERATED ${date}\nSAVED BRIEFING CONDITIONS. NOT A LIVE WEATHER OR NOTAM UPDATE.\nRecalculate in SimBrief or the aircraft EFB after conditions change.`);
+}
+function addImportedBriefing(d){
+ const b=d.paper?.briefing;
+ if(!b){sheet('PERFORMANCE AND AIRPORT NOTAMS','OCC-BRF / 01',sourceLines('IMPORTED BRIEFING UNAVAILABLE.\nFetch a newly generated SimBrief plan with Runway Analysis enabled.\nPreviously signed releases are not changed by a new import.'));return;}
+ const warnings=[];
+ const ac=b.aircraft||{};
+ if(ac.icaocode&&d.icao&&ac.icaocode!==d.icao)warnings.push('AIRCRAFT TYPE DIFFERS FROM RELEASE. VERIFY THE AIRCRAFT PROFILE.');
+ for(const [phase,key] of [['takeoff','tow_lbs'],['landing','ldw_lbs']]){
+  const value=Number(b.performance?.phases?.[phase]?.conditions?.planned_weight);
+  const k=/^kg/i.test(b.units||'')?2.20462:/^lb/i.test(b.units||'')?1:null;
+  const release=Number(d.weights?.[key]);
+  if(k&&value&&release&&Math.abs(value*k-release)>10)warnings.push(phase.toUpperCase()+' CALCULATION WEIGHT DIFFERS FROM RELEASE. REGENERATE PERFORMANCE.');
+ }
+ const p=briefingHeader(b).concat(sourceLines(`AIRFRAME PROFILE: ${ac.name||'UNKNOWN'} / ${ac.engines||'ENGINE UNSPECIFIED'}\nSOURCE REGISTRATION: ${ac.reg||'UNSPECIFIED'} / BOOKED TAIL: ${d.tail||'UNSPECIFIED'}\nIMPORTED PLANNING RESULTS; NOT AN ADD-ON-VALIDATED PAC CALCULATION.`));
+ warnings.forEach(w=>p.push(...sourceLines(w)));
+ p.push('',...sourceLines(b.performance_report||'RUNWAY ANALYSIS UNAVAILABLE. No performance values have been invented.'));
+ sheet('TAKEOFF AND LANDING REPORT','OCC-PERF / 01',p);
+ const entries=b.notams?.entries||[];
+ const scope=$('#notamScope').value;
+ if(scope==='none')return;
+ const airports=[d.origin?.icao,d.destination?.icao,d.alternate?.icao].filter(Boolean);
+ const selected=entries.filter(n=>scope==='all'||airports.includes(n.location_icao));
+ const groups=new Map();for(const n of selected){const key=n.location_icao||'UNKNOWN';if(!groups.has(key))groups.set(key,[]);groups.get(key).push(n);}
+ if(!selected.length)sheet('AIRPORT NOTAMS','OCC-NOTAM / 01',briefingHeader(b).concat(sourceLines('NO NOTAM ENTRIES IMPORTED FOR THIS SCOPE. This does not establish that no applicable NOTAMs exist.')));
+ for(const [icao,list] of groups){let lines=briefingHeader(b);
+  lines.push(...sourceLines(`${list.length} IMPORTED ENTRIES / ${icao}\n${scope==='all'?'ALL IMPORTED LOCATIONS INCLUDED.':'AIRPORT EXTRACT ONLY. EN-ROUTE NOTAMS OMITTED FROM THIS PRINT SCOPE.'}\nEffective dates and schedules apply. Source coverage is not independently verified.`),'');
+  for(const n of list){lines.push('<b>'+esc(n.notam_id+' / PART '+n.part)+'</b>');lines.push(...sourceLines(`EFFECTIVE ${n.date_effective||'UNSPECIFIED'} / EXPIRES ${n.date_expire||'UNSPECIFIED'}${n.date_expire_is_estimated?' (ESTIMATED)':''}`));if(n.notam_schedule)lines.push(...sourceLines('SCHEDULE '+n.notam_schedule));lines.push(...sourceLines(n.notam_raw),rule(),'');}
+  sheet('NOTAMS / '+icao,'OCC-NOTAM / 01',lines);
+ }
+}
+
+/* ---------------- loadsheet (standard airline layout) ---------------- */
+function loadsheetLines(d) {
+  const p = d.paper, ls = p.loadsheet, lim = p.limits, ia = i => p.iata[i] || i.slice(-3);
+  const dt = new Date((p.issued_at || Date.now() / 1000) * 1000), iso = dt.toISOString();
+  const dmy = `${d.date.slice(0, 2)}${d.date.slice(3, 6)}${d.date.slice(-2)}`, tm = `${iso.substr(11, 2)}${iso.substr(14, 2)}`;
+  const m = [lim.mzfw - ls.zfw, lim.mtow - ls.tow, lim.mlw - ls.law], low = Math.min(...m), lf = i => m[i] === low ? "L" : " ";
+  const out = [];
+  out.push(`<b>${esc(L("L O A D S H E E T", 30) + L("CHECKED", 16) + L("APPROVED", 18) + L("EDNO", 6))}</b>`);
+  out.push(esc(L("ALL WEIGHTS IN POUNDS", 30) + L("", 16) + L("", 18) + L(ls.edno, 6)), "");
+  out.push(esc(L("FROM/TO", 9) + L("FLIGHT", 12) + L("A/C REG", 10) + L("VERSION", 10) + L("CREW", 7) + L("DATE", 10) + L("TIME", 6)));
+  out.push(esc(L(`${ia(d.origin.icao)} ${ia(d.destination.icao)}`, 9) + L(`${d.flight}/${d.date.slice(0, 2)}`, 12) + L(d.tail, 10) + L("F" + (d.deck?.main?.length || ""), 10) + L(ls.crew, 7) + L(dmy, 10) + L(tm, 6)));
+  out.push(esc(L("", 21) + L("WEIGHT", 10) + "DISTRIBUTION"));
+  out.push(esc(L("LOAD IN COMPARTMENTS", 21) + R(N(d.totals.weight_lbs), 8) + "  " + `MAIN/${N(d.totals.main_lbs)} LOWER/${N(d.totals.lower_lbs)}`));
+  out.push(esc(L("PASSENGER/CABIN BAG", 21) + R("0", 8) + "  0/0/0/0  TTL 0  CAB 0"));
+  out.push(esc(L("TOTAL TRAFFIC LOAD", 21) + R(N(ls.payload), 8)));
+  out.push(esc(L("DRY OPERATING WEIGHT", 21) + R(N(ls.dow), 8)));
+  out.push(esc(L("ZERO FUEL WEIGHT ACTUAL", 24) + R(N(ls.zfw), 8) + "  MAX " + R(N(lim.mzfw), 8) + "  " + lf(0) + "  ADJ"));
+  out.push(esc(L("TAKE OFF FUEL", 21) + R(N(ls.tof), 8)));
+  out.push(esc(L("TAKE OFF WEIGHT ACTUAL", 24) + R(N(ls.tow), 8) + "  MAX " + R(N(lim.mtow), 8) + "  " + lf(1) + "  ADJ"));
+  out.push(esc(L("TRIP FUEL", 21) + R(N(ls.trip), 8)));
+  out.push(esc(L("LANDING WEIGHT ACTUAL", 24) + R(N(ls.law), 8) + "  MAX " + R(N(lim.mlw), 8) + "  " + lf(2) + "  ADJ"), "");
+  out.push("<b>SIMULATION ESTIMATES: CG / TRIM NOT AIRCRAFT-VALIDATED</b>");
+  out.push(`<b>${esc(L("BALANCE AND SEATING CONDITIONS", 42) + "LAST MINUTE CHANGES")}</b>`);
+  out.push(esc(L(`DOI   ${ls.doi.toFixed(1)}    DLI   ${ls.dli.toFixed(1)}`, 42) + "DEST  SPEC  CL/CPT  + -  WEIGHT"));
+  out.push(esc(L(`LIZFW ${ls.lizfw.toFixed(1)}    LITOW ${ls.litow.toFixed(1)}`, 42) + "....  ....  ......  .    ......"));
+  out.push(esc(L(`MACZFW ${ls.mac_zfw.toFixed(1)}   MACTOW ${ls.mac_tow.toFixed(1)}`, 42) + "....  ....  ......  .    ......"));
+  out.push(esc(L(`STAB TRIM SETTING  ${ls.trim}`, 42) + "LMC TOTAL  + -     ......"));
+  out.push(esc(`UNDERLOAD BEFORE LMC  ${N(ls.underload)}`), "");
+  out.push("<b>LOADMESSAGE AND CAPTAINS INFORMATION BEFORE LMC</b>");
+  out.push(esc(`-${ia(d.destination.icao)}  C ${N(d.totals.weight_lbs)}  MAIN/${N(d.totals.main_lbs)} LOWER/${N(d.totals.lower_lbs)}  PCS ${d.totals.pieces}  ULD ${d.totals.units}`));
+  out.push(esc(`SI  SHC ${(d.shc || []).map(s => s.code).join(" ") || "NIL"}${(d.dg || []).length ? "  DG ON BOARD SEE NOTOC" : ""}`));
+  out.push(esc(`    BLOCK FUEL ${N(ls.block)}  TAXI ${N(ls.taxi)}  MIN RELEASE FUEL ${N(d._minFuel ?? p.min_release_fuel)}`), "");
+  out.push(esc(L("PREPARED BY", 14) + L("LOAD CONTROL " + ia(d.origin.icao), 28) + "CAPTAINS SIGNATURE"));
+  out.push(esc(L("", 14) + L("/S/ ELECTRONIC", 28) + "..................."), "", "END");
+  return out;
+}
+
+/* ---------------- cargo manifest and NOTOC ---------------- */
+function manifestLines(d) {
+  const out = [`<b>${esc(L("POS", 5) + L("ULD", 12) + L("AWB", 14) + R("PCS", 5) + R("WT LBS", 9) + "  " + L("SHC", 12) + "CONTENTS")}</b>`];
+  (d.positions || []).forEach(x => out.push(esc(L(x.pos, 5) + L(x.unit, 12) + L(x.awb, 14) + R(x.pieces, 5) + R(N(x.weight_lbs), 9) + "  " + L((x.shc || []).join(" "), 12) + L(U(x.contents), W - 59))));
+  out.push(rule("-"), esc(L(`TOTAL ${d.totals.units} ULD`, 31) + R(d.totals.pieces, 5) + R(N(d.totals.weight_lbs), 9) + `   MAIN ${N(d.totals.main_lbs)}  LOWER ${N(d.totals.lower_lbs)}`), "");
+  out.push("<b>SPECIAL HANDLING CODES</b>");
+  (d.shc || []).forEach(s => out.push(esc(L(s.code, 6) + U(s.name))));
+  if (!(d.shc || []).length) out.push("NIL");
+  if ((d.onward || []).length) {            // village freight: handed to Pagani Remote Aviation at Anchorage
+    const lb = d.onward.reduce((a, x) => a + x.lb, 0);
+    out.push("", `<b>${esc(`ONWARD - PAGANI REMOTE AVIATION VIA ${d.destination.icao}`)}</b>`);
+    out.push(esc(`TRANSFER ${d.onward.length} SHIPMENTS ${N(lb)} LBS TO PRA FOR TRUCK TO PAMR. INCLUDED IN UNIT ${d.onward[0].pos} WEIGHT.`));
+    out.push(`<b>${esc(L("REF", 15) + L("DEST", 6) + R("PCS", 4) + R("WT LBS", 8) + "  " + L("SHC", 8) + "CONTENTS")}</b>`);
+    d.onward.forEach(x => {
+      out.push(esc(L(x.ref, 15) + L(x.dest, 6) + R(x.pcs, 4) + R(N(x.lb), 8) + "  " + L((x.shc || []).join(" "), 8) + L(U(x.desc), W - 41)));
+      wrap(`FOR ${x.consignee} - ${x.why}`, W, 4).forEach(l => out.push(esc(U(l))));
+    });
+  }
+  return out;
+}
+function notocLines(d) {
+  const p = d.paper, ia = i => p.iata[i] || i.slice(-3);
+  const out = [];
+  out.push(esc(L(`STATION OF LOADING ${ia(d.origin.icao)}`, 26) + L(`FLIGHT ${d.flight}`, 16) + L(`DATE ${d.date.replace(/ /g, "")}`, 18) + L(`A/C REG ${d.tail}`, 24)), "");
+  out.push("<b>DANGEROUS GOODS</b>");
+  out.push(`<b>${esc(L("TO", 5) + L("AWB", 14) + L("CL", 4) + L("UN/ID", 8) + R("PCS", 4) + R("NET QTY", 9) + "  " + L("IMP", 5) + L("CAO", 5) + L("ERG", 6) + L("POS", 5) + "PROPER SHIPPING NAME")}</b>`);
+  if (!(d.dg || []).length) out.push("NIL");
+  (d.dg || []).forEach(g => {
+    const e = (p.erg || {})[g.un] || {};
+    out.push(esc(L(ia(d.destination.icao), 5) + L(g.awb, 14) + L(g.cls, 4) + L(g.un, 8) + R(g.pieces, 4) + R(U(g.net), 9) + "  " + L(g.imp, 5) + L(g.cao ? "YES" : "NO", 5) + L(e.erg || "", 6) + L(g.pos || "", 5)));
+    wrap(g.name, W, 8).forEach(l => out.push(esc(l)));
+  });
+  out.push("", "<b>OTHER SPECIAL LOAD</b>");
+  const other = (d.positions || []).filter(x => !x.dg && (x.shc || []).some(c => !["RLI", "RLM", "RCL", "RFL", "ICE", "RCM"].includes(c)));
+  if (!other.length) out.push("NIL");
+  other.slice(0, 12).forEach(x => out.push(esc(L(ia(d.destination.icao), 5) + L(x.awb, 14) + L((x.shc || []).join(" "), 12) + L(x.pos, 5) + U(x.contents).slice(0, W - 36))));
+  out.push("");
+  wrap("THERE IS NO EVIDENCE THAT ANY DAMAGED OR LEAKING PACKAGES CONTAINING DANGEROUS GOODS HAVE BEEN LOADED ON THIS AIRCRAFT. IN AN EMERGENCY, INFORM ATC OF THE DANGEROUS GOODS ON BOARD USING THIS NOTOC.", W).forEach(l => out.push(esc(l)));
+  out.push("", esc(L("LOADING SUPERVISOR", 22) + L("R. OKAFOR  " + ia(d.origin.icao), 26) + "SIGNATURE .............."));
+  out.push("", esc(L("CAPTAIN", 22) + L("NOTOC RECEIVED", 26) + (d.signed && (d.dg || []).length ? `/S/ ${zulu(d.signed.at)}` : "SIGNATURE ..............")));
+  return out;
+}
+
+
+/* ---------------- shipment details: who is shipping what, and why ---------------- */
+function shipmentLines(d) {
+  const sh = d.shipments || [];
+  if (!sh.length) return null;
+  const out = [], ctry = c => c ? ` ${c}` : "";
+  const sta = d.sta || "";
+  const plus = h => { const m = Math.round(h * 60); const t = (parseInt(sta.slice(0, 2), 10) * 60 + parseInt(sta.slice(2, 4), 10) + m) % 1440; return `${String(Math.floor(t / 60)).padStart(2, "0")}${String(t % 60).padStart(2, "0")}Z (ON BLOCK +${hhmm(m)})`; };
+  out.push(...wrap(`${sh.length} SHIPMENT${sh.length > 1 ? "S" : ""} ON THIS FLIGHT. EACH AIR WAYBILL BELOW MATCHES THE UNITS ON THE CARGO MANIFEST. PLANNED RELEASE TIMES ALLOW FOR CUSTOMS AND BREAKDOWN AT ${d.destination.icao}.`, W).map(esc), "");
+  sh.forEach((s, i) => {
+    const blk = [];
+    blk.push(`<b>${esc(L(`SHIPMENT ${s.no} OF ${sh.length}`, 22) + L(`AWB ${s.awb}`, 24) + R(`SERVICE ${U(s.service)}`, W - 46))}</b>`);
+    blk.push(esc(L("SHIPPER", 11) + U(`${s.shipper.name}`).slice(0, W - 11)));
+    blk.push(esc(L("CONSIGNEE", 11) + U(`${s.consignee.name}`).slice(0, W - 11)));
+    blk.push(esc(L("AGENT", 11) + L(U(s.agent || "DIRECT"), 40) + L("NOTIFY", 8) + U(s.notify || "")));
+    wrap(s.contents, W - 11).forEach((l, j) => blk.push(esc(L(j ? "" : "GOODS", 11) + l.trimStart())));
+    blk.push(esc(L("UNITS", 11) + L((s.units || []).join(" "), 36) + L(`PCS ${s.pieces}`, 10) + L(`WT ${N(s.weight_lbs)} LBS`, 16) + `SHC ${(s.shc || []).join(" ") || "GEN"}`));
+    blk.push(esc(L("RELEASE", 11) + `ESTIMATED TO CONSIGNEE ${plus(s.deliver_h || 6)}`));
+    blk.push("<b>NATURE OF SHIPMENT</b>");
+    wrap(s.story, W, 2).forEach(l => blk.push(esc(l)));
+    if ((s.handling || []).length) {
+      blk.push("<b>HANDLING</b>");
+      s.handling.forEach(h => wrap("- " + h, W, 2).forEach((l, j) => blk.push(esc(j ? "  " + l.trimStart() : l))));
+    }
+    blk.push(i < sh.length - 1 ? rule("-") : "");
+    out.push(...blk);
+  });
+  out.push(...wrap("SIMULATION ONLY. SELECTED COMPANY NAMES ARE REAL; CUSTOMERS, SHIPMENTS AND BUSINESS RELATIONSHIPS ARE FICTIONAL. CITIES IDENTIFY ROUTE GATEWAYS, NOT VERIFIED COMPANY FACILITIES. NO ENDORSEMENT OR AFFILIATION IS IMPLIED. NOT FOR REAL CARGO OPERATIONS.", W).map(esc));
+  return out;
+}
+
+/* ---------------- ground handling timeline ---------------- */
+function handlingLines(d) {
+  const h = d.handling;
+  if (!h || !(h.dep || []).length) return null;
+  const ia = i => d.paper.iata[i] || i.slice(-3), hd = d.handlers || {};
+  const out = [];
+  const table = rows => {
+    out.push(`<b>${esc(L("TIME UTC", 14) + L("MILESTONE", 30) + "NOTES")}</b>`);
+    rows.forEach(r => (r.note ? wrap(r.note, W - 44) : [""]).forEach((l, j) =>
+      out.push(esc(j ? L("", 44) + l.trimStart() : L(r.t, 14) + L(U(r.what), 30) + l.trimStart()))));
+  };
+  out.push(`<b>${esc(L(`DEPARTURE  ${h.dep_station}/${ia(h.dep_station)}`, 42) + R(`HANDLED BY ${U(hd.origin || "")}`, W - 42))}</b>`, "");
+  table(h.dep);
+  out.push("", `<b>${esc(L(`ARRIVAL    ${h.arr_station}/${ia(h.arr_station)}`, 42) + R(`HANDLED BY ${U(hd.destination || "")}`, W - 42))}</b>`, "");
+  table(h.arr);
+  out.push("", ...wrap(`SIMULATED PLAN, NOT COMPLETED HANDLING EVENTS. TIMES ARE PLANNED AGAINST STD ${d.std} AND STA ${d.sta}. IF THE FLIGHT RUNS LATE, THE ARRIVAL MILESTONES MOVE WITH IT. ${d.international ? "INTERNATIONAL FLIGHT: IMPORT ENTRIES ARE LODGED BEFORE ARRIVAL." : "DOMESTIC FLIGHT: NO CUSTOMS CLEARANCE REQUIRED."}`, W).map(esc));
+  return out;
+}
+
+/* ---------------- the captain's signature ---------------- */
+const zulu = ts => { const x = new Date(ts * 1000).toISOString(); return `${x.substr(11, 2)}${x.substr(14, 2)}Z`; };
+function setupSigning(d, pid) {
+  const s = d.signed;
+  if (s) { $("#signedTag").textContent = `✓ Signed ${zulu(s.at)}`; $("#signedTag").hidden = false; }
+  if (pid || s) return;
+  if (d.release_amended) $("#amended").hidden = false;
+  $("#signBtn").hidden = false;
+  $("#printBtn").classList.remove("primary");
+  const dg = (d.dg || []).length;
+  if (dg) {
+    $("#dgBox").hidden = false;
+    $("#dgText").textContent = `I have received the NOTOC: ${dg} dangerous goods entr${dg > 1 ? "ies" : "y"} on board (${d.dg.map(g => `${g.un} in ${g.pos}`).join(", ")}).`;
+  }
+  $("#signWho").textContent = `As pilot in command of ${d.flight}, ${d.origin.icao} to ${d.destination.icao}, you accept this flight as planned.` + (d.signature_required ? " PAC ACARS starts once the release is signed." : "");
+  const ready = () => { $("#signGo").disabled = !($("#ckReview").checked && (!dg || $("#ckNotoc").checked)); };
+  $("#ckReview").onchange = ready; $("#ckNotoc").onchange = ready;
+  $("#signBtn").onclick = () => { $("#signMsg").textContent = ""; $("#signDlg").showModal(); };
+  $("#signCancel").onclick = () => $("#signDlg").close();
+  $("#signGo").onclick = async () => {
+    $("#signGo").disabled = true;
+    try {
+      const res = await fetch("/api/dispatch/sign", { method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ reviewed: true, notoc: !!dg, requested_at: d.requested_at, revision: d.revision }) });
+      const j = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(j.error || "Could not sign the release.");
+      location.reload();
+    } catch (e) { $("#signMsg").textContent = e.message; ready(); }
+  };
+}
+
+/* ---------------- assemble ---------------- */
+const chunk = (lines, size) => { const out = []; for (let i = 0; i < lines.length; i += size) out.push(lines.slice(i, i + size)); return out; };
+// split at the dashed rule between shipments, so one shipment never runs over two pages
+const pageBreaks = (lines, size) => {
+  const pages = [[]], blocks = [[]];
+  lines.forEach(l => { blocks[blocks.length - 1].push(l); if (l === rule("-")) blocks.push([]); });
+  blocks.forEach(b => { if (pages[pages.length - 1].length + b.length > size && pages[pages.length - 1].length) pages.push([]); pages[pages.length - 1].push(...b); });
+  return pages.filter(p => p.length);
+};
+(async () => {
+  const qs = new URLSearchParams(location.search), pid = qs.get("pirep");
+  const keep = pid ? `?pirep=${encodeURIComponent(pid)}` : "";
+  try {                                   // remember the layout the pilot last chose
+    if (!qs.get("sign")) {           // ?sign=1 comes from the classic layout's Sign release: keep their choice of layout
+      if (qs.get("layout") !== "new" && localStorage.getItem("pac-dispatch-layout") === "classic") { location.replace("/static/dispatch-classic.html" + keep); return; }
+      localStorage.setItem("pac-dispatch-layout", "new");
+    }
+  } catch (e) { /* storage blocked: just show this layout */ }
+  $("#classic").href = "/static/dispatch-classic.html" + keep;
+  $("#classic").onclick = () => { try { localStorage.setItem("pac-dispatch-layout", "classic"); } catch (e) { /* fine */ } };
+  try {
+    const res = await fetch(pid ? `/api/dispatch/pirep/${pid}` : "/api/dispatch");
+    const d = await res.json().catch(() => ({ error: `The PAC website answered with an error (HTTP ${res.status}).` }));
+    if (!res.ok) throw new Error(d.error || "Could not load the dispatch release.");
+    if (d.simbrief_request_id) { $("#navigraph").href = "https://charts.navigraph.com/flights/simbrief-instant-import?requestId=" + encodeURIComponent(d.simbrief_request_id); $("#navigraph").hidden = false; }
+    $("#barTitle").textContent = `Dispatch release · ${d.flight} · ${d.origin.icao}–${d.destination.icao} · ${d.date}`;
+    const f = d.paper.form, ROWS = 48;
+    sheet("DISPATCH RELEASE", f.release, releasePage(d));
+    const nav = navlogLines(d);
+    if (nav) chunk(nav, ROWS).forEach((c, i) => sheet("NAVIGATION LOG" + (i ? " (CONT)" : ""), f.release, c));
+    sheet("WEATHER AND NOTAMS", f.weather, pid ? ["WEATHER IS PRINTED WITH THE RELEASE AT DISPATCH AND IS NOT KEPT WITH FILED FLIGHTS."] : await weatherLines(d));
+    sheet("LOADSHEET", f.loadsheet, loadsheetLines(d));
+    chunk(manifestLines(d), ROWS).forEach((c, i) => sheet("CARGO MANIFEST" + (i ? " (CONT)" : ""), f.manifest, c));
+    const ships = shipmentLines(d);
+    if (ships) pageBreaks(ships, ROWS).forEach((c, i) => sheet("SHIPMENT DETAILS" + (i ? " (CONT)" : ""), f.manifest, c));
+    chunk(notocLines(d), ROWS).forEach((c, i) => sheet("NOTIFICATION TO CAPTAIN (NOTOC)" + (i ? " (CONT)" : ""), f.notoc, c));
+    const gh = handlingLines(d);
+    if (gh) chunk(gh, ROWS).forEach((c, i) => sheet("PLANNED GROUND HANDLING" + (i ? " (CONT)" : ""), f.loadsheet, c));
+    addImportedBriefing(d);
+    renderPages(d);
+    $("#notamScope").onchange = () => { const cut=PAGES.findIndex(p=>p.form==='OCC-PERF / 01'||p.form==='OCC-BRF / 01'); if(cut>=0) PAGES.splice(cut); addImportedBriefing(d); renderPages(d); };
+    setupSigning(d, pid);
+    if (qs.get("sign") && !d.signed && !pid) $("#signBtn").click();
+  } catch (e) {
+    $("#doc").innerHTML = `<div class="err"><h2 style="margin-top:0">No dispatch paperwork</h2><p>${esc(e.message)}</p><p><a href="/#missions">Go to the mission board</a></p></div>`;
+  }
+})();
+</script>
+</body>
+</html>

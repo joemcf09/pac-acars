@@ -1,0 +1,7 @@
+flask>=3.0
+SimConnect>=0.4.26 ; sys_platform == "win32"
+# optional: a native window for the PAC ACARS app
+# pywebview>=5
+waitress>=3.0 ; sys_platform != "win32"
+# the PAC Discord bot (runs on the server only)
+discord.py>=2.3 ; sys_platform != "win32"

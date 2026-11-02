@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>737 cargo load plan · Pagani Air Cargo</title>
+  <link rel="stylesheet" href="/static/load-visualizer.css">
+  <link rel="stylesheet" href="/static/load-visualizer-graphic.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand"><span class="brand-mark">PAC</span><span>Flight Operations <small>Load control</small></span></div>
+    <a href="/#acars">← Return to flight</a>
+  </header>
+  <main>
+    <div class="intro">
+      <div><p class="eyebrow">737-800BCF · CARGO PLANNING</p><h1 id="title">Loading your booked flight…</h1>
+        <p class="lede">Move cargo between main-deck positions. The aircraft view and weight distribution update as you work.</p></div>
+      <div class="intro-actions"><a class="button outline" href="/dispatch">Review dispatch release</a></div>
+    </div>
+
+    <section class="notice" aria-label="Planning scope"><strong>Planning view — not an aircraft weight-and-balance approval.</strong>
+      <span>The aircraft and reference figures below describe a 737-800BCF. PAC's B738F fleet label also covers BDSF aircraft. Station arms, CG limits, floor loading, contour, restraint and dangerous-goods separation are not verified here. Use the simulator aircraft's own loading system for those checks.</span>
+    </section>
+
+    <section class="aircraft-panel" aria-label="PAC 737 cargo diagram">
+      <div class="panel-heading"><div><span class="eyebrow">LIVE DISTRIBUTION</span><h2>PAC 737-800BCF</h2></div><span class="diagram-note">Side and top views · nose at left</span></div>
+      <div class="aircraft-figure">
+        <img src="/static/pac-737-reference.png" alt="PAC 737 freighter side and top views with twelve numbered cargo positions">
+        <div id="aircraftStations" class="aircraft-stations" aria-hidden="true"></div>
+      </div>
+      <div class="aircraft-caption"><span>NOSE / FORWARD</span><span>Occupied positions highlighted in PAC red</span><span>TAIL / AFT</span></div>
+    </section>
+
+    <section class="metrics" aria-label="Live manifest figures">
+      <div><span>Manifest cargo</span><strong id="cargoTotal">—</strong><small>unchanged by a move</small></div>
+      <div><span>Forward · M01–M05</span><strong id="forwardTotal">—</strong><small>main-deck cargo</small></div>
+      <div><span>Center · M06</span><strong id="centerTotal">—</strong><small>main-deck cargo</small></div>
+      <div><span>Aft · M07–M11</span><strong id="aftTotal">—</strong><small>main-deck cargo</small></div>
+      <div><span>Compact + lower / fixed</span><strong id="fixedTotal">—</strong><small>not movable here</small></div>
+    </section>
+
+    <section class="workspace" aria-labelledby="deckTitle">
+      <div class="section-heading"><div><p class="eyebrow">MAIN DECK</p><h2 id="deckTitle">Position the load</h2>
+        <p>Drag a cargo block onto another station to move or swap it. Each block also has a position menu for keyboard and touch use.</p></div>
+        <div class="tools"><button id="auto" disabled>Auto-allocate</button><button id="reset" class="ghost" disabled>Reset changes</button></div></div>
+      <p class="auto-note">Auto-allocate places heavier units toward the middle of this schematic. Review the suggestion before saving; it does not calculate aircraft balance.</p>
+      <div class="zone-legend"><span>Forward M01–M05</span><span>Center M06</span><span>Aft M07–M11</span></div>
+      <div id="deck" class="deck" aria-label="Main-deck cargo positions"></div>
+      <div id="fixedWrap" hidden><h3>Compact and lower deck · fixed</h3><div id="fixedDeck" class="fixed-deck"></div></div>
+    </section>
+
+    <section class="save-panel"><div><strong id="planState">No changes to save</strong><p>Saving a changed allocation amends the release and clears its previous signature. Importing a new OFP also regenerates the manifest.</p></div>
+      <button id="save" disabled>Save allocation &amp; amend release</button></section>
+    <p id="status" role="status" aria-live="polite" class="status"></p>
+
+    <details class="reference"><summary>737-800BCF reference figures from the supplied one-sheet</summary>
+      <div class="reference-grid"><div><span>Maximum revenue payload</span><strong>52,800 lb</strong></div><div><span>Maximum gross takeoff weight</span><strong>174,000 lb</strong></div>
+        <div><span>Maximum gross landing weight</span><strong>146,300 lb</strong></div><div><span>Main cargo compartment</span><strong>4,993 ft³</strong></div>
+        <div><span>Main cargo door opening</span><strong>141 × 86 in</strong></div></div>
+      <p>Atlas Air 737-800BCF specifications one-sheet (2019), supplied by PAC. These are reference figures, not limits applied to a PAC airframe or simulator add-on. PAC's reviewed fleet configuration lists 174,200 lb MTOW, 200 lb above this sheet; confirm the exact aircraft variant before treating either figure as an operating limit.</p>
+    </details>
+  </main>
+  <script src="/static/load-allocation.js"></script>
+  <script src="/static/load-visualizer.js"></script>
+</body>
+</html>
