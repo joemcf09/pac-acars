@@ -46,8 +46,7 @@ acars_client/acars.log
 acars_client/pac-acars.pid
 acars_client/chime.wav
 acars_client/window-profile/
-static/downloads/*
-!static/downloads/.keep
+static/downloads/
 *.exe
 site_url.py
 

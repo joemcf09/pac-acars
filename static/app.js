@@ -550,6 +550,7 @@ function simbriefUrl(m, ac) {
     cargo: (Math.min(m.payload_lbs, fl.max_payload_lbs) / 1000).toFixed(1), pax: "0", units: "LBS", callsign: al + num,
     manualrmk: m.operator ? `PAC PILOT HIRED TO FILL IN FOR ${m.operator.name.toUpperCase()} CREW SHORTAGE. ${m.id} FLOWN BY ${(displayName(S.profile || {}) || "PAC CAPTAIN").toUpperCase()} ${S.profile?.pilot_id || ""}`.trim() : `CALLSIGN PAGANI. PAGANI AIR CARGO MISSION ${m.id} ${m.title.toUpperCase()}` });
   if (S.airframe && (S.airframes || []).some(a => a.reg === S.airframe && a.type === ac)) p.set("reg", S.airframe);
+  if (S.extraFuel > 0) p.set("addedfuel", (S.extraFuel / 1000).toFixed(1));   // the pilot's discretionary extra fuel, in thousands of lb
   const h = S.planHelp?.[`${m.id}|${ac}`];
   if (h && S.usePlanHelp !== false) {  // the planning helper's suggestions, pre-filled in SimBrief
     p.set("fl", String(h.cruise_fl * 100));
@@ -558,6 +559,7 @@ function simbriefUrl(m, ac) {
   return "https://www.simbrief.com/system/dispatch.php?" + p.toString();
 }
 /* ---------------- Flight planning: four steps on tabs (Briefing, Aircraft, Load sheet, SimBrief & request) ---------------- */
+try { S.extraFuel = Number(localStorage.getItem("pac-extra-fuel")) || 0; } catch (_) {}
 const DTABS = [["brief", "Briefing"], ["aircraft", "Aircraft"], ["load", "Load sheet"], ["plan", "SimBrief & request"]];
 function dossierAcReady(m) {
   if (m.training || m.contract || m.charter) return !!(S.aircraft || m.charter);
@@ -642,6 +644,11 @@ function renderDossier() {
   if (tab !== "plan") return;
   $("#sbPlan").onclick = () => { S.planned = true; startDossierWatch(); setTimeout(renderDossier, 300); };
   if ($("#sbGen")) $("#sbGen").onclick = () => simbriefGenerate(m);
+  if ($("#sbExtra")) $("#sbExtra").oninput = e => {
+    const v = Math.max(0, Math.min(Number(e.target.max) || 1e6, Math.round(Number(e.target.value) || 0)));
+    S.extraFuel = v; try { localStorage.setItem("pac-extra-fuel", String(v)); } catch (_) {}
+    const sb = $("#sbPlan"); if (sb) sb.href = simbriefUrl(m, m.charter ? m.aircraft[0] : S.aircraft);
+  };
   if ($("#sbGenCancel")) $("#sbGenCancel").onclick = e => { e.preventDefault(); simbriefGenStop(true); };
   if ($("#watchStop")) $("#watchStop").onclick = e => { e.preventDefault(); stopDossierWatch(); renderDossier(); };
   $("#sbFetch").onclick = () => importOfp();
@@ -687,6 +694,9 @@ function panePlan(m) {
       <li data-n="1" class="${step > 1 ? "done" : "current"}">
         <h3>Generate the plan in SimBrief</h3>
         <p class="muted" style="font-size:13px;margin:0 0 8px">Filled in for you: ${esc(S.fleet[m.charter ? m.aircraft[0] : S.aircraft]?.name || "")}${S.airframe && !m.contract ? ` (${esc(S.airframe)})` : ""}, route, callsign and <span id="sbCargo">${ls && !ls.ferry ? `<b>${fmt(ls.totals.weight_lbs)} lb</b> of cargo from your load sheet` : "the cargo weight"}</span>.</p>
+        <div class="sb-extra"><label for="sbExtra">Extra fuel <small>(lb, your call)</small></label>
+          <input id="sbExtra" type="number" min="0" max="${Math.round((S.fleet[m.charter ? m.aircraft[0] : S.aircraft]?.mtow_lbs || 400000) * 0.2)}" step="500" inputmode="numeric" value="${S.extraFuel || ""}" placeholder="0">
+          <small class="muted">On top of SimBrief's trip, contingency, alternate and reserve. Carrying extra is never penalised; PAC only pays for fuel you burn.</small></div>
         ${S.settings.simbrief_api ? `
         <div class="row"><button type="button" class="btn" id="sbGen" ${S.sbGen ? "disabled" : ""}>${S.sbGen ? "Generating in SimBrief…" : S.ofp ? "Generate a new OFP" : "Generate OFP"}</button>
           <a class="btn ghost small" id="sbPlan" href="${simbriefUrl(m, m.charter ? m.aircraft[0] : S.aircraft)}" target="_blank" rel="noopener">Or open SimBrief yourself</a></div>
@@ -4243,8 +4253,8 @@ function renderHandbook(cfg) {
       <li>Each flight's detail panel shows an estimate before you book, and each PIREP shows the actual figures.</li></ul>`],
     ["scoring", "Scoring", `<p>Every flight starts at 100.</p><table><tr><th>Item</th><th>Effect</th></tr>
       <tr><td>Landing −250 to −400 / −400 to −600 / below −600 fpm</td><td>−5 / −15 / −35</td></tr><tr><td>Landing below −1,000 fpm</td><td>Flight failed</td></tr>
-      <tr><td>Landing load over 1.8 G / 2.5 G</td><td>−10 / −20</td></tr><tr><td>Trip fuel more than 15% / 25% off plan</td><td>−5 / −10</td></tr>
-      <tr><td>Landing below final reserve fuel</td><td>−15</td></tr><tr><td>Overspeed below 10,000 ft / fast taxi / bounce</td><td>−5 / −3 / −5 each</td></tr>
+      <tr><td>Landing load over 1.8 G / 2.5 G</td><td>−10 / −20</td></tr><tr><td>Trip fuel burned more than 15% / 25% over plan (burning less, e.g. after a shortcut, never costs points)</td><td>−5 / −10</td></tr>
+      <tr><td>Landing below final reserve fuel</td><td>−15</td></tr><tr><td>Landing over the aircraft's max landing weight (up to 5% / more than 5% over)</td><td>−10 / −20</td></tr><tr><td>Overspeed below 10,000 ft / fast taxi / bounce</td><td>−5 / −3 / −5 each</td></tr>
       <tr><td>Position jump or slew in the air</td><td>−15</td></tr><tr><td>Diverted to the OFP alternate / parked elsewhere</td><td>−20 / −40 and failed</td></tr>
       <tr><td>Critical or High priority within 10% of planned block</td><td>+5</td></tr><tr><td>Late: over 25% (urgent) or 35% (standard)</td><td>−10 / −5</td></tr></table>
       <p>Grades: A 90+, B 80+, C 70+, D 60+, F below. Points are the flight's reward scaled by your score, plus any event, featured-route or tour bonus.</p>`],

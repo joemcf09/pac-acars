@@ -157,3 +157,11 @@ html[data-theme="dark"] .linkish { color: #ff8f8f; }
 .ls-table { min-width: 640px; }
 html[data-theme="dark"] .shc.dg, html[data-theme="dark"] .ls-status.bad { color: #ff8f8f; border-color: #ff8f8f; }
 html[data-theme="dark"] .ls-wrap .kicker { color: #ff8f8f; }
+
+/* discretionary extra fuel on the SimBrief step */
+.sb-extra { display: grid; grid-template-columns: auto 140px 1fr; align-items: center; gap: 6px 12px; margin: 0 0 12px; font-size: 14px; }
+.sb-extra label { font-weight: 650; }
+.sb-extra label small { font-weight: 400; color: var(--steel); }
+.sb-extra input { padding: 7px 9px; border: 1px solid var(--line); background: var(--white); color: var(--ink); font: inherit; width: 100%; }
+.sb-extra > small { font-size: 12.5px; }
+@media (max-width: 760px) { .sb-extra { grid-template-columns: 1fr 140px; } .sb-extra > small { grid-column: 1 / -1; } }

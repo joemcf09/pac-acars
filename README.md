@@ -238,8 +238,9 @@ Every flight starts at 100.
 | −250 to −400 fpm / −400 to −600 / below −600 | −5 / −15 / −35 |
 | Below −1,000 fpm | Flight failed |
 | Landing load over 1.8 G / 2.5 G | −10 / −20 |
-| Trip fuel off plan by more than 15% / 25% | −5 / −10 |
+| Trip fuel over plan by more than 15% / 25% (saving fuel never costs points) | −5 / −10 |
 | Landed below final reserve | −15 |
+| Landed over max landing weight (up to 5% / more than 5% over) | −10 / −20 |
 | Overspeed below FL100 / fast taxi / bounce | −5 / −3 / −5 each |
 | Position jump | −15 |
 | Diverted to the OFP alternate | −20 |

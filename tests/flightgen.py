@@ -49,7 +49,7 @@ def gc_nm(a, b):
 
 def fly(dep_icao, dep_rwy, arr_icao, arr_rwy, elev_dep=900, elev_arr=750, vr=150, vlof=158, vref=135,
         rotate_rate=2.5, lof_pitch=8.0, td_fpm=-150, td_ft=1200, bounce=False, touchback=False, sim_rate_s=0,
-        pause_s=0, overspeed_s=0, cruise_ft=34000, t0=1_790_000_000.0, burn_pph=5000, fuel0=20000, go_around_dive=False):
+        pause_s=0, overspeed_s=0, cruise_ft=34000, t0=1_790_000_000.0, burn_pph=5000, fuel0=20000, go_around_dive=False, zfw=90000):
     out = []
     t = t0
     fuel = fuel0
@@ -61,7 +61,7 @@ def fly(dep_icao, dep_rwy, arr_icao, arr_rwy, elev_dep=900, elev_arr=750, vr=150
         nonlocal t, fuel
         fuel -= burn_pph * dt / 3600 * (0.15 if ground else 1.0)
         out.append(Telemetry(t=t, lat=lat, lon=lon, alt_ft=alt, agl_ft=agl, ias=ias, gs=gs, vs_fpm=vs, hdg=hdg % 360, on_ground=ground,
-                             engines_running=eng, parking_brake=brake, fuel_lbs=fuel, weight_lbs=110000 + fuel, gear_down=True,
+                             engines_running=eng, parking_brake=brake, fuel_lbs=fuel, weight_lbs=zfw + fuel, gear_down=True,
                              flaps=0.2, g=g, pitch=pitch, sim_rate=rate, paused=paused))
         t += dt
 

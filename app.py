@@ -427,6 +427,20 @@ def validate_ofp(ofp, mission, aircraft_code):
 
 
 # ---------------------------------------------------------------- PIREP
+def landing_weight_check(code, weight):
+    """(landing weight, MLW) when both are known and the weight is believable; otherwise (None, None).
+    MLW comes from the published limits PAC's paperwork uses; types without one aren't checked."""
+    lim = dispatch.LIMITS.get(code)
+    mtow = (FLEET.get(code) or {}).get("mtow_lbs") or 0
+    try:
+        w = float(weight or 0)
+    except (TypeError, ValueError):
+        return None, None
+    if not lim or not mtow or not (mtow * 0.35 < w < mtow * 1.3):   # no data, or a sim that doesn't report weight sensibly
+        return None, None
+    return w, lim[1]
+
+
 def build_pirep(booking, rec: FlightRecorder):
     m, ofp = booking["mission"], booking.get("ofp") or {}
     o, f = rec.oooi, rec.fuel
@@ -465,14 +479,23 @@ def build_pirep(booking, rec: FlightRecorder):
 
     if trip_burn is not None and ofp.get("trip_fuel_lbs"):
         var = (trip_burn - ofp["trip_fuel_lbs"]) / ofp["trip_fuel_lbs"] * 100
-        if abs(var) > 25:
+        # only burning MORE than planned costs points: a shortcut from ATC or a better routing that saves fuel never does
+        if var > 25:
             items.append((f"Trip fuel {var:+.0f}% against plan", -10))
-        elif abs(var) > 15:
+        elif var > 15:
             items.append((f"Trip fuel {var:+.0f}% against plan", -5))
+        elif var < -15:
+            items.append((f"Trip fuel {var:+.0f}% against plan (fuel saved, e.g. a shortcut)", 0))
         else:
             items.append((f"Trip fuel {var:+.0f}% against plan", 0))
     if f["on"] is not None and ofp.get("reserve_fuel_lbs") and f["on"] < ofp["reserve_fuel_lbs"]:
         items.append(("Landed below final reserve fuel", -15))
+
+    # landing weight against the type's maximum landing weight (the sim's gross weight at touchdown)
+    ldw, mlw = landing_weight_check(booking["aircraft"], (getattr(rec, "weights", None) or {}).get("landing"))
+    if ldw and mlw and ldw > mlw * 1.005:          # half a percent of grace for how sims round weights
+        over = ldw - mlw
+        items.append((f"Overweight landing: {over:,.0f} lb over the {mlw:,.0f} lb MLW, inspection required", -20 if over > mlw * 0.05 else -10))
 
     # arrival airport
     last = rec.last
@@ -526,6 +549,7 @@ def build_pirep(booking, rec: FlightRecorder):
                            FLEET.get(booking["aircraft"], {}).get("max_payload_lbs", m["payload_lbs"])),
         "loaded_lbs": ofp.get("payload_lbs") or None,
         "mission_payload_lbs": m["payload_lbs"],
+        "landing_weight_lbs": round(ldw) if ldw else None, "mlw_lbs": mlw,
         "landing_rate": rate, "landing_g": g, "bounces": rec.bounces, "max_alt": round(rec.max_alt),
         "score": score, "grade": grade, "status": status, "points": points, "breakdown": items,
         "oooi": rec.oooi, "demo": state["source_name"] == "Demo", "source": state["source_name"],
@@ -2757,6 +2781,7 @@ def file_pirep():
               "bonuses": p["bonuses"], "base_points": p["base_points"], "checkride": p.get("checkride"),
               "type_checkride": p.get("type_checkride"), "training": p.get("training"),
               "loaded_lbs": p.get("loaded_lbs"), "mission_payload_lbs": p.get("mission_payload_lbs"),
+              "landing_weight_lbs": p.get("landing_weight_lbs"), "mlw_lbs": p.get("mlw_lbs"),
               "profile": getattr(rec, "profile", []), "landing_analysis": p.get("landing_analysis"), "dispatch": booking.get("dispatch"),
               "aircraft_name": p.get("aircraft_name"), "pilot_rank": va.career(va.current_pilot_id())["rank"],
               "takeoff_analysis": p.get("takeoff_analysis"), "economics": p.get("economics"), "integrity": p.get("integrity"),
