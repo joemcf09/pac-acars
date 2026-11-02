@@ -17,7 +17,6 @@ data/settings.json
 data/*
 # ...except PAC's own reference data, which ships with the code
 !data/fleet.json
-!data/fleet_custom.json
 !data/missions.json
 !data/airports.json
 !data/runways.json
