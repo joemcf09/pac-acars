@@ -173,3 +173,11 @@ html[data-theme="dark"] .ls-wrap .kicker { color: #ff8f8f; }
 .ck-banner b { font-size: 15.5px; }
 /* checkride result in the logbook's Result column */
 .lb-ck { display: inline-block; margin: 4px 0 0 !important; white-space: nowrap; cursor: help; }
+
+/* Staff › Partner photos */
+.pp-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 14px; margin-top: 12px; }
+.pp-card { background: var(--white); border: 1px solid var(--line); display: flex; flex-direction: column; min-width: 0; }
+.pp-img { aspect-ratio: 16 / 9; background: var(--paper); display: grid; place-items: center; overflow: hidden; color: var(--steel); font-size: 13px; }
+.pp-img img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.pp-body { padding: 10px 12px 12px; font-size: 14px; }
+.pp-body small { display: block; margin-top: 4px; font-size: 12px; color: var(--steel); overflow-wrap: anywhere; }

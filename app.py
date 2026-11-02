@@ -1514,6 +1514,8 @@ def dispatch_pilot():
 
 import image_delivery
 image_delivery.register(app, DATA, FLEET_PHOTO_DIR, FLEET)
+import partner_photos  # noqa: E402  (Wikimedia Commons photos of partner aircraft for landing cards, credited)
+PARTNER_PHOTOS = partner_photos.register(app, DATA, PARTNERS, FLEET)
 
 @app.get("/gallery/<path:name>")
 def gallery_file(name):

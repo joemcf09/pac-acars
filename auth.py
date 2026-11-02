@@ -27,7 +27,8 @@ INVITE_DAYS = 7
 # Requests anyone may make (the public pages: Home, Fleet, Handbook, applying, downloading PAC ACARS)
 PUBLIC_GET = ("/api/group/", "/api/bootstrap", "/api/va/home", "/api/va/board", "/api/fleet", "/api/news", "/api/gallery",
               "/api/profile/photo", "/api/acars/app/download", "/api/auth/", "/api/live",
-              "/api/bot/")   # the Discord bot's own API checks its secret itself (botlink.py)
+              "/api/bot/",   # the Discord bot's own API checks its secret itself (botlink.py)
+              "/api/partner-photos", "/api/partner-photo/")   # credited Commons photos on landing cards
 PUBLIC_POST = ("/api/applications", "/api/auth/setup", "/api/auth/login", "/api/auth/accept", "/api/auth/token", "/api/auth/logout",
                "/api/bot/link", "/api/bot/unlink")
 STAFF_PREFIXES = ("/api/staff/",)

@@ -3200,6 +3200,50 @@ async function openLicence() {
   $("#licDlBack").onclick = () => dl($("#licBack"), "back");
 }
 
+/* ================= Partner flights on the cards ================= */
+// a partner flight's number is the partner's code plus digits (UPS2414, FDX123, CPA020)
+function partnerForFlight(flight) {
+  const f = String(flight || "");
+  return Object.values(S.partners || {}).find(p => p.code && f.startsWith(p.code) && /^\d+$/.test(f.slice(p.code.length))) || null;
+}
+async function partnerCard(c) {
+  const partner = partnerForFlight(c.flight);
+  if (!partner) return null;
+  if (!S.partnerPhotos) { try { S.partnerPhotos = await api("/api/partner-photos"); } catch (e) { S.partnerPhotos = {}; } }
+  return { partner, photo: S.partnerPhotos[`${partner.key}|${c.aircraft}`] || null };
+}
+function drawCardLogo(x, wm, pc) {
+  if (!wm) return;
+  if (!pc) { x.drawImage(wm, 52, 50, 56 * wm.width / wm.height, 56); return; }
+  // partner logos are in colour: set them on a white plate so every one reads on the photo
+  const b = logoBox(wm);   // crop the empty margin some logo files carry, so the plate hugs the logo
+  const h = 64, w = Math.min(300, h * b.w / b.h), pad = 14;
+  x.fillStyle = "rgba(255,255,255,.94)"; x.beginPath(); if (x.roundRect) x.roundRect(40, 40, w + pad * 2, h + pad * 2, 10); else x.rect(40, 40, w + pad * 2, h + pad * 2); x.fill();
+  x.drawImage(wm, b.x, b.y, b.w, b.h, 40 + pad, 40 + pad, w, h);
+}
+function logoBox(img) {
+  const full = { x: 0, y: 0, w: img.width, h: img.height };
+  try {
+    const c = document.createElement("canvas"); c.width = img.width; c.height = img.height;
+    const g = c.getContext("2d"); g.drawImage(img, 0, 0);
+    const d = g.getImageData(0, 0, c.width, c.height).data;
+    let x0 = c.width, y0 = c.height, x1 = -1, y1 = -1;
+    for (let y = 0; y < c.height; y++) for (let xx = 0; xx < c.width; xx++) {
+      const i = (y * c.width + xx) * 4;
+      // count a pixel as logo if it isn't transparent and isn't plain white
+      if (d[i + 3] > 24 && !(d[i] > 245 && d[i + 1] > 245 && d[i + 2] > 245)) { if (xx < x0) x0 = xx; if (xx > x1) x1 = xx; if (y < y0) y0 = y; if (y > y1) y1 = y; }
+    }
+    if (x1 < x0 || y1 < y0) return full;
+    return { x: x0, y: y0, w: x1 - x0 + 1, h: y1 - y0 + 1 };
+  } catch (e) { return full; }
+}
+function drawPhotoCredit(x, ph, W, PH) {
+  // the photographer and the licence, as the licence requires
+  const t = `Photo: ${ph.artist || "Unknown photographer"} · ${ph.licence || ""} · Wikimedia Commons`.slice(0, 110);
+  x.save(); x.textAlign = "right"; x.font = `500 17px Saira, "Segoe UI", system-ui, sans-serif`; x.fillStyle = "rgba(255,255,255,.72)";
+  x.shadowColor = "rgba(0,0,0,.8)"; x.shadowBlur = 4; x.fillText(t, W - 24, PH - 14); x.restore();
+}
+
 /* ================= Takeoff card and analysis ================= */
 async function drawTakeoffCard(canvas, c) {
   try { await document.fonts?.ready; } catch (e) { }
@@ -3207,13 +3251,15 @@ async function drawTakeoffCard(canvas, c) {
   const x = canvas.getContext("2d"), F = (w, sz) => `${w} ${sz}px Saira, "Segoe UI", system-ui, sans-serif`;
   const ac = S.fleet[c.aircraft] || {}, ta = c.ta || {};
   const insignia = (S.ranks || []).find(r => r.name === c.rank)?.insignia;
-  const [photo, wm, patch] = await Promise.all([loadImg(ac.photo), loadImg("/static/pac-wordmark-white.png"), loadImg(insignia)]);
+  const pc = await partnerCard(c);   // flown for a partner airline: their photo (credited) and their logo
+  const [photo, wm, patch] = await Promise.all([loadImg(pc?.photo?.url || ac.photo), loadImg(pc ? pc.partner.logo : "/static/pac-wordmark-white.png"), loadImg(insignia)]);
   x.fillStyle = "#141619"; x.fillRect(0, 0, W, H);
   const PH = 640;
   if (photo) { const sc = Math.max(W / photo.width, PH / photo.height), w = photo.width * sc, h = photo.height * sc; x.drawImage(photo, (W - w) / 2, (PH - h) / 2, w, h); }
   let gr = x.createLinearGradient(0, 0, 0, PH); gr.addColorStop(0, "rgba(0,0,0,.55)"); gr.addColorStop(.35, "rgba(0,0,0,0)"); gr.addColorStop(1, "rgba(0,0,0,.8)");
   x.fillStyle = gr; x.fillRect(0, 0, W, PH);
-  if (wm) x.drawImage(wm, 52, 50, 56 * wm.width / wm.height, 56);
+  drawCardLogo(x, wm, pc);
+  if (pc?.photo) drawPhotoCredit(x, pc.photo, W, PH);
   x.textAlign = "right"; x.fillStyle = "#fff"; x.font = F(800, 64); x.fillText(c.flight, W - 52, 104);
   x.font = F(700, 28); x.fillStyle = "#FFC845"; x.fillText("TAKEOFF", W - 52, 146);
   x.textAlign = "left"; x.font = F(700, 36); x.fillStyle = "#fff"; x.fillText(ac.name || c.aircraft, 52, PH - 60);
@@ -3244,7 +3290,7 @@ async function drawTakeoffCard(canvas, c) {
   let fx = 52; if (patch) { const ph = 130, pw = ph * patch.width / patch.height; x.drawImage(patch, fx, H - 150, pw, ph); fx += pw + 26; }
   x.textAlign = "left"; x.fillStyle = "#fff"; x.font = F(700, 40); x.fillText(c.pilot || "", fx, H - 92);
   x.fillStyle = "rgba(255,255,255,.6)"; x.font = F(500, 28); x.fillText(c.rank || "", fx, H - 52);
-  x.textAlign = "right"; x.fillStyle = "rgba(255,255,255,.45)"; x.font = F(700, 24); x.fillText("PAGANI AIR CARGO", W - 52, H - 88);
+  x.textAlign = "right"; x.fillStyle = "rgba(255,255,255,.45)"; x.font = F(700, 24); x.fillText(pc ? `FLOWN FOR ${pc.partner.name.toUpperCase()}` : "PAGANI AIR CARGO", W - 52, H - 88);
   x.font = F(500, 22); x.fillText([ta.remaining_ft != null ? `${fmt(ta.remaining_ft)} ft of runway left` : "", ta.touchback ? "Touched back down" : ""].filter(Boolean).join("  ·  "), W - 52, H - 54);
   x.textAlign = "left";
 }
@@ -3319,7 +3365,8 @@ async function drawLandingCard(canvas, c) {
   const F = (w, sz) => `${w} ${sz}px Saira, "Segoe UI", system-ui, sans-serif`;
   const ac = S.fleet[c.aircraft] || {};
   const insignia = (S.ranks || []).find(r => r.name === c.rank)?.insignia;
-  const [photo, wm, patch] = await Promise.all([loadImg(ac.photo), loadImg("/static/pac-wordmark-white.png"), loadImg(insignia)]);
+  const pc = await partnerCard(c);   // flown for a partner airline: their photo (credited) and their logo
+  const [photo, wm, patch] = await Promise.all([loadImg(pc?.photo?.url || ac.photo), loadImg(pc ? pc.partner.logo : "/static/pac-wordmark-white.png"), loadImg(insignia)]);
   const la = c.la || {};
   x.fillStyle = "#141619"; x.fillRect(0, 0, W, H);
   // photo
@@ -3331,7 +3378,8 @@ async function drawLandingCard(canvas, c) {
   let gr = x.createLinearGradient(0, 0, 0, PH);
   gr.addColorStop(0, "rgba(0,0,0,.55)"); gr.addColorStop(.35, "rgba(0,0,0,0)"); gr.addColorStop(.72, "rgba(0,0,0,.05)"); gr.addColorStop(1, "rgba(0,0,0,.8)");
   x.fillStyle = gr; x.fillRect(0, 0, W, PH);
-  if (wm) x.drawImage(wm, 52, 50, 56 * wm.width / wm.height, 56);
+  drawCardLogo(x, wm, pc);
+  if (pc?.photo) drawPhotoCredit(x, pc.photo, W, PH);
   x.textAlign = "right"; x.fillStyle = "#fff"; x.font = F(800, 64); x.fillText(c.flight, W - 52, 104);
   x.font = F(600, 28); x.fillStyle = "rgba(255,255,255,.85)"; x.fillText(c.date, W - 52, 146);
   x.textAlign = "left"; x.font = F(700, 36); x.fillStyle = "#fff"; x.fillText(ac.name || c.aircraft, 52, PH - 60);
@@ -3377,7 +3425,7 @@ async function drawLandingCard(canvas, c) {
   if (patch) { const ph = 130, pw = ph * patch.width / patch.height; x.drawImage(patch, fx, H - 150, pw, ph); fx += pw + 26; }
   x.textAlign = "left"; x.fillStyle = "#fff"; x.font = F(700, 40); x.fillText(c.pilot || "", fx, H - 92);
   x.fillStyle = "rgba(255,255,255,.6)"; x.font = F(500, 28); x.fillText(c.rank || "", fx, H - 52);
-  x.textAlign = "right"; x.fillStyle = "rgba(255,255,255,.45)"; x.font = F(700, 24); x.fillText("PAGANI AIR CARGO", W - 52, H - 88);
+  x.textAlign = "right"; x.fillStyle = "rgba(255,255,255,.45)"; x.font = F(700, 24); x.fillText(pc ? `FLOWN FOR ${pc.partner.name.toUpperCase()}` : "PAGANI AIR CARGO", W - 52, H - 88);
   x.font = F(500, 22);
   const windLine = la.wind ? (la.wind.cross_kt != null ? `Wind ${la.wind.text.replace(" at ", "/")} · XW ${la.wind.cross_kt} kt ${la.wind.cross_from === "left" ? "L" : "R"}` : `Wind ${la.wind.text}`) : "";
   x.fillText([la.stable === true ? "Stable approach" : la.stable === false ? "Unstable approach" : "", windLine].filter(Boolean).join("  ·  "), W - 52, H - 54);
@@ -3535,7 +3583,7 @@ function bindCard(id, c) {
   }, "image/png");
 }
 function cardData(src) {
-  return { flight: src.flight_number, dep: src.dep, arr: src.arr, aircraft: src.aircraft, airframe: src.airframe, rate: src.landing_rate, g: src.landing_g,
+  return { flight: src.flight_number, dep: src.dep, arr: src.arr, aircraft: src.aircraft, airframe: src.airframe || src.registration, rate: src.landing_rate, g: src.landing_g,
     grade: src.grade, score: src.score, la: src.landing_analysis, ta: src.takeoff_analysis, rank: src.pilot_rank || S.career?.rank,
     // the pilot who flew it and the simulator they flew it in (a logbook entry knows both; a flight just filed is the viewer's own)
     pilot: src.pilot_name ? [RANK_ABBR[src.pilot_rank] || "", src.pilot_name].filter(Boolean).join(" ") : displayName(S.profile || {}),
@@ -4327,14 +4375,45 @@ function renderStaff() {
   const pendingReviews = d.reviews.filter(r => r.review_status === "Pending").length;
   const pendingApps = d.applications.filter(a => a.status === "Pending").length;
   const tabs = [["reports", "Problem reports", 0], ["health", "Operations health", 0], ["campaigns", "Cargo campaigns", 0], ["reviews", "PIREP review", pendingReviews], ["applications", "Applications", pendingApps], ["roster", "Roster", 0],
-    ["news", "News", 0], ["mx", "Maintenance", d.airframes.reduce((n, a) => n + (a.open_items || []).length, 0)], ["types", "Fleet types", 0], ["airframes", "Airframes", d.airframes.filter(a => ["Maintenance", "Inspection", "A-check due", "Damaged"].includes(a.status)).length], ["events", "Events", 0], ["site", "Site and rules", 0]];
+    ["news", "News", 0], ["mx", "Maintenance", d.airframes.reduce((n, a) => n + (a.open_items || []).length, 0)], ["types", "Fleet types", 0], ["pphotos", "Partner photos", 0], ["airframes", "Airframes", d.airframes.filter(a => ["Maintenance", "Inspection", "A-check due", "Damaged"].includes(a.status)).length], ["events", "Events", 0], ["site", "Site and rules", 0]];
   $("#staffRoot").innerHTML = `<div class="profile-bar"><h1>Staff</h1><span class="muted">Running the airline. Only staff accounts can see this area.</span></div>
     <div class="staff-tabs" role="tablist">${tabs.map(([k, t, n]) => `<button role="tab" data-st="${k}" aria-selected="${S.staffTab === k}">${t}${n ? `<span class="count">${n}</span>` : ""}</button>`).join("")}</div>
     <div id="staffBody"></div>`;
   document.querySelectorAll("[data-st]").forEach(b => b.onclick = () => { S.staffTab = b.dataset.st; renderStaff(); });
-  ({ reports: staffProblemReports, health: staffOperationsHealth, campaigns: staffCargoCampaigns, reviews: staffReviews, applications: staffApps, roster: staffRoster, news: staffNews, mx: staffMx, types: staffTypes, airframes: staffAirframes, events: staffEvents, site: staffSite })[S.staffTab]();
+  ({ reports: staffProblemReports, health: staffOperationsHealth, campaigns: staffCargoCampaigns, reviews: staffReviews, applications: staffApps, roster: staffRoster, news: staffNews, mx: staffMx, types: staffTypes, pphotos: staffPartnerPhotos, airframes: staffAirframes, events: staffEvents, site: staffSite })[S.staffTab]();
 }
 const statusCls = s => ({ Pending: "pending", Rejected: "rejected", Accepted: "accepted" })[s] || "";
+/* Staff › Partner photos: the Wikimedia Commons photo each partner flight's landing card uses, with its credit */
+async function staffPartnerPhotos() {
+  const body = $("#staffBody");
+  body.innerHTML = `<p class="muted">Loading partner photos…</p>`;
+  let rows;
+  try { rows = await api("/api/staff/partner-photos"); } catch (e) { body.innerHTML = `<div class="notice err">${esc(e.message)}</div>`; return; }
+  const paint = list => {
+    body.innerHTML = `<p class="muted" style="max-width:80ch">Landing and takeoff cards for partner flights use a real photo of that airline's aircraft, picked automatically from Wikimedia Commons. Only photos whose licence allows reuse are used, and each card credits the photographer and licence. New combinations are fetched in the background, so refresh in a minute if some are still missing.</p>
+    <div class="pp-grid">${list.map(r => `<article class="pp-card">
+      <div class="pp-img">${r.url ? `<img src="${esc(r.url)}" alt="${esc(r.partner_name + " " + r.aircraft_name)}" loading="lazy">` : `<span>${r.off ? "Using the PAC photo" : r.error ? "No photo yet" : "Fetching…"}</span>`}</div>
+      <div class="pp-body"><b>${esc(r.partner_name)}</b> · ${esc(r.aircraft_name)}
+        ${r.url ? `<small>Photo: ${esc(r.artist || "")} · ${esc(r.licence || "")}${r.pinned ? " · pinned" : ""} · <a href="${esc(r.page || "#")}" target="_blank" rel="noopener">Commons page</a></small>` : r.error && !r.off ? `<small class="muted">${/urlopen|timed out|Tunnel|resolve|reach/i.test(r.error) ? "Couldn't reach Wikimedia Commons yet. The site tries again automatically every few hours." : esc(r.error)}</small>` : ""}
+        <div class="row" style="margin-top:8px">
+          ${r.off ? `<button class="btn small" data-pp="auto" data-k="${esc(r.partner)}" data-t="${esc(r.aircraft)}">Use a Commons photo</button>`
+            : `<button class="btn ghost small" data-pp="next" data-k="${esc(r.partner)}" data-t="${esc(r.aircraft)}">Next photo</button>
+               <button class="btn ghost small" data-pp="pac" data-k="${esc(r.partner)}" data-t="${esc(r.aircraft)}">Use PAC photo</button>
+               <button class="btn ghost small" data-pp="pin" data-k="${esc(r.partner)}" data-t="${esc(r.aircraft)}">Pick a file…</button>`}
+        </div></div></article>`).join("")}</div>`;
+    body.querySelectorAll("[data-pp]").forEach(b => b.onclick = async () => {
+      let file = null;
+      if (b.dataset.pp === "pin") {
+        file = prompt("Paste the Commons file name, e.g. File:UPS Airlines Airbus A300F4-622R N173UP.jpg");
+        if (!file) return;
+      }
+      b.disabled = true; b.textContent = "Working…";
+      try { const list2 = await api(`/api/staff/partner-photos/${b.dataset.k}/${b.dataset.t}`, { method: "POST", body: { action: b.dataset.pp, file } }); S.partnerPhotos = null; paint(list2); toast("Partner photo updated."); }
+      catch (e) { toast(e.message); paint(list); }
+    });
+  };
+  paint(rows);
+}
 function staffReviews() {
   const list = S.staff.reviews;
   $("#staffBody").innerHTML = list.length ? list.map(r => `<div class="q-item ${statusCls(r.review_status)}">
