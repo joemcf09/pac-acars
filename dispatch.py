@@ -220,7 +220,7 @@ ERG = {"UN3480": ("12FZ", "—"), "UN1066": ("2L", "—"), "UN1760": ("8L", "II"
 DISPATCHERS = ["R. MORALES", "K. OYELARAN", "T. BRANDT", "M. CASTELLANO", "J. WHITFIELD", "S. NAKAMURA", "A. DELACROIX", "P. SINGH"]
 
 
-def paperwork(d, fleet, booking=None, notams=None, captain_rank=None, airports=None):
+def paperwork(d, fleet, booking=None, notams=None, captain_rank=None, airports=None, dow_override=None):
     """Everything a real release package carries beyond the cargo: limits, the loadsheet figures, dispatcher, SELCAL,
     release validity, minimum fuel and company NOTAMs. Deterministic for a given release, so reprints match."""
     rng = random.Random(d.get("release_no", "") + "|paperwork")
@@ -230,6 +230,8 @@ def paperwork(d, fleet, booking=None, notams=None, captain_rank=None, airports=N
     max_pl = ac.get("max_payload_lbs") or round(mzfw * .4)
     # dry operating weight: max payload is MZFW less DOW, so a full legal load always fits under the MZFW
     dow = round(mzfw - max_pl, -2) if d["aircraft"] in LIMITS and ac.get("max_payload_lbs") else max(round(mzfw - max_pl, -2), round(mtow * .45, -2))
+    if dow_override:   # the dry operating weight PAC has seen in pilots' SimBrief plans for this type
+        dow = round(dow_override, -2)
     w, f = d.get("weights") or {}, d.get("fuel") or {}
     payload = int(w.get("payload_lbs") or 0)
     zfw = int(w.get("zfw_lbs") or (dow + payload))

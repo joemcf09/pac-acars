@@ -1527,7 +1527,8 @@ def dispatch_current():
         save_booking(booking)
     d = dict(booking["dispatch"])
     d["defects"] = va.open_items(booking["airframe"]) if booking.get("airframe") else []
-    d["paper"] = dispatch.paperwork(d, FLEET, booking, va.active_notams(), va.career(va.current_pilot_id())["rank"], AIRPORTS)
+    d["paper"] = dispatch.paperwork(d, FLEET, booking, va.active_notams(), va.career(va.current_pilot_id())["rank"], AIRPORTS,
+                                    dow_override=(learned_dow(booking["aircraft"]) or {}).get("dow"))
     if releases.valid_signature(booking):
         frozen_paper = (booking["dispatch"].get("signed_snapshot") or {}).get("paper")
         if frozen_paper:
@@ -1611,7 +1612,8 @@ def dispatch_sign():
     error, code = releases.sign(booking, request.get_json(silent=True), dispatch_pilot())
     if error:
         return jsonify({"error": error}), code
-    booking["dispatch"]["signed_snapshot"]["paper"] = dispatch.paperwork(booking["dispatch"], FLEET, booking, va.active_notams(), va.career(va.current_pilot_id())["rank"], AIRPORTS)
+    booking["dispatch"]["signed_snapshot"]["paper"] = dispatch.paperwork(booking["dispatch"], FLEET, booking, va.active_notams(), va.career(va.current_pilot_id())["rank"], AIRPORTS,
+                                                                         dow_override=(learned_dow(booking["aircraft"]) or {}).get("dow"))
     save_booking(booking)
     response = jsonify({"ok": True, "signed": booking["signed"]})
     response.headers['Cache-Control'] = 'private, no-store'
@@ -2204,6 +2206,43 @@ def prelim_seed(m, ac_code):
     return f"PRE|{m['id']}|{ac_code}|{va.current_pilot_id() or 'guest'}|{int(time.time() // 86400)}"
 
 
+_DOW_CACHE = {}
+
+
+def learned_dow(code):
+    """The dry operating weight of this type in the SimBrief profiles PAC pilots actually fly: the median of
+    (zero fuel weight - payload) over the last 25 filed flights with an OFP. Needs 3 flights; cached for 10 minutes.
+    Returns {"dow": lb, "flights": n} or None (then the published-limits estimate applies)."""
+    hit = _DOW_CACHE.get(code)
+    if hit and time.time() - hit[0] < 600:
+        return hit[1]
+    mtow = (FLEET.get(code) or {}).get("mtow_lbs") or 0
+    vals = []
+    try:
+        with db() as con:
+            rows = con.execute("SELECT json_extract(detail, '$.ofp.zfw_lbs') AS zfw, json_extract(detail, '$.ofp.payload_lbs') AS pl "
+                               "FROM pireps WHERE aircraft=? AND demo=0 AND detail IS NOT NULL ORDER BY filed_at DESC LIMIT 60", (code,)).fetchall()
+        for r in rows:
+            try:
+                zfw, pl = float(r["zfw"] or 0), float(r["pl"] or 0)
+            except (TypeError, ValueError):
+                continue
+            dow = zfw - pl
+            if zfw > 0 and mtow and mtow * 0.3 < dow < mtow * 0.85:   # skip broken or foreign plans
+                vals.append(dow)
+            if len(vals) >= 25:
+                break
+    except Exception:
+        vals = []
+    out = None
+    if len(vals) >= 3:
+        vals.sort()
+        mid = len(vals) // 2
+        out = {"dow": round(vals[mid] if len(vals) % 2 else (vals[mid - 1] + vals[mid]) / 2), "flights": len(vals)}
+    _DOW_CACHE[code] = (time.time(), out)
+    return out
+
+
 def manifest_seed_ok(seed):
     """A preliminary load sheet's seed, as handed back by the browser: short plain text only."""
     seed = str(seed or "")
@@ -2237,7 +2276,8 @@ def plan_loadsheet():
     d["fuel"] = {"block_fuel_lbs": f["block"], "taxi_fuel_lbs": f["taxi"], "trip_fuel_lbs": f["trip"],
                  "reserve_fuel_lbs": f["final_reserve"]}   # the minimum release fuel adds its own alternate allowance
     d["block_min"] = f["est_block_min"]
-    paper = dispatch.paperwork(d, FLEET, None, [], None, AIRPORTS)
+    learned = learned_dow(ac_code)
+    paper = dispatch.paperwork(d, FLEET, None, [], None, AIRPORTS, dow_override=(learned or {}).get("dow"))
     ls, lim = paper["loadsheet"], paper["limits"]
     checks = [
         {"name": "Zero fuel weight", "value": ls["zfw"], "limit": lim["mzfw"], "code": "MZFW"},
@@ -2254,7 +2294,8 @@ def plan_loadsheet():
     out.update({"seed": seed, "mission_id": m["id"], "loadsheet": ls, "limits": lim, "checks": checks,
                 "min_release_fuel": paper["min_release_fuel"], "fuel": f, "cruise_fl": est["cruise_fl"],
                 "alternate": est["alternate"], "payload_requested": m.get("payload_lbs") or 0,
-                "erg": paper["erg"], "ok": all(c["ok"] for c in checks)})
+                "erg": paper["erg"], "ok": all(c["ok"] for c in checks),
+                "dow_source": {"kind": "learned", "flights": learned["flights"]} if learned else {"kind": "estimate"}})
     return jsonify(out)
 
 

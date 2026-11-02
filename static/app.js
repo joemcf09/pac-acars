@@ -775,7 +775,7 @@ function loadsheetHTML(ls, m) {
     <p class="muted">${ls.ferry ? "Ferry flight: the hold is empty." : `${units} unit${units === 1 ? "" : "s"} · ${fmt(ls.totals.pieces)} pieces · ${fmt(ls.totals.weight_lbs)} lb · ${(ls.shipments || []).length} shipment${(ls.shipments || []).length === 1 ? "" : "s"}`}</p></div>
     <span class="ls-status ${ls.ok ? "ok" : "bad"}">${ls.ok ? "Within limits" : "Over a limit"}</span></div>
   ${partial ? `<div class="notice">The ${esc(ls.aircraft_name)} carries up to ${fmt(ls.limits.max_payload)} lb, so you'll take ${fmt(ls.totals.weight_lbs)} lb of the ${fmt(ls.payload_requested)} lb consignment.</div>` : ""}
-  ${!ls.ok ? `<div class="notice err">This load and fuel go over a structural limit. Pick a larger type on the Aircraft step, or plan less fuel or cargo in SimBrief.</div>` : ""}
+  ${!ls.ok ? `<div class="notice err">This load and fuel go over a structural limit${ls.checks.some(c => c.code === "MTOW" && !c.ok) ? ": SimBrief will cut the cargo to fit under the take-off weight limit" : ""}. Pick a larger type on the Aircraft step, or plan less fuel or cargo.</div>` : ""}
   ${ls.ferry ? "" : `<div class="ls-deck" aria-label="Cargo positions, nose on the left">
     <div class="ls-nose" aria-hidden="true">NOSE</div>
     <div class="ls-decks">${deckRow(ls.deck.main, byPos, ls.deck.cap, `Main deck · ${esc(ls.deck.uld)}`)}${ls.deck.lower.length ? deckRow(ls.deck.lower, byPos, ls.deck.lcap, `Lower · ${esc(ls.deck.luld)}`) : ""}</div></div>
@@ -791,6 +791,7 @@ function loadsheetHTML(ls, m) {
         <tr><td>− Trip fuel</td><td>${fmt(L.trip)}</td></tr>
         <tr class="sum"><td>Landing weight</td><td>${fmt(L.law)}</td></tr>
         <tr class="under"><td>Underload before limits</td><td>${fmt(L.underload)}</td></tr></tbody></table>
+      <p class="muted ls-fine">${ls.dow_source?.kind === "learned" ? `Dry operating weight from ${ls.dow_source.flights} recent PAC flights on this type (their SimBrief plans).` : "Dry operating weight estimated from published limits; it becomes exact once a few PAC flights on this type have been filed with an OFP."}</p>
     </section>
     <section><h4>Against the limits</h4>${ls.checks.map(gauge).join("")}</section>
     <section><h4>Fuel estimate (lb)</h4>
