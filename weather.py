@@ -33,9 +33,12 @@ class WeatherError(Exception):
     pass
 
 
-FAIL_TTL = 120          # after a failure, don't ask again for two minutes: pages answer at once instead of waiting
-TIMEOUT = 6
+FAIL_TTL = 60           # after a failure, don't ask again for a minute: pages answer at once instead of waiting
+TIMEOUT = 12            # aviationweather.gov sometimes takes several seconds; 6 s cut it off too often
 _down = {"until": 0.0, "why": ""}
+STALE_MAX = 2 * 3600    # when the service is slow or down, show the last report PAC has, up to two hours old
+_last_metar = {}        # station -> (fetched at, raw METAR line)
+_last_taf = {}          # station -> (fetched at, TAF dict)
 
 
 def _get(url):
@@ -72,8 +75,29 @@ def _ids(ids):
     return [i.strip().upper() for i in ids if i and re.fullmatch(r"[A-Za-z0-9]{3,4}", i.strip())]
 
 
+def _get_or_none(url):
+    try:
+        return _get(url)
+    except WeatherError as e:
+        return e
+
+
+def _stale(station, now):
+    """The last METAR PAC fetched for this station, decoded and marked as stale, if it's recent enough."""
+    hit = _last_metar.get(station)
+    if not hit or now - hit[0] > STALE_MAX:
+        return None
+    d = decode_metar(hit[1])
+    if d:
+        d["stale"] = True
+        d["stale_min"] = round((now - hit[0]) / 60)
+        d["summary"] = f"Last known report ({d['stale_min']} min old, the weather service is slow right now) · " + d["summary"]
+    return d
+
+
 def metars(ids):
-    """{icao: decoded METAR} for the stations that have one."""
+    """{icao: decoded METAR} for the stations that have one. If aviationweather.gov is slow or down, stations PAC
+    fetched in the last two hours get their last known report (marked "stale"); WeatherError only when there's nothing."""
     ids = _ids(ids)
     out = {}
     chunks = [ids[i:i + 80] for i in range(0, len(ids), 80)]
@@ -81,10 +105,18 @@ def metars(ids):
     if len(urls) > 1:                             # the whole network: ask for the chunks at the same time, not one after another
         from concurrent.futures import ThreadPoolExecutor
         with ThreadPoolExecutor(max_workers=min(6, len(urls))) as ex:
-            texts = list(ex.map(_get, urls))
+            texts = list(ex.map(_get_or_none, urls))
     else:
-        texts = [_get(u) for u in urls]
+        texts = [_get_or_none(u) for u in urls]
+    now, failed = time.time(), None
     for chunk, text in zip(chunks, texts):
+        if isinstance(text, WeatherError):
+            failed = text
+            for st in chunk:                      # fall back to the last report for each station in this chunk
+                d = _stale(st, now)
+                if d and st not in out:
+                    out[st] = d
+            continue
         for line in text.splitlines():
             line = line.strip()
             if not line:
@@ -92,6 +124,10 @@ def metars(ids):
             d = decode_metar(line)
             if d and d["station"] in chunk and d["station"] not in out:
                 out[d["station"]] = d
+                with _lock:
+                    _last_metar[d["station"]] = (now, line)
+    if failed and not out:
+        raise failed
     return out
 
 
@@ -99,12 +135,21 @@ def taf(icao):
     icao = (_ids([icao]) or [None])[0]
     if not icao:
         return None
-    text = _get(f"{BASE}/taf?" + urllib.parse.urlencode({"ids": icao, "format": "raw"})).strip()
+    try:
+        text = _get(f"{BASE}/taf?" + urllib.parse.urlencode({"ids": icao, "format": "raw"})).strip()
+    except WeatherError:
+        hit = _last_taf.get(icao)               # the service is slow or down: the last TAF PAC has, up to two hours old
+        if hit and time.time() - hit[0] <= STALE_MAX:
+            return {**hit[1], "stale": True}
+        raise
     if not text or icao not in text:
         return None
     raw = " ".join(text.split())
     lines = re.sub(r"\s(?=(FM\d{6}|BECMG|TEMPO|PROB\d{2}(?!\s*TEMPO)|PROB\d{2}\sTEMPO))", "\n", raw).split("\n")
-    return {"station": icao, "raw": raw, "lines": [l.strip() for l in lines if l.strip()]}
+    out = {"station": icao, "raw": raw, "lines": [l.strip() for l in lines if l.strip()]}
+    with _lock:
+        _last_taf[icao] = (time.time(), out)
+    return out
 
 
 def _vis_sm(tok, prev=None):
