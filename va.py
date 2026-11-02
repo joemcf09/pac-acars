@@ -1552,7 +1552,7 @@ def type_unlock_rank(code):
 
 def ranks_effective():
     live = [k for k, v in C["FLEET"].items() if not v.get("retired")]
-    return [{**r, "unlocks": [k for k in live if type_unlock_rank(k) == r["name"]]} for r in RANKS]
+    return [{**r, "unlocks": [k for k in live if type_unlock_rank(k) == r["name"]], "pay": PAY_RATES.get(r["name"])} for r in RANKS]
 
 
 def pilot_record(pilot_id, con=None):
@@ -1612,7 +1612,7 @@ def career(pilot_id, con=None):
     need = []
     if nxt:
         if nxt["checkride"] and not ck:
-            need.append({"label": "Pass the 737 checkride", "done": False})
+            need.append({"label": "Pass the 737 line checkride or any type checkride" if direct_entry() else "Pass the 737 checkride", "done": False})
         if nxt["hours"]:
             need.append({"label": f"{nxt['hours']} hours", "done": hours >= nxt["hours"], "value": round(hours, 1), "target": nxt["hours"]})
         if nxt["avg"]:
@@ -1620,7 +1620,8 @@ def career(pilot_id, con=None):
                          "value": avg, "target": nxt["avg"]})
     return {"pilot": p, "rank": RANKS[idx]["name"], "rank_index": idx, "appointed": bool(appointed), "earned_rank": earned, "next": nxt["name"] if nxt else None, "requirements": need,
             "hours": round(hours, 1), "pac_hours": round(pac_hours, 1), "transfer_hours": p.get("transfer_hours") or 0,
-            "avg_score": avg, "flights": len(rows), "unlocked": unlocked, "checkride": p.get("checkride"), "checkride_last": last_attempt}
+            "avg_score": avg, "flights": len(rows), "unlocked": unlocked, "checkride": p.get("checkride"), "checkride_last": last_attempt,
+            "checkride_via": line_checkride_via(p)}
 
 
 # ---------------------------------------------------------------- airframes
@@ -1991,15 +1992,47 @@ def valid_type_pass(row, family=None):
         return False
 
 
+def _line_via(con, pilot_id, fam):
+    """Remember (on the pilot's prefs) which type checkride satisfied the line checkride; None clears it."""
+    r = con.execute("SELECT prefs FROM pilots WHERE id=?", (pilot_id,)).fetchone()
+    try:
+        prefs = json.loads((r["prefs"] if r else None) or "{}")
+    except (ValueError, TypeError):
+        prefs = {}
+    if not isinstance(prefs, dict):
+        prefs = {}
+    if fam:
+        prefs["line_checkride_via"] = fam
+    else:
+        prefs.pop("line_checkride_via", None)
+    con.execute("UPDATE pilots SET prefs=? WHERE id=?", (json.dumps(prefs), pilot_id))
+
+
+def line_checkride_via(pilot):
+    """The type checkride family that counted as this pilot's line checkride, or None."""
+    try:
+        prefs = json.loads(pilot.get("prefs") or "{}")
+        return prefs.get("line_checkride_via") if isinstance(prefs, dict) else None
+    except (ValueError, TypeError, AttributeError):
+        return None
+
+
 def record_accepted_type_pass(con, report_id):
     row = con.execute("SELECT * FROM pireps WHERE id=?", (report_id,)).fetchone()
     if row and not row["demo"] and row["review_status"] == "Accepted" and row["status"] in ("Delivered", "Delivered late") and row["mission_id"] == CHECKRIDE_ID and row["aircraft"] == CHECKRIDE["aircraft"] and json.loads(row["detail"] or "{}").get("checkride", {}).get("passed"):
         con.execute("UPDATE pilots SET checkride='Passed' WHERE id=? AND checkride!='Waived'", (row["pilot_id"],))
+        _line_via(con, row["pilot_id"], None)          # the real 737 line checkride: it grants the 737 qualification
     if valid_type_pass(row):
         fam = json.loads(row["detail"])["type_checkride"]["family"]
         current = con.execute("SELECT source FROM type_ratings WHERE pilot_id=? AND family=?", (row["pilot_id"], fam)).fetchone()
         if not current or current[0] != "staff":
             grant_rating(con, row["pilot_id"], fam, "checkride", row["score"], report_id)
+        # a passed type checkride also counts as the line checkride (direct entry, as announced on 16 October),
+        # without handing out a 737 rating the pilot never flew for
+        ck = con.execute("SELECT checkride FROM pilots WHERE id=?", (row["pilot_id"],)).fetchone()
+        if ck and ck["checkride"] not in ("Passed", "Waived"):
+            con.execute("UPDATE pilots SET checkride='Passed' WHERE id=?", (row["pilot_id"],))
+            _line_via(con, row["pilot_id"], fam)
 
 
 def type_ratings(pilot_id):
@@ -2020,7 +2053,7 @@ def type_ratings(pilot_id):
         p = pilot_record(pilot_id, con)
     for ac, first in flown:
         out.setdefault(rating_family(ac), {"source": "flown", "date": first, "score": None, "pirep_id": None})
-    if p.get("checkride") in ("Passed", "Waived"):
+    if p.get("checkride") in ("Passed", "Waived") and not line_checkride_via(p):   # satisfied by a type checkride: no 737 rating
         out.setdefault(rating_family(CHECKRIDE["aircraft"]), {"source": "line checkride", "date": None, "score": None, "pirep_id": None})
     return out
 

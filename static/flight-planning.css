@@ -165,3 +165,9 @@ html[data-theme="dark"] .ls-wrap .kicker { color: #ff8f8f; }
 .sb-extra input { padding: 7px 9px; border: 1px solid var(--line); background: var(--white); color: var(--ink); font: inherit; width: 100%; }
 .sb-extra > small { font-size: 12.5px; }
 @media (max-width: 760px) { .sb-extra { grid-template-columns: 1fr 140px; } .sb-extra > small { grid-column: 1 / -1; } }
+
+/* checkride result at the top of the pilot report */
+.ck-banner { padding: 12px 14px; border-left: 5px solid; font-size: 14.5px; line-height: 1.5; margin: 6px 0 2px; }
+.ck-banner.pass { border-color: #25844b; background: var(--ok-wash); color: var(--ok-ink); }
+.ck-banner.fail { border-color: var(--red); background: var(--red-wash); color: var(--ink); }
+.ck-banner b { font-size: 15.5px; }

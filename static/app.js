@@ -1420,6 +1420,7 @@ function renderPirep() {
     <div class="score"><span>Flight grade</span><span class="g">${p.grade}</span><span class="s">${p.score} / 100</span><span>${p.points} points</span><span class="st">${esc(p.status)}${p.demo ? " (demo)" : ""}</span></div>
     <div class="body">
       <h2 style="margin:0">Pilot report for ${esc(p.flight_number)}</h2>
+      ${checkrideBanner(p)}
       ${pacDebrief(p)}
       ${econBox(p.economics)}
       ${p.pay ? `<div class="notice" style="border-color:#1f9d55;background:var(--ok-wash)">Your pay: <b>${money(p.pay.flight_pay, true)}</b> flight pay (${p.pay.hours} h at $${p.pay.rate}/h)${p.pay.profit_share ? ` + <b>${money(p.pay.profit_share, true)}</b> profit share` : ""}${p.pay.contract_bonus ? ` + <b>${money(p.pay.contract_bonus, true)}</b> shortage bonus` : ""}${p.pay.ferry_bonus ? ` + <b>${money(p.pay.ferry_bonus, true)}</b> ferry bonus` : ""}${p.pay.skill_total ? ` + <b>${money(p.pay.skill_total, true)}</b> skill bonus` : ""} = <b>${money(p.pay.total, true)}</b>${p.review_status === "Pending" ? ", paid once staff accept the PIREP" : ""}.
@@ -1445,7 +1446,6 @@ function renderPirep() {
       </div>
       
       ${p.bonuses?.length ? `<table class="breakdown"><tbody><tr><td>Base points</td><td>${fmt(p.base_points)}</td></tr>${p.bonuses.map(b => `<tr><td>${esc(b[0])}</td><td class="pos">+${fmt(b[1])}</td></tr>`).join("")}<tr><td><b>Total points</b></td><td>${fmt(p.points)}</td></tr></tbody></table>` : ""}
-      ${p.checkride ? `<div class="notice ${p.checkride.passed ? "" : "err"}" style="${p.checkride.passed ? "border-color:#2FB36B;background:var(--ok-wash)" : ""}"><b>Checkride ${p.checkride.passed ? "passed" : "not passed"}.</b> ${p.checkride.passed ? "Welcome to the line, Second Officer." : "Reasons: " + esc(p.checkride.reasons.join(", ")) + ". Fly it again whenever you're ready."}</div>` : ""}
       ${p.demo ? "" : p.review_status === "Accepted" ? `<div class="muted" style="font-size:14px">No flags. This PIREP will be accepted automatically.</div>`
         : `<div class="notice">This PIREP will go to staff review: ${esc(p.flags.join(", "))}. It counts towards your career once accepted.</div>`}
       <div class="field"><label for="remarks">Remarks for dispatch</label><textarea id="remarks" style="min-height:70px;font-family:var(--font);font-size:14px" placeholder="Weather, delays, NOTOC, anything dispatch should know"></textarea></div>
@@ -1458,10 +1458,27 @@ function renderPirep() {
   bindCard("cardDraft", cardData(p));
   if (p.takeoff_analysis) bindTakeoffCard("toDraft", cardData(p));
 }
+/* Checkride result, at the top of the report: a perfect score doesn't pass a checkride on its own */
+function checkrideReason(r, p) {
+  if (/unstable approach/i.test(r)) return `unstable approach (${esc(p.landing_analysis?.stability_note || "approach outside the limits")})`;
+  return esc(r);
+}
+function checkrideBanner(p) {
+  const out = [];
+  if (p.checkride) out.push(p.checkride.passed
+    ? `<div class="ck-banner pass"><b>Line checkride passed.</b> Welcome to the line, Second Officer. It also gives you the B737 qualification once this report is accepted.</div>`
+    : `<div class="ck-banner fail"><b>Line checkride not passed:</b> ${p.checkride.reasons.map(r => checkrideReason(r, p)).join("; ")}. Your score doesn't change this: every checkride standard has to be met. Fly it again whenever you're ready; retakes are free.</div>`);
+  const t = p.type_checkride;
+  if (t) out.push(t.passed
+    ? `<div class="ck-banner pass"><b>${esc(t.family)} type checkride passed.</b> The ${esc(t.family)} rating is yours ${p.review_status === "Accepted" ? "as soon as you file this report" : "once staff accept this report"}${S.career?.checkride === "Pending" ? ", and it also counts as your line checkride, so rank progression opens up" : ""}.</div>`
+    : `<div class="ck-banner fail"><b>${esc(t.family)} type checkride not passed:</b> ${t.reasons.map(r => checkrideReason(r, p)).join("; ")}. Your score of ${p.score} doesn't change this: every checkride standard has to be met (score 85+, landing softer than 400 fpm with no bounce, a stable approach and no overspeed). Fly it again from Career › Qualifications; retakes are free.</div>`);
+  return out.join("");
+}
 async function filePirep() {
   try {
     const r = await api("/api/pirep", { method: "POST", body: { remarks: $("#remarks").value } });
-    toast(`PIREP filed: ${r.flight_number} graded ${r.grade}, ${r.points} points${r.paid ? `, ${money(r.paid.total, true)} paid to your wallet` : ""}${r.review_status === "Pending" ? ". It's waiting for staff review." : "."}`);
+    const ck = r.type_checkride || r.checkride;
+    toast(`PIREP filed: ${r.flight_number} graded ${r.grade}, ${r.points} points${r.paid ? `, ${money(r.paid.total, true)} paid to your wallet` : ""}${r.review_status === "Pending" ? ". It's waiting for staff review." : "."}${ck ? (ck.passed ? ` ${r.type_checkride ? r.type_checkride.family + " type" : "Line"} checkride passed.` : ` Checkride not passed: ${ck.reasons.join(", ")}.`) : ""}`);
     loadMe();
     refreshCore();
     showReveal(r.unlocked);
@@ -1786,7 +1803,7 @@ async function fillRatings() {
  const el=$('#ratingsGrid');if(!el)return;
  try{const [ratings,career]=await Promise.all([api('/api/ratings'),api('/api/va/career')]);S.ratings=ratings;S.career=career.career;S.checkrides=S.ratings.families.map(f=>f.mission).filter(Boolean);
  $('#ratingsText').textContent='Company-funded checkrides. Choose a dedicated training session or an available fleet aircraft. Both use the same passing standards.';
- el.innerHTML=lineCheckrideCard(S.career?.checkride)+S.ratings.families.map(f=>`<div class="rating"><h3>${esc(f.family)}</h3><p>${f.type_names.map(esc).join(' · ')}</p><p>${f.rated?'Qualification held':f.unlocked?'Available to train':'Unlocks at '+esc(f.unlock_rank)}</p>${f.unlocked?`<button class="btn" data-training-course="${esc(f.checkride_id)}">${f.rated?'Retake checkride':'Start checkride'}</button>`:''}</div>`).join('');
+ el.innerHTML=lineCheckrideCard(S.career?.checkride,S.career?.checkride_via)+S.ratings.families.map(f=>`<div class="rating"><h3>${esc(f.family)}</h3><p>${f.type_names.map(esc).join(' · ')}</p><p>${f.rated?'Qualification held':f.unlocked?'Available to train':'Unlocks at '+esc(f.unlock_rank)}</p>${f.unlocked?`<button class="btn" data-training-course="${esc(f.checkride_id)}">${f.rated?'Retake checkride':'Start checkride'}</button>`:''}</div>`).join('');
  el.querySelectorAll('[data-training-course]').forEach(x=>x.onclick=()=>openTraining(x.dataset.trainingCourse));
  }catch(e){$('#ratingsText').textContent=e.message;el.innerHTML='<button class="btn" onclick="fillRatings()">Retry qualifications</button>';}
 }
@@ -3961,9 +3978,12 @@ async function renderHome(h, st) {
 
   ${networkPartners(h)}
 
-  <div class="section-h"><div><div class="kicker">Career path</div><h2>From cadet to Senior Captain</h2><p>Earn your stripes with hours and a good average score. Every rank opens up bigger aircraft.</p></div><button class="btn ghost small" onclick="show('career')">Your progress</button></div>
-  <div class="career-path">${(S.ranks || []).map(r => `<figure>${rankImg(r.name)}<b>${esc(r.name)}</b><small>${r.name === "Cadet" ? "Approved application" : r.hours ? `${r.hours} hours${r.avg ? `, avg ${r.avg}+` : ""}` : "Checkride passed"}</small>
-    <small>${r.unlocks.length ? r.unlocks.map(a => esc(S.fleet[a]?.icao || a)).join(", ") : "737 checkride"}</small></figure>`).join("")}</div>
+  ${(() => { const de = S.settings?.direct_entry_checkrides !== false;   // direct entry: aircraft come from checkrides, not rank
+    return `<div class="section-h"><div><div class="kicker">Career path</div><h2>From cadet to Senior Captain</h2><p>${de
+      ? "Rank and pay grow with your hours and average score. Aircraft come from checkrides: pass the type checkride for any aircraft family, at any rank."
+      : "Earn your stripes with hours and a good average score. Every rank opens up bigger aircraft."}</p></div><button class="btn ghost small" onclick="show('career')">Your progress</button></div>
+  <div class="career-path">${(S.ranks || []).map(r => `<figure>${rankImg(r.name)}<b>${esc(r.name)}</b><small>${r.name === "Cadet" ? "Approved application" : r.hours ? `${r.hours} hours${r.avg ? `, avg ${r.avg}+` : ""}` : de ? "Line or any type checkride" : "Checkride passed"}</small>
+    <small>${de ? (r.pay ? `$${r.pay}/h flight pay` : "") : r.unlocks.length ? r.unlocks.map(a => esc(S.fleet[a]?.icao || a)).join(", ") : "737 checkride"}</small></figure>`).join("")}</div>`; })()}
 
   ${discordWidget(site)}
 
@@ -4060,7 +4080,7 @@ function renderCareer(c) {
     </div>
     <div class="rank-next">
       ${k.checkride === "Pending" && k.checkride_last && !k.checkride_last.passed ? `<div class="notice err"><b>Your last checkride attempt (${new Date(k.checkride_last.when * 1000).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}) didn't pass:</b> ${esc(k.checkride_last.reasons.join(", "))}. Every other part can be fine; these are automatic fails on a checkride.</div>` : ""}
-      ${k.checkride === "Pending" ? `<div class="notice"><b>Your rank-progression checkride.</b> ${S.ratings?.direct_entry ? "For direct aircraft access, you can instead book a type checkride in Qualifications. The 737 checkride remains part of rank progression. " : ""}Fly PAC001 from your chosen training airport on the 737-800BCF. Dedicated training and company positioning are free. To pass: score 80 or better, land softer than 400 fpm and under 1.5 G with no bounce, and stay at or below 250 kt under FL100 (no overspeed, no slew). <button class="btn small" style="margin-top:8px" onclick="flyMission('${S.checkrideId}')">Fly the checkride</button></div>` : ""}
+      ${k.checkride === "Pending" ? `<div class="notice"><b>Your rank-progression checkride.</b> ${S.ratings?.direct_entry ? "Or book a type checkride for any aircraft family in Qualifications instead: passing one also counts as this checkride for rank progression (it rates you on that family, not the 737). " : ""}Fly PAC001 from your chosen training airport on the 737-800BCF. Dedicated training and company positioning are free. To pass: score 80 or better, land softer than 400 fpm and under 1.5 G with no bounce, and stay at or below 250 kt under FL100 (no overspeed, no slew). <button class="btn small" style="margin-top:8px" onclick="flyMission('${S.checkrideId}')">Fly the checkride</button></div>` : ""}
       ${k.appointed ? `<h2 style="margin:0">Appointed ${esc(k.rank)}</h2><p style="margin:0">This rank was set by staff, so it doesn't depend on hours or score.${k.earned_rank !== k.rank ? ` On flying alone you'd be ${esc(k.earned_rank)}.` : ""}</p>
         <p class="muted" style="margin:0;font-size:13px">Every aircraft your rank covers is unlocked. Staff can return you to earned progression in Staff › Roster.</p>`
       : k.next ? `<h2 style="margin:0">Next: ${esc(k.next)}</h2>
@@ -4190,7 +4210,7 @@ function renderHandbook(cfg) {
       <li>Ferry flights move you along with the aircraft, and pay you for the hours.</li></ul>`],
     ["ratings", "Type ratings and checkrides", `<p>${cfg.type_ratings_required ? "Each aircraft family needs a <b>type rating</b> before you fly regular work in it." : "Your rank decides what you can fly. <b>Type ratings</b> are optional: they go on your licence and show what you've proved you can fly, but you don't need one to fly a type your rank has unlocked."} Ratings follow real-world families: one rating covers the 737-200C, 737-300SF and 737-800BCF; the 757 and 767 share one; the 747 classic and the 747-8 are separate.</p>
       <ul><li><b>How to earn one:</b> Career › Type ratings › <b>Book checkride</b>. It's a short company sector in that type from a PAC hub. Score 85 or better, land softer than 400 fpm with no bounce, fly a stable approach and avoid overspeeds.</li>
-        ${cfg.direct_entry ? `<li><b>Already fly a type?</b> You can take any type checkride at any rank. An accepted passing report unlocks that family for line flights. Rank and pay keep their existing progression rules; this does not grant other aircraft ratings.</li>` : ""}
+        ${cfg.direct_entry ? `<li><b>Already fly a type?</b> You can take any type checkride at any rank. An accepted passing report unlocks that family for line flights and also counts as your line checkride. Rank and pay keep their existing progression rules; this does not grant other aircraft ratings.</li>` : ""}
       <li><b>Already rated:</b> every type you flew with PAC before ratings began, and the 737 family once your line checkride is done.</li>
       <li>Passing adds the checkride date to that type on your licence. Staff can grant or remove ratings, or switch the requirement off (Staff › Site and rules).</li></ul>`],
     ["dispatchpaper", "Dispatch paperwork, goals and Discord", `<p>The <b>dispatch release</b> prints like real operational paperwork: the release with fuel, weights and signatures, a navigation log (when your SimBrief plan has waypoints), weather and NOTAMs, the loadsheet, the cargo manifest, <b>shipment details</b>, the NOTOC and the <b>ground handling</b> timeline. Print it or save it as a PDF from its toolbar; <b>Classic layout</b> shows the previous design.</p>
@@ -6299,9 +6319,13 @@ async function openTraining(course='PAC001'){
 }
 
 
-function lineCheckrideCard(status) {
+function lineCheckrideCard(status, via) {
  const passed=status==='Passed',waived=status==='Waived',pending=status==='Pending';
  const complete=passed||waived;
- const label=passed?'Line checkride passed':waived?'Line checkride waived':pending?'Not yet passed':'Status unavailable';
- return `<div class="rating ${complete?'rt-held':''}"><h3>737 line checkride</h3><p><span class="tag ${complete?'green':'grey'}">${label}</span></p><p>${complete?'Your initial rank-progression requirement is satisfied. No additional B737 checkride is required.':pending?'Initial qualification for rank progression. Passing also grants the B737 family qualification.':'Refresh Qualifications to load your current line-checkride status.'}</p>${complete?'<button class="btn ghost" onclick="openTraining()">Retake line checkride (optional)</button>':pending?'<button class="btn" onclick="openTraining()">Start line checkride</button>':'<button class="btn ghost" onclick="fillRatings()">Refresh status</button>'}</div>`;
+ const label=via&&passed?`Satisfied by your ${via} checkride`:passed?'Line checkride passed':waived?'Line checkride waived':pending?'Not yet passed':'Status unavailable';
+ const body=via&&passed?`Your ${esc(via)} type checkride counted as your line checkride, so rank progression is open. It doesn't include the B737 qualification: fly the 737 line checkride or the B737 type checkride if you want to fly the 737.`
+  :complete?'Your initial rank-progression requirement is satisfied. No additional B737 checkride is required.'
+  :pending?'Your first step into rank progression: fly this 737 line checkride, which also grants the B737 qualification, or pass a type checkride for any aircraft family below. Either one counts.'
+  :'Refresh Qualifications to load your current line-checkride status.';
+ return `<div class="rating ${complete?'rt-held':''}"><h3>737 line checkride</h3><p><span class="tag ${complete?'green':'grey'}">${esc(label)}</span></p><p>${body}</p>${via&&passed?'<button class="btn ghost" onclick="openTraining()">Fly the 737 line checkride (optional)</button>':complete?'<button class="btn ghost" onclick="openTraining()">Retake line checkride (optional)</button>':pending?'<button class="btn" onclick="openTraining()">Start line checkride</button>':'<button class="btn ghost" onclick="fillRatings()">Refresh status</button>'}</div>`;
 }

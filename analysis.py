@@ -68,6 +68,25 @@ def verdict(rate):
     return "Hard"
 
 
+SUSTAIN_S = 3   # seconds a descent rate must last to count against a stable approach
+
+
+def sustained_min(points, secs):
+    """The most negative value that lasted at least `secs`. Each window of that length counts at its least-negative
+    value, and the result is the worst window. A lone sample with no neighbour inside its window counts on its own
+    (sparse data), so a real steep descent is never missed."""
+    pts = sorted(points)
+    if not pts:
+        return 0
+    worst = None
+    for i, (t0, _v) in enumerate(pts):
+        if worst is not None and pts[-1][0] - t0 < secs:
+            break                                   # the remaining tail is shorter than a window: already covered
+        level = max(v for t, v in pts[i:] if t - t0 <= secs)
+        worst = level if worst is None else min(worst, level)
+    return worst
+
+
 def analyze_landing(series, td_t, rate, g, airports_to_try, data_dir, gc_distance_nm):
     if not series:
         return None
@@ -116,11 +135,17 @@ def analyze_landing(series, td_t, rate, g, airports_to_try, data_dir, gc_distanc
             "ias_500": round(low[0][3]) if low else None, "vs_500": round(low[0][2]) if low else None,
         }
         spread = max(ias) - min(ias)
-        worst_low = min((x[2] for x in low), default=0)
+        # a stable approach is about the SUSTAINED descent rate: a one-second spike in the sim's vertical speed
+        # (turbulence, X-Plane's ground height jumping over uneven terrain) no longer fails an otherwise steady approach
+        # the seconds just before the 500 ft gate count too: a steep descent still going as you pass 500 ft is unstable
+        gate_t = low[0][0] if low else None
+        judged = [x for x in app if gate_t is not None and x[0] >= gate_t - SUSTAIN_S]
+        worst_low = sustained_min([(x[0], x[2]) for x in judged], SUSTAIN_S)
+        out["approach"]["sustained_descent_500_fpm"] = round(worst_low)
         out["stable"] = spread <= 20 and worst_low >= -1100
         out["stability_note"] = ("Stable approach" if out["stable"] else
                                  "Speed varied by %d kt between 1,000 ft and the flare" % spread if spread > 20 else
-                                 "Descent over 1,100 fpm below 500 ft")
+                                 "Descent over 1,100 fpm for %d seconds or more below 500 ft" % SUSTAIN_S)
 
     # rollout: distance from touchdown to 40 kt
     dist_m, prev = 0.0, after[0] if after else None
