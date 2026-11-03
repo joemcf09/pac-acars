@@ -684,6 +684,8 @@ JOB_TEMPLATES = [
      "Pedigree breeding stock for a dairy cooperative near {city}. Ventilation is critical, so no long ground holds with the packs off.", (0.5, 0.8), False),
     ("Motorsport", "Express", "High", "Race cars, spares and team equipment for the Grand Prix", "Grand Prix freight to {city}",
      "The race weekend starts in days and the teams' cars, garages and spares all ride on this flight.", (0.55, 0.9), True),
+    ("Teamkit", "Express", "High", "Pro sports team equipment and medical kit", "Team equipment to {city}",
+     "A pro team plays away in {city} this weekend and its equipment flies ahead of the players. The equipment staff meet the aircraft.", (0.15, 0.35), False),
     ("Concert", "Express", "Standard", "Stadium tour staging, lighting and sound equipment", "Concert tour gear to {city}",
      "A world tour's stage rig for the next show in {city}. The load-in crew is waiting on the ramp.", (0.5, 0.85), True),
     ("Film", "Express", "Standard", "Film production cameras, lighting and grip equipment", "Film production gear to {city}",
@@ -990,7 +992,7 @@ def contract_pay(block_min, rank, bonus, mult=CONTRACT_RATE_MULT):
 
 
 # ---------------------------------------------------------------- dynamic urgent missions
-URGENT_MAX = 3
+URGENT_MAX = 6
 URGENT_IDS = range(9410, 9500)   # PAC9410-9499: clear of tours (9101-9405), rotations (9001-9099, 9501-9599) and jobs (9600+)
 URGENT_EVERY_S = 40 * 60
 URGENT_KINDS = [
@@ -1004,6 +1006,22 @@ URGENT_KINDS = [
      "load": (0.6, 0.9), "brief": "Flash floods overnight near {city}. NGOs have the relief pallets staged and need lift immediately."},
     {"kind": "Pharma", "title": "Vaccine top-up to {city}", "cargo": "Vaccines in active cold-chain containers", "mult": 1.8,
      "load": (0.2, 0.4), "brief": "A vaccination campaign in {city} is days from running out. The containers have limited hold-over time."},
+    {"kind": "Marine", "title": "Ship's engine part to {city}", "cargo": "Turbocharger and engine spares for a container ship", "mult": 1.9,
+     "load": (0.15, 0.35), "brief": "A container ship is stuck alongside near {city} with a failed turbocharger, and the port is charging by the hour. A marine engineer will meet the aircraft."},
+    {"kind": "Power", "title": "Blackout: grid parts to {city}", "cargo": "Transformer bushings, switchgear and cable", "mult": 1.7,
+     "load": (0.4, 0.75), "brief": "A substation failure has left much of {city} without power. The utility needs these parts to bring the grid back tonight."},
+    {"kind": "Wildfire", "title": "Firefighting foam to {city}", "cargo": "Fire retardant concentrate, pumps and hoses", "mult": 1.2,
+     "load": (0.5, 0.85), "brief": "Wildfires are threatening towns near {city} and the tankers are running out of retardant. Expect smoke and gusty winds on approach."},
+    {"kind": "Antivenom", "title": "Antivenom to {city}", "cargo": "Antivenom and emergency medicines in cool boxes", "mult": 1.8,
+     "load": (0.05, 0.15), "brief": "Hospitals around {city} have run out of antivenom after a spike in snakebite cases. A small load with a very big job."},
+    {"kind": "Rescue", "title": "Rescue team equipment to {city}", "cargo": "Search and rescue team kit, rescue dogs' crates and medical stock", "mult": 1.3,
+     "load": (0.35, 0.6), "brief": "A building collapse in {city} has trapped people. An international rescue team is ready to go the moment their equipment lands."},
+    {"kind": "Data", "title": "Servers for a failed data centre in {city}", "cargo": "Replacement servers and storage arrays", "mult": 1.7,
+     "load": (0.25, 0.5), "brief": "A fire has taken a data centre near {city} offline, and banks and hospitals are running on backups. The replacement hardware must be in the racks tonight."},
+    {"kind": "Sports", "title": "Team equipment to {city}: game tomorrow", "cargo": "Pro team equipment, uniforms and medical kit", "mult": 1.6,
+     "load": (0.15, 0.35), "brief": "A pro team's equipment truck broke down on the way to the airport and the game in {city} is tomorrow. The equipment staff are waiting at the stadium."},
+    {"kind": "Racing", "title": "Race team spares to {city}", "cargo": "Spare chassis, gearboxes and pit equipment", "mult": 1.6,
+     "load": (0.2, 0.45), "brief": "A team crashed both cars in practice and the race is tomorrow at {city}. The spares were built overnight: the mechanics are waiting at the circuit."},
 ]
 
 
@@ -1521,7 +1539,7 @@ def _make_urgent(con, rng, now):
 
 
 def refresh_urgent_missions(here=None):
-    """Open urgent requests; expires old ones and trickles in new ones (up to three at a time)."""
+    """Open urgent requests; expires old ones and trickles in new ones (up to URGENT_MAX at a time)."""
     import random
     now = time.time()
     with C["db"]() as con:

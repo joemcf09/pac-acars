@@ -291,7 +291,7 @@ function renderMissions() {
     $("#boardCount").textContent = `${list.length} open crew ${list.length === 1 ? "request" : "requests"}${S.partnerFilter ? " from " + (P[S.partnerFilter]?.name || "") : ""}. Partners short of qualified captains hire PAC pilots to fly their aircraft under their callsign. New requests arrive through the day and each stays open for a day or so. Click a partner to filter.`;
   } else if (S.board === "urgent") {
     $("#boardTitle").textContent = "Urgent requests";
-    $("#filters").innerHTML = `<span class="muted" style="font-size:14px">New requests arrive about every 40 minutes, up to three at a time. Each uses an aircraft that's already in position.</span>`;
+    $("#filters").innerHTML = `<span class="muted" style="font-size:14px">New requests arrive about every 40 minutes, up to six at a time. Each uses an aircraft that's already in position.</span>`;
     list = S.urgent || [];
     $("#boardCount").textContent = list.length ? `${list.length} open ${list.length === 1 ? "request" : "requests"}. Deliver before the deadline for ×1.5 points and full revenue.` : "No urgent requests right now. Check back soon.";
   } else if (S.board === "rotations") {
@@ -3892,7 +3892,7 @@ function flyMission(id, preferredAircraft = null) {
 function openPhoto(src, caption) {
   $("#photoBig").src = src; $("#photoBig").alt = caption; $("#photoCap").textContent = caption; $("#photoDlg").showModal();
 }
-const CATEGORY_LIST = ["Humanitarian", "Medical", "Urgent", "Heavy lift", "Express", "Premium", "Scheduled", "Charter", "Tour", "Ferry", "Checkride"];
+const CATEGORY_LIST = ["Humanitarian", "Medical", "Urgent", "Heavy lift", "Express", "Premium", "Sports & events", "Scheduled", "Charter", "Tour", "Ferry", "Checkride"];
 const REGION_LIST = ["US domestic", "Americas", "Transatlantic", "Europe", "Middle East & Africa", "Asia-Pacific", "Transpacific"];
 const fmtDate = s => new Date(s + "T00:00:00Z").toLocaleDateString("en-GB", { day: "numeric", month: "short", timeZone: "UTC" });
 
@@ -4386,7 +4386,7 @@ function renderHandbook(cfg) {
       <li><b>Pauses:</b> short pauses are fine. More than 10 minutes paused in the air sends the flight to review.</li>
       <li><b>Tail strikes:</b> ACARS records pitch through the takeoff roll and compares it with each type's tail-strike pitch. A tail strike costs 25 points, grounds the airframe for inspection and goes to review.</li>
       <li><b>Takeoff analysis:</b> every PIREP shows rotation speed, liftoff speed and pitch, ground roll, runway remaining and initial climb, with a downloadable takeoff card.</li></ul>`],
-    ["urgent", "Urgent requests", `<p>Every 40 minutes or so a new urgent request appears (AOG engines, blood products, line-stop parts, relief), up to three at a time. Each uses an aircraft that's already in position.</p>
+    ["urgent", "Urgent requests", `<p>Every 40 minutes or so a new urgent request appears (AOG engines, blood products, line-stop parts, ship and data-centre spares, antivenom, rescue teams, grid repairs and more), up to six at a time. Each uses an aircraft that's already in position.</p>
       <ul><li>Book it before the offer expires.</li><li>Block in before the delivery deadline for ×1.5 points and full revenue. Miss it and the customer takes half the revenue back.</li></ul>`],
     ["staffletters", "For staff: approving pilots and letters", `<p>Applications arrive under Staff › Applications. Approving one gives the pilot the next free ID (PAC0002, PAC0003 and so on), creates their record, and opens the <b>welcome letter</b>, ready to send.</p>
       <ul><li><b>The welcome letter</b> carries the pilot ID, home base, a one-time sign-in link (good for 7 days), the first steps and the Discord invite. Copy it, open it in your mail program, or download it as HTML.</li>
@@ -4405,7 +4405,7 @@ function renderHandbook(cfg) {
       <li><b>Which stand to start on:</b> when you book from a hub with PAC stands, PAC puts you on one, chosen by aircraft size. It's shown on the flight page, on My bids, in the dispatch release and on the ACARS page, and PAC ACARS confirms it when you start tracking. Aircraft keep their stand between flights, so you start where you last parked, and PAC moves you if another aircraft is on it. <b>It's a convenience, not a rule:</b> start from any stand you like. Where you park is never scored, flagged or reviewed.</li>
       <li><b>PAC's other hubs</b> have stands too: Hong Kong uses real cargo apron stands X12 to X17 at their published positions; Miami, Milan Malpensa, Dubai World Central and Anchorage (PC1 to PC6) have stands on their cargo areas that staff can fine-tune on the satellite map. ACARS assigns these by aircraft size as well. PAC emblems mark the stands on the satellite map; staff use <b>Position stands</b> to drag them onto the ramp.</li>
       <li><b>Downloads</b> (Resources › Downloads) has PAC ACARS and other files from staff, SimBrief airframe sheets for every PAC aircraft, and the handbook and station guide to print. Your copy of PAC ACARS comes set up for the airline's website already. PAC liveries are on the <b>Fleet</b> page under each aircraft, with credit to their painters.</li></ul>`],
-    ["missionboard", "The mission board", `<p>The mission board is alive: about 14 missions are open at a time, each for a few days, and new work arrives as others close. Missions come from real kinds of air-cargo work, many of them seasonal: Valentine's roses from Bogotá, Chilean cherries before Chinese New Year, hurricane relief in hurricane season, monsoon flood relief, Beaujolais Nouveau in November, the Antarctic season through Christchurch, and year-round work like vaccines on the cold chain, AOG engines and parts, satellites and racehorses.</p>
+    ["missionboard", "The mission board", `<p>The mission board is alive: about 14 missions are open at a time, each for a few days, and new work arrives as others close. Missions come from real kinds of air-cargo work, many of them seasonal: Valentine's roses from Bogotá, Chilean cherries before Chinese New Year, durian and mango seasons, Alaskan king crab, smartphone launches and the 11.11 shopping festival, hurricane, typhoon and cyclone relief in their seasons, Beaujolais Nouveau in November, fashion weeks, Formula 1 and motorcycle flyaway races, pro football, basketball, baseball and hockey games abroad, European clubs' summer tours, stock cars to Mexico City, show horses, the winter World Cup circuit and stadium concert tours, the Antarctic season through Christchurch, and year-round work like vaccines on the cold chain, AOG engines, ship spares, data-centre servers, rhino reintroductions, honeybees and satellites.</p>
       <ul><li>Several missions always leave from where you are. The same route doesn't come back within ten days.</li>
       <li><b>New</b> marks a mission that arrived in the last day; the grey tag shows how long it stays open.</li>
       <li>PAC's original hand-written missions come back from time to time, and the line checkride is always there.</li></ul>`],
