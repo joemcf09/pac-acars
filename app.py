@@ -261,6 +261,10 @@ def db():
     if key not in _MIGRATED:  # prepare each database file the first time it's opened (tests and restores switch files)
         _MIGRATED.add(key)
         va.migrate(con)
+        # Each flight's row carries its whole recorded track, so finding flights by pilot or review status without an index
+        # meant reading through every track. These indexes let the logbook, career, home page and boards jump straight there.
+        con.execute("CREATE INDEX IF NOT EXISTS idx_pireps_pilot ON pireps(pilot_id, demo, review_status, filed_at)")
+        con.execute("CREATE INDEX IF NOT EXISTS idx_pireps_feed ON pireps(demo, review_status, filed_at)")
         import manual_pireps
         manual_pireps.migrate(con)
         import auth
@@ -1300,6 +1304,12 @@ def reset_photo():
 def no_stale_app_files(resp):
     if request.path in ("/", "/dispatch") or request.path.endswith(("/app.js", "/app.css", "/theme-loadsheet.css", "index.html", "dispatch.html")):
         resp.headers["Cache-Control"] = "no-cache"  # always revalidate, so an update shows up on the next load
+    elif request.path.startswith("/static/") and request.args.get("v") and resp.status_code == 200:
+        # versioned files (style.css?v=20261102): every change gets a new ?v=, so browsers can keep them for a week
+        # instead of asking the server about each one on every page load
+        resp.headers["Cache-Control"] = "public, max-age=604800"
+    elif request.path.startswith(("/static/fonts/", "/static/ranks/", "/static/partners/", "/static/vendor/")) and resp.status_code == 200:
+        resp.headers["Cache-Control"] = "public, max-age=604800"   # fonts, map library, rank insignia and partner logos rarely change
     return resp
 
 
@@ -3062,10 +3072,11 @@ def ops_board():
             dep.append(row)
     with db() as con:
         rows = [dict(r) for r in con.execute(
-            "SELECT flight_number, dep, arr, aircraft, airframe, landing_rate, grade, status, detail, filed_at FROM pireps "
-            "WHERE demo=0 AND review_status!='Rejected' ORDER BY filed_at DESC LIMIT 8")]
+            "SELECT flight_number, dep, arr, aircraft, airframe, landing_rate, grade, status, json_extract(detail, '$.oooi.in') AS block_in, filed_at "
+            "FROM pireps WHERE id IN (SELECT id FROM pireps WHERE demo=0 AND review_status!='Rejected' ORDER BY filed_at DESC LIMIT 8) "
+            "ORDER BY filed_at DESC")]
     for r in rows:
-        d = json.loads(r["detail"] or "{}")
+        d = {"oooi": {"in": r["block_in"]}}
         stat = {"Delivered": "ARRIVED", "Delivered late": "ARR LATE", "Diverted": "DIVERTED", "Failed": "INCIDENT"}.get(r["status"], "ARRIVED")
         arr.append({"time": zt((d.get("oooi") or {}).get("in") or r["filed_at"]), "flight": r["flight_number"], "from": r["dep"], "to": r["arr"],
                     "type": FLEET.get(r["aircraft"], {}).get("icao", ""), "tail": r["airframe"] or "", "status": stat,
@@ -3098,13 +3109,16 @@ def logbook():
             return jsonify({"error": "That's for staff only."}), 403
         pid = want
     with db() as con:
-        rows = [dict(r) for r in con.execute("SELECT * FROM pireps WHERE pilot_id=? ORDER BY filed_at DESC", (pid,))]
+        # every column except the big detail (the recorded track); just the checkride results are read out of it
+        cols = [c[1] for c in con.execute("PRAGMA table_info(pireps)") if c[1] != "detail"]
+        ck = "CASE WHEN mission_id=? OR category IN ('Checkride', 'Type checkride') OR mission_id LIKE 'TR-%' THEN json_extract(detail, '$.{}') END"
+        rows = [dict(r) for r in con.execute(f"SELECT {', '.join(cols)}, {ck.format('type_checkride')} AS _tc, {ck.format('checkride')} AS _lc "
+                                             "FROM pireps WHERE pilot_id=? ORDER BY filed_at DESC", (va.CHECKRIDE_ID, va.CHECKRIDE_ID, pid))]
     for r in rows:
         try:
-            d = json.loads(r.get("detail") or "{}")
+            tc, lc = json.loads(r.pop("_tc", None) or "{}"), json.loads(r.pop("_lc", None) or "{}")
         except (ValueError, TypeError):
-            d = {}
-        tc, lc = d.get("type_checkride") or {}, d.get("checkride") or {}
+            tc, lc = {}, {}
         ck = ({"kind": "type", "family": tc.get("family"), "passed": bool(tc.get("passed")), "reasons": tc.get("reasons") or []} if tc
               else {"kind": "line", "passed": bool(lc.get("passed")), "reasons": lc.get("reasons") or []} if lc else None)
         r["checkride_result"] = ck

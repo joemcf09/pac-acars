@@ -1568,17 +1568,24 @@ def career(pilot_id, con=None):
     own = con is None
     con = con or C["db"]()
     p = pilot_record(pilot_id, con)
+    # Only the few small fields career needs are read out of each flight's detail (inside SQLite), never the whole recorded
+    # track: unpacking every flight's full detail made each signed-in page slow once a pilot had a few dozen flights.
     rows = [dict(r) for r in con.execute(
-        "SELECT block_min, score, filed_at, detail FROM pireps WHERE pilot_id=? AND demo=0 AND review_status='Accepted' ORDER BY filed_at DESC", (pilot_id,))]
-    last_ck = con.execute("SELECT filed_at, detail FROM pireps WHERE pilot_id=? AND demo=0 AND mission_id=? AND review_status!='Rejected' "
-                          "ORDER BY filed_at DESC LIMIT 1", (pilot_id, CHECKRIDE_ID)).fetchone()
+        "SELECT block_min, score, filed_at, "
+        # only checkride flights can be training flights, so only their detail is opened at all
+        "CASE WHEN category IN ('Checkride', 'Type checkride') THEN json_extract(detail, '$.training') IS NOT NULL ELSE 0 END AS is_training, "
+        "CASE WHEN category IN ('Checkride', 'Type checkride') THEN COALESCE(json_extract(detail, '$.type_checkride.passed'), "
+        "json_extract(detail, '$.checkride.passed'), 0) ELSE 0 END AS ck_passed "
+        "FROM pireps WHERE pilot_id=? AND demo=0 AND review_status='Accepted' ORDER BY filed_at DESC", (pilot_id,))]
+    last_ck = con.execute("SELECT filed_at, json_extract(detail, '$.checkride') AS ck FROM pireps WHERE pilot_id=? AND demo=0 AND mission_id=? "
+                          "AND review_status!='Rejected' ORDER BY filed_at DESC LIMIT 1", (pilot_id, CHECKRIDE_ID)).fetchone()
     if own:
         con.close()
     last_attempt = None
     if last_ck:
-        _ck = json.loads(last_ck["detail"] or "{}").get("checkride") or {}
+        _ck = json.loads(last_ck["ck"] or "{}") or {}
         last_attempt = {"when": last_ck["filed_at"], "passed": bool(_ck.get("passed")), "reasons": _ck.get("reasons") or []}
-    rows = [r for r in rows if not json.loads(r["detail"] or "{}").get("training") or training.successful(json.loads(r["detail"] or "{}"))]
+    rows = [r for r in rows if not r["is_training"] or r["ck_passed"]]
     pac_hours = sum(r["block_min"] or 0 for r in rows) / 60
     hours = pac_hours + (p.get("transfer_hours") or 0)
     recent = [r for r in rows if r["score"] is not None][:AVG_WINDOW]
@@ -2073,6 +2080,9 @@ def ratings_overview(pilot_id, _career=None):
     return fams
 
 
+_CK_CANDS = {}   # (start airport, runway length, any-size?, airport count) -> checkride destinations in range
+
+
 def checkride_mission(pilot_id, mission_id, origin=None, aircraft=None, _career=None):
     """The type checkride for a family: a short company sector (250-1,000 nm) in that type, from where the pilot is.
     A real PAC route when one fits; otherwise a sector to a large airport 300-700 nm away with a long enough runway."""
@@ -2102,8 +2112,14 @@ def checkride_mission(pilot_id, mission_id, origin=None, aircraft=None, _career=
             (h for h in DELIVERY_HUBS_LIST if (A.get(h, {}).get("rwy_ft") or 0) >= min_rwy and h in A),
             key=lambda h: C["gc_distance_nm"](A[here]["lat"], A[here]["lon"], A[h]["lat"], A[h]["lon"]) if here in A else 0)
         o = A[start]
-        cands = sorted((i for i, a in A.items() if i != start and (aircraft or a.get("size") == "L") and (a.get("rwy_ft") or 0) >= min_rwy
-                        and (100 if aircraft else 300) <= C["gc_distance_nm"](o["lat"], o["lon"], a["lat"], a["lon"]) <= (1000 if aircraft else 700)))
+        ck_key = (start, min_rwy, bool(aircraft), len(A))
+        cands = _CK_CANDS.get(ck_key)
+        if cands is None:   # the airports in range never change, so work them out once per start airport and runway length
+            cands = sorted((i for i, a in A.items() if i != start and (aircraft or a.get("size") == "L") and (a.get("rwy_ft") or 0) >= min_rwy
+                            and (100 if aircraft else 300) <= C["gc_distance_nm"](o["lat"], o["lon"], a["lat"], a["lon"]) <= (1000 if aircraft else 700)))
+            if len(_CK_CANDS) > 200:
+                _CK_CANDS.clear()
+            _CK_CANDS[ck_key] = cands
         if not cands:
             return None
         dest = cands[seed % len(cands)]
