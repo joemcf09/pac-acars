@@ -4420,9 +4420,9 @@ function renderHandbook(cfg) {
       <li><b>Ferry flights:</b> move a PAC aircraft to where it's needed. The company pays the cost; you earn your hourly rate plus a ferry bonus.</li>
       <li><b>Partner crew requests</b> are listed separately under Missions › Partners (see Partners).</li>
       <li>Every board can be sorted by length, points or pay, and filtered to short, medium or long flights.</li></ul>`],
-    ["groupflight", "Weekly group flight", `<p>Every Saturday at 23:00 UTC, PAC flies one route together (Crew room › Group flight). It goes out from Cincinnati one week and back home the next, on 737-friendly scheduled routes, so the pilots and aircraft that flew out are already in place for the return.</p>
-      <ul><li>Sign up on the page so the crew knows you're coming, and pick the aircraft you'll fly.</li><li>Be at the departure airport with a PAC aircraft: jumpseat there or fly yourself there beforehand.</li><li><b>Book the flight</b> opens it on the mission board, ready to plan. Add it to your calendar from the page.</li><li>Meet in the Discord voice channel 15 minutes early and push back together. After the flight, the page shows who flew it.</li></ul>
-      <p>Staff can change the day and time, set a different route or briefing for any week, and copy or post the Discord announcement from the Staff panel on the page.</p>`],
+    ["groupflight", "Weekly group flight (optional)", `<p>Each week there's one suggested route under Crew room › Group flight. Nobody has to take part, and it changes nothing about your rank, pay or ratings.</p>
+      <ul><li>Fly it at the set time (Saturdays at 23:00 UTC) if you'd like company, or on your own any time from a day before to two days after. Offline or online, voice chat or none: it all counts the same.</li><li>The route goes out from Cincinnati one week and back home the next, on 737-friendly scheduled routes, so if you flew out, you and your aircraft are already in place for the return.</li><li><b>Book the flight</b> opens it on the mission board, ready to plan. You can add yourself to a "planning to fly" list if you like, but you don't have to.</li><li>Every accepted PIREP on the route in that window shows under "Flown this week".</li></ul>
+      <p>Staff can change the day and time, set a different route or briefing for any week, switch it off, and copy or post the Discord announcement from the Staff panel on the page.</p>`],
     ["online", "Flying online", `<p>Add your VATSIM CID or IVAO VID in Settings. ACARS checks the network's public feed every 5 minutes in the air. Seen on the network for at least 60% of the checks earns a 10% points bonus and marks the PIREP as flown online.</p>`],
     ["pay", "Pay and travel", `<ul><li><b>Pay:</b> every accepted flight pays an hourly rate by rank (Second Officer $55/h, First Officer $95/h, Senior First Officer $130/h, Captain $210/h, Senior Captain $280/h) plus 5% of the flight's profit. Pending flights are paid once staff accept them. Checkrides are company-funded training and aren't paid.</li>
       <li><b>Skill bonuses</b>, up to $475 a flight: grade A +$150 (B +$50), butter landing under 100 fpm +$100 (smooth under 200 fpm +$40, both with no bounce), trip fuel within 3% of the OFP +$75, the on-time bonus on a Critical or High priority flight +$50, stable approach +$50, and a clean flight with no review flags +$50.</li>
@@ -6373,7 +6373,7 @@ document.addEventListener('click',async e=>{
  catch(err){toast(err.message);b.disabled=false;}finally{patchSaving=false;}
 });
 const PAC_UPDATES=[
- {"id": "20261103-group-flight", "date": "November 3, 2026", "kind": "New feature", "title": "Weekly group flight", "body": "Every Saturday at 23:00 UTC, PAC flies one route together. It goes out from Cincinnati one week and back home the next, so if you flew out, you and your aircraft are already in place for the return. Sign up under Crew room \u2192 Group flight, book it in one click, add it to your calendar, and see who else is coming."},
+ {"id": "20261103-group-flight", "date": "November 3, 2026", "kind": "New feature", "title": "An optional weekly group flight", "body": "Each week there's one suggested route under Crew room \u2192 Group flight. It's entirely optional: fly it at the set time (Saturdays at 23:00 UTC) if you'd like company, or on your own any time that weekend, offline or online, with or without voice chat. It goes out from Cincinnati one week and back home the next, and everyone who flies it shows on the page."},
  {"id": "20261103-globe", "date": "November 3, 2026", "kind": "New feature", "title": "The live map as a globe", "body": "Operations \u2192 Live map now has a Flat map / Globe switch. Spin the globe to follow PAC flights and the parked fleet, with long routes drawn as they really curve. The station buttons and filters work on both, and your choice is remembered on this computer."},
  {"id": "20261103-sports", "date": "November 3, 2026", "kind": "New feature", "title": "Sports and events missions", "body": "A new Sports and events category on the mission board. Fly a hometown pro team's equipment to its games abroad (football, basketball, hockey and baseball, each in its real season), European clubs' summer tours, stock cars to Mexico City, motorcycle grand prix flyaways, bobsleds for the winter World Cup, show-jumping horses and stadium concert tours. Each comes with its own handling notes.", "view": "missions", "label": "Find a sports mission"},
  {"id": "20261103-missions", "date": "November 3, 2026", "kind": "New feature", "title": "Six urgent requests and new kinds of work", "body": "Up to six urgent requests at a time, with new kinds: ship engine parts, grid repairs after a blackout, antivenom, rescue team equipment, servers for a failed data center, race team spares and team equipment for tomorrow's game. The mission board adds durian and mango seasons, sashimi tuna, Alaskan king crab, fashion weeks, the 11.11 shopping festival, smartphone launches, ship spares, data-center builds, Indian Ocean cyclone relief, rhino reintroductions, honeybees and new hot-and-high challenge airports in Africa.", "view": "missions", "label": "See the mission board"},
@@ -6726,45 +6726,44 @@ function renderGroupFlight(d) {
   const root = $("#groupFlightRoot");
   if (S.gfMap) { try { S.gfMap.remove(); } catch (e) { /* already gone */ } S.gfMap = null; }
   if (!d.enabled) {
-    root.innerHTML = `<div class="profile-bar"><h1>Weekly group flight</h1></div><p class="muted">There's no group flight scheduled right now. Check back soon, or join us on Discord.</p>${d.staff ? gfStaffPanel(d) : ""}`;
+    root.innerHTML = `<div class="profile-bar"><h1>Weekly group flight</h1></div><p class="muted">There's no group flight scheduled right now.</p>${d.staff ? gfStaffPanel(d) : ""}`;
     gfBindStaff(d); return;
   }
-  const e = d.event, me = e.me, here = S.me?.location?.icao, started = e.start <= Date.now() / 1000;
+  const e = d.event, me = e.me, here = S.me?.location?.icao, now = Date.now() / 1000, started = e.start <= now, open = now >= (e.opens || 0) && now <= (e.closes || e.start);
   const local = gfWhen(e.start, { weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit", timeZoneName: "short" });
   const utc = gfWhen(e.start, { timeZone: "UTC", weekday: "short", hour: "2-digit", minute: "2-digit", hour12: false }) + " UTC";
+  const until = gfWhen(e.closes || e.start, { weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
   const acOpts = e.aircraft.map(a => `<option value="${esc(a.code)}" ${me?.aircraft === a.code ? "selected" : ""}>${esc(a.name)}</option>`).join("");
   const action = !S.me
     ? `<button class="btn" id="gfApply">Join PAC to fly it</button><button class="btn ghost" id="gfSignin">Pilots: sign in</button>`
-    : started && !(e.start + 3600 > Date.now() / 1000)
-      ? `<span class="muted">This one has departed. Next week's opens soon.</span>`
-      : me?.signed_up
-        ? `<span class="tag green">You're signed up</span><button class="btn" id="gfBook">Book the flight</button><button class="btn ghost" id="gfLeave">Can't make it</button>`
-        : `<label class="gf-ac">Flying the <select id="gfAc"><option value="">any of these</option>${acOpts}</select></label><button class="btn" id="gfJoin">Sign me up</button>`;
-  root.innerHTML = `<div class="profile-bar"><h1>Weekly group flight</h1><span class="muted">${esc(d.schedule)}</span></div>
+    : `<button class="btn" id="gfBook">Book the flight</button>` + (me?.signed_up
+        ? `<span class="tag green">On the list</span><button class="btn ghost small" id="gfLeave">Take me off the list</button>`
+        : `<label class="gf-ac">Planning to fly it? <select id="gfAc"><option value="">Any aircraft</option>${acOpts}</select></label><button class="btn ghost" id="gfJoin">Add me to the list</button>`);
+  root.innerHTML = `<div class="profile-bar"><h1>Weekly group flight</h1><span class="muted">${esc(d.schedule)} · optional</span></div>
     <section class="gf-hero">
       <div class="gf-main">
-        <div class="kicker">${started ? "Flying today" : "Next departure"} · ${esc(e.network)}</div>
+        <div class="kicker">${started && open ? "Open now" : "This week's route"} · optional</div>
         <h2>${esc(e.title)}</h2>
         <div class="gf-route"><div><b>${esc(e.dep.icao)}</b><span>${esc(e.dep.name)}</span></div><div class="gf-arrow" aria-hidden="true">${e.distance_nm ? `<small>${fmt(e.distance_nm)} nm</small>` : ""}<i></i></div><div><b>${esc(e.arr.icao)}</b><span>${esc(e.arr.name)}</span></div></div>
-        <div class="gf-when"><div><small>Your time</small><b>${esc(local)}</b></div><div><small>UTC</small><b>${esc(utc)}</b></div><div><small>Countdown</small><b id="gfCount">${gfCountdown(e.start)}</b></div></div>
-        <div class="gf-meta"><span><small>Aircraft</small>${e.aircraft.map(a => esc(a.name)).join(" · ")}</span><span><small>Cargo</small>${esc(e.cargo || "General cargo")}</span><span><small>Voice</small>${esc(e.voice)}</span></div>
+        <div class="gf-when"><div><small>Fly-along time</small><b>${esc(local)}</b><span class="gf-sub">${esc(utc)}</span></div><div><small>${started ? "Departed" : "Starts"}</small><b id="gfCount">${gfCountdown(e.start)}</b></div><div><small>Counts until</small><b>${esc(until)}</b></div></div>
+        <p class="gf-optional">Fly it at the set time if you'd like company, or on your own any time this weekend. Offline is fine and voice chat is optional. Nobody has to take part.</p>
+        <div class="gf-meta"><span><small>Aircraft</small>${e.aircraft.map(a => esc(a.name)).join(" · ")}</span><span><small>Cargo</small>${esc(e.cargo || "General cargo")}</span><span><small>Network</small>${esc(e.network === "Your choice" ? "Your choice: offline or online" : e.network)}</span><span><small>Voice</small>${esc(e.voice)}</span></div>
         <div class="row gf-actions">${action}</div>
-        ${S.me && here && here !== e.dep.icao && !started ? `<p class="gf-note">You're at <b>${esc(here)}</b>. <button class="linkish" id="gfTravel">Jumpseat to ${esc(e.dep.icao)}</button> before departure, or fly yourself there.</p>` : ""}
-        ${me?.flew ? `<p class="gf-note ok">You flew this one. Thanks for coming!</p>` : ""}
+        ${S.me && here && here !== e.dep.icao && !me?.flew ? `<p class="gf-note">You're at <b>${esc(here)}</b>. <button class="linkish" id="gfTravel">Jumpseat to ${esc(e.dep.icao)}</button>, or fly yourself there first.</p>` : ""}
+        ${me?.flew ? `<p class="gf-note ok">You flew this week's route. Nice work.</p>` : ""}
       </div>
       <div class="gf-map" id="gfMap" role="img" aria-label="Route map from ${esc(e.dep.icao)} to ${esc(e.arr.icao)}"></div>
     </section>
     <div class="gf-cols">
       <section class="gf-card"><h3>Briefing</h3><p style="white-space:pre-line">${esc(e.briefing)}</p>
-        <ol class="gf-steps"><li>Sign up here so we know you're coming.</li><li>Be at <b>${esc(e.dep.icao)}</b> with a PAC aircraft (jumpseat or fly there beforehand).</li><li>Book the flight, plan it in SimBrief and sign the release.</li><li>Join the voice channel 15 minutes early, push back together, and fly it with PAC ACARS.</li></ol>
+        <ol class="gf-steps"><li>Get to <b>${esc(e.dep.icao)}</b> with a PAC aircraft (jumpseat, or fly there beforehand).</li><li>Press <b>Book the flight</b>, plan it in SimBrief and sign the release, as for any flight.</li><li>Fly it with PAC ACARS any time before ${esc(until)}: at the set time if you'd like company, or whenever suits you.</li><li>File the PIREP. You'll show under "Flown this week" automatically. The list is optional too.</li></ol>
         <div class="row"><a class="btn ghost small" href="/api/group-flight.ics" download>Add to calendar</a><button class="btn ghost small" id="gfShare">Copy link</button></div></section>
-      <section class="gf-card"><h3>${started && e.flown.length ? `Flew it · ${e.flown.length}` : `Who's coming · ${e.count}`}</h3>
-        ${(started && e.flown.length ? e.flown.map(n => `<div class="gf-pilot">${esc(n)}</div>`) : e.signups.map(s => `<div class="gf-pilot">${esc(s.name)}${s.aircraft ? `<small>${esc(S.fleet?.[s.aircraft]?.icao || s.aircraft)}</small>` : ""}</div>`)).join("")
-          || `<p class="muted">Nobody's signed up yet. Be the first!</p>`}
-        ${started && e.flown.length && e.count ? `<p class="muted" style="font-size:13px">${e.count} signed up.</p>` : ""}</section>
+      <section class="gf-card"><h3>Flown this week · ${e.flown.length}</h3>
+        ${e.flown.map(n => `<div class="gf-pilot">${esc(n)}</div>`).join("") || `<p class="muted">Nobody's flown it yet.</p>`}
+        ${e.count ? `<h3 style="margin-top:18px">Planning to fly · ${e.count}</h3>${e.signups.map(s => `<div class="gf-pilot">${esc(s.name)}${s.aircraft ? `<small>${esc(S.fleet?.[s.aircraft]?.icao || s.aircraft)}</small>` : ""}</div>`).join("")}` : ""}</section>
       <section class="gf-card"><h3>Coming up</h3>${d.next.map(n => `<div class="gf-row"><b>${esc(n.dep)} → ${esc(n.arr)}</b><span>${esc(gfWhen(n.start, { weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }))}</span></div>`).join("")}
-        <p class="muted" style="font-size:13px">The group flight goes out from Cincinnati one week and back home the next, so if you flew out, you and your aircraft are already in place for the return.</p>
-        ${d.past.some(p => p.signed || p.flew) ? `<h3 style="margin-top:18px">Recent</h3>${d.past.filter(p => p.signed || p.flew).map(p => `<div class="gf-row"><b>${esc(p.dep)} → ${esc(p.arr)}</b><span>${p.flew} flew · ${p.signed} signed up</span></div>`).join("")}` : ""}</section>
+        <p class="muted" style="font-size:13px">The route goes out from Cincinnati one week and back home the next, so if you flew out, you and your aircraft are already in place for the return.</p>
+        ${d.past.some(p => p.signed || p.flew) ? `<h3 style="margin-top:18px">Recent</h3>${d.past.filter(p => p.flew).map(p => `<div class="gf-row"><b>${esc(p.dep)} → ${esc(p.arr)}</b><span>${p.flew} flew it</span></div>`).join("")}` : ""}</section>
     </div>
     ${d.staff ? gfStaffPanel(d) : ""}`;
   // map
@@ -6782,8 +6781,8 @@ function renderGroupFlight(d) {
   const on = (id, fn) => { const b = $("#" + id); if (b) b.onclick = fn; };
   on("gfApply", () => { show("home"); setTimeout(() => $("#apply")?.scrollIntoView({ behavior: "smooth" }), 400); });
   on("gfSignin", () => openSignIn(null, "groupflight"));
-  on("gfJoin", async () => { try { renderGroupFlight(await api("/api/group-flight/join", { method: "POST", body: { aircraft: $("#gfAc")?.value || "" } })); toast("You're signed up. See you there!"); } catch (err) { toast(err.message); } });
-  on("gfLeave", async () => { try { renderGroupFlight(await api("/api/group-flight/leave", { method: "POST", body: {} })); toast("Taken off the list."); } catch (err) { toast(err.message); } });
+  on("gfJoin", async () => { try { renderGroupFlight(await api("/api/group-flight/join", { method: "POST", body: { aircraft: $("#gfAc")?.value || "" } })); toast("You're on the list."); } catch (err) { toast(err.message); } });
+  on("gfLeave", async () => { try { renderGroupFlight(await api("/api/group-flight/leave", { method: "POST", body: {} })); toast("Off the list."); } catch (err) { toast(err.message); } });
   on("gfTravel", () => openJumpseat(e.dep.icao));
   on("gfShare", () => navigator.clipboard.writeText(location.origin + "/#groupflight").then(() => toast("Link copied."), () => toast(location.origin + "/#groupflight")));
   on("gfBook", () => gfBook(e));
@@ -6851,7 +6850,7 @@ async function gfHomeStrip() {
     const hero = $("#homeRoot .hero");
     if (!d.enabled || !hero || $("#gfStrip")) return;
     const e = d.event;
-    hero.insertAdjacentHTML("afterend", `<a id="gfStrip" class="gf-strip" href="#groupflight"><span class="kicker">Weekly group flight</span><b>${esc(e.dep.icao)} → ${esc(e.arr.icao)} · ${esc(e.title)}</b><span>${esc(gfWhen(e.start, { weekday: "long", hour: "numeric", minute: "2-digit", timeZoneName: "short" }))} · ${gfCountdown(e.start)} · ${e.count} signed up</span><span class="gf-strip-go">Details ›</span></a>`);
+    hero.insertAdjacentHTML("afterend", `<a id="gfStrip" class="gf-strip" href="#groupflight"><span class="kicker">Weekly group flight · optional</span><b>${esc(e.dep.icao)} → ${esc(e.arr.icao)} · ${esc(e.title)}</b><span>${esc(gfWhen(e.start, { weekday: "long", hour: "numeric", minute: "2-digit", timeZoneName: "short" }))} · ${gfCountdown(e.start)} · fly it any time this weekend</span><span class="gf-strip-go">Details ›</span></a>`);
     $("#gfStrip").onclick = ev => { ev.preventDefault(); show("groupflight"); };
   } catch (e) { /* the home page works without it */ }
 }

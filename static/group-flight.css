@@ -62,3 +62,6 @@
 .globe-plane.sel svg{transform:scale(1.25)}
 .globe-pm{background:none;border:0;padding:0;cursor:pointer}
 .live-globe .maplibregl-ctrl-attrib{font-size:11px}
+.gf-sub{display:block;font-size:12px;color:var(--steel);font-family:var(--mono)}
+.gf-optional{font-size:14px;margin:0 0 16px;padding:10px 12px;border-left:3px solid var(--line);color:var(--steel)}
+#groupFlightRoot .profile-bar{gap:12px;flex-wrap:wrap;align-items:baseline}

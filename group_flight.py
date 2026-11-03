@@ -1,9 +1,13 @@
-"""The weekly PAC group flight: one route, one departure time, everyone flies it together.
+"""The weekly PAC group flight: one optional route a week that anyone may fly.
+
+Nobody has to take part. Pilots can fly it with others at the set time, or on their own any time in the weekend
+window (24 hours before to 48 hours after the set time), offline or online, with or without voice. Every accepted
+PIREP on the route in that window counts as having flown it.
 
 Runs itself: with no staff input, it alternates out of Cincinnati and back again on 737-friendly scheduled routes
 (250 to 1,000 nm), departing on the configured weekday and time (UTC). Staff can switch it off, move the day and
 time, or set this week's route, title and briefing themselves. Pilots sign up with one click; the page shows who's
-coming and, afterward, who flew it (an accepted PIREP on that route within 18 hours of the start).
+coming and who has flown it.
 Visitors can see the page too: it's a recruitment tool.
 """
 import datetime as dt
@@ -16,13 +20,14 @@ from contextlib import closing
 from flask import jsonify, request
 
 HOME = "KCVG"
-DEFAULTS = {"enabled": True, "weekday": 5, "time": "23:00", "network": "VATSIM",
-            "voice": "PAC Discord · Group flight voice channel",
-            "briefing": "Meet on Discord 15 minutes before departure. Book the flight on the website, sign the release and "
-                        "push back together. Fly at your own pace after takeoff; we regroup on the ground at the "
-                        "destination for screenshots and landing rates."}
+BEFORE_H, AFTER_H = 24, 48   # the weekend window in which a flight on the route counts
+DEFAULTS = {"enabled": True, "weekday": 5, "time": "23:00", "network": "Your choice",
+            "voice": "Optional: the PAC Discord voice channel, if you like company",
+            "briefing": "Entirely optional and low-key. Fly it at the set time if you'd like company, or on your own any "
+                        "time this weekend. Offline, VATSIM or IVAO, voice chat or none: it all counts the same, and "
+                        "every pilot who flies the route this weekend shows on this page."}
 DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
-NETWORKS = ("VATSIM", "IVAO", "Either network", "Offline")
+NETWORKS = ("Your choice", "VATSIM", "IVAO", "Either network", "Offline")
 
 
 def register(app, g):
@@ -53,12 +58,12 @@ def register(app, g):
         return dt.datetime(day.year, day.month, day.day, hh, mm, tzinfo=dt.timezone.utc)
 
     def upcoming(cfg, now=None, offset=0):
-        """The next start whose flight is still on (it stays 'current' until 4 hours after departure)."""
+        """The next start whose window is still open (it stays 'current' until AFTER_H hours after the set time)."""
         now = now or dt.datetime.now(dt.timezone.utc)
         d = now.date() - dt.timedelta(days=7)
         while d.weekday() != cfg["weekday"]:
             d += dt.timedelta(days=1)
-        while start_for(d, cfg) + dt.timedelta(hours=4) < now:
+        while start_for(d, cfg) + dt.timedelta(hours=AFTER_H) < now:
             d += dt.timedelta(days=7)
         return start_for(d + dt.timedelta(days=7 * offset), cfg)
 
@@ -120,14 +125,15 @@ def register(app, g):
         with closing(db()) as c:
             rows = c.execute("SELECT DISTINCT p.pilot_id, pl.name FROM pireps p LEFT JOIN pilots pl ON pl.id=p.pilot_id "
                              "WHERE p.dep=? AND p.arr=? AND p.filed_at BETWEEN ? AND ? AND p.demo=0 AND p.status!='Failed' "
-                             "AND p.review_status!='Rejected'", (ev["dep"]["icao"], ev["arr"]["icao"], s - 3600, s + 18 * 3600)).fetchall()
+                             "AND p.review_status!='Rejected'", (ev["dep"]["icao"], ev["arr"]["icao"], s - BEFORE_H * 3600, s + AFTER_H * 3600)).fetchall()
         return [{"pilot": r["pilot_id"], "name": g["va"].short_name(r["name"] or r["pilot_id"])} for r in rows]
 
     def public(ev, me=None):
         su = signups(ev["id"])
-        done = flown(ev) if ev["start"] < time.time() else []
+        done = flown(ev) if ev["start"] - BEFORE_H * 3600 < time.time() else []
         out = {**ev, "signups": [{"name": g["va"].short_name(x["name"]), "aircraft": x["aircraft"]} for x in su],
-               "count": len(su), "flown": [x["name"] for x in done]}
+               "count": len(su), "flown": [x["name"] for x in done], "closes": ev["start"] + AFTER_H * 3600,
+               "opens": ev["start"] - BEFORE_H * 3600}
         if me:
             mine = next((x for x in su if x["pilot"] == me["id"]), None)
             out["me"] = {"signed_up": bool(mine), "aircraft": mine["aircraft"] if mine else "", "flew": any(x["pilot"] == me["id"] for x in done)}
@@ -136,11 +142,12 @@ def register(app, g):
     def announcement(ev, site):
         ac = ", ".join(a["name"] for a in ev["aircraft"][:4])
         dist = f" · {ev['distance_nm']:,} nm" if ev.get("distance_nm") else ""
-        return (f"**✈️ PAC weekly group flight: {ev['title']}**\n"
+        closes = ev["start"] + AFTER_H * 3600
+        return (f"**✈️ This week's optional group flight: {ev['title']}**\n"
                 f"**{ev['dep']['icao']} → {ev['arr']['icao']}**{dist}\n"
-                f"🕒 <t:{ev['start']}:F> (<t:{ev['start']}:R>), shown in your own time zone\n"
+                f"🕒 Fly along at <t:{ev['start']}:F>, or on your own any time until <t:{closes}:f> (times show in your own time zone)\n"
                 f"🛫 Aircraft: {ac}\n🌐 Network: {ev['network']}\n🎧 {ev['voice']}\n\n"
-                f"{ev['briefing']}\n\nSign up and book it here: {site.rstrip('/')}/#groupflight\n"
+                f"{ev['briefing']}\n\nDetails and booking: {site.rstrip('/')}/#groupflight\n"
                 f"New to PAC? Joining is free: {site.rstrip('/')}")
 
     def site_url():
@@ -192,8 +199,8 @@ def register(app, g):
             return jsonify({"error": "Sign in to sign up.", "signin": True}), 401
         try:
             ev = current_event()
-            if ev["start"] + 3600 < time.time():
-                raise ValueError("This flight has already departed. Sign up for next week's soon.")
+            if ev["start"] + AFTER_H * 3600 < time.time():
+                raise ValueError("This week's window has closed. Next week's route is up soon.")
             with closing(db()) as c, c:
                 if action == "join":
                     ac = str((request.get_json(silent=True) or {}).get("aircraft") or "")[:20]
