@@ -19,7 +19,7 @@ import urllib.parse
 import urllib.request
 from pathlib import Path
 
-from flask import abort, jsonify, request, send_file
+from flask import Response, abort, jsonify, request, send_file
 
 API = "https://commons.wikimedia.org/w/api.php"
 UA = "PaganiAirCargo-VA/1.0 (https://pac-va.com; flight simulation virtual airline; card photos with attribution)"
@@ -62,6 +62,8 @@ class PartnerPhotos:
         self.lock = threading.Lock()
         self.busy = set()
         self.started_all = False
+        self.cand_cache = {}        # "partner|type" -> (time, candidates) for the staff photo browser
+        self.thumb_cache = {}       # small preview images for the staff photo browser
 
     # ------------------------------------------------------------ index
     def _load(self):
@@ -95,6 +97,12 @@ class PartnerPhotos:
         for i in range(0, len(titles), 20):
             j = self._api(action="query", prop="imageinfo", titles="|".join(titles[i:i + 20]),
                           iiprop="url|size|mime|extmetadata", iiurlwidth=WIDTH)
+            small = {}
+            try:   # a small preview of each photo for the staff browser
+                js = self._api(action="query", prop="imageinfo", titles="|".join(titles[i:i + 20]), iiprop="url", iiurlwidth=480)
+                small = {pg["title"]: ((pg.get("imageinfo") or [{}])[0]).get("thumburl") for pg in (js.get("query") or {}).get("pages", [])}
+            except Exception:
+                pass
             for pg in (j.get("query") or {}).get("pages", []):
                 ii = (pg.get("imageinfo") or [None])[0]
                 if not ii:
@@ -103,10 +111,21 @@ class PartnerPhotos:
                 lic = (meta.get("LicenseShortName") or {}).get("value", "")
                 out.append({"file": pg["title"], "width": ii.get("width") or 0, "height": ii.get("height") or 1,
                             "mime": ii.get("mime", ""), "thumb": ii.get("thumburl") or ii.get("url"),
+                            "preview": small.get(pg["title"]) or ii.get("thumburl") or ii.get("url"),
                             "page": ii.get("descriptionurl") or "", "licence": _plain(lic), "rank": licence_rank(_plain(lic)),
                             "licence_url": (meta.get("LicenseUrl") or {}).get("value", ""),
                             "artist": _plain((meta.get("Artist") or {}).get("value", "")) or "Unknown photographer"})
         return out
+
+    def all_candidates(self, key, ac, fresh=False):
+        """Every suitable photo for this partner and type, best first; remembered for an hour."""
+        k = f"{key}|{ac}"
+        hit = self.cand_cache.get(k)
+        if hit and not fresh and time.time() - hit[0] < 3600:
+            return hit[1]
+        cands = self.candidates(key, ac)
+        self.cand_cache[k] = (time.time(), cands)
+        return cands
 
     def candidates(self, key, ac, skip=()):
         """Suitable photos for this partner and type, best first."""
@@ -150,7 +169,7 @@ class PartnerPhotos:
         return dest.name
 
     # ------------------------------------------------------------ choose and keep
-    def fetch(self, key, ac, pin_file=None):
+    def fetch(self, key, ac, pin_file=None, after=None):
         """Find (or pin) a photo for one combination and download it. Safe to call from a thread."""
         k = f"{key}|{ac}"
         with self.lock:
@@ -168,8 +187,13 @@ class PartnerPhotos:
                 if not got:
                     raise ValueError("That Commons file can't be used: it's missing or its licence doesn't allow reuse.")
                 best = got[0]
+            elif after is not None:
+                # "Next photo": the one after the current photo, going back to the first after the last
+                cands = self.all_candidates(key, ac)
+                files = [c["file"] for c in cands]
+                best = cands[(files.index(after) + 1) % len(cands)] if after in files else (cands[0] if cands else None)
             else:
-                cands = self.candidates(key, ac, skip=set(cur.get("skip") or []))
+                cands = self.all_candidates(key, ac)
                 best = cands[0] if cands else None
             if not best:
                 idx[k] = {**cur, "tried": time.time(), "local": None, "error": "No freely licensed photo found on Commons."}
@@ -224,26 +248,49 @@ class PartnerPhotos:
                  ("file", "page", "artist", "licence", "error", "off", "pinned", "fetched")},
                  "url": self.public().get(f"{k}|{t}", {}).get("url")} for k, t in self.combos()]
 
+    def browse(self, key, ac):
+        if (key, ac) not in self.combos():
+            raise ValueError("That partner doesn't fly that type.")
+        cur = (self._load().get(f"{key}|{ac}") or {}).get("file")
+        return [{"file": c["file"], "artist": c["artist"], "licence": c["licence"], "page": c["page"], "current": c["file"] == cur,
+                 "preview": "/api/staff/partner-photos/preview?u=" + urllib.parse.quote(c.get("preview") or c["thumb"], safe="")}
+                for c in self.all_candidates(key, ac)]
+
+    def preview(self, url):
+        """Fetch a small Commons preview for the staff browser (only from Wikimedia's image server)."""
+        u = urllib.parse.urlparse(url or "")
+        if u.scheme != "https" or u.hostname != "upload.wikimedia.org":
+            raise ValueError("Not a Commons image.")
+        hit = self.thumb_cache.get(url)
+        if hit:
+            return hit
+        req = urllib.request.Request(url, headers={"User-Agent": UA})
+        with urllib.request.urlopen(req, timeout=20) as r:
+            body, mime = r.read(3_000_000), r.headers.get_content_type()
+        if len(self.thumb_cache) > 300:
+            self.thumb_cache.clear()
+        self.thumb_cache[url] = (body, mime)
+        return body, mime
+
     def staff_action(self, key, ac, action, file=None):
         k = f"{key}|{ac}"
         if (key, ac) not in self.combos():
             raise ValueError("That partner doesn't fly that type.")
         idx = self._load()
         cur = idx.get(k) or {}
-        if action == "next":           # skip the current photo and pick the next best
-            skip = list(dict.fromkeys((cur.get("skip") or []) + ([cur["file"]] if cur.get("file") else [])))
-            idx[k] = {"skip": skip}
+        if action == "next":           # the next photo in the list, looping back to the first
+            idx[k] = {kk: v for kk, v in cur.items() if kk != "off"}
             self._save(idx)
-            self.fetch(key, ac)
+            self.fetch(key, ac, after=cur.get("file") or "")
         elif action == "pac":          # use the PAC photo for this combination
             idx[k] = {**cur, "off": True}
             self._save(idx)
         elif action == "auto":         # back to automatic choice
-            idx[k] = {"skip": cur.get("skip") or []}
+            idx[k] = {}
             self._save(idx)
             self.fetch(key, ac)
-        elif action == "pin" and file:
-            idx[k] = {"skip": cur.get("skip") or []}
+        elif action == "pin" and file:  # a photo chosen in the browser (or a pasted Commons file name)
+            idx[k] = {}
             self._save(idx)
             self.fetch(key, ac, pin_file=str(file).strip())
         else:
@@ -274,6 +321,25 @@ def register(app, data_dir, partners, fleet):
     def partner_photos_staff():
         pp.ensure_all()
         return jsonify(pp.staff_view())
+
+    @app.get("/api/staff/partner-photos/<key>/<ac>/browse")
+    def partner_photos_browse(key, ac):
+        try:
+            return jsonify(pp.browse(key, ac))
+        except ValueError as e:
+            return jsonify({"error": str(e)}), 400
+        except Exception as e:
+            return jsonify({"error": f"Wikimedia Commons couldn't be reached: {e}"}), 502
+
+    @app.get("/api/staff/partner-photos/preview")
+    def partner_photos_preview():
+        try:
+            body, mime = pp.preview(request.args.get("u", ""))
+        except ValueError:
+            abort(400)
+        except Exception:
+            abort(502)
+        return Response(body, mimetype=mime, headers={"Cache-Control": "private, max-age=86400"})
 
     @app.post("/api/staff/partner-photos/<key>/<ac>")
     def partner_photos_staff_action(key, ac):

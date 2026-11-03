@@ -4399,20 +4399,47 @@ async function staffPartnerPhotos() {
           ${r.off ? `<button class="btn small" data-pp="auto" data-k="${esc(r.partner)}" data-t="${esc(r.aircraft)}">Use a Commons photo</button>`
             : `<button class="btn ghost small" data-pp="next" data-k="${esc(r.partner)}" data-t="${esc(r.aircraft)}">Next photo</button>
                <button class="btn ghost small" data-pp="pac" data-k="${esc(r.partner)}" data-t="${esc(r.aircraft)}">Use PAC photo</button>
-               <button class="btn ghost small" data-pp="pin" data-k="${esc(r.partner)}" data-t="${esc(r.aircraft)}">Pick a file…</button>`}
+               <button class="btn ghost small" data-pp="browse" data-k="${esc(r.partner)}" data-t="${esc(r.aircraft)}">Browse photos</button>`}
         </div></div></article>`).join("")}</div>`;
     body.querySelectorAll("[data-pp]").forEach(b => b.onclick = async () => {
-      let file = null;
-      if (b.dataset.pp === "pin") {
-        file = prompt("Paste the Commons file name, e.g. File:UPS Airlines Airbus A300F4-622R N173UP.jpg");
-        if (!file) return;
-      }
+      if (b.dataset.pp === "browse") { const r = list.find(x => x.partner === b.dataset.k && x.aircraft === b.dataset.t); return browsePartnerPhotos(r, list, paint); }
+      const file = null;
       b.disabled = true; b.textContent = "Working…";
       try { const list2 = await api(`/api/staff/partner-photos/${b.dataset.k}/${b.dataset.t}`, { method: "POST", body: { action: b.dataset.pp, file } }); S.partnerPhotos = null; paint(list2); toast("Partner photo updated."); }
       catch (e) { toast(e.message); paint(list); }
     });
   };
   paint(rows);
+}
+/* every freely licensed photo found for one partner and type, side by side; click one to use it */
+async function browsePartnerPhotos(r, list, back) {
+  const body = $("#staffBody");
+  const head = `<div class="row" style="align-items:center;gap:12px;margin-bottom:8px"><button class="btn ghost small" id="ppBack">← Back to all partners</button>
+    <b>${esc(r.partner_name)} · ${esc(r.aircraft_name)}</b></div>`;
+  body.innerHTML = head + `<p class="muted">Searching Wikimedia Commons…</p>`;
+  $("#ppBack").onclick = () => back(list);
+  let cands;
+  try { cands = await api(`/api/staff/partner-photos/${r.partner}/${r.aircraft}/browse`); }
+  catch (e) { body.innerHTML = head + `<div class="notice err">${esc(e.message)}</div>`; $("#ppBack").onclick = () => back(list); return; }
+  body.innerHTML = head + (cands.length ? `<p class="muted">${cands.length} freely licensed photo${cands.length === 1 ? "" : "s"} found. Click the one you want on the cards.</p>
+    <div class="pp-grid">${cands.map((c, i) => `<article class="pp-card pp-pick${c.current ? " is-current" : ""}" data-i="${i}" tabindex="0" role="button">
+      <div class="pp-img"><img src="${esc(c.preview)}" alt="" loading="lazy"></div>
+      <div class="pp-body">${c.current ? `<b class="pp-tag">In use now</b>` : ""}<small>Photo: ${esc(c.artist)} · ${esc(c.licence)} · <a href="${esc(c.page)}" target="_blank" rel="noopener">Commons page</a></small></div>
+    </article>`).join("")}</div>` : `<p class="muted">No freely licensed photos of this aircraft were found on Commons. The cards will keep using the PAC photo.</p>`);
+  $("#ppBack").onclick = () => back(list);
+  body.querySelectorAll(".pp-pick").forEach(el => {
+    const choose = async ev => {
+      if (ev.target.closest("a")) return;
+      const c = cands[+el.dataset.i];
+      if (c.current) return back(list);
+      el.style.opacity = .5;
+      try {
+        const list2 = await api(`/api/staff/partner-photos/${r.partner}/${r.aircraft}`, { method: "POST", body: { action: "pin", file: c.file } });
+        S.partnerPhotos = null; toast("Photo chosen."); back(list2);
+      } catch (e) { el.style.opacity = 1; toast(e.message); }
+    };
+    el.onclick = choose; el.onkeydown = ev => { if (ev.key === "Enter") choose(ev); };
+  });
 }
 function staffReviews() {
   const list = S.staff.reviews;
