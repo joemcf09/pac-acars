@@ -1345,9 +1345,10 @@ def _recommend(lead, fits, n=3):
 
 def _fill(text, **kw):
     try:
-        return text.format(**kw)
+        out = text.format(**kw)
     except (KeyError, IndexError):
-        return text
+        out = text
+    return out[:1].upper() + out[1:]          # "the Bay Area's team…" still starts with a capital
 
 
 def _scenario_mission(rng, scen, con, here, recent, origin=None):
@@ -1394,7 +1395,9 @@ def _scenario_mission(rng, scen, con, here, recent, origin=None):
                 label, note = MG.CHALLENGES[at]
                 challenge = {"icao": at, "label": label, "note": note}
         cargo = rng.choice(scen["cargo"])
-        kw = {"o": oc, "d": dc, "oc": MG.PLACE.get(oc) or o.get("city") or o["name"], "dc": MG.PLACE.get(dc) or d.get("city") or d["name"],
+        kw = {"o": oc, "d": dc, "team": (scen.get("teams") or {}).get(oc) or MG.TEAM_CITY.get(oc) or MG.PLACE.get(oc) or o.get("city") or o["name"],
+              "oc": MG.PLACE.get(oc) or o.get("city") or o["name"],
+              "dcity": MG.VENUE_CITY.get(dc) or MG.TEAM_CITY.get(dc) or MG.PLACE.get(dc) or d.get("city") or d["name"], "dc": MG.PLACE.get(dc) or d.get("city") or d["name"],
               "cargo": cargo.lower()[0] + cargo[1:] if cargo else "", "Cargo": cargo, "cargo_low": cargo[0].lower() + cargo[1:], "cargo_short": cargo.split(",")[0].split(" and ")[0].split(" (")[0].lower(),
               "month": dt.datetime.now(dt.timezone.utc).strftime("%B"), "challenge": challenge["note"] if challenge else ""}
         title = _fill(rng.choice(scen["titles"]), **kw)
