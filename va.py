@@ -2534,7 +2534,7 @@ def site():
 @bp.get("/api/va/config")
 def va_config():
     return jsonify({"ranks": ranks_effective(), "avg_window": AVG_WINDOW, "avg_min_flights": AVG_MIN_FLIGHTS, "review": REVIEW,
-                    "checkride": {**CHECKRIDE, "mission": C["MISSIONS"].get(CHECKRIDE_ID)}, "a_check_hours": A_CHECK_HOURS,
+                    "checkride": {**CHECKRIDE, "mission": C["MISSIONS"].get(CHECKRIDE_ID)}, "type_checkride": TYPE_CHECKRIDE, "a_check_hours": A_CHECK_HOURS,
                     "featured_mult": FEATURED_MULT, "type_ratings_required": bool(C["settings"]().get("require_type_ratings", False)), "direct_entry": direct_entry(), "tours": TOURS, "tour_legs": list(TOUR_LEGS.values()), "rotations": ROTATIONS,
                     "badges": [{"id": b, "name": n, "description": d} for b, n, d in BADGES]})
 
