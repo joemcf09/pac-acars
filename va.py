@@ -1940,7 +1940,7 @@ def after_file(p, booking, rec, pirep_id):
         if booking["mission"].get("live"):
             con.execute("UPDATE live_missions SET status=? WHERE id=?", ("completed" if not p.get("demo") else "open", booking["mission"]["id"]))
         if p.get("checkride", {}).get("passed") and not p.get("demo") and p.get("review_status") == "Accepted":
-            con.execute("UPDATE pilots SET checkride='Passed' WHERE id=? AND checkride!='Waived'", (pid,))
+            mark_line_checkride_passed(con, pid)
     return pay_pirep(pirep_id)
 
 
@@ -2043,6 +2043,22 @@ def _line_via(con, pilot_id, fam):
     con.execute("UPDATE pilots SET prefs=? WHERE id=?", (json.dumps(prefs), pilot_id))
 
 
+def mark_line_checkride_passed(con, pilot_id):
+    """Records the line checkride as passed. The first time, PAC also moves the pilot (free, like other company training
+    travel) to the home base they chose when they applied, so a pilot who picked Milan or Hong Kong starts their career
+    there rather than wherever the checkride happened to end."""
+    row = con.execute("SELECT checkride, hub, location FROM pilots WHERE id=?", (pilot_id,)).fetchone()
+    if not row or row["checkride"] in ("Passed", "Waived"):
+        return False
+    con.execute("UPDATE pilots SET checkride='Passed' WHERE id=?", (pilot_id,))
+    hub = (row["hub"] or "").upper()
+    if hub in C["AIRPORTS"] and row["location"] != hub \
+            and not con.execute("SELECT 1 FROM bookings WHERE pilot_id=?", (pilot_id,)).fetchone():
+        add_tx(pilot_id, "training_travel", 0, f"Company relocation to your home base after the line checkride: {row['location'] or '?'} to {hub}", None, con)
+        con.execute("UPDATE pilots SET location=? WHERE id=?", (hub, pilot_id))
+    return True
+
+
 def line_checkride_via(pilot):
     """The type checkride family that counted as this pilot's line checkride, or None."""
     try:
@@ -2055,7 +2071,7 @@ def line_checkride_via(pilot):
 def record_accepted_type_pass(con, report_id):
     row = con.execute("SELECT * FROM pireps WHERE id=?", (report_id,)).fetchone()
     if row and not row["demo"] and row["review_status"] == "Accepted" and row["status"] in ("Delivered", "Delivered late") and row["mission_id"] == CHECKRIDE_ID and row["aircraft"] == CHECKRIDE["aircraft"] and json.loads(row["detail"] or "{}").get("checkride", {}).get("passed"):
-        con.execute("UPDATE pilots SET checkride='Passed' WHERE id=? AND checkride!='Waived'", (row["pilot_id"],))
+        mark_line_checkride_passed(con, row["pilot_id"])
         _line_via(con, row["pilot_id"], None)          # the real 737 line checkride: it grants the 737 qualification
     if valid_type_pass(row):
         fam = json.loads(row["detail"])["type_checkride"]["family"]
@@ -2066,7 +2082,7 @@ def record_accepted_type_pass(con, report_id):
         # without handing out a 737 rating the pilot never flew for
         ck = con.execute("SELECT checkride FROM pilots WHERE id=?", (row["pilot_id"],)).fetchone()
         if ck and ck["checkride"] not in ("Passed", "Waived"):
-            con.execute("UPDATE pilots SET checkride='Passed' WHERE id=?", (row["pilot_id"],))
+            mark_line_checkride_passed(con, row["pilot_id"])
             _line_via(con, row["pilot_id"], fam)
 
 
@@ -2865,7 +2881,7 @@ def staff_waive(pid):
         d.update(breakdown=items, bonuses=bonuses, base_points=base)
         passed_now = _recheck_checkrides(d, items, score, note)
         if passed_now.get("line") and row["mission_id"] == CHECKRIDE_ID and row["review_status"] == "Accepted" and not row["demo"]:
-            con.execute("UPDATE pilots SET checkride='Passed' WHERE id=? AND checkride NOT IN ('Passed','Waived')", (row["pilot_id"],))
+            mark_line_checkride_passed(con, row["pilot_id"])
         con.execute("UPDATE pireps SET score=?, grade=?, points=?, bonus_points=?, detail=? WHERE id=?",
                     (score, grade, points, sum(x[1] for x in bonuses), json.dumps(d), pid))
         record_accepted_type_pass(con, pid)
@@ -2973,9 +2989,11 @@ def staff_application(aid):
         new_id = None
         if action == "approve":
             new_id = next_pilot_id(con)
-            con.execute("""INSERT INTO pilots (id, name, email, country, discord, simulator, hub, joined, status, checkride, transfer_hours, staff)
-                VALUES (?,?,?,?,?,?,?,?, 'Active', 'Pending', 0, 0)""",
-                        (new_id, a["name"], a["email"], a["country"], a["discord"], a["simulator"], a["hub"] or "KCVG", time.time()))
+            hub = a["hub"] if a["hub"] in C["AIRPORTS"] else "KCVG"
+            # a new pilot starts at the home base they chose (it used to default to Cincinnati for everyone)
+            con.execute("""INSERT INTO pilots (id, name, email, country, discord, simulator, hub, location, joined, status, checkride, transfer_hours, staff)
+                VALUES (?,?,?,?,?,?,?,?,?, 'Active', 'Pending', 0, 0)""",
+                        (new_id, a["name"], a["email"], a["country"], a["discord"], a["simulator"], hub, hub, time.time()))
             con.execute("UPDATE applications SET status='Approved', pilot_id=?, note=? WHERE id=?", (new_id, note, aid))
         else:
             con.execute("UPDATE applications SET status='Rejected', note=? WHERE id=?", (note, aid))

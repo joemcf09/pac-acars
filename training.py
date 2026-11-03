@@ -55,10 +55,13 @@ def options(va):
     courses += [dict(id=f['checkride_id'],name=f['family']+' type checkride',types=f['types'],standard=va.TYPE_CHECKRIDE) for f in va.ratings_overview(pid) if f['unlocked']]
     with closing(va.C['db']()) as con:
         frames=[dict(r) for r in con.execute("SELECT reg,type,location FROM airframes WHERE status='Available' ORDER BY location,reg")]
+        me=con.execute('SELECT hub FROM pilots WHERE id=?',(pid,)).fetchone()
+    home=(me['hub'] or '').upper() if me else ''
+    hubs=sorted(HUBS,key=lambda h:h!=home)   # the pilot's own home base first, so it's the default training airport
     for c in courses:
         c['choices']=[]
         for ac in c['types']:
-            for mode,origin,reg in [('dedicated',h,'') for h in HUBS]+[('fleet',f['location'],f['reg']) for f in frames if f['type']==ac]:
+            for mode,origin,reg in [('dedicated',h,'') for h in hubs]+[('fleet',f['location'],f['reg']) for f in frames if f['type']==ac]:
                 spec=dict(course=c['id'],mode=mode,aircraft=ac,origin=origin,reg=reg)
                 try:m=resolve(va,spec)
                 except ValueError:continue

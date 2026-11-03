@@ -3903,7 +3903,7 @@ const fmtDate = s => new Date(s + "T00:00:00Z").toLocaleDateString("en-US", { da
 
 /* ================= Split-flap board ================= */
 const FLAP_CHARS = " ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-.";
-const FB_COLS = [["time", 4, "Time"], ["flight", 7, "Flight"], ["from", 4, "From"], ["to", 4, "To"], ["type", 4, "Type"], ["tail", 6, "Tail"], ["status", 10, "Status"], ["remark", 9, "Remark"]];
+const FB_COLS = [["time", 4, "Time"], ["flight", 7, "Flight"], ["from", 4, "From"], ["to", 4, "To"], ["type", 4, "Type"], ["tail", 6, "Tail"], ["pilot", 10, "Pilot"], ["status", 10, "Status"], ["remark", 9, "Remark"]];
 const FB_ROWS = 7;
 const flapQueue = new Set();
 let flapRunning = false;
@@ -4052,7 +4052,7 @@ async function renderHome(h, st) {
     <div class="board-scroll" tabindex="0" role="region" aria-label="Departures flight table"><table class="fb-table" id="fbDep"></table></div>
     <div class="fb-sep"></div>
     <div class="fb-head"><div class="fb-title"><i style="transform:rotate(90deg)">✈</i>ARRIVALS &amp; ACTIVE FLIGHTS</div></div>
-    <div class="board-scroll" tabindex="0" role="region" aria-label="Arrivals flight table"><table class="fb-table" id="fbArr"></table></div><div class="board-foot"><span>Featured departures are suggested flights; an assigned tail appears when supplied.</span><span id="boardFreshness" role="status">Waiting for flight data…</span></div>
+    <div class="board-scroll" tabindex="0" role="region" aria-label="Arrivals flight table"><table class="fb-table" id="fbArr"></table></div><div class="board-foot"><span>Every PAC pilot's booked and active flights, then the latest arrivals. OPEN rows are featured routes anyone can fly.</span><span id="boardFreshness" role="status">Waiting for flight data…</span></div>
   </div>
 
   ${h.events.length ? `<div class="section-h"><div><div class="kicker">On now</div><h2>Events</h2></div><button class="btn ghost small" onclick="show('career')">All events and tours</button></div>
@@ -6635,7 +6635,7 @@ async function loadDashboardCrew(root){
 function focusCrewPost(){const id=S.crewFocusId;if(!id)return;const el=document.querySelector(`[data-crew-post="${Number(id)}"]`);S.crewFocusId=null;if(el){el.scrollIntoView({block:'center'});el.tabIndex=-1;el.focus({preventScroll:true});}else toast('That flight is no longer on the upcoming board.');}
 {const style=document.createElement('style');style.textContent='.dc-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}.dc-flight{border:1px solid var(--line);border-top:3px solid var(--red);padding:16px;overflow-wrap:anywhere}.dc-flight .row{flex-wrap:wrap;gap:8px}.dc-flight strong{font-size:20px}.dc-flight time{font-size:13px}@media(max-width:1000px){.dc-grid{grid-template-columns:1fr}}';document.head.append(style);}
 
-function trainingPolicyHTML(){return `<p><b>Checkrides are company-funded and are not restricted to KCVG.</b> Choose a dedicated training session (recommended) or an available fleet aircraft at its current airport.</p><ul><li>Dedicated sessions use a temporary training aircraft. Your normal station and operational fleet remain unchanged.</li><li>Fleet sessions reserve the selected aircraft and include free pilot travel when booked. After the flight, the aircraft and pilot remain where they landed. Existing reservations are protected.</li><li>Both modes use the same assessment standards. Pass and have your report accepted to earn the qualification and career hours.</li><li>No flight pay, skill or gear bonuses, profit share, commercial cargo credit or reward points. Retakes are free.</li></ul><p>Generate a matching SimBrief plan, review and sign the dispatch release, then track the complete checkride in PAC ACARS. This training option does not unlock other flights before qualification.</p>`}
+function trainingPolicyHTML(){return `<p><b>Checkrides are company-funded and are not restricted to KCVG.</b> Choose a dedicated training session (recommended) or an available fleet aircraft at its current airport.</p><ul><li>Dedicated sessions use a temporary training aircraft. Your normal station and operational fleet remain unchanged.</li><li>Fleet sessions reserve the selected aircraft and include free pilot travel when booked. After the flight, the aircraft stays where it landed. Existing reservations are protected.</li><li>Your home base comes first in the list of training airports. Once you pass the line checkride, PAC moves you to the home base you chose when you applied, free of charge, so your career starts there.</li><li>Both modes use the same assessment standards. Pass and have your report accepted to earn the qualification and career hours.</li><li>No flight pay, skill or gear bonuses, profit share, commercial cargo credit or reward points. Retakes are free.</li></ul><p>Generate a matching SimBrief plan, review and sign the dispatch release, then track the complete checkride in PAC ACARS. This training option does not unlock other flights before qualification.</p>`}
 async function openTraining(course='PAC001'){
  if(!S.me){openSignIn('Sign in to start a checkride.');return;}
  if(S.booking){toast('Finish or cancel your current booking before starting a checkride.');show('bids');return;}

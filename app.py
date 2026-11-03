@@ -3121,71 +3121,78 @@ EXCUSED_DELAYS = acars_core.EXCUSED_DELAYS
 
 @app.get("/api/va/board")
 def ops_board():
-    """Rows for the split-flap departures and arrivals boards."""
+    """Rows for the split-flap departures and arrivals boards: every pilot's flight, not just the viewer's.
+    Departures: flights booked or getting ready to leave (from every pilot's booking and what their PAC ACARS reports),
+    topped up with this month's featured routes. Arrivals: flights in the air or landing now, then the latest PIREPs."""
     import datetime as _dt
     import hashlib as _hl
     now = time.time()
     zt = lambda t: _dt.datetime.fromtimestamp(t, _dt.timezone.utc).strftime("%H%M") if t else "----"
+    with db() as con:
+        names = {r["id"]: r["name"] for r in con.execute("SELECT id, name FROM pilots")}
+    who = lambda pid: va.short_name(names.get(pid) or pid)
     dep, arr = [], []
-    booking, rec = load_booking(), state.get("recorder")
-    rs = state.get("remote_status") if remote_active() else None
-    if not rec and rs and rs.get("phase") and booking:
-        from types import SimpleNamespace
-        live = rs.get("live") or None
-        fields = set(Telemetry.__dataclass_fields__)
-        rec = SimpleNamespace(start_t=1, phase=rs["phase"], oooi=rs.get("oooi") or {"out": None, "on": None}, landing=rs.get("landing"),
-                              dest=booking["mission"]["destination"],
-                              last=Telemetry(**{k: v for k, v in live.items() if k in fields}) if live else None)
-    if booking:
-        m = booking["mission"]
-        ac = FLEET.get(booking["aircraft"], {})
-        row = {"time": "", "flight": booking["flight_number"], "from": m["origin"]["icao"], "to": m["destination"]["icao"],
-               "type": ac.get("icao", ""), "tail": booking.get("airframe") or "", "status": "BOOKED", "remark": m["category"].upper()[:10]}
-        if rec and rec.start_t:
-            row["status"] = BOARD_STATUS.get(rec.phase, "ACTIVE")
-            last = rec.last
-            if rec.phase in ("PREFLIGHT", "PUSHBACK", "TAXI_OUT", "TAKEOFF"):
-                row["time"] = zt(rec.oooi["out"] or now)
+    for pid, b in sorted(all_bookings(), key=lambda x: x[1].get("requested_at") or 0):
+        m = b.get("mission") or {}
+        if not m.get("origin") or not m.get("destination"):
+            continue
+        ac = FLEET.get(b.get("aircraft"), {})
+        row = {"time": zt(b.get("requested_at")), "flight": b.get("flight_number") or "", "from": m["origin"]["icao"],
+               "to": m["destination"]["icao"], "type": ac.get("icao", ""), "tail": b.get("airframe") or "",
+               "pilot": who(pid), "status": "BOOKED", "remark": (m.get("category") or "").upper()[:10]}
+        sess = SESSIONS.get(pid) or {}
+        st = sess.get("remote_status") or {}
+        tracking = sess.get("remote") and now - (sess.get("remote_seen") or 0) <= LIVE_STALE_S and st.get("phase")
+        if not tracking:
+            if now - (b.get("requested_at") or now) < 72 * 3600:   # a booking left untouched for days isn't news
                 dep.append(row)
-            else:
-                if last and not last.on_ground and last.gs > 60:
-                    dtg = gc_distance_nm(last.lat, last.lon, rec.dest["lat"], rec.dest["lon"])
-                    row["time"] = zt(now + dtg / max(last.gs, 120) * 3600)
-                    row["remark"] = f"FL{last.alt_ft / 100:03.0f}" if last.alt_ft > 18000 else f"{last.alt_ft:,.0f}FT".replace(",", "")
-                else:
-                    row["time"] = zt(rec.oooi["on"] or now)
-                    if rec.landing:
-                        row["remark"] = f"{int(rec.landing['rate_fpm'])}FPM"
-                arr.append(row)
-        else:
-            row["time"] = zt(booking.get("requested_at"))
+            continue
+        phase, live, oooi = st["phase"], st.get("live") or {}, st.get("oooi") or {}
+        row["status"] = BOARD_STATUS.get(phase, "ACTIVE")
+        if phase in ("PREFLIGHT", "PUSHBACK", "TAXI_OUT", "TAKEOFF"):
+            row["time"] = zt(oooi.get("out") or now)
+            row["_sort"] = -1          # pilots actually getting ready go above booked flights
             dep.append(row)
+            continue
+        dest = m["destination"]
+        if live.get("lat") is not None and not live.get("on_ground") and (live.get("gs") or 0) > 60 and dest.get("lat") is not None:
+            dtg = gc_distance_nm(live["lat"], live["lon"], dest["lat"], dest["lon"])
+            row["time"] = zt(now + dtg / max(live["gs"], 120) * 3600)
+            alt = live.get("alt_ft") or 0
+            row["remark"] = f"FL{alt / 100:03.0f}" if alt > 18000 else f"{alt:,.0f}FT".replace(",", "")
+        else:
+            row["time"] = zt(oooi.get("on") or now)
+            if st.get("landing") and st["landing"].get("rate_fpm") is not None:
+                row["remark"] = f"{int(st['landing']['rate_fpm'])}FPM"
+        arr.append(row)
     with db() as con:
         rows = [dict(r) for r in con.execute(
-            "SELECT flight_number, dep, arr, aircraft, airframe, landing_rate, grade, status, json_extract(detail, '$.oooi.in') AS block_in, filed_at "
-            "FROM pireps WHERE id IN (SELECT id FROM pireps WHERE demo=0 AND review_status!='Rejected' ORDER BY filed_at DESC LIMIT 8) "
+            "SELECT flight_number, dep, arr, aircraft, airframe, landing_rate, grade, status, pilot_id, json_extract(detail, '$.oooi.in') AS block_in, filed_at "
+            "FROM pireps WHERE id IN (SELECT id FROM pireps WHERE demo=0 AND review_status!='Rejected' ORDER BY filed_at DESC LIMIT 10) "
             "ORDER BY filed_at DESC")]
     for r in rows:
-        d = {"oooi": {"in": r["block_in"]}}
         stat = {"Delivered": "ARRIVED", "Delivered late": "ARR LATE", "Diverted": "DIVERTED", "Failed": "INCIDENT"}.get(r["status"], "ARRIVED")
-        arr.append({"time": zt((d.get("oooi") or {}).get("in") or r["filed_at"]), "flight": r["flight_number"], "from": r["dep"], "to": r["arr"],
-                    "type": FLEET.get(r["aircraft"], {}).get("icao", ""), "tail": r["airframe"] or "", "status": stat,
+        arr.append({"time": zt(r["block_in"] or r["filed_at"]), "flight": r["flight_number"], "from": r["dep"], "to": r["arr"],
+                    "type": FLEET.get(r["aircraft"], {}).get("icao", ""), "tail": r["airframe"] or "", "pilot": who(r["pilot_id"]), "status": stat,
                     "remark": f"{int(round(r['landing_rate']))}FPM {r['grade']}" if r["landing_rate"] is not None else r["grade"]})
-    # scheduled departures from this month's featured routes, at times that stay the same all day
+    # scheduled departures from this month's featured routes, at times that stay the same all day, to fill the board
     today = _dt.datetime.now(_dt.timezone.utc)
+    featured = []
     for rid in va.featured_routes():
         r = ROUTES.get(rid)
         if not r:
             continue
         h = int(_hl.md5((rid + today.strftime("%Y%m%d")).encode()).hexdigest(), 16)
         std = today.replace(hour=(today.hour + 1 + h % 9) % 24, minute=(h // 9) % 12 * 5, second=0, microsecond=0)
-        dep.append({"time": std.strftime("%H%M"), "flight": rid, "from": r["origin"]["icao"], "to": r["destination"]["icao"],
-                    "type": FLEET.get(r["aircraft"][0], {}).get("icao", ""), "tail": "", "status": "SCHEDULED", "remark": "FEATURED",
-                    "_sort": (std.timestamp() - today.timestamp()) % 86400})
-    dep.sort(key=lambda x: x.get("_sort", -1))
+        featured.append({"time": std.strftime("%H%M"), "flight": rid, "from": r["origin"]["icao"], "to": r["destination"]["icao"],
+                         "type": FLEET.get(r["aircraft"][0], {}).get("icao", ""), "tail": "", "pilot": "OPEN", "status": "SCHEDULED",
+                         "remark": "FEATURED", "_sort": (std.timestamp() - today.timestamp()) % 86400})
+    dep.sort(key=lambda x: x.get("_sort", 0))
+    featured.sort(key=lambda x: x["_sort"])
+    dep = (dep + featured)[:max(8, len(dep))]
     for x in dep:
         x.pop("_sort", None)
-    return jsonify({"departures": dep[:8], "arrivals": arr[:8], "utc": today.strftime("%H%M")})
+    return jsonify({"departures": dep, "arrivals": arr[:max(10, len(arr) - len(rows))], "utc": today.strftime("%H%M")})
 
 
 @app.get("/api/logbook")
