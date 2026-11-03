@@ -5243,6 +5243,19 @@ async function renderPilotPage(pid) {
       ${ratings.length ? `<div class="endorse"><span class="lbl">Type ratings</span>${ratings.map(r => `<b title="${esc(r.name)}">${esc(r.type)}</b>`).join("")}</div>` : ""}
     </div>
   </article>
+  ${(S.me?.staff || mine) && (p.type_ratings || []).length ? `<section class="panel" style="margin:0 0 24px">
+      <h2>Type ratings${mine ? "" : ' <span class="tag grey">Staff view</span>'}</h2>
+      <p class="panel-sub">PAC hours come from accepted PIREPs on every aircraft in the rating's family (checkrides that didn't pass don't count). Recency counts PAC landings in the last 90 days.</p>
+      <div class="table-wrap" style="border:0"><table class="ratings">
+        <thead><tr><th>Type</th><th>Aircraft</th><th>Issued</th><th class="num">PAC hrs</th><th class="num">Prior hrs</th><th class="num">Total</th><th>Recency</th><th>Status</th></tr></thead>
+        <tbody>${p.type_ratings.map(r => { const h = ratingHours(r, d.stats); return `<tr>
+          <td><span class="rt-code">${esc(r.type)}</span></td>
+          <td><div class="rt-name">${esc(r.name)}</div>${r.notes ? `<div class="rt-notes">${esc(r.notes)}</div>` : ""}</td>
+          <td style="white-space:nowrap">${r.issued ? esc(r.issued) : "–"}</td>
+          <td class="num">${esch(h.pac)}</td><td class="num">${esch(h.prior)}</td><td class="num"><b>${esch(h.total)}</b></td>
+          <td>${recencyHtml(h, r)}</td>
+          <td><span class="status-pill ${r.status === "Active" ? "" : "off"}">${esc(r.status || "Active")}</span></td></tr>`; }).join("")}</tbody></table></div>
+    </section>` : ""}
   <div class="pilot-grid">
     <section class="panel">
       <h2>Career with PAC</h2>
@@ -5424,9 +5437,9 @@ async function loadProfile() {
     renderPilot();
   } catch (e) { toast(e.message); }
 }
-function ratingHours(r) {
+function ratingHours(r, stats = S.pstats) {
   // a rating covers its whole family (the B757/767 rating flies both), so add up every type in it
-  const list = (r.fleets && r.fleets.length ? r.fleets : [r.fleet]).map(k => S.pstats?.by_aircraft?.[k]).filter(Boolean);
+  const list = (r.fleets && r.fleets.length ? r.fleets : [r.fleet]).map(k => stats?.by_aircraft?.[k]).filter(Boolean);
   const pac = Math.round(list.reduce((s, a) => s + (a.block_hours || 0), 0) * 10) / 10, prior = Number(r.prior_hours) || 0;
   return { pac, prior, total: pac + prior, flights: list.reduce((s, a) => s + (a.flights || 0), 0), landings: list.reduce((s, a) => s + (a.landings_90d || 0), 0),
            last: list.reduce((m, a) => Math.max(m, a.last_flown || 0), 0) || null };

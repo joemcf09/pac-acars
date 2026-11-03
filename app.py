@@ -1278,7 +1278,7 @@ def pilot_page(pid):
     if not row:
         return jsonify({"error": "There's no PAC pilot with that ID."}), 404
     row = dict(row)
-    prof = with_flair(load_profile(pid))
+    prof = with_rating_families(with_flair(load_profile(pid)))
     keep = ("pilot_id", "name", "rank", "title", "callsign", "base", "secondary_base", "member_since", "bio", "photo",
             "credentials", "type_ratings", "flair")
     car = va.career(pid)
