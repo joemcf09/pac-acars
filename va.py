@@ -684,8 +684,6 @@ JOB_TEMPLATES = [
      "Pedigree breeding stock for a dairy cooperative near {city}. Ventilation is critical, so no long ground holds with the packs off.", (0.5, 0.8), False),
     ("Motorsport", "Express", "High", "Race cars, spares and team equipment for the Grand Prix", "Grand Prix freight to {city}",
      "The race weekend starts in days and the teams' cars, garages and spares all ride on this flight.", (0.55, 0.9), True),
-    ("Teamkit", "Express", "High", "Pro sports team equipment and medical kit", "Team equipment to {city}",
-     "A pro team plays away in {city} this weekend and its equipment flies ahead of the players. The equipment staff meet the aircraft.", (0.15, 0.35), False),
     ("Concert", "Express", "Standard", "Stadium tour staging, lighting and sound equipment", "Concert tour gear to {city}",
      "A world tour's stage rig for the next show in {city}. The load-in crew is waiting on the ramp.", (0.5, 0.85), True),
     ("Film", "Express", "Standard", "Film production cameras, lighting and grip equipment", "Film production gear to {city}",
@@ -1018,8 +1016,6 @@ URGENT_KINDS = [
      "load": (0.35, 0.6), "brief": "A building collapse in {city} has trapped people. An international rescue team is ready to go the moment their equipment lands."},
     {"kind": "Data", "title": "Servers for a failed data centre in {city}", "cargo": "Replacement servers and storage arrays", "mult": 1.7,
      "load": (0.25, 0.5), "brief": "A fire has taken a data centre near {city} offline, and banks and hospitals are running on backups. The replacement hardware must be in the racks tonight."},
-    {"kind": "Sports", "title": "Team equipment to {city}: game tomorrow", "cargo": "Pro team equipment, uniforms and medical kit", "mult": 1.6,
-     "load": (0.15, 0.35), "brief": "A pro team's equipment truck broke down on the way to the airport and the game in {city} is tomorrow. The equipment staff are waiting at the stadium."},
     {"kind": "Racing", "title": "Race team spares to {city}", "cargo": "Spare chassis, gearboxes and pit equipment", "mult": 1.6,
      "load": (0.2, 0.45), "brief": "A team crashed both cars in practice and the race is tomorrow at {city}. The spares were built overnight: the mechanics are waiting at the circuit."},
 ]
