@@ -1,0 +1,64 @@
+/* Weekly group flight page and the home-page strip. Uses the site's color tokens, so light, dark and both
+   designs (Load Sheet and Classic) all work. */
+.gf-hero{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);background:var(--white);color:var(--ink);border:1px solid var(--line);border-top:4px solid var(--red);margin:0 0 18px}
+.gf-main{padding:26px 28px}
+.gf-main h2{font-size:30px;line-height:1.1;margin:6px 0 18px}
+.gf-route{display:grid;grid-template-columns:auto 1fr auto;align-items:start;gap:16px;margin-bottom:20px}
+.gf-route b{display:block;font-family:var(--mono);font-size:34px;line-height:1;letter-spacing:.02em}
+.gf-route span{display:block;font-size:13px;color:var(--steel);max-width:22ch;margin-top:4px}
+.gf-route>div:last-child{text-align:right}
+.gf-route>div:last-child span{margin-left:auto}
+.gf-arrow{position:relative;text-align:center;min-width:80px;padding-top:8px}
+.gf-arrow i{display:block;height:2px;background:var(--red);position:relative;margin-top:4px}
+.gf-arrow i::after{content:"";position:absolute;right:-1px;top:-5px;border:6px solid transparent;border-left:9px solid var(--red);border-right:0}
+.gf-arrow small{font-family:var(--mono);font-size:12px;color:var(--steel)}
+.gf-when{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:1px;background:var(--line);border:1px solid var(--line);margin-bottom:16px}
+.gf-when>div{background:var(--paper);padding:10px 12px}
+.gf-when small,.gf-meta small{display:block;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--steel)}
+.gf-when b{font-size:15px}
+.gf-meta{display:flex;flex-wrap:wrap;gap:10px 28px;margin-bottom:18px;font-size:14px}
+.gf-actions{gap:10px;flex-wrap:wrap;align-items:center}
+.gf-ac select{margin-left:6px;padding:8px;border:1px solid var(--line);background:var(--white);color:var(--ink)}
+.gf-note{font-size:14px;margin:14px 0 0;color:var(--steel)}
+.gf-note.ok{color:var(--ok-ink)}
+.gf-map{min-height:340px;border-left:1px solid var(--line)}
+.gf-pin span{display:inline-block;background:var(--red);color:#fff;font:700 12px/1 var(--mono);padding:5px 7px;border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.4)}
+.gf-pin.arr span{background:#1E2126}
+.gf-cols{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px}
+.gf-card{background:var(--white);color:var(--ink);border:1px solid var(--line);padding:20px 22px;margin:0 0 18px}
+.gf-card h3{margin:0 0 12px;font-size:17px}
+.gf-steps{padding-left:20px;margin:12px 0 16px;font-size:14px}
+.gf-steps li{margin:4px 0}
+.gf-pilot{display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--line);font-weight:600}
+.gf-pilot small{font-family:var(--mono);color:var(--steel);font-weight:400}
+.gf-row{display:flex;justify-content:space-between;gap:10px;padding:7px 0;border-bottom:1px solid var(--line);font-size:14px}
+.gf-row span{color:var(--steel);text-align:right}
+.gf-staff summary{cursor:pointer;font-weight:700}
+.gf-form{margin-top:18px;padding-top:14px;border-top:1px solid var(--line)}
+.gf-form h3{margin:0 0 10px}
+.gf-form label{display:flex;flex-direction:column;gap:5px;font-size:14px;margin-bottom:10px}
+.gf-form label.check{flex-direction:row;align-items:center}
+.gf-form input,.gf-form select,.gf-form textarea{width:100%;padding:8px 10px;border:1px solid var(--line);background:var(--white);color:var(--ink)}
+.gf-form label.check input{width:auto}
+.gf-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:0 14px}
+#gfAnn{font-family:var(--mono);font-size:13px;width:100%;margin-bottom:8px}
+.gf-strip{display:grid;grid-template-columns:auto 1fr auto auto;align-items:center;gap:6px 22px;background:var(--white);color:var(--ink);border:1px solid var(--line);border-left:5px solid var(--red);padding:14px 20px;margin:16px 0;text-decoration:none}
+.gf-strip:hover{border-color:var(--red)}
+.gf-strip b{font-size:16px}
+.gf-strip span:not(.kicker){color:var(--steel);font-size:14px}
+.gf-strip .gf-strip-go{color:var(--red);font-weight:700}
+@media (max-width:1000px){.gf-hero{grid-template-columns:1fr}.gf-map{border-left:0;border-top:1px solid var(--line);min-height:260px}.gf-cols{grid-template-columns:1fr}.gf-strip{grid-template-columns:1fr}}
+@media (max-width:560px){.gf-route span{display:none}.gf-main{padding:18px}.gf-route b{font-size:26px}.gf-when{grid-template-columns:1fr}.gf-main h2{font-size:24px}}
+
+/* Live map: Flat / Globe switch and the globe view */
+.seg-switch{display:inline-flex;border:1px solid var(--line);background:var(--white);margin-left:auto}
+.seg-switch button{border:0;background:none;padding:7px 14px;font-weight:600;font-size:14px;color:var(--steel);cursor:pointer}
+.seg-switch button[aria-pressed="true"]{background:var(--red);color:#fff}
+#liveRoot .profile-bar{gap:16px;flex-wrap:wrap}
+.live-globe{position:relative;background:radial-gradient(circle at 50% 45%,#1b2433 0%,#0b0e14 70%)}
+.globe-loading{color:#cfd5de;padding:24px;margin:0}
+.globe-note{position:absolute;left:10px;bottom:10px;z-index:2}
+.globe-plane{background:none;border:0;padding:0;cursor:pointer;line-height:0;filter:drop-shadow(0 1px 2px rgba(0,0,0,.55))}
+.globe-plane.sel svg{transform:scale(1.25)}
+.globe-pm{background:none;border:0;padding:0;cursor:pointer}
+.live-globe .maplibregl-ctrl-attrib{font-size:11px}

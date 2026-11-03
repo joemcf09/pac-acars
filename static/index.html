@@ -2,9 +2,25 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="description" content="Fly with Pagani Air Cargo, a virtual cargo airline for MSFS and X-Plane. Explore worldwide freight missions, a varied fleet and a welcoming pilot community.">
+<meta name="description" content="Pagani Air Cargo is a free virtual cargo airline for MSFS and X-Plane: live freight missions, real shippers on your paperwork, its own ACARS, and a fleet from the 727 to the 747-8F. Fly on VATSIM, IVAO or offline.">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Pagani Air Cargo · ACARS</title>
+<title>Pagani Air Cargo · Virtual Cargo Airline for MSFS &amp; X-Plane</title>
+<link rel="canonical" href="https://pac-va.com/">
+<meta name="theme-color" content="#c80000">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Pagani Air Cargo">
+<meta property="og:url" content="https://pac-va.com/">
+<meta property="og:title" content="Pagani Air Cargo · The virtual cargo airline">
+<meta property="og:description" content="Real freight work for MSFS and X-Plane: live missions, real shippers on your paperwork, its own ACARS, and a fleet from the 727 to the 747-8F. Free to join.">
+<meta property="og:image" content="https://pac-va.com/static/pac-share.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="A PAC 747 freighter above the clouds at sunset">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Pagani Air Cargo · The virtual cargo airline">
+<meta name="twitter:description" content="Real freight work for MSFS and X-Plane: live missions, real shippers on your paperwork, and a fleet from the 727 to the 747-8F.">
+<meta name="twitter:image" content="https://pac-va.com/static/pac-share.jpg">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"Organization","name":"Pagani Air Cargo","alternateName":"PAC Virtual","url":"https://pac-va.com/","logo":"https://pac-va.com/static/pac-logo.png","email":"ops@pac-va.com","description":"A virtual cargo airline for Microsoft Flight Simulator and X-Plane."}</script>
 <link rel="icon" href="/static/favicon.png">
 <link href="/static/fonts/fonts.css?v=20261103" rel="stylesheet">
 <link rel="stylesheet" href="/static/vendor/leaflet/leaflet.css">
@@ -30,6 +46,7 @@
 <link rel="stylesheet" href="/static/mission-accents.css?v=20261022">
 <link rel="stylesheet" href="/static/pilot-experience.css?v=20261022">
 <link rel="stylesheet" href="/static/flight-planning.css?v=20261103f">
+<link rel="stylesheet" href="/static/group-flight.css?v=20261103">
 </head>
 <body>
 <header class="pac-nav-v2">
@@ -73,6 +90,7 @@
   <section class="view" id="view-handbook" hidden><div id="handbookRoot"></div></section>
   <!-- ================= Public roster and flight log ================= -->
   <section class="view" id="view-roster" hidden><div id="rosterRoot"></div></section>
+  <section class="view" id="view-groupflight" hidden><div id="groupFlightRoot"></div></section>
   <!-- ================= Privacy policy ================= -->
   <section class="view" id="view-privacy" hidden><div id="privacyRoot"></div></section>
   <!-- ================= Staff ================= -->
@@ -287,6 +305,6 @@
 
 <script src="/static/cargo-programs.js?v=cargo-experience-20261021"></script>
 <script src="/static/problem-reports.js?v=20261021"></script>
-<script src="/static/app.js?v=us-english-20261103"></script>
+<script src="/static/app.js?v=groupflight-globe-20261103"></script>
 </body>
 </html>

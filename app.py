@@ -1382,6 +1382,26 @@ def index():
     return send_from_directory(app.static_folder, "index.html")
 
 
+SITE_URL = "https://pac-va.com"
+
+
+@app.get("/robots.txt")
+def robots_txt():
+    """Search engines may read the public pages; the API and dispatch paperwork are not for indexing."""
+    body = f"User-agent: *\nAllow: /\nDisallow: /api/\nDisallow: /dispatch\n\nSitemap: {SITE_URL}/sitemap.xml\n"
+    return app.response_class(body, mimetype="text/plain", headers={"Cache-Control": "public, max-age=86400"})
+
+
+@app.get("/sitemap.xml")
+def sitemap_xml():
+    today = time.strftime("%Y-%m-%d", time.gmtime())
+    urls = [("/", "daily", "1.0")]
+    items = "".join(f"<url><loc>{SITE_URL}{u}</loc><lastmod>{today}</lastmod><changefreq>{c}</changefreq><priority>{pr}</priority></url>"
+                    for u, c, pr in urls)
+    body = f'<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">{items}</urlset>\n'
+    return app.response_class(body, mimetype="application/xml", headers={"Cache-Control": "public, max-age=86400"})
+
+
 @app.get("/api/bootstrap")
 def bootstrap():
     import auth
@@ -3357,6 +3377,8 @@ import cargo_experience
 cargo_experience.register(app, globals())
 import crew_planning
 crew_planning.register(app, globals())
+import group_flight  # noqa: E402  (the weekly group flight)
+group_flight.register(app, globals())
 import problem_reports
 problem_reports.register(app, globals())
 

@@ -73,6 +73,7 @@ function show(view) {
   if (view === "reports") loadProblemReports();
   if (view === "updates") loadWhatsNew();
   if (view === "crewplans") loadCrewPlans();
+  if (view === "groupflight") loadGroupFlight();
   scrollTo({ top: 0 });
   if (view === "missions") { renderPilotStrip(); renderMissions(); refreshCore().then(() => { if (!$("#view-missions").hidden) renderMissions(); }); }
   location.hash = view === "career" ? "career/" + (S.careerSection || "overview") : view === "pilots" && S.pilotOpen ? "pilots/" + S.pilotOpen : view;
@@ -2643,9 +2644,12 @@ function openLive() {
       <p class="muted" style="font-size:13px;margin-top:8px">Positions come from PAC ACARS and update every 10 seconds. A flight leaves the map when it's on block, or if PAC ACARS stops reporting for two minutes.</p>`;
     const base = makeBaseMap($("#liveMap"), { theme: document.documentElement.dataset.theme === "light" ? "light" : "dark", style: S.settings?.map_style });
     base.map.setView([39.05, -84.66], 3);
-    S.live = { base, markers: {}, layer: L.layerGroup().addTo(base.map), sel: null, fitted: false };
+    S.live = { base, markers: {}, layer: L.layerGroup().addTo(base.map), sel: null, fitted: false, view: "flat" };
+    liveViewSwitch();
   }
   setTimeout(() => S.live?.base.map.invalidateSize(), 50);
+  if (liveViewPref() === "globe" && S.live.view !== "globe") setLiveView("globe");
+  else if (S.live.view === "globe") setTimeout(() => S.live?.globe?.map.resize(), 50);
   pacParkedInit();
   pacParkedRefresh(true);
   pollLive();
@@ -2685,9 +2689,10 @@ async function pollLive() {
   document.querySelectorAll("[data-live]").forEach(b => b.onclick = () => {
     L_.sel = L_.sel === b.dataset.live ? null : b.dataset.live;
     const f = flights.find(x => x.flight === b.dataset.live);
-    if (L_.sel && f) map.setView([f.lat, f.lon], Math.max(map.getZoom(), 5));
+    if (L_.sel && f) liveFocus(f.lat, f.lon, 5);
     pollLive();
   });
+  globeSync();
 }
 
 /* ================= PAC shop =================
@@ -4133,6 +4138,7 @@ async function renderHome(h, st) {
   buildBoard($("#fbDep")); buildBoard($("#fbArr")); refreshBoard(); tickClock(); tickCountdowns();
   bindShots($("#homeRoot"), shots, () => loadHome());
   const hero = $("#homeRoot .hero");
+  gfHomeStrip();
   const notices = news.filter(n => n.kind === 'notam');
   if (hero && notices.length) hero.insertAdjacentHTML('afterend', `<section class="home-notices" aria-label="Latest company notices"><div class="home-notices-heading"><b>Latest notices</b><span>${notices.length} company notice${notices.length===1?'':'s'} · Select a title to read</span></div>${notices.map(n=>`<details${n.important?' class="notice-important"':''}><summary>${n.important?'<span class="notice-priority">Important</span>':''}${esc(n.title)}</summary><div class="home-notice-body">${esc(n.body || 'No further details.')}<small>${esc(n.author || 'PAC Operations')}${n.time?' · '+new Date(n.time*1000).toLocaleDateString('en-US'):''}</small></div></details>`).join('')}</section>`);
   if ($("#heroApply")) $("#heroApply").onclick = e => { e.preventDefault(); $("#apply").scrollIntoView({ behavior: "smooth" }); };
@@ -4414,6 +4420,9 @@ function renderHandbook(cfg) {
       <li><b>Ferry flights:</b> move a PAC aircraft to where it's needed. The company pays the cost; you earn your hourly rate plus a ferry bonus.</li>
       <li><b>Partner crew requests</b> are listed separately under Missions › Partners (see Partners).</li>
       <li>Every board can be sorted by length, points or pay, and filtered to short, medium or long flights.</li></ul>`],
+    ["groupflight", "Weekly group flight", `<p>Every Saturday at 23:00 UTC, PAC flies one route together (Crew room › Group flight). It goes out from Cincinnati one week and back home the next, on 737-friendly scheduled routes, so the pilots and aircraft that flew out are already in place for the return.</p>
+      <ul><li>Sign up on the page so the crew knows you're coming, and pick the aircraft you'll fly.</li><li>Be at the departure airport with a PAC aircraft: jumpseat there or fly yourself there beforehand.</li><li><b>Book the flight</b> opens it on the mission board, ready to plan. Add it to your calendar from the page.</li><li>Meet in the Discord voice channel 15 minutes early and push back together. After the flight, the page shows who flew it.</li></ul>
+      <p>Staff can change the day and time, set a different route or briefing for any week, and copy or post the Discord announcement from the Staff panel on the page.</p>`],
     ["online", "Flying online", `<p>Add your VATSIM CID or IVAO VID in Settings. ACARS checks the network's public feed every 5 minutes in the air. Seen on the network for at least 60% of the checks earns a 10% points bonus and marks the PIREP as flown online.</p>`],
     ["pay", "Pay and travel", `<ul><li><b>Pay:</b> every accepted flight pays an hourly rate by rank (Second Officer $55/h, First Officer $95/h, Senior First Officer $130/h, Captain $210/h, Senior Captain $280/h) plus 5% of the flight's profit. Pending flights are paid once staff accept them. Checkrides are company-funded training and aren't paid.</li>
       <li><b>Skill bonuses</b>, up to $475 a flight: grade A +$150 (B +$50), butter landing under 100 fpm +$100 (smooth under 200 fpm +$40, both with no bounce), trip fuel within 3% of the OFP +$75, the on-time bonus on a Critical or High priority flight +$50, stable approach +$50, and a clean flight with no review flags +$50.</li>
@@ -6364,6 +6373,8 @@ document.addEventListener('click',async e=>{
  catch(err){toast(err.message);b.disabled=false;}finally{patchSaving=false;}
 });
 const PAC_UPDATES=[
+ {"id": "20261103-group-flight", "date": "November 3, 2026", "kind": "New feature", "title": "Weekly group flight", "body": "Every Saturday at 23:00 UTC, PAC flies one route together. It goes out from Cincinnati one week and back home the next, so if you flew out, you and your aircraft are already in place for the return. Sign up under Crew room \u2192 Group flight, book it in one click, add it to your calendar, and see who else is coming."},
+ {"id": "20261103-globe", "date": "November 3, 2026", "kind": "New feature", "title": "The live map as a globe", "body": "Operations \u2192 Live map now has a Flat map / Globe switch. Spin the globe to follow PAC flights and the parked fleet, with long routes drawn as they really curve. The station buttons and filters work on both, and your choice is remembered on this computer."},
  {"id": "20261103-sports", "date": "November 3, 2026", "kind": "New feature", "title": "Sports and events missions", "body": "A new Sports and events category on the mission board. Fly a hometown pro team's equipment to its games abroad (football, basketball, hockey and baseball, each in its real season), European clubs' summer tours, stock cars to Mexico City, motorcycle grand prix flyaways, bobsleds for the winter World Cup, show-jumping horses and stadium concert tours. Each comes with its own handling notes.", "view": "missions", "label": "Find a sports mission"},
  {"id": "20261103-missions", "date": "November 3, 2026", "kind": "New feature", "title": "Six urgent requests and new kinds of work", "body": "Up to six urgent requests at a time, with new kinds: ship engine parts, grid repairs after a blackout, antivenom, rescue team equipment, servers for a failed data center, race team spares and team equipment for tomorrow's game. The mission board adds durian and mango seasons, sashimi tuna, Alaskan king crab, fashion weeks, the 11.11 shopping festival, smartphone launches, ship spares, data-center builds, Indian Ocean cyclone relief, rhino reintroductions, honeybees and new hot-and-high challenge airports in Africa.", "view": "missions", "label": "See the mission board"},
  {"id": "20261103-divisions", "date": "November 3, 2026", "kind": "New feature", "title": "Fleet divisions", "body": "The fleet is now organized in four divisions: PAC Feeder (the 737s), PAC Mainline (A300, 757, 767), PAC Heavy (MD-11, 777F, 747-400F and 747-8F) and PAC Heritage (727s, 737-200 and 747-200). They show on the Fleet page, on every flight, in your logbook and in My stats, and the mission board can show one division at a time. Your rank and ratings still decide what you fly.", "view": "fleet", "label": "Meet the divisions"},
@@ -6509,8 +6520,8 @@ function pacParkedInit() {
   const el=document.createElement('section');el.id='parkedControls';el.innerHTML=`<div class="row"><label><input id="pmFlying" type="checkbox" checked> Live flights</label><label><input id="pmParked" type="checkbox" checked> Parked fleet</label><label>Aircraft <select id="pmType"><option value="">All types</option>${Object.keys(S.fleet||{}).filter(k=>!S.fleet[k].retired).map(k=>`<option value="${esc(k)}">${esc(S.fleet[k].name||k)}</option>`).join('')}</select></label><label><input id="pmQualified" type="checkbox"> My qualifications</label><label><input id="pmAvailable" type="checkbox"> Available only</label><button class="btn ghost small" id="pmFit">Fit parked fleet</button></div><p class="muted" id="pmStatus" role="status">Loading parked fleet…</p><p class="muted">Numbered circles show aircraft at their recorded airport, not a specific parking stand. Aircraft reporting to ACARS appear as plane symbols.</p><div id="pmStations"></div>`;
   root.querySelector('.live-wrap').before(el);
   for(const id of ['pmType','pmQualified','pmAvailable','pmParked'])document.getElementById(id).onchange=()=>pacParkedRender();
-  document.getElementById('pmFlying').onchange=e=>{if(e.target.checked)live.layer.addTo(live.base.map);else live.base.map.removeLayer(live.layer);document.getElementById('liveList').hidden=!e.target.checked;};
-  document.getElementById('pmFit').onclick=()=>{const pts=live.parkedPoints||[];if(pts.length)live.base.map.fitBounds(pts,{padding:[40,40],maxZoom:6});};
+  document.getElementById('pmFlying').onchange=e=>{if(e.target.checked)live.layer.addTo(live.base.map);else live.base.map.removeLayer(live.layer);document.getElementById('liveList').hidden=!e.target.checked;globeSync();};
+  document.getElementById('pmFit').onclick=()=>liveFit(live.parkedPoints||[]);
 }
 async function pacParkedRefresh(force=false) {
   const live=S.live;if(!live || live.parkedBusy)return;
@@ -6536,15 +6547,16 @@ function pacParkedRender() {
   const visible=document.getElementById('pmParked').checked;
   live.parkedLayer.clearLayers();live.parkedPoints=[];
   const groups=pacParkedGroups(live.parkedFrames,live.flights,document.getElementById('pmType').value,document.getElementById('pmQualified').checked,document.getElementById('pmAvailable').checked);
-  const codes=Object.keys(groups).sort();let missing=0;
+  live.parkedGroups=groups;const codes=Object.keys(groups).sort();let missing=0;
   const list=document.getElementById('pmStations');list.hidden=!visible;
   list.innerHTML=visible?codes.map(code=>`<button class="btn ghost small" data-parked-station="${esc(code)}">${esc(code)} · ${groups[code].length}</button>`).join(''):'';
   for(const code of codes){const a=live.airportCache[code];if(!a){missing++;continue;}live.parkedPoints.push([a.lat,a.lon]);if(!visible)continue;
     const marker=L.marker([a.lat,a.lon],{icon:L.divIcon({className:'pm-marker',html:`<span>${groups[code].length}</span>`,iconSize:[34,34],iconAnchor:[17,17]})}).addTo(live.parkedLayer);
     marker.bindTooltip(`${esc(code)} · ${groups[code].length} aircraft`);marker.on('click',()=>pacParkedStation(code,groups[code]));
   }
-  list.querySelectorAll('[data-parked-station]').forEach(b=>b.onclick=()=>{const a=live.airportCache[b.dataset.parkedStation];if(a)live.base.map.setView([a.lat,a.lon],6);pacParkedStation(b.dataset.parkedStation,groups[b.dataset.parkedStation]);});
+  list.querySelectorAll('[data-parked-station]').forEach(b=>b.onclick=()=>{const a=live.airportCache[b.dataset.parkedStation];if(a)liveFocus(a.lat,a.lon,6);pacParkedStation(b.dataset.parkedStation,groups[b.dataset.parkedStation]);});
   document.getElementById('pmStatus').textContent=live.parkedError || `${Object.values(groups).reduce((n,a)=>n+a.length,0)} aircraft at ${codes.length} airports${live.parkedAt?' · Updated '+new Date(live.parkedAt).toLocaleTimeString():''}${missing?' · '+missing+' airports lack map coordinates; use their buttons above.':''}${!codes.length?' · No aircraft match these filters.':''}`;
+  globeSync();
 }
 function pacParkedStation(code,frames){
   let dlg=document.getElementById('pmDialog');if(!dlg){dlg=document.createElement('dialog');dlg.id='pmDialog';document.body.append(dlg);}
@@ -6679,3 +6691,304 @@ consentNotice();   // the privacy notice on a first visit (VATSIM's VA policy as
   set(); addEventListener("resize", set);
   try { new ResizeObserver(set).observe(document.body); } catch (e) { /* older browsers: resize only */ }
 })();
+
+/* ================= Weekly group flight =================
+   One route, one departure time, everyone flies it together. Visitors can see it too (it's how new pilots find
+   out PAC is alive), and signed-in pilots sign up, book it and add it to their calendar. group_flight.py runs it. */
+VIEWS.push("groupflight");
+PUBLIC_VIEWS.push("groupflight");
+function gfWhen(t, opts) { return new Date(t * 1000).toLocaleString("en-US", opts); }
+function gfCountdown(t) {
+  const s = t - Date.now() / 1000;
+  if (s <= 0) return s > -4 * 3600 ? "Departing now" : "Departed";
+  const d = Math.floor(s / 86400), h = Math.floor(s % 86400 / 3600), m = Math.floor(s % 3600 / 60);
+  return d ? `in ${d}d ${h}h` : h ? `in ${h}h ${m}m` : `in ${m} min`;
+}
+function gfArc(a, b, n = 64) {
+  const r = Math.PI / 180, [la1, lo1, la2, lo2] = [a.lat * r, a.lon * r, b.lat * r, b.lon * r];
+  const d = 2 * Math.asin(Math.sqrt(Math.sin((la2 - la1) / 2) ** 2 + Math.cos(la1) * Math.cos(la2) * Math.sin((lo2 - lo1) / 2) ** 2));
+  if (!d) return [[a.lat, a.lon], [b.lat, b.lon]];
+  return Array.from({ length: n + 1 }, (_, i) => {
+    const f = i / n, A = Math.sin((1 - f) * d) / Math.sin(d), B = Math.sin(f * d) / Math.sin(d);
+    const x = A * Math.cos(la1) * Math.cos(lo1) + B * Math.cos(la2) * Math.cos(lo2), y = A * Math.cos(la1) * Math.sin(lo1) + B * Math.cos(la2) * Math.sin(lo2), z = A * Math.sin(la1) + B * Math.sin(la2);
+    return [Math.atan2(z, Math.hypot(x, y)) / r, Math.atan2(y, x) / r];
+  });
+}
+async function loadGroupFlight() {
+  const root = $("#groupFlightRoot");
+  if (!root.innerHTML) root.innerHTML = `<p class="muted" role="status">Loading the group flight…</p>`;
+  let d;
+  try { d = await api("/api/public/group-flight"); } catch (e) { root.innerHTML = `<p class="notice err">${esc(e.message)}</p>`; return; }
+  S.groupFlight = d;
+  renderGroupFlight(d);
+}
+function renderGroupFlight(d) {
+  const root = $("#groupFlightRoot");
+  if (S.gfMap) { try { S.gfMap.remove(); } catch (e) { /* already gone */ } S.gfMap = null; }
+  if (!d.enabled) {
+    root.innerHTML = `<div class="profile-bar"><h1>Weekly group flight</h1></div><p class="muted">There's no group flight scheduled right now. Check back soon, or join us on Discord.</p>${d.staff ? gfStaffPanel(d) : ""}`;
+    gfBindStaff(d); return;
+  }
+  const e = d.event, me = e.me, here = S.me?.location?.icao, started = e.start <= Date.now() / 1000;
+  const local = gfWhen(e.start, { weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit", timeZoneName: "short" });
+  const utc = gfWhen(e.start, { timeZone: "UTC", weekday: "short", hour: "2-digit", minute: "2-digit", hour12: false }) + " UTC";
+  const acOpts = e.aircraft.map(a => `<option value="${esc(a.code)}" ${me?.aircraft === a.code ? "selected" : ""}>${esc(a.name)}</option>`).join("");
+  const action = !S.me
+    ? `<button class="btn" id="gfApply">Join PAC to fly it</button><button class="btn ghost" id="gfSignin">Pilots: sign in</button>`
+    : started && !(e.start + 3600 > Date.now() / 1000)
+      ? `<span class="muted">This one has departed. Next week's opens soon.</span>`
+      : me?.signed_up
+        ? `<span class="tag green">You're signed up</span><button class="btn" id="gfBook">Book the flight</button><button class="btn ghost" id="gfLeave">Can't make it</button>`
+        : `<label class="gf-ac">Flying the <select id="gfAc"><option value="">any of these</option>${acOpts}</select></label><button class="btn" id="gfJoin">Sign me up</button>`;
+  root.innerHTML = `<div class="profile-bar"><h1>Weekly group flight</h1><span class="muted">${esc(d.schedule)}</span></div>
+    <section class="gf-hero">
+      <div class="gf-main">
+        <div class="kicker">${started ? "Flying today" : "Next departure"} · ${esc(e.network)}</div>
+        <h2>${esc(e.title)}</h2>
+        <div class="gf-route"><div><b>${esc(e.dep.icao)}</b><span>${esc(e.dep.name)}</span></div><div class="gf-arrow" aria-hidden="true">${e.distance_nm ? `<small>${fmt(e.distance_nm)} nm</small>` : ""}<i></i></div><div><b>${esc(e.arr.icao)}</b><span>${esc(e.arr.name)}</span></div></div>
+        <div class="gf-when"><div><small>Your time</small><b>${esc(local)}</b></div><div><small>UTC</small><b>${esc(utc)}</b></div><div><small>Countdown</small><b id="gfCount">${gfCountdown(e.start)}</b></div></div>
+        <div class="gf-meta"><span><small>Aircraft</small>${e.aircraft.map(a => esc(a.name)).join(" · ")}</span><span><small>Cargo</small>${esc(e.cargo || "General cargo")}</span><span><small>Voice</small>${esc(e.voice)}</span></div>
+        <div class="row gf-actions">${action}</div>
+        ${S.me && here && here !== e.dep.icao && !started ? `<p class="gf-note">You're at <b>${esc(here)}</b>. <button class="linkish" id="gfTravel">Jumpseat to ${esc(e.dep.icao)}</button> before departure, or fly yourself there.</p>` : ""}
+        ${me?.flew ? `<p class="gf-note ok">You flew this one. Thanks for coming!</p>` : ""}
+      </div>
+      <div class="gf-map" id="gfMap" role="img" aria-label="Route map from ${esc(e.dep.icao)} to ${esc(e.arr.icao)}"></div>
+    </section>
+    <div class="gf-cols">
+      <section class="gf-card"><h3>Briefing</h3><p style="white-space:pre-line">${esc(e.briefing)}</p>
+        <ol class="gf-steps"><li>Sign up here so we know you're coming.</li><li>Be at <b>${esc(e.dep.icao)}</b> with a PAC aircraft (jumpseat or fly there beforehand).</li><li>Book the flight, plan it in SimBrief and sign the release.</li><li>Join the voice channel 15 minutes early, push back together, and fly it with PAC ACARS.</li></ol>
+        <div class="row"><a class="btn ghost small" href="/api/group-flight.ics" download>Add to calendar</a><button class="btn ghost small" id="gfShare">Copy link</button></div></section>
+      <section class="gf-card"><h3>${started && e.flown.length ? `Flew it · ${e.flown.length}` : `Who's coming · ${e.count}`}</h3>
+        ${(started && e.flown.length ? e.flown.map(n => `<div class="gf-pilot">${esc(n)}</div>`) : e.signups.map(s => `<div class="gf-pilot">${esc(s.name)}${s.aircraft ? `<small>${esc(S.fleet?.[s.aircraft]?.icao || s.aircraft)}</small>` : ""}</div>`)).join("")
+          || `<p class="muted">Nobody's signed up yet. Be the first!</p>`}
+        ${started && e.flown.length && e.count ? `<p class="muted" style="font-size:13px">${e.count} signed up.</p>` : ""}</section>
+      <section class="gf-card"><h3>Coming up</h3>${d.next.map(n => `<div class="gf-row"><b>${esc(n.dep)} → ${esc(n.arr)}</b><span>${esc(gfWhen(n.start, { weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }))}</span></div>`).join("")}
+        <p class="muted" style="font-size:13px">The group flight goes out from Cincinnati one week and back home the next, so if you flew out, you and your aircraft are already in place for the return.</p>
+        ${d.past.some(p => p.signed || p.flew) ? `<h3 style="margin-top:18px">Recent</h3>${d.past.filter(p => p.signed || p.flew).map(p => `<div class="gf-row"><b>${esc(p.dep)} → ${esc(p.arr)}</b><span>${p.flew} flew · ${p.signed} signed up</span></div>`).join("")}` : ""}</section>
+    </div>
+    ${d.staff ? gfStaffPanel(d) : ""}`;
+  // map
+  if (HAS_MAP && Number.isFinite(e.dep.lat) && Number.isFinite(e.arr.lat)) {
+    const base = makeBaseMap($("#gfMap"), { theme: document.documentElement.dataset.theme === "light" ? "light" : "dark", style: S.settings?.map_style });
+    const arc = gfArc(e.dep, e.arr);
+    L.polyline(arc, { color: "#d4111e", weight: 3, opacity: .9 }).addTo(base.map);
+    [[e.dep, "dep"], [e.arr, "arr"]].forEach(([a, k]) => L.marker([a.lat, a.lon], { icon: L.divIcon({ className: "gf-pin " + k, html: `<span>${esc(a.icao)}</span>`, iconSize: [60, 24], iconAnchor: [30, 12] }) }).addTo(base.map));
+    base.map.fitBounds(arc, { padding: [40, 40], maxZoom: 6 });
+    S.gfMap = base.map;
+    setTimeout(() => S.gfMap?.invalidateSize(), 60);
+  }
+  clearInterval(S.gfTimer);
+  S.gfTimer = setInterval(() => { const c = $("#gfCount"); if (!c || $("#view-groupflight").hidden) { clearInterval(S.gfTimer); return; } c.textContent = gfCountdown(e.start); }, 30000);
+  const on = (id, fn) => { const b = $("#" + id); if (b) b.onclick = fn; };
+  on("gfApply", () => { show("home"); setTimeout(() => $("#apply")?.scrollIntoView({ behavior: "smooth" }), 400); });
+  on("gfSignin", () => openSignIn(null, "groupflight"));
+  on("gfJoin", async () => { try { renderGroupFlight(await api("/api/group-flight/join", { method: "POST", body: { aircraft: $("#gfAc")?.value || "" } })); toast("You're signed up. See you there!"); } catch (err) { toast(err.message); } });
+  on("gfLeave", async () => { try { renderGroupFlight(await api("/api/group-flight/leave", { method: "POST", body: {} })); toast("Taken off the list."); } catch (err) { toast(err.message); } });
+  on("gfTravel", () => openJumpseat(e.dep.icao));
+  on("gfShare", () => navigator.clipboard.writeText(location.origin + "/#groupflight").then(() => toast("Link copied."), () => toast(location.origin + "/#groupflight")));
+  on("gfBook", () => gfBook(e));
+  gfBindStaff(d);
+}
+async function gfBook(e) {
+  resetMissionFilters();
+  if (e.route_id && (S.routes || []).some(r => r.id === e.route_id)) {
+    S.board = "network"; S.region = "All"; S.netSearch = e.route_id; S.netLimit = 40; S.selected = null;
+    show("missions");
+    setTimeout(() => selectMission(e.route_id), 120);
+  } else {
+    S.charterSpec = { origin: e.dep.icao, destination: e.arr.icao, aircraft: e.aircraft[0]?.code || "B738F", payload_lbs: "", cargo: e.cargo || "General cargo", priority: "Standard", flight_number: "", _o: null, _d: null };
+    S.charterMission = null; S.board = "charter"; S.selected = null; show("missions");
+  }
+}
+function gfStaffPanel(d) {
+  const s = d.staff, c = s.config, o = s.override || {};
+  return `<details class="gf-card gf-staff" ${S.gfStaffOpen ? "open" : ""}><summary>Staff: run the group flight</summary>
+    <form id="gfCfg" class="gf-form"><h3>Schedule</h3>
+      <label class="check"><input type="checkbox" name="enabled" ${c.enabled ? "checked" : ""}> Weekly group flight is on</label>
+      <div class="gf-grid"><label>Day<select name="weekday">${s.days.map((x, i) => `<option value="${i}" ${i === c.weekday ? "selected" : ""}>${x}</option>`).join("")}</select></label>
+      <label>Time (UTC)<input name="time" value="${esc(c.time)}" pattern="\\d{1,2}:\\d{2}" required></label>
+      <label>Network<select name="network">${s.networks.map(x => `<option ${x === c.network ? "selected" : ""}>${x}</option>`).join("")}</select></label>
+      <label>Voice<input name="voice" value="${esc(c.voice)}" maxlength="120"></label></div>
+      <label>Standing briefing<textarea name="briefing" rows="3" maxlength="1200">${esc(c.briefing)}</textarea></label>
+      <button class="btn small">Save schedule</button></form>
+    ${d.enabled ? `<form id="gfOv" class="gf-form"><h3>This week (${esc(d.event.id)})</h3>
+      <p class="muted" style="font-size:13px">Leave blank to use the automatic out-and-back route. Enter a scheduled route number (like PAC1001), or a departure and arrival.</p>
+      <div class="gf-grid"><label>Route number<input name="route_id" value="${esc(o.route_id || "")}" placeholder="PAC1001"></label>
+      <label>Departure<input name="dep" value="${esc(o.dep || "")}" maxlength="4" placeholder="KCVG"></label><label>Arrival<input name="arr" value="${esc(o.arr || "")}" maxlength="4" placeholder="KJFK"></label>
+      <label>Aircraft (for a custom route)<select name="aircraft" multiple size="3">${fleetCodes().map(k => `<option value="${k}" ${(o.aircraft || []).includes(k) ? "selected" : ""}>${esc(S.fleet[k].name)}</option>`).join("")}</select></label>
+      <label>Title<input name="title" value="${esc(o.title || "")}" maxlength="80" placeholder="${esc(d.event.title)}"></label>
+      <label>Network<select name="network"><option value="">Schedule default</option>${s.networks.map(x => `<option ${x === o.network ? "selected" : ""}>${x}</option>`).join("")}</select></label></div>
+      <label>Briefing for this week<textarea name="briefing" rows="3" maxlength="1200" placeholder="Uses the standing briefing">${esc(o.briefing || "")}</textarea></label>
+      <div class="row"><button class="btn small">Save this week</button><button type="button" class="btn ghost small" id="gfOvClear">Back to automatic</button></div></form>
+      <div class="gf-form"><h3>Discord announcement</h3><textarea id="gfAnn" rows="10" readonly>${esc(s.announcement)}</textarea>
+      <div class="row"><button class="btn small" id="gfAnnCopy">Copy</button>${s.discord ? `<button class="btn ghost small" id="gfAnnPost">Post to Discord</button>` : `<span class="muted" style="font-size:13px">Add the Discord webhook under Staff › Site and rules to post it in one click.</span>`}</div>
+      <p class="muted" style="font-size:13px">The &lt;t:…&gt; codes show the departure in each reader's own time zone on Discord.</p></div>
+      ${s.signups.length ? `<div class="gf-form"><h3>Sign-ups (staff view)</h3>${s.signups.map(x => `<div class="gf-row"><b>${esc(x.name)} · ${esc(x.pilot)}</b><span>${esc(x.aircraft || "any type")}</span></div>`).join("")}</div>` : ""}` : ""}
+  </details>`;
+}
+function gfBindStaff(d) {
+  if (!d.staff) return;
+  const det = $(".gf-staff"); if (det) det.ontoggle = () => S.gfStaffOpen = det.open;
+  const send = async body => { try { renderGroupFlight(await api("/api/staff/group-flight", { method: "POST", body })); toast("Saved."); } catch (err) { toast(err.message); } };
+  const cfg = $("#gfCfg");
+  if (cfg) cfg.onsubmit = ev => { ev.preventDefault(); const f = new FormData(cfg); send({ config: { enabled: cfg.enabled.checked, weekday: Number(f.get("weekday")), time: f.get("time"), network: f.get("network"), voice: f.get("voice"), briefing: f.get("briefing") } }); };
+  const ov = $("#gfOv");
+  if (ov) ov.onsubmit = ev => { ev.preventDefault(); const f = new FormData(ov); send({ override: { route_id: f.get("route_id"), dep: f.get("dep"), arr: f.get("arr"), aircraft: f.getAll("aircraft"), title: f.get("title"), network: f.get("network"), briefing: f.get("briefing") } }); };
+  if ($("#gfOvClear")) $("#gfOvClear").onclick = () => send({ override: {} });
+  if ($("#gfAnnCopy")) $("#gfAnnCopy").onclick = () => navigator.clipboard.writeText($("#gfAnn").value).then(() => toast("Announcement copied."), () => { $("#gfAnn").select(); toast("Select and copy it by hand."); });
+  if ($("#gfAnnPost")) $("#gfAnnPost").onclick = async ev => { ev.target.disabled = true; try { await api("/api/staff/group-flight/discord", { method: "POST", body: {} }); toast("Posted to Discord."); } catch (err) { toast(err.message); } ev.target.disabled = false; };
+}
+{
+  const nav = document.createElement("button"); nav.dataset.view = "groupflight"; nav.textContent = "Group flight";
+  nav.onclick = () => show("groupflight");
+  document.querySelector("#navGroup2")?.prepend(nav);
+}
+/* Home page: a strip announcing the next group flight, under the hero. */
+async function gfHomeStrip() {
+  try {
+    const d = S.groupFlight && S.groupFlight._at > Date.now() - 60000 ? S.groupFlight : await api("/api/public/group-flight");
+    S.groupFlight = { ...d, _at: Date.now() };
+    const hero = $("#homeRoot .hero");
+    if (!d.enabled || !hero || $("#gfStrip")) return;
+    const e = d.event;
+    hero.insertAdjacentHTML("afterend", `<a id="gfStrip" class="gf-strip" href="#groupflight"><span class="kicker">Weekly group flight</span><b>${esc(e.dep.icao)} → ${esc(e.arr.icao)} · ${esc(e.title)}</b><span>${esc(gfWhen(e.start, { weekday: "long", hour: "numeric", minute: "2-digit", timeZoneName: "short" }))} · ${gfCountdown(e.start)} · ${e.count} signed up</span><span class="gf-strip-go">Details ›</span></a>`);
+    $("#gfStrip").onclick = ev => { ev.preventDefault(); show("groupflight"); };
+  } catch (e) { /* the home page works without it */ }
+}
+
+/* ================= Live map: globe view =================
+   A Flat / Globe switch on the live map. The flat map stays Leaflet; the globe is MapLibre GL (vendored, BSD
+   licensed), loaded only the first time someone picks Globe. Both show the same flights and parked fleet, and the
+   same filters, station buttons and lists drive both. The choice is remembered on each computer. */
+const GLOBE_JS = "/static/vendor/maplibre/maplibre-gl.js", GLOBE_CSS = "/static/vendor/maplibre/maplibre-gl.css";
+let globeLib;
+function loadGlobeLib() {
+  if (window.maplibregl) return Promise.resolve(window.maplibregl);
+  return globeLib ||= new Promise((ok, fail) => {
+    const css = document.createElement("link"); css.rel = "stylesheet"; css.href = GLOBE_CSS; document.head.append(css);
+    const s = document.createElement("script"); s.src = GLOBE_JS; s.onload = () => ok(window.maplibregl); s.onerror = () => { globeLib = null; fail(new Error("The globe couldn't load. Check your connection and try again.")); };
+    document.head.append(s);
+  });
+}
+function liveViewPref() { try { return localStorage.getItem("pac.liveView") || "flat"; } catch (e) { return "flat"; } }
+function setLiveViewPref(v) { try { localStorage.setItem("pac.liveView", v); } catch (e) { /* not remembered; that's fine */ } }
+function globeStyle(theme, key) {
+  const dark = theme === "dark", st = MAP_STYLES[key] || MAP_STYLES[dark ? "dark" : "light"];
+  const sources = {}, layers = [{ id: "ocean", type: "background", paint: { "background-color": dark ? "#14171b" : "#dfe6ec" } }];
+  st.layers.forEach(([url, maxzoom], i) => {
+    sources["tiles" + i] = { type: "raster", tiles: [url], tileSize: 256, maxzoom, attribution: i ? "" : st.attr };
+    layers.push({ id: "tiles" + i, type: "raster", source: "tiles" + i });
+  });
+  return { version: 8, projection: { type: "globe" }, sources, layers,
+    sky: { "atmosphere-blend": ["interpolate", ["linear"], ["zoom"], 0, 1, 5, 1, 7, 0] } };
+}
+function liveFocus(lat, lon, zoom = 6) {
+  const g = S.live?.globe;
+  if (g && S.live.view === "globe") g.map.flyTo({ center: [lon, lat], zoom: Math.max(g.map.getZoom(), Math.min(zoom - 1, 5)), duration: 1600, essential: true });
+  else S.live?.base.map.setView([lat, lon], Math.max(S.live.base.map.getZoom(), zoom));
+}
+function liveFit(pts) {
+  if (!pts?.length) return;
+  const g = S.live?.globe;
+  if (g && S.live.view === "globe") {
+    const lons = pts.map(p => p[1]), lats = pts.map(p => p[0]);
+    g.map.fitBounds([[Math.min(...lons), Math.min(...lats)], [Math.max(...lons), Math.max(...lats)]], { padding: 60, maxZoom: 5, duration: 1400 });
+  } else S.live?.base.map.fitBounds(pts, { padding: [40, 40], maxZoom: 6 });
+}
+async function setLiveView(v) {
+  const live = S.live; if (!live) return;
+  live.view = v; setLiveViewPref(v);
+  document.querySelectorAll("[data-liveview]").forEach(b => b.setAttribute("aria-pressed", b.dataset.liveview === v));
+  $("#liveMap").hidden = v === "globe"; $("#liveGlobe").hidden = v !== "globe";
+  if (v === "flat") { setTimeout(() => live.base.map.invalidateSize(), 30); return; }
+  if (!live.globe) {
+    $("#liveGlobe").innerHTML = `<p class="globe-loading">Loading the globe…</p>`;
+    try { await loadGlobeLib(); } catch (e) { $("#liveGlobe").innerHTML = `<p class="globe-loading">${esc(e.message)}</p>`; return; }
+    if (S.live !== live) return;
+    $("#liveGlobe").innerHTML = "";
+    const theme = document.documentElement.dataset.theme === "light" ? "light" : "dark";
+    let map;
+    try {
+      map = new maplibregl.Map({ container: "liveGlobe", style: globeStyle(theme, S.settings?.map_style), center: [-84.66, 39.05], zoom: 1.4,
+        attributionControl: { compact: true }, maxPitch: 60, renderWorldCopies: false });
+    } catch (e) {
+      $("#liveGlobe").innerHTML = `<p class="globe-loading">Your browser can't draw the globe (it needs WebGL). The flat map still works.</p>`; return;
+    }
+    map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }), "top-left");
+    live.globe = { map, markers: [], ready: false, tileErr: 0, tileOk: 0 };
+    map.on("data", e => { if (e.dataType === "source" && e.tile && String(e.sourceId || "").startsWith("tiles")) live.globe.tileOk++; });
+    map.on("error", e => {
+      if (!String(e?.sourceId || "").startsWith("tiles")) return;
+      live.globe.tileErr++;
+      if (live.globe.tileErr >= 6 && !live.globe.tileOk && !live.globe.noted) {
+        live.globe.noted = true;
+        map.getStyle().layers.filter(l => l.type === "raster").forEach(l => map.setLayoutProperty(l.id, "visibility", "none"));
+        $("#liveGlobe").insertAdjacentHTML("beforeend", `<div class="map-note globe-note">Map tiles are unavailable. Showing the offline outline globe.</div>`);
+      }
+    });
+    map.on("load", async () => {
+      const w = await loadWorld();
+      const dark = theme === "dark";
+      if (w) {
+        map.addSource("land", { type: "geojson", data: { type: "Feature", properties: {}, geometry: w.land } });
+        map.addSource("borders", { type: "geojson", data: { type: "Feature", properties: {}, geometry: w.borders } });
+        map.addLayer({ id: "land", type: "fill", source: "land", paint: { "fill-color": dark ? "#262a31" : "#f4f5f7" } }, map.getLayer("tiles0") ? "tiles0" : undefined);
+        map.addLayer({ id: "borders", type: "line", source: "borders", paint: { "line-color": dark ? "#3a4049" : "#c3c9d0", "line-width": 0.6 } }, map.getLayer("tiles0") ? "tiles0" : undefined);
+      }
+      map.addSource("tracks", { type: "geojson", data: { type: "FeatureCollection", features: [] } });
+      map.addLayer({ id: "tracks", type: "line", source: "tracks", paint: { "line-color": "#d4111e", "line-width": ["case", ["get", "sel"], 3, 2], "line-opacity": ["case", ["get", "sel"], 0.9, 0.55] } });
+      map.addSource("toarr", { type: "geojson", data: { type: "FeatureCollection", features: [] } });
+      map.addLayer({ id: "toarr", type: "line", source: "toarr", paint: { "line-color": "#d4111e", "line-width": 1.5, "line-dasharray": [3, 3], "line-opacity": 0.75 } });
+      live.globe.ready = true;
+      globeSync();
+    });
+  } else {
+    setTimeout(() => live.globe.map.resize(), 30);
+    globeSync();
+  }
+}
+function globePlaneEl(f, sel) {
+  const col = f.on_ground ? "#9aa1ab" : "#d4111e", el = document.createElement("button");
+  el.type = "button"; el.className = "globe-plane" + (sel ? " sel" : ""); el.title = `${f.flight} · ${f.aircraft} · ${f.dep || ""} → ${f.arr || ""}`;
+  el.setAttribute("aria-label", `${f.flight}, ${f.dep || ""} to ${f.arr || ""}`);
+  el.innerHTML = `<svg viewBox="0 0 32 32" width="30" height="30"><path d="M16 2l2.4 9.6 10.6 6v2.6l-10.6-3.2-.8 7.4 3.6 2.6V29L16 27.6 10.8 29v-2l3.6-2.6-.8-7.4-10.6 3.2v-2.6l10.6-6z" fill="${col}" stroke="#fff" stroke-width="1.4" stroke-linejoin="round"/></svg>`;
+  return el;
+}
+function unwrapLon(coords) {  // [lon, lat] pairs: keep each step under 180 degrees so lines cross the date line the short way
+  return coords.reduce((out, [lo, la]) => {
+    const prev = out.length ? out[out.length - 1][0] : lo;
+    let x = lo; while (x - prev > 180) x -= 360; while (prev - x > 180) x += 360;
+    out.push([x, la]); return out;
+  }, []);
+}
+function globeSync() {
+  const live = S.live, g = live?.globe;
+  if (!g?.ready || live.view !== "globe") return;
+  const map = g.map;
+  g.markers.forEach(m => m.remove()); g.markers = [];
+  const showFlights = $("#pmFlying")?.checked !== false, showParked = $("#pmParked")?.checked !== false;
+  const flights = showFlights ? live.flights || [] : [];
+  map.getSource("tracks")?.setData({ type: "FeatureCollection", features: flights.filter(f => f.track?.length > 1).map(f => ({ type: "Feature", properties: { sel: live.sel === f.flight },
+    geometry: { type: "LineString", coordinates: unwrapLon(f.track.map(([la, lo]) => [lo, la])) } })) });
+  const s = flights.find(f => f.flight === live.sel && f.arr_pos);
+  map.getSource("toarr")?.setData({ type: "FeatureCollection", features: s ? [{ type: "Feature", properties: {}, geometry: { type: "LineString", coordinates: unwrapLon(gfArc({ lat: s.lat, lon: s.lon }, { lat: s.arr_pos[0], lon: s.arr_pos[1] }, 48).map(([la, lo]) => [lo, la])) } }] : [] });
+  if (showParked) Object.entries(live.parkedGroups || {}).forEach(([code, frames]) => {
+    const a = live.airportCache?.[code]; if (!a) return;
+    const el = document.createElement("button"); el.type = "button"; el.className = "pm-marker globe-pm"; el.title = `${code} · ${frames.length} aircraft`;
+    el.innerHTML = `<span>${frames.length}</span>`; el.onclick = ev => { ev.stopPropagation(); pacParkedStation(code, frames); };
+    g.markers.push(new maplibregl.Marker({ element: el }).setLngLat([a.lon, a.lat]).addTo(map));
+  });
+  flights.forEach(f => {
+    const sel = live.sel === f.flight, el = globePlaneEl(f, sel);
+    el.onclick = ev => { ev.stopPropagation(); live.sel = sel ? null : f.flight; pollLive(); };
+    g.markers.push(new maplibregl.Marker({ element: el, rotation: f.hdg || 0, rotationAlignment: "map" }).setLngLat([f.lon, f.lat]).addTo(map));
+  });
+  if (!g.fitted && flights.length) { g.fitted = true; map.flyTo({ center: [flights[0].lon, flights[0].lat], zoom: 2.2, duration: 1800 }); }
+}
+function liveViewSwitch() {
+  const bar = document.querySelector("#liveRoot .profile-bar");
+  if (!bar || $("#liveViewSwitch")) return;
+  bar.insertAdjacentHTML("beforeend", `<div class="seg-switch" id="liveViewSwitch" role="group" aria-label="Map view"><button type="button" data-liveview="flat" aria-pressed="true">Flat map</button><button type="button" data-liveview="globe" aria-pressed="false">Globe</button></div>`);
+  $(".live-wrap").insertAdjacentHTML("afterbegin", `<div id="liveGlobe" class="live-map live-globe" hidden></div>`);
+  document.querySelectorAll("[data-liveview]").forEach(b => b.onclick = () => setLiveView(b.dataset.liveview));
+}
