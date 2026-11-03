@@ -240,3 +240,17 @@ html[data-theme="dark"] .ls-wrap .kicker { color: #ff8f8f; }
    measured by app.js. */
 html:not([data-design="loadsheet"]) .hero { width: calc(100vw - var(--sbw, 0px)); margin-left: calc(50% - (100vw - var(--sbw, 0px)) / 2); }
 html:not([data-design="loadsheet"]) .stat-band { width: calc(100vw - var(--sbw, 0px)); margin-left: calc(50% - (100vw - var(--sbw, 0px)) / 2); }
+
+/* Public roster and flight log */
+.ro-sum { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px; background: var(--line); border: 1px solid var(--line); margin: 0 0 22px; }
+.ro-sum > div { background: var(--white); padding: 14px 16px; }
+.ro-sum span { display: block; font-size: 12px; color: var(--steel); text-transform: uppercase; letter-spacing: .05em; }
+.ro-sum b { font-size: 24px; }
+.ro-sec { margin: 0 0 28px; }
+.ro-sec h2 { margin: 0 0 8px; }
+.ro-wrap { overflow-x: auto; border: 1px solid var(--line); background: var(--white); }
+.ro-table { width: 100%; border-collapse: collapse; font-size: 14px; }
+.ro-table th, .ro-table td { padding: 8px 12px; border-bottom: 1px solid var(--line); text-align: left; white-space: nowrap; }
+.ro-table th { font-size: 12px; text-transform: uppercase; letter-spacing: .04em; color: var(--steel); background: var(--paper); }
+.ro-table .num { text-align: right; font-variant-numeric: tabular-nums; }
+@media (max-width: 700px) { .ro-sum { grid-template-columns: 1fr 1fr; } }

@@ -34,7 +34,7 @@ let toastT;
 function toast(msg, ms = 5200) { const t = $("#toast"); t.textContent = msg; t.hidden = false; clearTimeout(toastT); toastT = setTimeout(() => t.hidden = true, ms); }
 
 /* ---------------- navigation ---------------- */
-const PUBLIC_VIEWS = ["home", "fleet", "handbook", "gallery", "privacy"];   // "live" joins when staff make the live map public
+const PUBLIC_VIEWS = ["home", "fleet", "handbook", "gallery", "privacy", "roster"];   // "live" joins when staff make the live map public
 function show(view) {
   if (view === "reports" && location.hash !== "#reports") captureReportContext();
   if (/^career\/(overview|qualifications|wallet|activities|awards)$/.test(view)) {
@@ -68,6 +68,7 @@ function show(view) {
   if (view === "downloads") loadDownloads();
   if (view === "handbook") loadHandbook();
   if (view === "privacy") renderPrivacy();
+  if (view === "roster") loadRoster();
   if (view === "staff") loadStaff();
   if (view === "reports") loadProblemReports();
   if (view === "updates") loadWhatsNew();
@@ -3754,7 +3755,7 @@ async function openDetail(id) {
 }
 
 /* ================= VA core ================= */
-const VIEWS = ["privacy", "home", "dashboard", "missions", "bids", "acars", "fleet", "stations", "downloads", "career", "stats", "finance", "shop", "live", "logbook", "gallery", "handbook", "staff", "profile", "pilots", "updates"];
+const VIEWS = ["privacy", "roster", "home", "dashboard", "missions", "bids", "acars", "fleet", "stations", "downloads", "career", "stats", "finance", "shop", "live", "logbook", "gallery", "handbook", "staff", "profile", "pilots", "updates"];
 const TOUR_ORDER = {};
 function applyCore(d) {
   if (d.partners) S.partners = d.partners;
@@ -3996,13 +3997,14 @@ function directoryBadges() {
     `<a href="${esc(b.href)}" target="_blank" rel="noopener" title="Pagani Air Cargo on ${esc(b.name)}"><img src="${esc(b.img)}" alt="Pagani Air Cargo on ${esc(b.name)}" loading="lazy" referrerpolicy="no-referrer-when-downgrade" onerror="this.closest('a').remove(); if (!document.querySelector('#dirBadges a')) document.querySelector('#dirBadges')?.remove()"></a>`).join("")}</div>`;
 }
 function networkPartners(h) {
-  const logo = h.network_logos?.vatsim;
-  if (!h.network_logos?.show || !logo) return "";   // only once VATSIM has accepted PAC (Staff › Site and rules › Flying online)
-  return `<div class="section-h" id="network-partners"><div><div class="kicker">Network partners</div><h2>Fly online with VATSIM</h2>
+  // each network's logo shows only once staff switch it on, after that network has accepted PAC (Staff › Site and rules › Flying online)
+  const n = h.network_logos || {};
+  const nets = [n.show && n.vatsim ? { name: "VATSIM", href: "https://www.vatsim.net", logo: n.vatsim } : null,
+                n.ivao_show && n.ivao ? { name: "IVAO", href: "https://ivao.aero", logo: n.ivao } : null].filter(Boolean);
+  if (!nets.length) return "";
+  return `<div class="section-h" id="network-partners"><div><div class="kicker">Network partners</div><h2>Fly online with ${nets.map(x => x.name).join(" and ")}</h2>
       <p>Live air traffic control from real people, all over the world, free to join. PAC flights file as <b>${esc(filingIcao())}</b>, spoken “Pagani”.</p></div></div>
-    <div class="net-partners">${logo
-      ? `<a class="net-logo" href="https://www.vatsim.net" target="_blank" rel="noopener"><img src="${esc(logo)}" alt="VATSIM"></a>`
-      : `<p class="notice" style="margin:0">Staff only: upload the official VATSIM logo in <b>Staff › Site and rules › Flying online</b>. VATSIM's partner programme asks for it here. Visitors don't see this section until it's uploaded.</p>`}</div>`;
+    <div class="net-partners">${nets.map(x => `<a class="net-logo" href="${x.href}" target="_blank" rel="noopener"><img src="${esc(x.logo)}" alt="${x.name}"></a>`).join("")}</div>`;
 }
 async function renderHome(h, st) {
   const t = h.totals, f = h.founder || {}, site = h.site;
@@ -4274,13 +4276,29 @@ function siteFooter(site) {
     <div class="sf-grid">
       <div class="sf-brand"><img src="/static/pac-wordmark-white.png" alt="Pagani Air Cargo" width="120">
         <p>Pagani Air Cargo is a virtual airline for flight simulation. It is a free, non-commercial hobby community: it is not a real airline, carries no real cargo, and is not affiliated with any real-world airline or aviation company.</p></div>
-      <div class="sf-links" role="navigation" aria-label="Pilots"><h3>Pilots</h3><a href="#apply" onclick="show('home');setTimeout(()=>$('#apply')?.scrollIntoView({behavior:'smooth'}),100);return false">Apply to fly</a><a href="#handbook" onclick="show('handbook');return false">Pilot handbook</a><a href="#fleet" onclick="show('fleet');return false">The fleet</a><a href="#gallery" onclick="show('gallery');return false">Gallery</a>${S.me ? `<a href="#downloads" onclick="show('downloads');return false">Downloads</a>` : ""}</div>
+      <div class="sf-links" role="navigation" aria-label="Pilots"><h3>Pilots</h3><a href="#apply" onclick="show('home');setTimeout(()=>$('#apply')?.scrollIntoView({behavior:'smooth'}),100);return false">Apply to fly</a><a href="#handbook" onclick="show('handbook');return false">Pilot handbook</a><a href="#fleet" onclick="show('fleet');return false">The fleet</a><a href="#gallery" onclick="show('gallery');return false">Gallery</a><a href="#roster" onclick="show('roster');return false">Roster &amp; flight log</a>${S.me ? `<a href="#downloads" onclick="show('downloads');return false">Downloads</a>` : ""}</div>
       <div class="sf-links" role="navigation" aria-label="Contact"><h3>Contact</h3><a href="mailto:${mail}">${mail}</a>${discord ? `<a href="${esc(discord)}" target="_blank" rel="noopener">PAC on Discord</a>` : ""}<a href="#privacy" onclick="show('privacy');return false">Privacy policy</a></div>
       <div class="sf-small"><h3>Credits</h3><p>Weather: NOAA Aviation Weather Center. Maps: &copy; OpenStreetMap contributors and Esri. Radar: RainViewer. Flight planning: SimBrief by Navigraph. Partner aircraft photos: Wikimedia Commons, credited on each card.</p></div>
     </div>
     <p class="sf-legal">Airline names, logos and aircraft types belong to their owners; partner operations are simulated and imply no endorsement. For flight simulation only: not for real-world navigation or flight planning.</p>
     <p class="sf-legal">&copy; ${year} Pagani Air Cargo · pac-va.com</p>
   </footer>`;
+}
+/* the public pilot roster and flight log: anyone can see it (VATSIM and IVAO look for it), first name and initial only */
+async function loadRoster() {
+  const root = $("#rosterRoot");
+  root.innerHTML = `<p class="muted">Loading the roster…</p>`;
+  let d; try { d = await api("/api/public/roster"); } catch (e) { root.innerHTML = `<div class="notice err">${esc(e.message)}</div>`; return; }
+  const date = t => t ? new Date(t * 1000).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }) : "–";
+  root.innerHTML = `<div class="profile-bar"><h1>Roster &amp; flight log</h1><span class="muted">Every active PAC pilot and the airline's latest accepted flights</span></div>
+    <div class="ro-sum"><div><span>Active pilots</span><b>${fmt(d.totals.pilots)}</b></div><div><span>Flights flown</span><b>${fmt(d.totals.flights)}</b></div>
+      <div><span>Block hours</span><b>${fmt(Math.round(d.totals.hours))}</b></div><div><span>Network callsign</span><b>${esc(d.callsign)} · PAGANI</b></div></div>
+    <section class="ro-sec"><h2>Pilot roster</h2>
+      <div class="ro-wrap"><table class="ro-table"><thead><tr><th>Pilot ID</th><th>Pilot</th><th>Rank</th><th>Hub</th><th class="num">Hours</th><th class="num">Flights</th><th>Joined</th></tr></thead>
+      <tbody>${d.pilots.map(p => `<tr><td><b>${esc(p.id)}</b></td><td>${esc(p.name)}${p.staff ? ' <span class="tag grey">Staff</span>' : ""}</td><td>${esc(p.rank)}</td><td>${esc(p.hub || "–")}</td><td class="num">${(p.hours || 0).toFixed(1)}</td><td class="num">${fmt(p.flights)}</td><td>${date(p.joined)}</td></tr>`).join("") || `<tr><td colspan="7" class="muted">No pilots yet.</td></tr>`}</tbody></table></div></section>
+    <section class="ro-sec"><h2>Flight log</h2><p class="muted" style="margin:0 0 8px">The latest ${d.flights.length} accepted flights. On VATSIM and IVAO, PAC flights file as ${esc(d.callsign)} with the same number (PAC9613 files as ${esc(d.callsign)}9613), spoken “Pagani”.</p>
+      <div class="ro-wrap"><table class="ro-table"><thead><tr><th>Date</th><th>Flight</th><th>Pilot</th><th>From</th><th>To</th><th>Aircraft</th><th class="num">Block</th><th>Status</th></tr></thead>
+      <tbody>${d.flights.map(f => `<tr><td>${new Date(f.filed_at * 1000).toISOString().slice(0, 10)}</td><td><b>${esc(f.flight_number)}</b></td><td>${f.pilot_id ? `${esc(f.pilot_id)} · ` : ""}${esc(f.pilot)}</td><td>${esc(f.dep)}</td><td>${esc(f.arr)}</td><td title="${esc(f.aircraft_name)}">${esc(S.fleet?.[f.aircraft]?.icao || f.aircraft)}</td><td class="num">${hm(f.block_min)}</td><td>${esc(f.status)}</td></tr>`).join("") || `<tr><td colspan="8" class="muted">No flights yet.</td></tr>`}</tbody></table></div></section>`;
 }
 function renderPrivacy() {
   const mail = esc(contactEmail());
@@ -4881,6 +4899,10 @@ function staffSite() {
       <p class="muted" style="font-size:13px;margin:0 0 8px">Once VATSIM accepts PAC as a Virtual Airline Associate or Partner, its policy asks for the VATSIM logo on the home page, linked to www.vatsim.net. PAC includes the official full-colour logo from VATSIM's public logo pack, ready to show unaltered in a <b>Network partners</b> section. Keep it switched off until VATSIM has accepted PAC: showing it before then suggests a partnership PAC doesn't have. If VATSIM updates its logo, download the new pack from <a href="https://vats.im/logo" target="_blank" rel="noopener">vats.im/logo</a> and upload the no-tagline version (PNG, WebP or SVG) here.</p>
       <label class="switch-row" style="margin:0 0 8px"><input type="checkbox" id="vatsimShow" ${S.settings?.vatsim_partner_section ? "checked" : ""}><span><b>Show the VATSIM partner section on the home page</b><br><span class="muted" style="font-size:13px">Only once VATSIM has accepted PAC.</span></span></label>
       <div class="row" id="netLogoBox" style="align-items:center;gap:12px;margin:0 0 6px"></div>
+      <h3 style="margin:14px 0 4px;font-size:15px">IVAO logo</h3>
+      <p class="muted" style="font-size:13px;margin:0 0 8px">IVAO asks certified virtual airlines to show the IVAO Virtual Airline logo they provide on the home page, linked to ivao.aero. Upload the file IVAO sends you (PNG, WebP or SVG), then switch the section on once IVAO has accepted PAC. Use it exactly as provided: no recolouring, cropping or added background.</p>
+      <label class="switch-row" style="margin:0 0 8px"><input type="checkbox" id="ivaoShow" ${S.settings?.ivao_partner_section ? "checked" : ""}><span><b>Show the IVAO logo on the home page</b><br><span class="muted" style="font-size:13px">Only once IVAO has accepted PAC, or when IVAO asks for it as part of the review.</span></span></label>
+      <div class="row" id="ivaoLogoBox" style="align-items:center;gap:12px;margin:0 0 6px"></div>
       <h2 style="padding:14px 0 0">Backups</h2>
       <p class="muted" style="font-size:13px;margin:4px 0 8px">The logbook, roster, airframes, profile and settings are copied automatically every time ACARS starts. The last 14 copies are kept.</p>
       <div id="backupList" class="muted" style="font-size:13px">Loading…</div>
@@ -4956,7 +4978,27 @@ function staffSite() {
       drawNetLogo((await api("/api/staff/network-logo", { method: "DELETE" })).logos.vatsim, false); toast("Back to the built-in VATSIM logo.");
     };
   };
-  api("/api/va/home").then(h => drawNetLogo(h.network_logos?.vatsim, h.network_logos?.vatsim_uploaded)).catch(() => drawNetLogo(null));
+  const drawIvaoLogo = url => {
+    $("#ivaoLogoBox").innerHTML = (url ? `<span class="net-logo" style="padding:10px 16px"><img src="${esc(url)}" alt="IVAO" style="height:40px"></span>` : `<span class="muted" style="font-size:13px">No IVAO logo uploaded yet.</span>`)
+      + `<label class="btn ghost small" style="cursor:pointer">${url ? "Replace" : "Upload the IVAO logo"}<input type="file" id="ivaoLogoFile" accept="image/png,image/webp,image/svg+xml" hidden></label>`
+      + (url ? `<button class="btn ghost small" type="button" id="ivaoLogoDel">Remove</button>` : "");
+    $("#ivaoLogoFile").onchange = async e => {
+      const file = e.target.files[0]; if (!file) return;
+      const fd = new FormData(); fd.append("file", file);
+      try { const r = await fetch("/api/staff/network-logo?net=ivao", { method: "POST", body: fd }); const d = await r.json(); if (!r.ok) throw new Error(d.error);
+        drawIvaoLogo(d.logos.ivao); toast("IVAO logo uploaded."); } catch (err) { toast(err.message); }
+    };
+    if ($("#ivaoLogoDel")) $("#ivaoLogoDel").onclick = async () => {
+      if (!confirm("Remove the IVAO logo?")) return;
+      drawIvaoLogo((await api("/api/staff/network-logo?net=ivao", { method: "DELETE" })).logos.ivao); toast("IVAO logo removed.");
+    };
+  };
+  api("/api/va/home").then(h => { drawNetLogo(h.network_logos?.vatsim, h.network_logos?.vatsim_uploaded); drawIvaoLogo(h.network_logos?.ivao); }).catch(() => { drawNetLogo(null); drawIvaoLogo(null); });
+  $("#ivaoShow").onchange = async e => {
+    try { S.settings = await api("/api/settings", { method: "POST", body: { ivao_partner_section: e.target.checked } });
+      toast(e.target.checked ? "The IVAO logo is on the home page (once uploaded)." : "The IVAO logo is hidden."); }
+    catch (err) { e.target.checked = !e.target.checked; toast(err.message); }
+  };
   $("#vatsimShow").onchange = async e => {
     try { S.settings = await api("/api/settings", { method: "POST", body: { vatsim_partner_section: e.target.checked } });
       toast(e.target.checked ? "The VATSIM partner section is on the home page." : "The VATSIM partner section is hidden."); }

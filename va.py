@@ -2579,17 +2579,24 @@ def network_logo_file(net="vatsim"):
     return next((f for f in sorted(d.glob(f"{net}.*")) if f.suffix in NETWORK_LOGO_TYPES.values()), None) if d.exists() else None
 
 
+NETWORKS = ("vatsim", "ivao")
+
+
 def network_logos():
-    f = network_logo_file("vatsim")
+    f, fi = network_logo_file("vatsim"), network_logo_file("ivao")
+    st = C["settings"]()
     return {"vatsim": f"/api/va/home/network-logo/vatsim?v={int(f.stat().st_mtime)}" if f else NETWORK_LOGO_BUILT_IN["vatsim"],
             "vatsim_uploaded": bool(f),
             # shown on the home page only once staff switch it on: the logo says PAC is a VATSIM partner or associate
-            "show": bool(C["settings"]().get("vatsim_partner_section", False))}
+            "show": bool(st.get("vatsim_partner_section", False)),
+            # IVAO sends its Virtual Airline logo to certified VAs; PAC has no built-in copy, staff upload the one IVAO provides
+            "ivao": f"/api/va/home/network-logo/ivao?v={int(fi.stat().st_mtime)}" if fi else None,
+            "ivao_show": bool(st.get("ivao_partner_section", False))}
 
 
 @bp.get("/api/va/home/network-logo/<net>")
 def network_logo_get(net):
-    f = network_logo_file(net) if net == "vatsim" else None
+    f = network_logo_file(net) if net in NETWORKS else None
     if not f:
         return jsonify({"error": "No logo uploaded."}), 404
     resp = send_from_directory(_net_logo_dir(), f.name, max_age=86400)
@@ -2601,32 +2608,70 @@ def network_logo_get(net):
 
 @bp.post("/api/staff/network-logo")
 def network_logo_upload():
+    net = request.args.get("net", "vatsim")
+    if net not in NETWORKS:
+        return jsonify({"error": "Unknown network."}), 400
+    name = net.upper()
     f = request.files.get("file")
     if not f or not f.filename:
-        return jsonify({"error": "Choose the VATSIM logo file (PNG, WebP or SVG)."}), 400
+        return jsonify({"error": f"Choose the {name} logo file (PNG, WebP or SVG)."}), 400
     data = f.read()
     ext = NETWORK_LOGO_TYPES.get(f.mimetype)
     looks = {".png": data[:8] == b"\x89PNG\r\n\x1a\n", ".webp": data[:4] == b"RIFF" and data[8:12] == b"WEBP",
              ".svg": b"<svg" in data[:4096].lower()}
     if not ext or not looks.get(ext):
-        return jsonify({"error": "Upload the logo as a PNG, WebP or SVG file from VATSIM's logo pack."}), 400
+        return jsonify({"error": f"Upload the logo as a PNG, WebP or SVG file, as {name} provides it."}), 400
     if len(data) > 5 * 1024 * 1024:
         return jsonify({"error": "That file is over 5 MB. Use the web-sized logo from the pack."}), 400
     if ext == ".svg" and (b"<script" in data.lower() or b"javascript:" in data.lower()):
-        return jsonify({"error": "That SVG contains scripts. Use the PNG version from VATSIM's logo pack instead."}), 400
+        return jsonify({"error": f"That SVG contains scripts. Use the PNG version of the {name} logo instead."}), 400
     d = _net_logo_dir()
     d.mkdir(exist_ok=True)
-    for old in d.glob("vatsim.*"):
+    for old in d.glob(f"{net}.*"):
         old.unlink()
-    (d / ("vatsim" + ext)).write_bytes(data)
+    (d / (net + ext)).write_bytes(data)
     return jsonify({"ok": True, "logos": network_logos()})
 
 
 @bp.delete("/api/staff/network-logo")
 def network_logo_delete():
-    for old in _net_logo_dir().glob("vatsim.*") if _net_logo_dir().exists() else []:
+    net = request.args.get("net", "vatsim")
+    if net not in NETWORKS:
+        return jsonify({"error": "Unknown network."}), 400
+    for old in _net_logo_dir().glob(f"{net}.*") if _net_logo_dir().exists() else []:
         old.unlink()
     return jsonify({"ok": True, "logos": network_logos()})
+
+
+def short_name(name):
+    """'Joseph Pagani' -> 'Joseph P.': enough for a public roster, without publishing full names (GDPR)."""
+    parts = str(name or "").split()
+    return parts[0] if len(parts) < 2 else f"{parts[0]} {parts[-1][0]}."
+
+
+@bp.get("/api/public/roster")
+def public_roster():
+    """The public pilot roster and flight log (VATSIM and IVAO ask for both to be visible without signing in).
+    First name and initial only; no emails, Discord, network IDs or locations."""
+    with C["db"]() as con:
+        pilots = [dict(r) for r in con.execute("SELECT id, name, hub, joined, staff FROM pilots WHERE status='Active' ORDER BY id")]
+        roster = []
+        for pl in pilots:
+            car = career(pl["id"], con)
+            roster.append({"id": pl["id"], "name": short_name(pl["name"]), "rank": car["rank"], "hub": pl.get("hub") or "",
+                           "joined": pl.get("joined"), "hours": car["pac_hours"], "flights": car["flights"], "staff": bool(pl.get("staff"))})
+        names = {pl["id"]: short_name(pl["name"]) for pl in pilots}
+        flights = [dict(r) for r in con.execute(
+            "SELECT filed_at, flight_number, pilot_id, dep, arr, aircraft, block_min, status FROM pireps "
+            "WHERE demo=0 AND review_status='Accepted' ORDER BY filed_at DESC LIMIT 50")]
+        tot = con.execute("SELECT COUNT(*), COALESCE(SUM(block_min), 0) / 60.0 FROM pireps WHERE demo=0 AND review_status='Accepted'").fetchone()
+    for f in flights:
+        f["pilot"] = names.get(f["pilot_id"], "Former pilot")
+        if f["pilot_id"] not in names:
+            f["pilot_id"] = ""
+        f["aircraft_name"] = (C["FLEET"].get(f["aircraft"]) or {}).get("name", f["aircraft"])
+    return jsonify({"pilots": roster, "flights": flights, "totals": {"pilots": len(roster), "flights": tot[0], "hours": round(tot[1], 1)},
+                    "callsign": C["settings"]().get("filing_icao") or "PGC"})
 
 
 @bp.get("/api/va/home")

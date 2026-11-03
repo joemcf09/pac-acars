@@ -29,12 +29,12 @@
 <link rel="stylesheet" href="/static/home-layout.css?v=20261022">
 <link rel="stylesheet" href="/static/mission-accents.css?v=20261022">
 <link rel="stylesheet" href="/static/pilot-experience.css?v=20261022">
-<link rel="stylesheet" href="/static/flight-planning.css?v=20261103e">
+<link rel="stylesheet" href="/static/flight-planning.css?v=20261103f">
 </head>
 <body>
 <header class="pac-nav-v2">
   <a class="brand" href="#home" aria-label="Pagani Air Cargo home" style="color:inherit;text-decoration:none"><img src="/static/pac-wordmark-white.png" alt="Pagani Air Cargo"><span>Flight Operations</span></a>
-  <button id="navToggle" aria-expanded="false" aria-controls="mainNav">Menu ☰</button><nav id="mainNav" aria-label="Main"><button data-view="home">Home</button><button data-view="dashboard">Dashboard</button><button data-view="missions">Missions</button><button data-view="bids">My bids<span class="nav-badge" id="bidsCount" hidden>1</span></button><button data-view="acars">ACARS</button><div class="nav-group"><button class="nav-disclosure" aria-expanded="false" aria-controls="navGroup0">Operations <span aria-hidden="true">▾</span></button><div class="nav-panel" id="navGroup0" hidden><button data-view="fleet">Fleet</button><button data-view="live">Live map</button><button data-view="stations">Stations</button></div></div><div class="nav-group"><button class="nav-disclosure" aria-expanded="false" aria-controls="navGroup1">My career <span aria-hidden="true">▾</span></button><div class="nav-panel" id="navGroup1" hidden><button data-view="career">Career</button><button data-view="logbook">Logbook</button><button data-view="stats">My stats</button><button data-view="shop">Shop</button><button data-view="finance">Finance</button></div></div><div class="nav-group"><button class="nav-disclosure" aria-expanded="false" aria-controls="navGroup2">Crew room <span aria-hidden="true">▾</span></button><div class="nav-panel" id="navGroup2" hidden><button data-view="pilots">Pilots</button><button data-view="gallery">Gallery</button><button data-view="updates">What’s new <span id="pxUpdateCount" class="nav-badge" hidden></span></button></div></div><div class="nav-group"><button class="nav-disclosure" aria-expanded="false" aria-controls="navGroup3">Resources <span aria-hidden="true">▾</span></button><div class="nav-panel" id="navGroup3" hidden><button data-view="downloads">Downloads</button><button data-view="handbook">Handbook</button><button data-view="reports">Report a problem</button></div></div><button data-view="staff">Staff</button></nav>
+  <button id="navToggle" aria-expanded="false" aria-controls="mainNav">Menu ☰</button><nav id="mainNav" aria-label="Main"><button data-view="home">Home</button><button data-view="dashboard">Dashboard</button><button data-view="missions">Missions</button><button data-view="bids">My bids<span class="nav-badge" id="bidsCount" hidden>1</span></button><button data-view="acars">ACARS</button><div class="nav-group"><button class="nav-disclosure" aria-expanded="false" aria-controls="navGroup0">Operations <span aria-hidden="true">▾</span></button><div class="nav-panel" id="navGroup0" hidden><button data-view="fleet">Fleet</button><button data-view="live">Live map</button><button data-view="stations">Stations</button></div></div><div class="nav-group"><button class="nav-disclosure" aria-expanded="false" aria-controls="navGroup1">My career <span aria-hidden="true">▾</span></button><div class="nav-panel" id="navGroup1" hidden><button data-view="career">Career</button><button data-view="logbook">Logbook</button><button data-view="stats">My stats</button><button data-view="shop">Shop</button><button data-view="finance">Finance</button></div></div><div class="nav-group"><button class="nav-disclosure" aria-expanded="false" aria-controls="navGroup2">Crew room <span aria-hidden="true">▾</span></button><div class="nav-panel" id="navGroup2" hidden><button data-view="pilots">Pilots</button><button data-view="roster">Roster &amp; flight log</button><button data-view="gallery">Gallery</button><button data-view="updates">What’s new <span id="pxUpdateCount" class="nav-badge" hidden></span></button></div></div><div class="nav-group"><button class="nav-disclosure" aria-expanded="false" aria-controls="navGroup3">Resources <span aria-hidden="true">▾</span></button><div class="nav-panel" id="navGroup3" hidden><button data-view="downloads">Downloads</button><button data-view="handbook">Handbook</button><button data-view="reports">Report a problem</button></div></div><button data-view="staff">Staff</button></nav>
   <div class="pilot">
     <a href="#bids" id="bidPill" class="bid-pill" hidden onclick="show('bids');return false" title="Your current bid"></a>
     <div class="nav-group account-group"><button id="pilotChip" aria-label="Pilot account" class="pilot-chip nav-disclosure" aria-expanded="false" aria-controls="accountMenu"><img id="pilotThumb" alt=""><span id="pilotLabel"></span><span aria-hidden="true">▾</span></button>
@@ -71,6 +71,8 @@
   <section class="view" id="view-career" hidden><div id="careerRoot"></div></section>
   <!-- ================= Handbook ================= -->
   <section class="view" id="view-handbook" hidden><div id="handbookRoot"></div></section>
+  <!-- ================= Public roster and flight log ================= -->
+  <section class="view" id="view-roster" hidden><div id="rosterRoot"></div></section>
   <!-- ================= Privacy policy ================= -->
   <section class="view" id="view-privacy" hidden><div id="privacyRoot"></div></section>
   <!-- ================= Staff ================= -->
@@ -285,6 +287,6 @@
 
 <script src="/static/cargo-programs.js?v=cargo-experience-20261021"></script>
 <script src="/static/problem-reports.js?v=20261021"></script>
-<script src="/static/app.js?v=privacy-20261103c"></script>
+<script src="/static/app.js?v=roster-20261103"></script>
 </body>
 </html>

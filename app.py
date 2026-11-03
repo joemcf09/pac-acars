@@ -163,7 +163,7 @@ DEFAULT_SETTINGS = {"pilot_name": "", "pilot_id": "PAC0001", "simbrief_username"
                     "live_map_public": False, "discord_bot_enabled": False, "discord_bot_token": "", "discord_guild": "",
                     "discord_ch_flights": "flight-log", "discord_ch_news": "announcements", "discord_ch_welcome": "welcome",
                     "filing_icao": "PGC",
-                    "vatsim_partner_section": False,   # the VATSIM logo on the home page: only once VATSIM has accepted PAC     # the ICAO code pilots file under on VATSIM and IVAO (PAC belongs to Polar Air Cargo)
+                    "vatsim_partner_section": False, "ivao_partner_section": False,   # the VATSIM logo on the home page: only once VATSIM has accepted PAC     # the ICAO code pilots file under on VATSIM and IVAO (PAC belongs to Polar Air Cargo)
                     "discord_ch_dispatch": "dispatch", "discord_ch_notams": "notams", "discord_dispatch_missions": True, "discord_dispatch_partners": True,
                     "discord_dispatch_urgent": True, "discord_dispatch_per_hour": 4,
                     "discord_pilot_role": "PAC Pilot", "discord_staff_role": "PAC Staff", "discord_rank_roles": True,
