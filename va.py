@@ -1017,6 +1017,8 @@ def _stations():
 # ---------------------------------------------------------------- downloads centre
 DOWNLOAD_CATEGORIES = ["Livery", "Checklist", "Document", "Scenery", "Other"]
 DOWNLOAD_MAX_MB = 2048
+DOWNLOAD_DESC_MAX = 2000      # long enough for full install steps
+DOWNLOAD_SIMS = ("", "MSFS", "MSFS 2024", "X-Plane")
 DOWNLOAD_TYPES = (".zip", ".7z", ".rar", ".pdf", ".png", ".jpg", ".txt", ".json", ".ini", ".cfg", ".xml", ".docx", ".xlsx", ".mp4")
 
 
@@ -1112,7 +1114,7 @@ def downloads_upload():
     with C["db"]() as con:
         con.execute("""INSERT INTO downloads (title, category, aircraft, sim, version, description, filename, stored, size, uploaded)
             VALUES (?,?,?,?,?,?,?,?,?,?)""", (title, cat, (request.form.get("aircraft") or "")[:20], (request.form.get("sim") or "")[:20],
-                                               C["clean_text"](request.form.get("version") or "", 20), C["clean_text"](request.form.get("description") or "", 600),
+                                               C["clean_text"](request.form.get("version") or "", 20), C["clean_text"](request.form.get("description") or "", DOWNLOAD_DESC_MAX),
                                                f.filename[-150:], stored, path.stat().st_size, time.time()))
     return downloads_list()
 
@@ -1123,11 +1125,15 @@ def downloads_edit(fid):
     with C["db"]() as con:
         if not con.execute("SELECT 1 FROM downloads WHERE id=?", (fid,)).fetchone():
             return jsonify({"error": "Not found."}), 404
-        for k, n in (("title", 120), ("version", 20), ("description", 600)):
+        for k, n in (("title", 120), ("version", 20), ("description", DOWNLOAD_DESC_MAX)):
             if k in b:
                 con.execute(f"UPDATE downloads SET {k}=? WHERE id=?", (C["clean_text"](b[k] or "", n), fid))
         if b.get("category") in DOWNLOAD_CATEGORIES:
             con.execute("UPDATE downloads SET category=? WHERE id=?", (b["category"], fid))
+        if "aircraft" in b and (not b["aircraft"] or b["aircraft"] in C["FLEET"]):
+            con.execute("UPDATE downloads SET aircraft=? WHERE id=?", (b["aircraft"] or "", fid))
+        if "sim" in b and b["sim"] in DOWNLOAD_SIMS:
+            con.execute("UPDATE downloads SET sim=? WHERE id=?", (b["sim"], fid))
     return downloads_list()
 
 

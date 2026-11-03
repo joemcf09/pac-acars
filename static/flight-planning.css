@@ -185,3 +185,14 @@ html[data-theme="dark"] .ls-wrap .kicker { color: #ff8f8f; }
 .pp-pick:hover, .pp-pick:focus-visible { box-shadow: 0 0 0 3px var(--red, #C80000); outline: none; }
 .pp-pick.is-current { box-shadow: 0 0 0 3px #1f9d55; }
 .pp-tag { display: inline-block; color: #1f9d55; font-size: 12px; text-transform: uppercase; letter-spacing: .04em; }
+
+/* Downloads › livery filter and staff edit */
+.dl-filter { display: flex; flex-wrap: wrap; gap: 10px 22px; align-items: center; margin: 0 0 12px; padding: 0 0 12px; border-bottom: 1px solid var(--line); }
+.dl-chips { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.dl-flabel { font-size: 12px; text-transform: uppercase; letter-spacing: .05em; color: var(--steel); margin-right: 4px; }
+.dl-chip { font: inherit; font-size: 13px; padding: 5px 11px; border: 1px solid var(--line); background: var(--white); color: var(--ink); cursor: pointer; border-radius: 999px; min-height: 32px; }
+.dl-chip:hover { border-color: var(--red, #C80000); }
+.dl-chip[aria-pressed="true"] { background: var(--red, #C80000); border-color: var(--red, #C80000); color: #fff; }
+.dl-count { font-size: 13px; margin-left: auto; }
+.dl-row[hidden] { display: none !important; }
+.dl-edit { width: 100%; }

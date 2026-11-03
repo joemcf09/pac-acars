@@ -2058,9 +2058,22 @@ async function loadDownloads() {
   const staff = !!S.me?.staff, mb = b => b >= 1_048_576 ? `${(b / 1_048_576).toFixed(1)} MB` : `${Math.max(1, Math.round(b / 1024))} KB`;
   const ac = d.acars;
   const byCat = Object.fromEntries(d.categories.map(c => [c, d.files.filter(f => f.category === c)]));
-  const fileRow = f => `<div class="dl-row"><div><b>${esc(f.title)}</b>${f.version ? ` <span class="tag grey">v${esc(f.version)}</span>` : ""}${f.aircraft ? ` <span class="tag dark">${esc(S.fleet[f.aircraft]?.icao || f.aircraft)}</span>` : ""}${f.sim ? ` <span class="tag grey">${esc(f.sim)}</span>` : ""}
-      ${f.description ? `<p>${esc(f.description)}</p>` : ""}<small class="muted">${esc(f.filename)} · ${mb(f.size)} · ${f.downloads} ${f.downloads === 1 ? "download" : "downloads"} · added ${new Date(f.uploaded * 1000).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}</small></div>
-      <div class="dl-actions"><a class="btn small" href="/api/downloads/${f.id}/file">Download</a>${staff ? `<button class="btn ghost small" type="button" data-dl-del="${f.id}">Remove</button>` : ""}</div></div>`;
+  // web addresses in descriptions become links
+  const linkify = t => esc(t).replace(/\bhttps?:\/\/[^\s<]+[^\s<.,;:!?)]/g, u => `<a href="${u}" target="_blank" rel="noopener">${u}</a>`);
+  const simKey = sim => /x-?plane/i.test(sim || "") ? "xp" : /msfs/i.test(sim || "") ? "msfs" : "";
+  const fileRow = f => `<div class="dl-row" data-dl-id="${f.id}" data-sim="${simKey(f.sim)}" data-ac="${esc(f.aircraft || "")}"><div><b>${esc(f.title)}</b>${f.version ? ` <span class="tag grey">v${esc(f.version)}</span>` : ""}${f.aircraft ? ` <span class="tag dark">${esc(S.fleet[f.aircraft]?.icao || f.aircraft)}</span>` : ""}${f.sim ? ` <span class="tag grey">${esc(f.sim)}</span>` : ""}
+      ${f.description ? `<p style="white-space:pre-line">${linkify(f.description)}</p>` : ""}<small class="muted">${esc(f.filename)} · ${mb(f.size)} · ${f.downloads} ${f.downloads === 1 ? "download" : "downloads"} · added ${new Date(f.uploaded * 1000).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}</small></div>
+      <div class="dl-actions"><a class="btn small" href="/api/downloads/${f.id}/file">Download</a>${staff ? `<button class="btn ghost small" type="button" data-dl-edit="${f.id}">Edit</button><button class="btn ghost small" type="button" data-dl-del="${f.id}">Remove</button>` : ""}</div></div>`;
+  // the livery filter: simulator and aircraft, remembered on this computer
+  const liveries = byCat.Livery || [];
+  let pref = {}; try { pref = JSON.parse(localStorage.getItem("pac-dl-filter") || "{}"); } catch (e) { pref = {}; }
+  const acList = [...new Set(liveries.map(f => f.aircraft).filter(Boolean))]
+    .sort((a, b) => (S.fleet[a]?.name || a).localeCompare(S.fleet[b]?.name || b, undefined, { numeric: true }));
+  const shortName = k => (S.fleet[k]?.name || k).replace(/^(Boeing|Airbus|McDonnell Douglas)\s+/, "");
+  const liveryFilter = liveries.length > 4 ? `<div class="dl-filter" role="group" aria-label="Filter liveries">
+      <div class="dl-chips" data-group="sim"><span class="dl-flabel">Simulator</span>${[["", "All"], ["msfs", "MSFS"], ["xp", "X-Plane"]].map(([v, l]) => `<button type="button" class="dl-chip" data-v="${v}" aria-pressed="${(pref.sim || "") === v}">${l}</button>`).join("")}</div>
+      <div class="dl-chips" data-group="ac"><span class="dl-flabel">Aircraft</span><button type="button" class="dl-chip" data-v="" aria-pressed="${!pref.ac}">All</button>${acList.map(k => `<button type="button" class="dl-chip" data-v="${esc(k)}" aria-pressed="${pref.ac === k}">${esc(shortName(k))}</button>`).join("")}</div>
+      <span class="muted dl-count" id="dlCount" aria-live="polite"></span></div>` : "";
   root.innerHTML = `<div class="profile-bar"><h1>Downloads</h1><span class="muted">Everything you need to fly for PAC. Liveries are on the <a href="#fleet" onclick="show('fleet');return false">Fleet page</a>, under each aircraft.</span></div>
     <section class="dl-sec"><h2>PAC ACARS</h2>
       ${ac ? `<div class="dl-row"><div><b>PAC ACARS ${esc(ac.version)}</b><p>Tracks your flights from MSFS or X-Plane, talks to PAC Operations and files your PIREP.</p></div>
@@ -2073,7 +2086,8 @@ async function loadDownloads() {
         <span class="muted" id="acarsUpMsg" style="font-size:13px">Pilots download it from here once uploaded.</span></div>` : ""}</section>
     <section class="dl-sec" id="siCard"></section>
     ${d.categories.filter(c => byCat[c].length || c === "Livery" || c === "Document").map(c => `<section class="dl-sec"><h2>${{ Livery: "Liveries", Checklist: "Checklists", Document: "Documents", Scenery: "Scenery", Other: "Other files" }[c]}</h2>
-      ${byCat[c].length ? byCat[c].map(fileRow).join("") : c === "Livery" ? `<p class="muted">No liveries yet.${staff ? " Upload one below." : ""}</p>` : ""}
+      ${c === "Livery" ? liveryFilter : ""}
+      ${byCat[c].length ? `<div ${c === "Livery" ? 'id="dlLiveries"' : ""}>${byCat[c].map(fileRow).join("")}</div>${c === "Livery" ? `<p class="muted" id="dlNone" hidden>No liveries for that aircraft in that simulator yet.</p>` : ""}` : c === "Livery" ? `<p class="muted">No liveries yet.${staff ? " Upload one below." : ""}</p>` : ""}
       ${c === "Document" ? `
         <div class="dl-row"><div><b>KCVG station guide</b><p>Cincinnati in detail: runways, frequencies, cargo ramps, procedures and PAC's stands.</p></div><div class="dl-actions"><button class="btn ghost small" type="button" data-station="KCVG">Open to print</button></div></div>` : ""}</section>`).join("")}
     <section class="dl-sec"><h2>SimBrief airframes</h2>
@@ -2091,7 +2105,7 @@ async function loadDownloads() {
         <div class="field"><label for="dlAc">Aircraft</label><select id="dlAc" name="aircraft"><option value="">Any / not aircraft-specific</option>${Object.entries(S.fleet).filter(([, v]) => !v.retired).map(([k, v]) => `<option value="${k}">${esc(v.name)}</option>`).join("")}</select></div>
         <div class="field"><label for="dlSim">Simulator</label><select id="dlSim" name="sim"><option value="">Any</option><option>MSFS</option><option>MSFS 2024</option><option>X-Plane</option></select></div>
         <div class="field"><label for="dlVer">Version</label><input id="dlVer" name="version" placeholder="1.0"></div>
-        <div class="field full"><label for="dlDesc">Description</label><textarea id="dlDesc" name="description" rows="2" placeholder="Which add-on it's for, how to install it"></textarea></div>
+        <div class="field full"><label for="dlDesc">Description</label><textarea id="dlDesc" name="description" rows="2" maxlength="2000" placeholder="Which add-on it's for, how to install it"></textarea></div>
         <div class="full row"><button class="btn small" type="submit">Upload</button><span class="muted" id="dlProg" style="font-size:13px"></span></div></form></section>` : ""}`;
   loadSiCard();
   if ($("#acarsUp")) $("#acarsUp").onchange = e => {
@@ -2110,6 +2124,42 @@ async function loadDownloads() {
     try { await api(`/api/staff/acars/build/${encodeURIComponent(b.dataset.acarsDel)}`, { method: "DELETE" }); loadDownloads(); } catch (e) { toast(e.message); }
   });
   if ($("#dlHandbook")) $("#dlHandbook").onclick = () => { show("handbook"); setTimeout(() => print(), 600); };
+  const applyFilter = () => {
+    const rows = [...root.querySelectorAll("#dlLiveries .dl-row")];
+    let shown = 0;
+    rows.forEach(r => { const ok = (!pref.sim || !r.dataset.sim || r.dataset.sim === pref.sim) && (!pref.ac || r.dataset.ac === pref.ac); r.hidden = !ok; if (ok) shown++; });
+    if ($("#dlCount")) $("#dlCount").textContent = shown === rows.length ? `${rows.length} liveries` : `Showing ${shown} of ${rows.length}`;
+    if ($("#dlNone")) $("#dlNone").hidden = shown > 0;
+  };
+  root.querySelectorAll(".dl-chips").forEach(g => g.querySelectorAll(".dl-chip").forEach(b => b.onclick = () => {
+    pref[g.dataset.group] = b.dataset.v;
+    g.querySelectorAll(".dl-chip").forEach(x => x.setAttribute("aria-pressed", String(x === b)));
+    try { localStorage.setItem("pac-dl-filter", JSON.stringify(pref)); } catch (e) { /* private window */ }
+    applyFilter();
+  }));
+  if (pref.ac && !acList.includes(pref.ac)) pref.ac = "";
+  applyFilter();
+  // staff: edit a file's details without re-uploading it
+  root.querySelectorAll("[data-dl-edit]").forEach(b => b.onclick = () => {
+    const f = d.files.find(x => String(x.id) === b.dataset.dlEdit), row = b.closest(".dl-row");
+    row.hidden = false;
+    row.innerHTML = `<form class="dl-form dl-edit">
+      <div class="field"><label>Title</label><input name="title" value="${esc(f.title)}" maxlength="120" required></div>
+      <div class="field"><label>Category</label><select name="category">${d.categories.map(c => `<option ${c === f.category ? "selected" : ""}>${c}</option>`).join("")}</select></div>
+      <div class="field"><label>Version</label><input name="version" value="${esc(f.version || "")}" maxlength="20"></div>
+      <div class="field"><label>Aircraft</label><select name="aircraft"><option value="">Any / not aircraft-specific</option>${Object.entries(S.fleet).filter(([k, v]) => !v.retired || k === f.aircraft).map(([k, v]) => `<option value="${k}" ${k === f.aircraft ? "selected" : ""}>${esc(v.name)}</option>`).join("")}</select></div>
+      <div class="field"><label>Simulator</label><select name="sim">${["", "MSFS", "MSFS 2024", "X-Plane"].map(v => `<option value="${v}" ${v === (f.sim || "") ? "selected" : ""}>${v || "Any"}</option>`).join("")}</select></div>
+      <div class="field full"><label>Description</label><textarea name="description" rows="4" maxlength="2000">${esc(f.description || "")}</textarea></div>
+      <div class="full row"><button class="btn small" type="submit">Save</button><button class="btn ghost small" type="button" data-cancel>Cancel</button>
+        <span class="muted" style="font-size:13px">${esc(f.filename)} stays as it is.</span></div></form>`;
+    row.querySelector("[data-cancel]").onclick = () => loadDownloads();
+    row.querySelector("form").onsubmit = async e => {
+      e.preventDefault();
+      const body = Object.fromEntries(new FormData(e.target));
+      try { await api(`/api/staff/downloads/${f.id}`, { method: "POST", body }); toast("Saved."); loadDownloads(); } catch (err) { toast(err.message); }
+    };
+    row.querySelector("input").focus();
+  });
   root.querySelectorAll("[data-dl-del]").forEach(b => b.onclick = async () => {
     if (!confirm("Remove this file from the downloads centre?")) return;
     try { await api(`/api/staff/downloads/${b.dataset.dlDel}`, { method: "DELETE" }); loadDownloads(); } catch (e) { toast(e.message); }
