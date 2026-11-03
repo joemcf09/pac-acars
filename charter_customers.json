@@ -16,7 +16,7 @@
         "id": "medical",
         "title": "Medical equipment",
         "cargo": "Packaged medical equipment",
-        "brief": "Move packaged diagnostic equipment to a regional distribution centre for onward road delivery."
+        "brief": "Move packaged diagnostic equipment to a regional distribution center for onward road delivery."
       }
     ]
   },
@@ -30,7 +30,7 @@
       {
         "id": "industrial",
         "title": "Industrial replenishment",
-        "cargo": "Palletised industrial components",
+        "cargo": "Palletized industrial components",
         "brief": "Connect two regional distribution points with a consolidated shipment of factory components."
       },
       {
@@ -52,7 +52,7 @@
         "id": "automotive",
         "title": "Automotive supply run",
         "cargo": "Crated automotive components",
-        "brief": "Move replacement assemblies to a regional parts centre supporting several customers."
+        "brief": "Move replacement assemblies to a regional parts center supporting several customers."
       },
       {
         "id": "project",
@@ -99,8 +99,8 @@
       {
         "id": "automotive",
         "title": "Factory components",
-        "cargo": "Palletised automotive spares",
-        "brief": "Carry a consolidated factory shipment between regional logistics centres."
+        "cargo": "Palletized automotive spares",
+        "brief": "Carry a consolidated factory shipment between regional logistics centers."
       }
     ]
   },
@@ -121,7 +121,7 @@
         "id": "industrial",
         "title": "Supply-chain connection",
         "cargo": "Crated industrial components",
-        "brief": "Connect a dispatch warehouse with a receiving logistics centre using a PAC freighter."
+        "brief": "Connect a dispatch warehouse with a receiving logistics center using a PAC freighter."
       }
     ]
   },

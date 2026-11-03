@@ -13,7 +13,7 @@ browser is the interface. Everything the airline knows lives in `data/`.
 | `tests/flightgen.py`, `tests/test_flights.py` | Scripted realistic flights on real runway geometry, run through the real tracker, scoring, analysis, economics, pay, dispatch messages and maintenance. |
 | `tracker.py` | `FlightRecorder` turns a telemetry stream into flight phases, OOOI times, exceedances, touchdowns and bounces, integrity checks (sim rate, pause), and the samples used for analysis. `TrackerThread` polls the simulator. |
 | `sim_sources.py` | Telemetry sources: MSFS (SimConnect), X-Plane (UDP datarefs), and the demo aircraft. All produce the same `Telemetry` record. |
-| `analysis.py` | Landing analysis (runway match, touchdown point, centreline, float, stability, rollout) and takeoff analysis (rotation, liftoff, tail-strike margin, runway used). |
+| `analysis.py` | Landing analysis (runway match, touchdown point, centerline, float, stability, rollout) and takeoff analysis (rotation, liftoff, tail-strike margin, runway used). |
 | `economics.py` | Contract pricing and flight costs. PAC's revenue, costs and profit per flight and estimates. |
 | `dispatch.py` | Dispatch release, cargo manifest, loading plan and NOTOC, generated once at booking. |
 | `weather.py` | METAR/TAF fetch (aviationweather.gov), cache and decoder; wind components. |

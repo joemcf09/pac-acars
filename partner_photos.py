@@ -1,8 +1,8 @@
 """Real-world photos of partner airlines' aircraft for landing and takeoff cards, from Wikimedia Commons.
 
 For each partner airline and aircraft type, PAC asks the Wikimedia Commons API for photos of that airline's aircraft
-(first by the airline's real registrations, then by airline and type), keeps only photos whose licence allows reuse
-(public domain, CC0, CC BY, CC BY-SA; the most permissive first), records the photographer and the licence for the
+(first by the airline's real registrations, then by airline and type), keeps only photos whose license allows reuse
+(public domain, CC0, CC BY, CC BY-SA; the most permissive first), records the photographer and the license for the
 credit line on the card, and downloads one display copy to data/partner_photos. Nothing is ever hot-linked.
 
 Staff can ask for the next photo, pin a particular Commons file, or switch a combination back to the PAC photo.
@@ -36,7 +36,7 @@ SKIP_WORDS = ("cockpit", "interior", "cabin", "engine", "seat", "logo", "model",
 
 
 def licence_rank(short):
-    """0 best ... 3 acceptable; None when the licence doesn't allow PAC to reuse the photo."""
+    """0 best ... 3 acceptable; None when the license doesn't allow PAC to reuse the photo."""
     s = (short or "").strip().lower()
     if not s:
         return None
@@ -185,7 +185,7 @@ class PartnerPhotos:
                 pin_file = pin_file if pin_file.startswith("File:") else "File:" + pin_file
                 got = [c for c in self._info([pin_file]) if c["rank"] is not None]
                 if not got:
-                    raise ValueError("That Commons file can't be used: it's missing or its licence doesn't allow reuse.")
+                    raise ValueError("That Commons file can't be used: it's missing or its license doesn't allow reuse.")
                 best = got[0]
             elif after is not None:
                 # "Next photo": the one after the current photo, going back to the first after the last

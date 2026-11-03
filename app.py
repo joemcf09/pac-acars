@@ -56,7 +56,7 @@ DEFAULT_PROFILE = {
     "bio": "Founder of Pagani Air Cargo and the airline's senior line captain. Built the network around one idea: when a region needs relief, medicine or a critical part, a PAC freighter is already on its way. Flies the full fleet and personally checks out every new type before it enters service.",
     "photo": "/static/pilot-photo.jpg",
     "credentials": [
-        {"label": "Pilot licence", "value": "Airline Transport Pilot (ATPL / ATP)", "detail": "Multi-engine land, instrument", "expires": ""},
+        {"label": "Pilot license", "value": "Airline Transport Pilot (ATPL / ATP)", "detail": "Multi-engine land, instrument", "expires": ""},
         {"label": "Medical", "value": "First class", "detail": "", "expires": ""},
         {"label": "Instrument rating", "value": "IR multi-engine, CAT IIIb", "detail": "Low-visibility operations approved", "expires": ""},
         {"label": "Long-range operations", "value": "ETOPS 180 / RVSM / NAT HLA", "detail": "Oceanic and polar routes", "expires": ""},
@@ -1115,7 +1115,7 @@ def pilot_type_ratings(pid):
     try:
         rated = va.type_ratings(pid)
         if not settings().get("require_type_ratings"):
-            # rank alone qualifies a pilot: the licence lists every family their rank has unlocked
+            # rank alone qualifies a pilot: the license lists every family their rank has unlocked
             for t in va.career(pid)["unlocked"]:
                 rated.setdefault(va.rating_family(t), {"source": "rank", "date": None})
     except Exception:
@@ -1200,7 +1200,7 @@ def profile_stats(pid=None, recent_n=5):
 
 
 def with_rating_families(p):
-    """Each type rating covers a whole family (one rating flies the 757 and the 767), so the licence counts hours and
+    """Each type rating covers a whole family (one rating flies the 757 and the 767), so the license counts hours and
     landings on every type in it, not just the first."""
     rows = []
     for r in p.get("type_ratings") or []:
@@ -1757,7 +1757,7 @@ def clear_booking(pid=None):
     with db() as con:
         con.execute("DELETE FROM bookings WHERE pilot_id=?", (pid,))
     if "SI" in globals():
-        SI.notify(pid, "flight finished or cancelled")
+        SI.notify(pid, "flight finished or canceled")
 
 
 def all_bookings():

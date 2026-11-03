@@ -1,6 +1,6 @@
 /* ==========================================================================
    Flight planning on the mission board: four steps on tabs, and the
-   preliminary load sheet. Uses the site's colour tokens, so the classic and
+   preliminary load sheet. Uses the site's color tokens, so the classic and
    Load Sheet designs and the dark theme all follow automatically.
    ========================================================================== */
 #view-missions #dossier { max-width: 1120px; overflow: hidden; }

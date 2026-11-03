@@ -103,7 +103,7 @@ def main():
     gates = [i for i, ln in enumerate(lines) if GATE_RE.match(ln)]
     if len(gates) != 1:
         fail(f"expected exactly one generation gate line, found {len(gates)}. "
-             "The file differs from what I analysed; send me the current va.py.")
+             "The file differs from what I analyzed; send me the current va.py.")
     gate_i = gates[0]
     indent = GATE_RE.match(lines[gate_i]).group(1)
     print(f"check: generation gate at line {gate_i + 1} (indent {len(indent)} spaces)")

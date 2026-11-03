@@ -116,7 +116,7 @@ def _fields(form, current=None):
     if not merged.get("painter"):
         raise ValueError("Add the painter's name: credit is the point of this page.")
     if not merged.get("title"):
-        out["title"] = "PAC house colours"
+        out["title"] = "PAC house colors"
     if not merged.get("model"):
         out["model"] = C["FLEET"].get(merged["type"], {}).get("sim_model", "") or ""
     return out

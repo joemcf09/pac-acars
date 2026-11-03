@@ -678,8 +678,8 @@ JOB_TEMPLATES = [
     # (kind, category, priority, cargo, title, briefing, load fraction range, heavy?)
     ("Racehorses", "Premium", "High", "Thoroughbred racehorses in stalls with grooms", "Racehorses to {city}",
      "A string of racehorses for a major meeting near {city}. Grooms travel with the animals. Smooth climbs and descents, and no hard braking.", (0.15, 0.3), False),
-    ("Zoo", "Premium", "High", "Zoo animals for an international breeding programme", "Zoo animals to {city}",
-     "Rare animals moving between zoos for a breeding programme. Keepers are on board and the hold is kept at a steady temperature.", (0.1, 0.25), False),
+    ("Zoo", "Premium", "High", "Zoo animals for an international breeding program", "Zoo animals to {city}",
+     "Rare animals moving between zoos for a breeding program. Keepers are on board and the hold is kept at a steady temperature.", (0.1, 0.25), False),
     ("Cattle", "Premium", "Standard", "Breeding cattle in livestock stalls", "Breeding cattle to {city}",
      "Pedigree breeding stock for a dairy cooperative near {city}. Ventilation is critical, so no long ground holds with the packs off.", (0.5, 0.8), False),
     ("Motorsport", "Express", "High", "Race cars, spares and team equipment for the Grand Prix", "Grand Prix freight to {city}",
@@ -695,13 +695,13 @@ JOB_TEMPLATES = [
     ("Bullion", "Premium", "High", "Gold bullion and banknotes under armed escort", "Valuables to {city}",
      "A central bank shipment under escort. Security meets the aircraft on arrival.", (0.15, 0.35), False),
     ("Satellite", "Heavy lift", "High", "Communications satellite in a clean-room container", "Satellite to {city}",
-     "An outsized clean-room container carrying a satellite bound for its launch site. No sharp manoeuvres.", (0.3, 0.55), True),
+     "An outsized clean-room container carrying a satellite bound for its launch site. No sharp maneuvers.", (0.3, 0.55), True),
     ("Turbine", "Heavy lift", "Standard", "Wind turbine gearbox and blade hub", "Wind turbine parts to {city}",
      "A failed gearbox has stopped a wind farm near {city}. The replacement is a single heavy piece.", (0.4, 0.7), True),
     ("Helicopter", "Heavy lift", "Standard", "Helicopter for an air ambulance operator", "Air ambulance helicopter to {city}",
      "A new air ambulance helicopter, rotors folded, for an operator in {city}.", (0.2, 0.4), True),
-    ("Mining", "Heavy lift", "Standard", "Mining truck tyres and heavy spares", "Mining spares to {city}",
-     "A mine near {city} has trucks parked for want of tyres and spares. Heavy, awkward pieces.", (0.6, 0.9), True),
+    ("Mining", "Heavy lift", "Standard", "Mining truck tires and heavy spares", "Mining spares to {city}",
+     "A mine near {city} has trucks parked for want of tires and spares. Heavy, awkward pieces.", (0.6, 0.9), True),
     ("Wildfire", "Humanitarian", "Critical", "Wildfire suppression pumps, hoses and retardant equipment", "Wildfire equipment to {city}",
      "Wildfires are burning near {city}. Crews on the ground need this equipment today.", (0.5, 0.85), False),
     ("Shelter", "Humanitarian", "High", "Shelter, hygiene and cooking kits for a refugee camp", "Shelter kits to {city}",
@@ -721,7 +721,7 @@ JOB_TEMPLATES = [
     ("Aerospace", "Express", "High", "Aircraft fuselage sections for a production line", "Aircraft sections to {city}",
      "Fuselage sections for an aircraft assembly line near {city}. The line stops if they're late.", (0.3, 0.6), True),
     ("Peak", "Express", "Standard", "Peak-season e-commerce overflow", "Peak-season parcels to {city}",
-     "The sort centre at {city} is overflowing with seasonal parcels. Extra lift requested tonight.", (0.6, 0.95), False),
+     "The sort center at {city} is overflowing with seasonal parcels. Extra lift requested tonight.", (0.6, 0.95), False),
     ("Harvest", "Express", "High", "Seasonal fruit harvest in cool containers", "Harvest to {city}",
      "Harvest is in and the fruit must reach {city} markets fresh.", (0.6, 0.9), False),
     ("Seafood", "Express", "High", "Live lobsters and fresh seafood on ice", "Live seafood to {city}",
@@ -1016,8 +1016,8 @@ URGENT_KINDS = [
      "load": (0.05, 0.15), "brief": "Hospitals around {city} have run out of antivenom after a spike in snakebite cases. A small load with a very big job."},
     {"kind": "Rescue", "title": "Rescue team equipment to {city}", "cargo": "Search and rescue team kit, rescue dogs' crates and medical stock", "mult": 1.3,
      "load": (0.35, 0.6), "brief": "A building collapse in {city} has trapped people. An international rescue team is ready to go the moment their equipment lands."},
-    {"kind": "Data", "title": "Servers for a failed data centre in {city}", "cargo": "Replacement servers and storage arrays", "mult": 1.7,
-     "load": (0.25, 0.5), "brief": "A fire has taken a data centre near {city} offline, and banks and hospitals are running on backups. The replacement hardware must be in the racks tonight."},
+    {"kind": "Data", "title": "Servers for a failed data center in {city}", "cargo": "Replacement servers and storage arrays", "mult": 1.7,
+     "load": (0.25, 0.5), "brief": "A fire has taken a data center near {city} offline, and banks and hospitals are running on backups. The replacement hardware must be in the racks tonight."},
     {"kind": "Sports", "title": "Team equipment to {city}: game tomorrow", "cargo": "Pro team equipment, uniforms and medical kit", "mult": 1.6,
      "load": (0.15, 0.35), "brief": "A pro team's equipment truck broke down on the way to the airport and the game in {city} is tomorrow. The equipment staff are waiting at the stadium."},
     {"kind": "Racing", "title": "Race team spares to {city}", "cargo": "Spare chassis, gearboxes and pit equipment", "mult": 1.6,
@@ -1033,7 +1033,7 @@ def _stations():
     return st
 
 
-# ---------------------------------------------------------------- downloads centre
+# ---------------------------------------------------------------- downloads center
 DOWNLOAD_CATEGORIES = ["Livery", "Checklist", "Document", "Scenery", "Other"]
 DOWNLOAD_MAX_MB = 2048
 DOWNLOAD_DESC_MAX = 2000      # long enough for full install steps
@@ -2173,7 +2173,7 @@ def grant_rating(con, pilot_id, fam, source, score=None, pirep_id=None):
 
 
 def note_rating_on_licence(pilot_id, fam, when):
-    """The founder's profile holds the licence: mark the PAC checkride on the matching type rating."""
+    """The founder's profile holds the license: mark the PAC checkride on the matching type rating."""
     if pilot_id != (C["settings"]().get("pilot_id") or "PAC0001"):
         return
     try:
@@ -2193,7 +2193,7 @@ def note_rating_on_licence(pilot_id, fam, when):
                 r["notes"] = ((r.get("notes") or "") + f" · PAC checkride {date}").strip(" ·")
         C["save_json"](C["DATA"] / "profile.json", prof)
     except Exception as e:
-        print("Could not note the rating on the licence:", e)
+        print("Could not note the rating on the license:", e)
 
 
 def checkride_aircraft_stations(pilot_id, entry, _career=None):
@@ -2479,7 +2479,7 @@ def goal_progress(pilot_id, g):
         noun = {"block hours": "block hour", "flights": "flight", "new airports": "new airport", "new countries": "new country",
                 "A grades": "A grade", "landings softer than 150 fpm": "landing softer than 150 fpm"}.get(noun, noun)
     when = {"month": f"in {label}", "year": f"in {label}", "ever": "in total",
-            "deadline": f"by {dt.datetime.fromtimestamp(g['deadline'] or now, dt.timezone.utc).strftime('%d %b %Y')}"}[g["period"]]
+            "deadline": f"by {dt.datetime.fromtimestamp(g['deadline'] or now, dt.timezone.utc).strftime('%b %d, %Y')}"}[g["period"]]
     return {**g, "value": round(value, 1), "pct": min(100, round(value / g["target"] * 100)) if g["target"] else 0,
             "done": value >= g["target"], "title": f"{g['target']:,.0f} {noun} {when}", "unit": unit, "days_left": left,
             "expired": g["period"] == "deadline" and now > end and value < g["target"]}
@@ -3098,7 +3098,7 @@ def staff_roster(pid):
 
 
 # ---------------------------------------------------------------- maintenance write-ups
-ATA = {5: "Time limits and inspections", 21: "Air conditioning and pressurisation", 22: "Autoflight", 23: "Communications",
+ATA = {5: "Time limits and inspections", 21: "Air conditioning and pressurization", 22: "Autoflight", 23: "Communications",
        24: "Electrical power", 26: "Fire protection", 27: "Flight controls", 28: "Fuel", 29: "Hydraulic power",
        30: "Ice and rain protection", 31: "Indicating and recording", 32: "Landing gear and brakes", 33: "Lights", 34: "Navigation",
        36: "Pneumatic", 49: "APU", 50: "Cargo compartments", 52: "Doors", 53: "Fuselage", 71: "Power plant", 80: "Engine starting"}

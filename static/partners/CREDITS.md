@@ -4,7 +4,7 @@ Used to identify simulated partner operators in Pagani Air Cargo, a flight
 simulation virtual airline. Names and logos are trademarks of their respective
 owners; their use does not imply sponsorship or endorsement.
 
-| File | Source | Licence |
+| File | Source | License |
 |---|---|---|
 | fedex-express.png | https://commons.wikimedia.org/wiki/File:FedEx_Express.svg | Public domain |
 | ups-airlines.png | https://commons.wikimedia.org/wiki/File:UPS_Logo_Shield_2017.svg | Public domain |
@@ -17,4 +17,4 @@ owners; their use does not imply sponsorship or endorsement.
 
 | File | Source | Use |
 |---|---|---|
-| vatsim-logo.svg | VATSIM logo pack for public use (https://vats.im/logo), file VATIM_LOGO_NO_TAGLINE.svg, unaltered | Displayed under VATSIM's Virtual Airline Partner policy and brand guidelines (https://cdn.vatsim.net/VATSIM_Brand_Guidelines_v2.pdf): full colour, on a light background, not modified. VATSIM is a trademark of VATSIM, Inc. |
+| vatsim-logo.svg | VATSIM logo pack for public use (https://vats.im/logo), file VATIM_LOGO_NO_TAGLINE.svg, unaltered | Displayed under VATSIM's Virtual Airline Partner policy and brand guidelines (https://cdn.vatsim.net/VATSIM_Brand_Guidelines_v2.pdf): full color, on a light background, not modified. VATSIM is a trademark of VATSIM, Inc. |

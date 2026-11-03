@@ -29,10 +29,10 @@ In Cloudflare, open **pac-va.com → DNS → Add record**, twice:
 
 | Type | Name | Content | Proxy |
 |---|---|---|---|
-| A | `@` | your server's IP | **DNS only** (grey cloud) |
-| A | `www` | your server's IP | **DNS only** (grey cloud) |
+| A | `@` | your server's IP | **DNS only** (gray cloud) |
+| A | `www` | your server's IP | **DNS only** (gray cloud) |
 
-Grey cloud matters at first: Caddy needs to reach your server directly to get its certificate. You can switch the
+Gray cloud matters at first: Caddy needs to reach your server directly to get its certificate. You can switch the
 orange cloud on later if you want Cloudflare's protection.
 
 Check it worked (wait a minute or two):
@@ -232,7 +232,7 @@ That backs up first, replaces the program files only (your data is untouched), i
 | What you see | What to do |
 |---|---|
 | "This site can't be reached" | `systemctl status pac` and `systemctl status caddy` on the server |
-| Certificate warning | Check the DNS records are grey-cloud, then `journalctl -u caddy -n 50` |
+| Certificate warning | Check the DNS records are gray-cloud, then `journalctl -u caddy -n 50` |
 | PAC won't start after an update | `journalctl -u pac -n 50` shows the error; restore with the backup it took |
 | Sign-in links say localhost | Set the website address in Staff › Site and rules › Letters and links |
 | Pilots can't connect the ACARS app | They need `https://pac-va.com` in the app's Settings, and to sign in again |

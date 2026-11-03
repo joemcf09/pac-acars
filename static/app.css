@@ -1025,7 +1025,7 @@ html[data-theme="dark"] .gate-table td.ok{color:#7FD9A2}html[data-theme="dark"] 
 @media print{body:has(#view-stations:not([hidden])) header,body:has(#view-stations:not([hidden])) .st-back,body:has(#view-stations:not([hidden])) .st-mapwrap{display:none!important}
   body:has(#view-stations:not([hidden])) main{margin:0!important;padding:0!important}.st-panel{break-inside:avoid;border-color:#bbb}}
 
-/* ============ Downloads centre ============ */
+/* ============ Downloads center ============ */
 .dl-sec{background:var(--white);border:1px solid var(--line);padding:16px 20px;margin-bottom:14px}
 .dl-sec h2{margin:0 0 10px;font-size:20px}
 .dl-row{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;padding:10px 0;border-top:1px solid var(--line)}
@@ -1352,7 +1352,7 @@ table.roster-table tbody tr:focus-visible{outline:2px solid var(--red);outline-o
 html[data-theme="dark"] .cargo-stamp h3,html[data-theme="dark"] .cargo-stamp-top,html[data-theme="dark"] .cargo-tabs button.active{color:#ff8888}html[data-theme="dark"] .cargo-collection.earned .kicker{color:#7fd9a2}.cargo-tabs button:hover{color:var(--ink)}
 .cargo-form input,.cargo-form textarea,.cargo-search input{background:var(--white);border:1px solid var(--line);border-radius:3px;padding:10px 12px;color:var(--ink)}.cargo-search input{width:100%;min-width:0}.cargo-form textarea{resize:vertical}
 
-/* Pilot journey: scoped colours keep guidance legible inside both site themes. */
+/* Pilot journey: scoped colors keep guidance legible inside both site themes. */
 .journey-sections{display:flex;flex-wrap:wrap;gap:8px;margin:18px 0 24px}
 .journey-sections button{font:inherit;font-weight:650;padding:11px 16px;border:1px solid #ccd1d7;border-radius:6px;background:#fff;color:#20252b;cursor:pointer}
 .journey-sections button[aria-current="page"],.journey-sections button[aria-pressed="true"]{background:#c00;border-color:#c00;color:#fff}

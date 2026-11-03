@@ -81,7 +81,7 @@ POOLS = [
     (("industrial gases", "cylinders"), [("Industrial gas cylinders", ["RNG"], "gas", 99)]),
     (("bullion", "banknote"), [("Valuable cargo, escorted", ["VAL"], None)]),
     (("helicopter",), [("Helicopter on skid frame, blades removed", ["BIG", "HEA"], None, 1), ("Rotor blades and spares", ["BIG"], None)]),
-    (("tyre", "tire"), [("Mining-truck tyres", ["BIG", "HEA"], None)]),
+    (("tyre", "tire"), [("Mining-truck tires", ["BIG", "HEA"], None)]),
     (("stage", "lighting", "touring", "motorsport"), [("Touring production equipment", ["GEN"], None)]),
 ]
 GENERAL = [("General cargo", ["GEN"], None), ("Consolidated freight", ["GEN"], None), ("Machinery spares", ["GEN"], None)]
@@ -247,7 +247,7 @@ def paperwork(d, fleet, booking=None, notams=None, captain_rank=None, airports=N
     tow = int(w.get("tow_lbs") or (zfw + tof))
     law = int(w.get("ldw_lbs") or (tow - trip))
     min_release = trip + reserve + contingency + round(burn * .25, -1)  # trip, final reserve, contingency, alternate allowance
-    # balance: where the cargo sits along the hold sets the centre of gravity (%MAC) and the stabiliser trim
+    # balance: where the cargo sits along the hold sets the center of gravity (%MAC) and the stabilizer trim
     main = d.get("deck", {}).get("main") or []
     pos_ix = {p: (i + .5) / max(1, len(main)) for i, p in enumerate(main)}
     moment = sum(p["weight_lbs"] * pos_ix.get(p["pos"], .55) for p in d.get("positions", []))

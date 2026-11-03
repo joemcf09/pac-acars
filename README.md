@@ -164,7 +164,7 @@ All three use the same SimBrief, ACARS, PIREP and logbook flow.
   Airframes) for its route map, hours, cycles, profit and flight history.
 * **Live weather**: METARs and TAFs from the Aviation Weather Center
   (aviationweather.gov, free, no account) on every flight's detail panel, in
-  the dispatch paperwork, and colouring the network maps by flight category.
+  the dispatch paperwork, and coloring the network maps by flight category.
   ACARS sends destination and alternate weather at top of descent, has a **WX**
   button for on-demand reports, and records the wind at touchdown so the landing
   analysis shows the crosswind and headwind for the runway you used. Reports are
@@ -173,11 +173,11 @@ All three use the same SimBrief, ACARS, PIREP and logbook flow.
   fleet edits and photos into `data/backups` (last 14 kept). Staff › Site and
   rules shows them and has a **Back up now** button. To restore, close ACARS
   and copy the files from a backup folder back into `data`.
-* **Pilot licence**: Profile › Pilot licence draws a two-sided ID card with your
+* **Pilot license**: Profile › Pilot license draws a two-sided ID card with your
   photo, rank insignia and type ratings. Download front and back as PNG.
 * **Flight analysis**: every PIREP records a flight profile and a high-rate
   landing window. The logbook shows the runway you landed on, touchdown
-  distance past the threshold, centreline offset, float, approach stability and
+  distance past the threshold, centerline offset, float, approach stability and
   rollout, with profile charts and an animated replay. Each flight has a
   downloadable landing card (PNG) for Discord or social media. Runway data comes
   from OurAirports (`data/runways.json`, rebuilt by `tools/build_airports.py`).
@@ -250,12 +250,12 @@ Every flight starts at 100.
 
 Grades: A 90+, B 80+, C 70+, D 60+, F below. Points = mission reward × score.
 
-## Customising
+## Customizing
 
 * `data/missions.json`: add or edit missions. Airport coordinates drive the
   position checks and the map.
 * `data/fleet.json`: aircraft, payload limits and the `simbrief_type` sent to
-  SimBrief. If SimBrief doesn't recognise a type, replace it with the code or
+  SimBrief. If SimBrief doesn't recognize a type, replace it with the code or
   airframe ID from your SimBrief aircraft list.
 * **Fleet page**: descriptions, roles, registrations, engines, crew, main deck
   and photos are editable from the Fleet tab (Edit on each aircraft). Your

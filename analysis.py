@@ -24,7 +24,7 @@ def runways(data_dir: Path):
 
 
 def _enu(lat0, lon0, lat, lon):
-    """Metres east/north of (lat0, lon0). Accurate enough over a few kilometres."""
+    """Meters east/north of (lat0, lon0). Accurate enough over a few kilometers."""
     k = 111_320.0
     return (lon - lon0) * k * math.cos(math.radians(lat0)), (lat - lat0) * k
 
@@ -44,7 +44,7 @@ def match_runway(rw_list, lat, lon, hdg):
             e, n = _enu(tlat, tlon, lat, lon)
             h = math.radians(thdg)
             along = e * math.sin(h) + n * math.cos(h)
-            cross = e * math.cos(h) - n * math.sin(h)  # + = right of centreline
+            cross = e * math.cos(h) - n * math.sin(h)  # + = right of centerline
             if along < -300 or (length_m and along > length_m + 300) or abs(cross) > max(120, width_m * 2):
                 continue
             cand = {"runway": ident, "along_m": along - (disp_ft or 0) / FT_PER_M, "cross_m": cross,
@@ -73,7 +73,7 @@ SUSTAIN_S = 3   # seconds a descent rate must last to count against a stable app
 
 def sustained_min(points, secs):
     """The most negative value that lasted at least `secs`. Each window of that length counts at its least-negative
-    value, and the result is the worst window. A lone sample with no neighbour inside its window counts on its own
+    value, and the result is the worst window. A lone sample with no neighbor inside its window counts on its own
     (sparse data), so a real steep descent is never missed."""
     pts = sorted(points)
     if not pts:
@@ -258,7 +258,7 @@ TCH_FT = 50          # threshold crossing height
 
 
 def approach_profile(profile, la, gc_nm, max_nm=12.0):
-    """The final approach from a PIREP's flight profile, measured along the runway's extended centreline.
+    """The final approach from a PIREP's flight profile, measured along the runway's extended centerline.
     profile rows: [t, lat, lon, alt, agl, ias, gs, vs, hdg]. Needs the landing analysis' threshold and runway heading.
     Returns points (distance to threshold in nm, height above ground, speeds), the ideal 3-degree path,
     and how the flight crossed the 1,000, 500 and 200 ft gates."""

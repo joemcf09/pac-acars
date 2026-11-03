@@ -95,7 +95,7 @@ def _airline_block(st):
         "What PAC flies: humanitarian relief, cold-chain medicine, AOG aircraft parts, heavy lift, premium and live "
         "animal charters, and scheduled freight, across a worldwide network.",
         "PAC is all-cargo: there are never passengers. People on board besides the pilots are crew or supernumeraries "
-        "travelling with the cargo (grooms with horses, couriers with art, keepers with animals, loadmasters).",
+        "traveling with the cargo (grooms with horses, couriers with art, keepers with animals, loadmasters).",
         "Company contact: PAC Operations Control, ops@pac-va.com.",
         f"Airline notes from PAC staff:\n{notes}" if notes else "",
     ] if x)

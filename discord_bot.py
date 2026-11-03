@@ -112,7 +112,7 @@ def livery_text(ev, site):
     painter = ev.get("painter") or "a PAC painter"
     by = f"[{painter}](<{ev['painter_link']}>)" if ev.get("painter_link") else f"**{painter}**"
     what = " · ".join(x for x in (ev.get("sim"), ev.get("model"), ev.get("registration")) if x)
-    return (f"🎨 New livery: the **{ev.get('aircraft', ev.get('type', ''))}** in {ev.get('title') or 'PAC colours'}, painted by {by}."
+    return (f"🎨 New livery: the **{ev.get('aircraft', ev.get('type', ''))}** in {ev.get('title') or 'PAC colors'}, painted by {by}."
             + (f"\n{what}" if what else "") + f"\nGet it on the Fleet page: {site.rstrip('/')}/#fleet")
 
 

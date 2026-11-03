@@ -47,7 +47,7 @@ GUIDES = {
     "KCVG": {
         "name": "Cincinnati/Northern Kentucky International",
         "role": "PAC main hub",
-        "updated": "October 2026 (FAA Chart Supplement cycle of 6 August 2026)",
+        "updated": "October 2026 (FAA Chart Supplement cycle of August 6, 2026)",
         "glance": [
             ["ICAO / IATA", "KCVG / CVG"],
             ["Location", "8 miles SW of Covington, Kentucky, serving Cincinnati, Ohio"],
@@ -68,16 +68,16 @@ GUIDES = {
                 "south side of the airfield, with an option on more land to the north.",
                 "Cargo has made up more than half of the airport's landed weight (about 54% in airport figures), which keeps landing fees low for the "
                 "passenger airlines. Atlas Air, a major contract operator for both DHL and Amazon, runs a large "
-                "operations centre near the airport. FedEx's operation is in the west service area, where the "
+                "operations center near the airport. FedEx's operation is in the west service area, where the "
                 "original DHL hub once stood.",
                 "General, non-express freight is the newest part of the story. The airport is developing North Cargo "
                 "Village (also called the Global Logistics Park) on the north side of the campus, with forwarding "
-                "warehouses, freighter facilities and a sort centre planned. Its first building, an 80,000 sq ft "
+                "warehouses, freighter facilities and a sort center planned. Its first building, an 80,000 sq ft "
                 "airside warehouse, sits on an airside ramp rebuilt with more than $33 million of federal funds.",
             ]},
             {"title": "PAC at Cincinnati", "fictional": True, "body": [
                 "PAC leases a block of eight stands on the south cargo complex, alongside the DHL hub. It's a natural "
-                "neighbour: Atlas Air, one of PAC's partners, flies for DHL from the same ramp, and the complex has the "
+                "neighbor: Atlas Air, one of PAC's partners, flies for DHL from the same ramp, and the complex has the "
                 "space, equipment and customs presence a heavy freighter operation needs. PAC's build-up of ULDs, "
                 "dangerous goods acceptance and customs clearance for international arrivals are handled on the complex.",
                 "PAC Operations Control (the OCC that answers your ACARS messages) is based here. Stands are allocated by "
@@ -103,7 +103,7 @@ GUIDES = {
                     ["18R / 36L", "8,000 × 150 ft", "18R and 36L: ILS CAT II", "ALSF-2 both ends",
                      "Closed to passenger aircraft over 140 ft span; cargo aircraft are not restricted by that rule."],
                 ]},
-             "note": "All runways are grooved concrete or asphalt over concrete, with centreline lights and high-intensity edge lights. "
+             "note": "All runways are grooved concrete or asphalt over concrete, with centerline lights and high-intensity edge lights. "
                      "The three parallel runways are aligned 174°/354° true (18/36 magnetic)."},
             {"title": "Frequencies", "table": {
                 "head": ["Service", "Frequency", "Use"],
@@ -129,7 +129,7 @@ GUIDES = {
                 "them) are handed to Cincinnati Approach: 119.7 if you're arriving from the east and south half (090° to "
                 "269°), 123.875 from the west and north (270° to 089°).",
                 "In low visibility, 36C and 36R have CAT II/III ILS; 18R and 36L have CAT II; 18C and 27 have special "
-                "authorisation CAT I/II. PAC's standard practice: with north flow, plan 36C or 36R; with south flow, "
+                "authorization CAT I/II. PAC's standard practice: with north flow, plan 36C or 36R; with south flow, "
                 "18C or 18L. Expect the runway in the ATIS and plan the taxi before you start the approach.",
                 "After landing, Tower hands you to Ground on 121.7. For PAC's stands on the south cargo complex, Ground "
                 "will hand you to DHL Ramp Control on 129.475 at the edge of the ramp: give your PAC callsign and stand "
@@ -179,7 +179,7 @@ GUIDES = {
                 ]}},
         ],
         "sources": [
-            ["FAA Chart Supplement (via AirNav and SkyVector), effective 6 August 2026", "https://www.airnav.com/airport/KCVG"],
+            ["FAA Chart Supplement (via AirNav and SkyVector), effective August 6, 2026", "https://www.airnav.com/airport/KCVG"],
             ["FAA Aeronautical Information Publication, Kentucky aerodromes", "https://www.faa.gov/air_traffic/publications/atpubs/aip_html/part3_ad_2.0_kentucky.html"],
             ["CVG Airport operations memoranda: winter operations and de-icing Pad 13", "https://csinfo.cvgairport.com"],
             ["Air Cargo Week: CVG cargo growth, DHL, Amazon and Atlas Air", "https://aircargoweek.com/cvg-ready-for-take-off"],

@@ -58,7 +58,7 @@ check("no half-upload is left behind", not list((DATA / "liveries").rglob("*.par
 code, j = add({"type": "B77F", "painter": "Sam Lee", "url": "https://flightsim.to/file/12345/pac-777f"})
 check("a link livery is added", code == 200, j)
 link = j.get("livery", {})
-check("a link livery gets the default name", link.get("title") == "PAC house colours", link)
+check("a link livery gets the default name", link.get("title") == "PAC house colors", link)
 check("and the type's add-on aircraft as its model", link.get("model") == A.FLEET["B77F"].get("sim_model", ""), link)
 check("its host is shown", link.get("host") == "flightsim.to", link)
 

@@ -206,10 +206,10 @@ function freshTags(m) {
   const open = left <= 0 ? "Closed" : left < 86400 ? `Closes in ${Math.max(1, Math.round(left / 3600))} h` : `Open ${Math.round(left / 86400)} more ${Math.round(left / 86400) === 1 ? "day" : "days"}`;
   return `${isNew ? `<span class="tag green">New</span>` : ""}${m.live || m.contract ? `<span class="tag grey" title="Until ${new Date(m.expires * 1000).toLocaleString([], { dateStyle: "medium", timeStyle: "short" })}">${open}</span>` : ""}`;
 }
-/* "PAC cargo centre stand P3" at Cincinnati, "PAC cargo stand X15" elsewhere */
+/* "PAC cargo center stand P3" at Cincinnati, "PAC cargo stand X15" elsewhere */
 function standName(st, caps) {
   if (!st?.stand) return "";
-  const t = `${st.icao === "KCVG" ? "PAC cargo centre stand" : "PAC cargo stand"} ${st.stand}`;
+  const t = `${st.icao === "KCVG" ? "PAC cargo center stand" : "PAC cargo stand"} ${st.stand}`;
   return caps ? t.toUpperCase() : t;
 }
 
@@ -603,7 +603,7 @@ function dossierBlockers(m) {   // the readiness check, short: only shown when s
 }
 function dossierHeader(m) {
   const dist = m.distance_nm || gcnm(m.origin, m.destination);
-  const date = t => new Date(t * 1000).toLocaleString("en-GB", { timeZone: "UTC", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }) + "Z";
+  const date = t => new Date(t * 1000).toLocaleString("en-US", { timeZone: "UTC", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }) + "Z";
   const chips = [
     ["Distance", `${fmt(dist)} nm`], ["Est. block", hm(m.target_block_min)],
     ["Payload", m.payload_lbs ? `${fmt(m.payload_lbs)} lb` : "Ferry"],
@@ -711,7 +711,7 @@ function panePlan(m) {
         <p class="muted" style="font-size:13px;margin:0 0 8px">Filled in for you: ${esc(S.fleet[m.charter ? m.aircraft[0] : S.aircraft]?.name || "")}${S.airframe && !m.contract ? ` (${esc(S.airframe)})` : ""}, route, callsign and <span id="sbCargo">${ls && !ls.ferry ? `<b>${fmt(ls.totals.weight_lbs)} lb</b> of cargo from your load sheet` : "the cargo weight"}</span>.</p>
         <div class="sb-extra"><label for="sbExtra">Extra fuel <small>(lb, your call)</small></label>
           <input id="sbExtra" type="number" min="0" max="${Math.round((S.fleet[m.charter ? m.aircraft[0] : S.aircraft]?.mtow_lbs || 400000) * 0.2)}" step="500" inputmode="numeric" value="${S.extraFuel || ""}" placeholder="0">
-          <small class="muted">On top of SimBrief's trip, contingency, alternate and reserve. Carrying extra is never penalised; PAC only pays for fuel you burn.</small></div>
+          <small class="muted">On top of SimBrief's trip, contingency, alternate and reserve. Carrying extra is never penalized; PAC only pays for fuel you burn.</small></div>
         ${S.settings.simbrief_api ? `
         <div class="row"><button type="button" class="btn" id="sbGen" ${S.sbGen ? "disabled" : ""}>${S.sbGen ? "Generating in SimBrief…" : S.ofp ? "Generate a new OFP" : "Generate OFP"}</button>
           <a class="btn ghost small" id="sbPlan" href="${simbriefUrl(m, m.charter ? m.aircraft[0] : S.aircraft)}" target="_blank" rel="noopener">Or open SimBrief yourself</a></div>
@@ -1298,7 +1298,7 @@ async function refreshRadar() {
     const w = await res.json(), last = (w.radar?.past || []).slice(-1)[0];
     if (!last) throw new Error("no radar frames");
     if (S.layers.radar) S.layers.radar.remove();
-    // RainViewer radar: free tiles up to zoom 7, stretched beyond; colour scheme 2, smoothed, with snow
+    // RainViewer radar: free tiles up to zoom 7, stretched beyond; color scheme 2, smoothed, with snow
     S.layers.radar = L.tileLayer(`${w.host}${last.path}/256/{z}/{x}/{y}/2/1_1.png`, { opacity: 0.6, maxNativeZoom: 7, maxZoom: 18, zIndex: 350,
       attribution: 'Radar <a href="https://www.rainviewer.com/" target="_blank" rel="noopener">RainViewer</a>' }).addTo(S.map);
   } catch (e) { liveNote("Radar unavailable"); }
@@ -1605,7 +1605,7 @@ async function openAirframe(reg) {
 const AIRPORT_LL = a => a.lat != null ? [a.lat, a.lon] : null;
 
 /* ================= ACARS messages to dispatch, and maintenance ================= */
-const ATA_LIST = [[5, "Time limits and inspections"], [21, "Air conditioning and pressurisation"], [22, "Autoflight"], [23, "Communications"],
+const ATA_LIST = [[5, "Time limits and inspections"], [21, "Air conditioning and pressurization"], [22, "Autoflight"], [23, "Communications"],
   [24, "Electrical power"], [26, "Fire protection"], [27, "Flight controls"], [28, "Fuel"], [29, "Hydraulic power"], [30, "Ice and rain protection"],
   [31, "Indicating and recording"], [32, "Landing gear and brakes"], [33, "Lights"], [34, "Navigation"], [36, "Pneumatic"], [49, "APU"],
   [50, "Cargo compartments"], [52, "Doors"], [53, "Fuselage"], [71, "Power plant"], [80, "Engine starting"]];
@@ -1694,7 +1694,7 @@ async function loadStats() {
         const rows = Object.entries(by).sort((a, b) => b[1].hours - a[1].hours), top = Math.max(1, ...rows.map(r => r[1].hours));
         return rows.length ? `<section><h2>Hours by division</h2>${rows.map(([n, v]) => `<div class="hbar"><span>${esc(n)}</span><div><i style="width:${v.hours / top * 100}%"></i></div><b>${hrs(v.hours)}</b><small>${v.flights} ${v.flights === 1 ? "flight" : "flights"}</small></div>`).join("")}</section>` : ""; })()}
       <section><h2>Hours by aircraft</h2>${s.by_type.length ? s.by_type.map(x => `<div class="hbar"><span>${esc(S.fleet[x.code]?.name || x.name)}</span><div><i style="width:${x.hours / maxTypeH * 100}%"></i></div><b>${hrs(x.hours)}</b><small>${x.flights} ${x.flights === 1 ? "flight" : "flights"}</small></div>`).join("") : `<p class="muted">–</p>`}</section>
-      <section><h2>Flights per month</h2><div class="mbars">${s.months.map(m => `<div title="${m.month}: ${m.flights} flights, ${m.hours} h"><i style="height:${m.flights / maxMonth * 100}%"></i><b>${m.flights || ""}</b><span>${new Date(m.month + "-01T00:00Z").toLocaleDateString("en-GB", { month: "short", timeZone: "UTC" })}</span></div>`).join("")}</div></section>
+      <section><h2>Flights per month</h2><div class="mbars">${s.months.map(m => `<div title="${m.month}: ${m.flights} flights, ${m.hours} h"><i style="height:${m.flights / maxMonth * 100}%"></i><b>${m.flights || ""}</b><span>${new Date(m.month + "-01T00:00Z").toLocaleDateString("en-US", { month: "short", timeZone: "UTC" })}</span></div>`).join("")}</div></section>
     </div>
 
     <div class="section-h"><div><h2>Records</h2><p>Click one to open that flight.</p></div></div>
@@ -1703,12 +1703,12 @@ async function loadStats() {
       ${recCard("longest_block", "Longest block time", v => hrs(v / 60))}${recCard("heaviest_load", "Heaviest load", v => `${fmt(v)} lb`)}
       ${recCard("most_points", "Most points", v => fmt(v))}
       <div class="rec"><span>Streaks</span><b>${s.streaks.a_grades} A's in a row</b><small>Longest run of flying days: ${s.streaks.days}</small></div>
-      ${s.favourites.route ? `<div class="rec"><span>Favourite route</span><b>${esc(s.favourites.route.dep)}–${esc(s.favourites.route.arr)}</b><small>${s.favourites.route.flights} ${s.favourites.route.flights === 1 ? "flight" : "flights"}</small></div>` : ""}
-      ${s.favourites.airport ? `<div class="rec"><span>Favourite airport</span><b>${esc(s.favourites.airport.icao)}</b><small>${esc(s.favourites.airport.city || s.favourites.airport.name)} · ${s.favourites.airport.visits} visits</small></div>` : ""}
+      ${s.favourites.route ? `<div class="rec"><span>Favorite route</span><b>${esc(s.favourites.route.dep)}–${esc(s.favourites.route.arr)}</b><small>${s.favourites.route.flights} ${s.favourites.route.flights === 1 ? "flight" : "flights"}</small></div>` : ""}
+      ${s.favourites.airport ? `<div class="rec"><span>Favorite airport</span><b>${esc(s.favourites.airport.icao)}</b><small>${esc(s.favourites.airport.city || s.favourites.airport.name)} · ${s.favourites.airport.visits} visits</small></div>` : ""}
     </div>
 
     <div class="section-h" id="recap"><div><h2>Monthly recap</h2><p>Your month in review, to keep or share.</p></div>
-      <select id="recapMonth" aria-label="Month">${(r.months.length ? r.months : [r.month]).map(m => `<option value="${m}" ${m === r.month ? "selected" : ""}>${new Date(m + "-01T00:00Z").toLocaleDateString("en-GB", { month: "long", year: "numeric", timeZone: "UTC" })}</option>`).join("")}</select></div>
+      <select id="recapMonth" aria-label="Month">${(r.months.length ? r.months : [r.month]).map(m => `<option value="${m}" ${m === r.month ? "selected" : ""}>${new Date(m + "-01T00:00Z").toLocaleDateString("en-US", { month: "long", year: "numeric", timeZone: "UTC" })}</option>`).join("")}</select></div>
     <div id="recapBody"></div>`;
   root.querySelectorAll("[data-pirep]").forEach(b => b.onclick = () => openDetail(+b.dataset.pirep));
   $("#recapMonth").onchange = async e => { const month = e.target.value; try { const recap = await api(`/api/recap?month=${month}`); if (version === cargoStatsVersion && $('#recapMonth')?.value === month && S.me?.id === pilot) renderRecap(recap); } catch (err) { toast(err.message); } };
@@ -1757,7 +1757,7 @@ function renderRecap(r) {
   const el = $("#recapBody");
   if (!el) return;
   if (!r.flights) { el.innerHTML = `<div class="notice">No flights in ${esc(r.label)} yet.</div>`; return; }
-  const d = (a, b) => a === b ? "" : `<small class="${a > b ? "up" : "down"}">${a > b ? "▲" : "▼"} ${Math.abs(Math.round((a - b) * 10) / 10)} vs ${new Date(r.vs_previous.month + "-01T00:00Z").toLocaleDateString("en-GB", { month: "short", timeZone: "UTC" })}</small>`;
+  const d = (a, b) => a === b ? "" : `<small class="${a > b ? "up" : "down"}">${a > b ? "▲" : "▼"} ${Math.abs(Math.round((a - b) * 10) / 10)} vs ${new Date(r.vs_previous.month + "-01T00:00Z").toLocaleDateString("en-US", { month: "short", timeZone: "UTC" })}</small>`;
   el.innerHTML = `<div class="recap">
     <div class="recap-head"><img src="/static/pac-wordmark-white.png" alt="PAC"><div><span>Month in review</span><b>${esc(r.label)}</b></div></div>
     <div class="stat-tiles recap-tiles">
@@ -1880,7 +1880,7 @@ function drawStands(m, d) {
       .addTo(S.stLayer);
     S.stMarkers[x.stand] = mk;
   });
-  const ramp = () => {  // close enough that neighbouring stands (about 90 m apart) don't overlap
+  const ramp = () => {  // close enough that neighboring stands (about 90 m apart) don't overlap
     const b = L.latLngBounds(d.stand_map.map(x => [x.lat, x.lon]));
     m.setView(b.getCenter(), Math.max(17, Math.min(18, m.getBoundsZoom(b, false, L.point(80, 80)))));
   };
@@ -1921,7 +1921,7 @@ function standLayout(sm) {
   if (!sm || !sm.length) return null;
   const placed = sm.some(x => x.placed);
   const num = id => parseInt(String(id).replace(/\D/g, ""), 10) || 0;
-  // metres east and north of the stands' centre (one fixed reference, so latitude differences can't skew east-west distances)
+  // meters east and north of the stands' center (one fixed reference, so latitude differences can't skew east-west distances)
   const lat0 = sm.reduce((t, x) => t + x.lat, 0) / sm.length, lon0 = sm.reduce((t, x) => t + x.lon, 0) / sm.length;
   const xy = x => [(x.lon - lon0) * 111320 * Math.cos(lat0 * Math.PI / 180), (x.lat - lat0) * 111320];
   const dist = (a, b) => { const [ax, ay] = xy(a), [bx, by] = xy(b); return Math.hypot(ax - bx, ay - by); };
@@ -2059,7 +2059,7 @@ async function loadStation(icao) {
   } catch (e) { $("#stWx").textContent = "Weather isn't available right now."; }
 }
 
-/* ================= Downloads centre ================= */
+/* ================= Downloads center ================= */
 async function loadDownloads() {
   const root = $("#downloadsRoot");
   let d; try { d = await api("/api/downloads"); } catch (e) { root.innerHTML = `<p class="muted">${esc(e.message)}</p>`; return; }
@@ -2070,7 +2070,7 @@ async function loadDownloads() {
   const linkify = t => esc(t).replace(/\bhttps?:\/\/[^\s<]+[^\s<.,;:!?)]/g, u => `<a href="${u}" target="_blank" rel="noopener">${u}</a>`);
   const simKey = sim => /x-?plane/i.test(sim || "") ? "xp" : /msfs/i.test(sim || "") ? "msfs" : "";
   const fileRow = f => `<div class="dl-row" data-dl-id="${f.id}" data-sim="${simKey(f.sim)}" data-ac="${esc(f.aircraft || "")}"><div><b>${esc(f.title)}</b>${f.version ? ` <span class="tag grey">v${esc(f.version)}</span>` : ""}${f.aircraft ? ` <span class="tag dark">${esc(S.fleet[f.aircraft]?.icao || f.aircraft)}</span>` : ""}${f.sim ? ` <span class="tag grey">${esc(f.sim)}</span>` : ""}
-      ${f.description ? `<p style="white-space:pre-line">${linkify(f.description)}</p>` : ""}<small class="muted">${esc(f.filename)} · ${mb(f.size)} · ${f.downloads} ${f.downloads === 1 ? "download" : "downloads"} · added ${new Date(f.uploaded * 1000).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}</small></div>
+      ${f.description ? `<p style="white-space:pre-line">${linkify(f.description)}</p>` : ""}<small class="muted">${esc(f.filename)} · ${mb(f.size)} · ${f.downloads} ${f.downloads === 1 ? "download" : "downloads"} · added ${new Date(f.uploaded * 1000).toLocaleDateString("en-US", { day: "numeric", month: "short", year: "numeric" })}</small></div>
       <div class="dl-actions"><a class="btn small" href="/api/downloads/${f.id}/file">Download</a>${staff ? `<button class="btn ghost small" type="button" data-dl-edit="${f.id}">Edit</button><button class="btn ghost small" type="button" data-dl-del="${f.id}">Remove</button>` : ""}</div></div>`;
   // the livery filter: simulator and aircraft, remembered on this computer
   const liveries = byCat.Livery || [];
@@ -2169,7 +2169,7 @@ async function loadDownloads() {
     row.querySelector("input").focus();
   });
   root.querySelectorAll("[data-dl-del]").forEach(b => b.onclick = async () => {
-    if (!confirm("Remove this file from the downloads centre?")) return;
+    if (!confirm("Remove this file from the downloads center?")) return;
     try { await api(`/api/staff/downloads/${b.dataset.dlDel}`, { method: "DELETE" }); loadDownloads(); } catch (e) { toast(e.message); }
   });
   if ($("#dlForm")) $("#dlForm").onsubmit = e => {
@@ -2442,7 +2442,7 @@ async function loadBids() {
         <div><span>Aircraft</span><b>${esc(ac.name || b.aircraft)}</b>${b.airframe ? `<small>${esc(b.airframe)}</small>` : m.operator ? `<small>${esc(m.operator.name)} aircraft</small>` : ""}</div>
         <div><span>Cargo</span><b>${fmt(m.payload_lbs)} lb</b><small>${esc(m.cargo || "")}</small></div>
         <div><span>Distance</span><b>${fmt(m.distance_nm || gcNm(m.origin, m.destination))} nm</b><small>${m.target_block_min ? `about ${Math.floor(m.target_block_min / 60)}h ${String(m.target_block_min % 60).padStart(2, "0")}m` : ""}</small></div>
-        <div><span>Booked</span><b>${b.requested_at ? new Date(b.requested_at * 1000).toLocaleDateString("en-GB", { day: "numeric", month: "short" }) : "–"}</b><small>${b.ofp ? "SimBrief OFP attached" : S.ofpWatch ? "Watching SimBrief for the plan" : "No OFP yet"}</small></div>
+        <div><span>Booked</span><b>${b.requested_at ? new Date(b.requested_at * 1000).toLocaleDateString("en-US", { day: "numeric", month: "short" }) : "–"}</b><small>${b.ofp ? "SimBrief OFP attached" : S.ofpWatch ? "Watching SimBrief for the plan" : "No OFP yet"}</small></div>
       </div>
       <div class="bid-status"><i></i>${status[1]}</div>
       ${!b.ofp && !st.complete && !st.tracking ? `<p class="watch-note" style="margin:0">${S.ofpWatch ? `<i></i>PAC is watching SimBrief for this flight's plan until ${new Date(S.ofpWatch.until * 1000).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}. Generate it in SimBrief and it's attached automatically, with the dispatch paperwork updated. <a href="#" id="ofpWatchStop">Stop</a>`
@@ -2495,8 +2495,8 @@ function notamBars(list) {
 }
 function newsCards(list) {
   return `<div class="news-grid">${(list || []).slice(0, 6).map(n => `<article class="news-card ${n.kind} ${n.important ? "important" : ""}">
-    <small>${n.kind === "notam" ? "Company NOTAM" : "News"} · ${new Date(n.time * 1000).toLocaleDateString("en-GB", { day: "numeric", month: "short" })} · ${esc(n.author || "PAC Operations")}</small>
-    <h3>${esc(n.title)}</h3>${n.body ? (n.body.length > 260 ? `<p class="news-preview">${esc(n.body.slice(0, 257).replace(/\s+\S*$/, ""))}…</p><details class="news-full"><summary>Read more<span class="sr-only">: ${esc(n.title)}</span></summary><p>${esc(n.body)}</p></details>` : `<p>${esc(n.body)}</p>`) : ""}${n.expires ? `<small>Valid until ${new Date(n.expires * 1000).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}</small>` : ""}</article>`).join("")}</div>`;
+    <small>${n.kind === "notam" ? "Company NOTAM" : "News"} · ${new Date(n.time * 1000).toLocaleDateString("en-US", { day: "numeric", month: "short" })} · ${esc(n.author || "PAC Operations")}</small>
+    <h3>${esc(n.title)}</h3>${n.body ? (n.body.length > 260 ? `<p class="news-preview">${esc(n.body.slice(0, 257).replace(/\s+\S*$/, ""))}…</p><details class="news-full"><summary>Read more<span class="sr-only">: ${esc(n.title)}</span></summary><p>${esc(n.body)}</p></details>` : `<p>${esc(n.body)}</p>`) : ""}${n.expires ? `<small>Valid until ${new Date(n.expires * 1000).toLocaleDateString("en-US", { day: "numeric", month: "short" })}</small>` : ""}</article>`).join("")}</div>`;
 }
 function shotTiles(list, cls = "") {
   return `<div class="shots ${cls}">${(list || []).map(g => `<button type="button" class="shot" data-shot="${g.id}" aria-label="Open screenshot${g.caption ? ": " + esc(g.caption) : ""}">
@@ -2511,7 +2511,7 @@ function openShot(g, after) {
   if (!g) return;
   $("#shotTitle").textContent = g.caption || (g.flight_number ? `${g.flight_number} · ${g.dep} to ${g.arr}` : "Screenshot");
   $("#shotBody").innerHTML = `<div class="shot-view"><img src="${esc(g.url)}" alt="${esc(g.caption || "")}">
-    <div class="meta"><span>${esc(g.pilot || "")}${g.flight_number ? ` · <a href="#" id="shotPirep">${esc(g.flight_number)} ${g.dep}–${g.arr}</a>` : ""} · ${new Date(g.time * 1000).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}</span>
+    <div class="meta"><span>${esc(g.pilot || "")}${g.flight_number ? ` · <a href="#" id="shotPirep">${esc(g.flight_number)} ${g.dep}–${g.arr}</a>` : ""} · ${new Date(g.time * 1000).toLocaleDateString("en-US", { day: "numeric", month: "short", year: "numeric" })}</span>
       <span style="flex:1"></span><a class="btn ghost small" href="${esc(g.url)}" download>Download</a>
       ${S.me?.staff ? `<button class="btn ghost small" type="button" id="shotFeat">${g.featured ? "Unfeature" : "Feature on home page"}</button>` : ""}
       ${S.me && (S.me.staff || g.pilot_id === S.me.id) ? `<button class="btn ghost small" type="button" id="shotDel">Delete</button>` : ""}</div></div>`;
@@ -2736,7 +2736,7 @@ function publicShelf(flair){
 }
 function shopShelf(c){
  const items=(c.shelf||[]).map(id=>(c.collectibles||[]).find(i=>i.id===id&&i.owned)).filter(Boolean);
- return `<section class="crew-shelf"><h2>A little corner of PAC, made yours.</h2><p>Choose up to three owned collectibles for your public pilot profile. Removing one from display keeps it in your collection.</p><div class="shelf-slots">${[0,1,2].map(n=>{const i=items[n];return i?`<div>${collectibleArt(i)}<b>${esc(i.name)}</b><button class="btn ghost small" data-shelf="${i.id}">Remove from shelf</button></div>`:`<div class="shelf-empty"><span aria-hidden="true">＋</span><b>Room for a favourite</b><small>Choose a collectible below</small></div>`}).join('')}</div>${(S.shopTab==='mine')?'<button class="btn ghost small" data-stab="collectibles">Manage collectibles</button>':''}</section>`;
+ return `<section class="crew-shelf"><h2>A little corner of PAC, made yours.</h2><p>Choose up to three owned collectibles for your public pilot profile. Removing one from display keeps it in your collection.</p><div class="shelf-slots">${[0,1,2].map(n=>{const i=items[n];return i?`<div>${collectibleArt(i)}<b>${esc(i.name)}</b><button class="btn ghost small" data-shelf="${i.id}">Remove from shelf</button></div>`:`<div class="shelf-empty"><span aria-hidden="true">＋</span><b>Room for a favorite</b><small>Choose a collectible below</small></div>`}).join('')}</div>${(S.shopTab==='mine')?'<button class="btn ghost small" data-stab="collectibles">Manage collectibles</button>':''}</section>`;
 }
 async function openReposition(preselect, after){
  if(preselect)return confirmReposition(preselect,after);
@@ -2756,7 +2756,7 @@ async function loadShop() {
   try { S.shop = await api("/api/shop"); renderShop(); } catch (e) { toast(e.message); }
 }
 const SHOP_TABS = [["all", "Everything"], ["passes", "Passes"], ["gear", "Pilot gear"], ["collectibles", "Collectibles"], ["patches", "Patches"], ["frames", "Badge frames"], ["services", "Aircraft"], ["mine", "My collection"]];
-function shopDate(t) { return new Date(t * 1000).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }); }
+function shopDate(t) { return new Date(t * 1000).toLocaleDateString("en-US", { day: "numeric", month: "short", year: "numeric" }); }
 function renderShop() {
   const c = S.shop, bal = c.balance, tab = S.shopTab || "all";
   const collectibles = c.collectibles || [];
@@ -2826,7 +2826,7 @@ function renderShop() {
   <div class="profile-bar"><h1>PAC shop</h1><span class="muted">Something for your next flight. Something to call your own.</span></div>
   ${c.enabled ? "" : `<div class="notice">The PAC shop is closed at the moment. What you've bought still works.</div>`}
   <div class="shop-hero2">
-    <div><small>YOUR PAC WALLET</small><span>Welcome to the crew shop. Find your next favourite.</span><b>${money(bal, true)}</b>
+    <div><small>YOUR PAC WALLET</small><span>Welcome to the crew shop. Find your next favorite.</span><b>${money(bal, true)}</b>
       <span>${within} of ${prices.length} items within reach${next ? ` — ${money(next - bal)} to the next one` : " — everything's within reach"}.</span>
       <div class="sh-bar"><i style="width:${pctNext}%"></i></div><small>${next ? `${pctNext}% of the way to the next item on the shelf` : "Treat yourself."}</small></div>
     <div class="sh-side"><div><small>Gear bonus</small><b>+${c.gear_bonus}%</b></div><div><small>Fleet pass</small><b>${c.fleet_pass ? `until ${shopDate(c.fleet_pass)}` : "–"}</b></div>
@@ -2976,7 +2976,7 @@ function renderFinance(f) {
   document.querySelectorAll("[data-ledger]").forEach(tr => tr.onclick = () => openDetail(tr.dataset.ledger));
 }
 
-/* ================= Pilot licence ================= */
+/* ================= Pilot license ================= */
 function guilloche(x, W, H, color, alpha) {
   x.save(); x.strokeStyle = color; x.globalAlpha = alpha; x.lineWidth = 1.2;
   for (let k = 0; k < 18; k++) {
@@ -3004,7 +3004,7 @@ function badgeInfo() {
   const ratings = [...new Set((p.type_ratings || []).filter(r => r.status !== "Inactive").map(r => r.type))];
   const since = p.member_since ? new Date(p.member_since + "T00:00:00Z") : null;
   const expires = since ? new Date(Date.UTC(since.getUTCFullYear() + 3, since.getUTCMonth(), since.getUTCDate())) : null;
-  const d = x => x ? x.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric", timeZone: "UTC" }).toUpperCase() : "—";
+  const d = x => x ? x.toLocaleDateString("en-US", { day: "2-digit", month: "short", year: "numeric", timeZone: "UTC" }).toUpperCase() : "—";
   const code = (p.base || "KCVG").match(/\b[A-Z]{4}\b/)?.[0] || (p.base || "KCVG").split(/[ ,/]/)[0].slice(0, 4).toUpperCase();
   return { p, car, id, name: displayName(p), rank: car.rank || p.rank || "Pilot", base: code,
     badgeNo: `CVG-${String(n).padStart(5, "0")}`, areas, ratings, issued: d(since), expires: d(expires),
@@ -3166,7 +3166,7 @@ async function drawLicence(front, back) {
   const F = (w, sz) => `${w} ${sz}px Saira, "Segoe UI", system-ui, sans-serif`, M = sz => `600 ${sz}px "IBM Plex Mono", Consolas, monospace`;
   const W = 1712, H = 1080, R = 56;
   const ratings = [...new Map((p.type_ratings || []).filter(r => r.status !== "Inactive").map(r => [r.type, r])).values()];
-  const issued = p.member_since ? new Date(p.member_since + "T00:00:00Z").toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric", timeZone: "UTC" }).toUpperCase() : "—";
+  const issued = p.member_since ? new Date(p.member_since + "T00:00:00Z").toLocaleDateString("en-US", { day: "2-digit", month: "short", year: "numeric", timeZone: "UTC" }).toUpperCase() : "—";
 
   // ---------- front ----------
   let x = front.getContext("2d");
@@ -3177,7 +3177,7 @@ async function drawLicence(front, back) {
   x.fillStyle = "#C80000"; x.fillRect(0, 0, W, 170);
   guilloche(x, W, 170, "#FFFFFF", 0.08);
   if (wmW) x.drawImage(wmW, 64, 52, 66 * wmW.width / wmW.height, 66);
-  x.fillStyle = "#fff"; x.textAlign = "right"; x.font = F(800, 50); x.fillText("FLIGHT CREW LICENCE", W - 64, 90);
+  x.fillStyle = "#fff"; x.textAlign = "right"; x.font = F(800, 50); x.fillText("FLIGHT CREW LICENSE", W - 64, 90);
   x.font = F(600, 24); x.globalAlpha = .9; x.fillText("PAGANI AIR CARGO · VIRTUAL AIRLINE", W - 64, 132); x.globalAlpha = 1;
   // photo
   const px = 64, py = 220, pw = 380, ph = 475;
@@ -3253,7 +3253,7 @@ async function openLicence() {
     await refreshCore();
     await drawLicence($("#licFront"), $("#licBack"));
   } catch (e) { toast(e.message); }
-  const dl = (cv, side) => cv.toBlob(b => { const a = document.createElement("a"); a.href = URL.createObjectURL(b); a.download = `PAC-licence-${S.profile.pilot_id}-${side}.png`; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 2000); }, "image/png");
+  const dl = (cv, side) => cv.toBlob(b => { const a = document.createElement("a"); a.href = URL.createObjectURL(b); a.download = `PAC-license-${S.profile.pilot_id}-${side}.png`; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 2000); }, "image/png");
   $("#licDlFront").onclick = () => dl($("#licFront"), "front");
   $("#licDlBack").onclick = () => dl($("#licBack"), "back");
 }
@@ -3273,7 +3273,7 @@ async function partnerCard(c) {
 function drawCardLogo(x, wm, pc) {
   if (!wm) return;
   if (!pc) { x.drawImage(wm, 52, 50, 56 * wm.width / wm.height, 56); return; }
-  // partner logos are in colour: set them on a white plate so every one reads on the photo
+  // partner logos are in color: set them on a white plate so every one reads on the photo
   const b = logoBox(wm);   // crop the empty margin some logo files carry, so the plate hugs the logo
   const h = 64, w = Math.min(300, h * b.w / b.h), pad = 14;
   x.fillStyle = "rgba(255,255,255,.94)"; x.beginPath(); if (x.roundRect) x.roundRect(40, 40, w + pad * 2, h + pad * 2, 10); else x.rect(40, 40, w + pad * 2, h + pad * 2); x.fill();
@@ -3296,7 +3296,7 @@ function logoBox(img) {
   } catch (e) { return full; }
 }
 function drawPhotoCredit(x, ph, W, PH) {
-  // the photographer and the licence, as the licence requires
+  // the photographer and the license, as the license requires
   const t = `Photo: ${ph.artist || "Unknown photographer"} · ${ph.licence || ""} · Wikimedia Commons`.slice(0, 110);
   x.save(); x.textAlign = "right"; x.font = `500 17px Saira, "Segoe UI", system-ui, sans-serif`; x.fillStyle = "rgba(255,255,255,.72)";
   x.shadowColor = "rgba(0,0,0,.8)"; x.shadowBlur = 4; x.fillText(t, W - 24, PH - 14); x.restore();
@@ -3414,7 +3414,7 @@ function integrityNote(integ) {
 function loadImg(src) { return new Promise(res => { if (!src) return res(null); const i = new Image(); i.onload = () => res(i); i.onerror = () => res(null); i.src = src; }); }
 const RATE_ZONES = [[100, "#4BD07F", "BUTTER"], [250, "#A6E05A", "SMOOTH"], [400, "#FFC845", "FIRM"], [600, "#FF8A3D", "HEAVY"], [1000, "#FF4D4D", "HARD"]];
 function rateVerdict(r) { if (r == null) return "–"; const a = Math.abs(r); return (RATE_ZONES.find(z => a <= z[0]) || RATE_ZONES[4])[2]; }
-function sideText(ft) { return ft == null ? "–" : Math.abs(ft) < 1 ? "On centreline" : `${fmt(Math.abs(ft))} ft ${ft > 0 ? "right" : "left"}`; }
+function sideText(ft) { return ft == null ? "–" : Math.abs(ft) < 1 ? "On centerline" : `${fmt(Math.abs(ft))} ft ${ft > 0 ? "right" : "left"}`; }
 
 async function drawLandingCard(canvas, c) {
   try { await document.fonts?.ready; } catch (e) { /* ignore */ }
@@ -3466,7 +3466,7 @@ async function drawLandingCard(canvas, c) {
   x.textAlign = "left";
   const stats = [["LANDING LOAD", c.g != null ? `${Number(c.g).toFixed(2)} G` : "–"],
     ["TOUCHDOWN", la.touchdown_ft != null ? `${fmt(la.touchdown_ft)} ft` : "–"],
-    ["CENTRELINE", la.centerline_ft != null ? sideText(la.centerline_ft).replace(" right", " R").replace(" left", " L") : "–"],
+    ["CENTERLINE", la.centerline_ft != null ? sideText(la.centerline_ft).replace(" right", " R").replace(" left", " L") : "–"],
     ["FLOAT", la.float_s != null ? `${la.float_s} s` : "–"]];
   stats.forEach(([l, v], i) => {
     const y = 820 + i * 92;
@@ -3589,7 +3589,7 @@ function glideChartHtml(a) {
     <line x1="${L}" x2="${W - R}" y1="${yV(0)}" y2="${yV(0)}" class="gc-grid" style="stroke-dasharray:2 3"/><text x="${W - R}" y="${yV(0) - 4}" class="gc-tick" text-anchor="end">0 fpm</text>
     <path d="${l2(pts.map(p => [p.nm, -p.gs * 101.27 * tan(a.glide_deg)]), yV)}" class="gc-ideal"/>
     <path d="${l2(pts.map(p => [p.nm, p.vs]), yV)}" class="gc-vs"/><path d="${l2(pts.map(p => [p.nm, p.ias]), yI)}" class="gc-ias"/></svg>`;
-  // stabilised-approach practice: within one dot is acceptable
+  // stabilized-approach practice: within one dot is acceptable
   const verdict = d => { const a = Math.abs(d), w = d > 0 ? "high" : "low";
     return a < 0.5 ? "On slope" : a <= 1 ? `Slightly ${w}` : a <= 2 ? w[0].toUpperCase() + w.slice(1) : `Well ${w}`; };
   const cls = d => Math.abs(d) <= 1 ? "ok" : Math.abs(d) <= 2 ? "warn" : "bad";
@@ -3620,7 +3620,7 @@ function landingFacts(la, rate, g) {
     ["Landing load", g != null ? `${Number(g).toFixed(2)} G` : "–", ""],
     ["Runway", la?.runway ? `${la.airport} ${la.runway}` : "–", la?.runway_length_ft ? `${fmt(la.runway_length_ft)} ft long` : ""],
     ["Touchdown point", la?.touchdown_ft != null ? `${fmt(la.touchdown_ft)} ft` : "–", la?.touchdown_ft != null ? "past the threshold" : ""],
-    ["Centreline", la?.centerline_ft != null ? sideText(la.centerline_ft) : "–", ""],
+    ["Centerline", la?.centerline_ft != null ? sideText(la.centerline_ft) : "–", ""],
     ["Float", la?.float_s != null ? `${la.float_s} s` : "–", "from 50 ft to touchdown"],
     ["Approach", la?.stable === true ? "Stable" : la?.stable === false ? "Unstable" : "–", [la?.stability_note && la.stable === false ? la.stability_note : a.ias_min != null ? `${a.ias_min}–${a.ias_max} kt below 1,000 ft` : "", a.vs_500 != null ? `${a.vs_500} fpm at 500 ft` : ""].filter(Boolean).join(" · ")],
     ["Wind", la?.wind ? la.wind.text : "–", la?.wind ? (la.wind.cross_kt != null ? `${la.wind.cross_kt} kt crosswind from the ${la.wind.cross_from}${la.wind.gust_cross_kt ? ` (${la.wind.gust_cross_kt} in gusts)` : ""} · ${la.wind.head_kt >= 0 ? la.wind.head_kt + " kt headwind" : Math.abs(la.wind.head_kt) + " kt tailwind"}` : `${la.wind.station} METAR`) : "recorded at touchdown"],
@@ -3646,7 +3646,7 @@ function cardData(src) {
     // the pilot who flew it and the simulator they flew it in (a logbook entry knows both; a flight just filed is the viewer's own)
     pilot: src.pilot_name ? [RANK_ABBR[src.pilot_rank] || "", src.pilot_name].filter(Boolean).join(" ") : displayName(S.profile || {}),
     sim: src.source && src.source !== "Demo" ? src.source : "",
-    date: new Date((src.filed_at || Date.now() / 1000) * 1000).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }) };
+    date: new Date((src.filed_at || Date.now() / 1000) * 1000).toLocaleDateString("en-US", { day: "numeric", month: "short", year: "numeric" }) };
 }
 
 let replayTimer = null;
@@ -3894,7 +3894,7 @@ function openPhoto(src, caption) {
 }
 const CATEGORY_LIST = ["Humanitarian", "Medical", "Urgent", "Heavy lift", "Express", "Premium", "Sports & events", "Scheduled", "Charter", "Tour", "Ferry", "Checkride"];
 const REGION_LIST = ["US domestic", "Americas", "Transatlantic", "Europe", "Middle East & Africa", "Asia-Pacific", "Transpacific"];
-const fmtDate = s => new Date(s + "T00:00:00Z").toLocaleDateString("en-GB", { day: "numeric", month: "short", timeZone: "UTC" });
+const fmtDate = s => new Date(s + "T00:00:00Z").toLocaleDateString("en-US", { day: "numeric", month: "short", timeZone: "UTC" });
 
 /* ================= Split-flap board ================= */
 const FLAP_CHARS = " ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-.";
@@ -4041,7 +4041,7 @@ async function renderHome(h, st) {
 
   ${shots.length ? `<div class="section-h"><div><div class="kicker">From the flight deck</div><h2>Gallery</h2></div><button class="btn ghost small" onclick="show('gallery')">See all screenshots</button></div>${shotTiles(shots.slice(0, 8), "home")}` : ""}
 
-  <div class="section-h"><div><div class="kicker">Live from the ops centre</div><h2>Departures and arrivals</h2></div><span class="muted" style="font-size:13px">Updates every 30 seconds · times in UTC</span></div>
+  <div class="section-h"><div><div class="kicker">Live from the ops center</div><h2>Departures and arrivals</h2></div><span class="muted" style="font-size:13px">Updates every 30 seconds · times in UTC</span></div>
   <div class="flapboard ops-board" id="flapboard" aria-live="off">
     <div class="fb-head"><div class="fb-title"><i>✈</i>DEPARTURES</div><div class="fb-clock" id="fbClock">----Z</div></div>
     <div class="board-scroll" tabindex="0" role="region" aria-label="Departures flight table"><table class="fb-table" id="fbDep"></table></div>
@@ -4134,7 +4134,7 @@ async function renderHome(h, st) {
   bindShots($("#homeRoot"), shots, () => loadHome());
   const hero = $("#homeRoot .hero");
   const notices = news.filter(n => n.kind === 'notam');
-  if (hero && notices.length) hero.insertAdjacentHTML('afterend', `<section class="home-notices" aria-label="Latest company notices"><div class="home-notices-heading"><b>Latest notices</b><span>${notices.length} company notice${notices.length===1?'':'s'} · Select a title to read</span></div>${notices.map(n=>`<details${n.important?' class="notice-important"':''}><summary>${n.important?'<span class="notice-priority">Important</span>':''}${esc(n.title)}</summary><div class="home-notice-body">${esc(n.body || 'No further details.')}<small>${esc(n.author || 'PAC Operations')}${n.time?' · '+new Date(n.time*1000).toLocaleDateString('en-GB'):''}</small></div></details>`).join('')}</section>`);
+  if (hero && notices.length) hero.insertAdjacentHTML('afterend', `<section class="home-notices" aria-label="Latest company notices"><div class="home-notices-heading"><b>Latest notices</b><span>${notices.length} company notice${notices.length===1?'':'s'} · Select a title to read</span></div>${notices.map(n=>`<details${n.important?' class="notice-important"':''}><summary>${n.important?'<span class="notice-priority">Important</span>':''}${esc(n.title)}</summary><div class="home-notice-body">${esc(n.body || 'No further details.')}<small>${esc(n.author || 'PAC Operations')}${n.time?' · '+new Date(n.time*1000).toLocaleDateString('en-US'):''}</small></div></details>`).join('')}</section>`);
   if ($("#heroApply")) $("#heroApply").onclick = e => { e.preventDefault(); $("#apply").scrollIntoView({ behavior: "smooth" }); };
   document.querySelectorAll("[data-photo]").forEach(b => b.onclick = () => { const a = S.fleet[b.dataset.photo]; openPhoto(a.photo, a.name); });
   $("#applyForm").onsubmit = async e => {
@@ -4180,9 +4180,9 @@ function renderCareer(c) {
   const pct = (v, t) => Math.max(0, Math.min(100, Math.round((Number(v) || 0) / t * 100)));
   const lbl = { smoothest: ["Smoothest landing", r => `${r.value} fpm`], cargo: ["Most cargo delivered", r => `${fmt(r.value)} lb`],
     hours: ["Most block hours", r => `${esch(r.value)} h`], score: ["Best average score", r => `${r.value}`], points_all_time: ["Points, all time", r => fmt(r.value)] };
-  const month = new Date(c.leaderboards.month + "-01T00:00:00Z").toLocaleDateString("en-GB", { month: "long", year: "numeric", timeZone: "UTC" });
+  const month = new Date(c.leaderboards.month + "-01T00:00:00Z").toLocaleDateString("en-US", { month: "long", year: "numeric", timeZone: "UTC" });
   $("#careerRoot").innerHTML = `
-  <div class="profile-bar"><h1>Career</h1><div class="row"><span class="muted">${esc(displayName(S.profile))} · ${esc(k.pilot.id)}</span><button class="btn small" onclick="openLicence()">Pilot licence</button></div></div>
+  <div class="profile-bar"><h1>Career</h1><div class="row"><span class="muted">${esc(displayName(S.profile))} · ${esc(k.pilot.id)}</span><button class="btn small" onclick="openLicence()">Pilot license</button></div></div>
   <nav class="journey-sections" aria-label="Career sections">${[['overview','Overview'],['qualifications','Qualifications'],['wallet','Pay & wallet'],['activities','Activities'],['awards','Awards & records']].map(([id,label]) => `<button type="button" data-career-section="${id}">${label}</button>`).join('')}<button type="button" onclick="openPilotGuide()">First-flight guide ↗</button></nav>
   <section data-career-pane="overview" aria-label="Career overview">
   <div class="journey-intro"><div><span class="kicker">Your next chapter</span><h2>Choose your aircraft. Find your next flight.</h2><p>Qualifications and aircraft positioning are separate from rank and pay. Start with the aircraft you want to fly.</p></div><div class="row"><button class="btn" onclick="setCareerSection('qualifications')">View qualifications →</button><button class="btn ghost" onclick="show('missions')">Find a flight</button></div></div>
@@ -4205,7 +4205,7 @@ function renderCareer(c) {
       <div class="patch-ladder">${ranks.map((r, i) => `<figure class="${i < k.rank_index ? "done" : i === k.rank_index ? "now" : ""}">${rankImg(r.name)}<figcaption>${esc(r.name)}</figcaption></figure>`).join("")}</div>
     </div>
     <div class="rank-next">
-      ${k.checkride === "Pending" && k.checkride_last && !k.checkride_last.passed ? `<div class="notice err"><b>Your last checkride attempt (${new Date(k.checkride_last.when * 1000).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}) didn't pass:</b> ${esc(k.checkride_last.reasons.join(", "))}. Every other part can be fine; these are automatic fails on a checkride.</div>` : ""}
+      ${k.checkride === "Pending" && k.checkride_last && !k.checkride_last.passed ? `<div class="notice err"><b>Your last checkride attempt (${new Date(k.checkride_last.when * 1000).toLocaleDateString("en-US", { day: "numeric", month: "short" })}) didn't pass:</b> ${esc(k.checkride_last.reasons.join(", "))}. Every other part can be fine; these are automatic fails on a checkride.</div>` : ""}
       ${k.checkride === "Pending" ? `<div class="notice"><b>Your rank-progression checkride.</b> ${S.ratings?.direct_entry ? "Or book a type checkride for any aircraft family in Qualifications instead: passing one also counts as this checkride for rank progression (it rates you on that family, not the 737). " : ""}Fly PAC001 from your chosen training airport on the 737-800BCF. Dedicated training and company positioning are free. To pass: score 80 or better, land softer than 400 fpm and under 1.5 G with no bounce, and stay at or below 250 kt under FL100 (no overspeed, no slew). <button class="btn small" style="margin-top:8px" onclick="flyMission('${S.checkrideId}')">Fly the checkride</button></div>` : ""}
       ${k.appointed ? `<h2 style="margin:0">Appointed ${esc(k.rank)}</h2><p style="margin:0">This rank was set by staff, so it doesn't depend on hours or score.${k.earned_rank !== k.rank ? ` On flying alone you'd be ${esc(k.earned_rank)}.` : ""}</p>
         <p class="muted" style="margin:0;font-size:13px">Every aircraft your rank covers is unlocked. Staff can return you to earned progression in Staff › Roster.</p>`
@@ -4289,7 +4289,7 @@ async function loadRoster() {
   const root = $("#rosterRoot");
   root.innerHTML = `<p class="muted">Loading the roster…</p>`;
   let d; try { d = await api("/api/public/roster"); } catch (e) { root.innerHTML = `<div class="notice err">${esc(e.message)}</div>`; return; }
-  const date = t => t ? new Date(t * 1000).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }) : "–";
+  const date = t => t ? new Date(t * 1000).toLocaleDateString("en-US", { day: "numeric", month: "short", year: "numeric" }) : "–";
   root.innerHTML = `<div class="profile-bar"><h1>Roster &amp; flight log</h1><span class="muted">Every active PAC pilot and the airline's latest accepted flights</span></div>
     <div class="ro-sum"><div><span>Active pilots</span><b>${fmt(d.totals.pilots)}</b></div><div><span>Flights flown</span><b>${fmt(d.totals.flights)}</b></div>
       <div><span>Block hours</span><b>${fmt(Math.round(d.totals.hours))}</b></div><div><span>Network callsign</span><b>${esc(d.callsign)} · PAGANI</b></div></div>
@@ -4303,7 +4303,7 @@ async function loadRoster() {
 function renderPrivacy() {
   const mail = esc(contactEmail());
   const sec = (t, b) => `<section><h2>${t}</h2>${b}</section>`;
-  $("#privacyRoot").innerHTML = `<div class="profile-bar"><h1>Privacy policy</h1><span class="muted">Last updated 3 November 2026</span></div>
+  $("#privacyRoot").innerHTML = `<div class="profile-bar"><h1>Privacy policy</h1><span class="muted">Last updated November 3, 2026</span></div>
   <div class="privacy">
     <p class="lead">Pagani Air Cargo (PAC) is a free, non-commercial virtual airline for flight simulator pilots, run by Joseph Pagani. This page explains what information the PAC website and the PAC ACARS app collect, why, who else sees it, and the choices you have. Questions or requests: <a href="mailto:${mail}">${mail}</a>.</p>
     ${sec("What we collect", `<ul>
@@ -4367,26 +4367,26 @@ function renderHandbook(cfg) {
     ["ranks", "Ranks and aircraft", `<p>Rank depends on your hours (PAC hours plus any transfer hours staff have credited), and on your average score over your last ${cfg.avg_window} accepted flights once you have at least ${cfg.avg_min_flights}.</p>
       ${cfg.type_ratings_required ? `<p>A rank makes aircraft <b>available</b> to you. Each aircraft family also needs its type rating before you fly it: passing the line checkride (PAC001) in the 737 gives you the whole 737 family (737-200C, 737-300SF and 737-800BCF); for anything else, fly that family's short type checkride from Career › Qualifications.</p>` : `<p>Reaching a rank unlocks its aircraft straight away: you can fly them as soon as you hold the rank.</p>`}
       <table><tr><th></th><th>Rank</th><th>Hours</th><th>Average score</th><th>${cfg.type_ratings_required ? "Makes available" : "Unlocks"}</th></tr>${cfg.ranks.map(r => `<tr><td style="width:52px">${rankImg(r.name)}</td><td><b>${esc(r.name)}</b></td><td>${r.name === "Cadet" ? "–" : r.hours}</td><td>${r.avg || "–"}</td><td>${r.checkride && r.hours === 0 ? "Checkride passed. " : ""}${r.unlocks.map(a => esc(S.fleet[a]?.name || a)).join(", ") || "Checkride only"}</td></tr>`).join("")}</table>`],
-    ["divisions", "Fleet divisions", `<p>PAC's fleet is organised in four divisions. They're labels, not separate rules: your rank and ratings decide what you fly, and you can fly in any division you qualify for.</p>
+    ["divisions", "Fleet divisions", `<p>PAC's fleet is organized in four divisions. They're labels, not separate rules: your rank and ratings decide what you fly, and you can fly in any division you qualify for.</p>
       <table><tr><th>Division</th><th>Aircraft</th><th>What it flies</th></tr>${divisions().map(d => `<tr><td><b>${esc(d.name)}</b></td><td>${Object.keys(S.fleet || {}).filter(k => divOf(k) === d.name && !S.fleet[k].retired).map(k => esc(S.fleet[k].name)).join(", ") || "–"}</td><td>${esc(d.blurb || "")}</td></tr>`).join("")}</table>
       <p>Most pilots start in <b>PAC Feeder</b> on the 737s. The division shows on the Fleet page, on every flight, in your logbook and in My stats, and the mission board can show one division at a time.</p>`],
     ["planning", "Planning a flight", `<p><b>Pick a flight</b> from Missions (special operations), the Scheduled network, Events &amp; tours, Partners, or build a Charter. The flight page then walks you through four tabs:</p>
       <ul><li><b>Briefing:</b> the cargo, any special handling, live weather at both ends and what the flight earns the company.</li>
       <li><b>Aircraft:</b> pick a type your rank and ratings allow, then an airframe <b>at your departure airport</b>. Every aircraft is tracked by registration and stays where it last landed. If none of the right type is there, jumpseat to one, have one delivered, or fly a ferry (see Travel and aircraft delivery).</li>
       <li><b>Load sheet:</b> a preliminary load sheet built before you plan: the cargo units and their positions, the weights against the aircraft's limits, and PAC's fuel estimate. It carries over to the dispatch release.</li>
-      <li><b>SimBrief &amp; request:</b> PAC's plan suggestions, an optional <b>Extra fuel</b> box (carrying extra is never penalised), and <b>Generate OFP</b>. A small SimBrief window builds the plan with the aircraft, route, callsign and cargo already filled in, closes by itself, and the OFP comes straight in. You can also open SimBrief yourself, click Generate Flight, then press <b>Fetch latest OFP</b>. The OFP must match the departure and destination.</li></ul>
+      <li><b>SimBrief &amp; request:</b> PAC's plan suggestions, an optional <b>Extra fuel</b> box (carrying extra is never penalized), and <b>Generate OFP</b>. A small SimBrief window builds the plan with the aircraft, route, callsign and cargo already filled in, closes by itself, and the OFP comes straight in. You can also open SimBrief yourself, click Generate Flight, then press <b>Fetch latest OFP</b>. The OFP must match the departure and destination.</li></ul>
       <p><b>Request the flight.</b> The airframe is reserved for you until you file the PIREP or cancel. If you request without a plan, PAC keeps watching SimBrief for up to 90 minutes and attaches the OFP when you generate it, with the paperwork updated.</p>`],
     ["flying", "Flying with ACARS", `<ul><li>Sign the dispatch release first (see Dispatch paperwork). Load at a stand at the departure airport with the parking brake set. On the website's ACARS page press <b>Open in PAC ACARS</b>, then <b>Start tracking</b> in the app. ACARS won't start more than 5 nm from the airport or in the air.</li>
       <li>Every phase is detected automatically, from pushback to on-block. OUT, OFF, ON and IN times are logged like the real system.</li>
       <li>Keep 250 kt or less below 10,000 ft and 30 kt or less while taxiing.</li>
-      <li>GSX or slew moves on the ground (stand to runway, runway to stand) are allowed and logged as ground repositions${S.settings.allow_ground_reposition === false ? ", but are currently scored as position jumps" : ""}. Moves in the air are always penalised.</li>
+      <li>GSX or slew moves on the ground (stand to runway, runway to stand) are allowed and logged as ground repositions${S.settings.allow_ground_reposition === false ? ", but are currently scored as position jumps" : ""}. Moves in the air are always penalized.</li>
       <li>To finish, park at the stand, set the parking brake and shut down all engines, with PAC ACARS still open. If PAC ACARS can't read your aircraft's parking brake (some add-ons), being stopped with all engines off for 60 seconds also puts you on block. If your sim or PC crashes, restart PAC ACARS and press Resume flight.</li>
       <li>Fly in real time. ACARS detects sim-rate acceleration and pauses (see Flight integrity).</li></ul>`],
     ["integrity", "Flight integrity", `<ul><li><b>Sim rate:</b> while you're parked at the stand (loading, boarding, unloading) you can speed the sim up as much as you like. Once you're moving, or in the air, more than 10 seconds above 1× sends the flight to staff review.</li>
       <li><b>Pauses:</b> short pauses are fine. More than 10 minutes paused in the air sends the flight to review.</li>
       <li><b>Tail strikes:</b> ACARS records pitch through the takeoff roll and compares it with each type's tail-strike pitch. A tail strike costs 25 points, grounds the airframe for inspection and goes to review.</li>
       <li><b>Takeoff analysis:</b> every PIREP shows rotation speed, liftoff speed and pitch, ground roll, runway remaining and initial climb, with a downloadable takeoff card.</li></ul>`],
-    ["urgent", "Urgent requests", `<p>Every 40 minutes or so a new urgent request appears (AOG engines, blood products, line-stop parts, ship and data-centre spares, antivenom, rescue teams, grid repairs and more), up to six at a time. Each uses an aircraft that's already in position.</p>
+    ["urgent", "Urgent requests", `<p>Every 40 minutes or so a new urgent request appears (AOG engines, blood products, line-stop parts, ship and data-center spares, antivenom, rescue teams, grid repairs and more), up to six at a time. Each uses an aircraft that's already in position.</p>
       <ul><li>Book it before the offer expires.</li><li>Block in before the delivery deadline for ×1.5 points and full revenue. Miss it and the customer takes half the revenue back.</li></ul>`],
     ["staffletters", "For staff: approving pilots and letters", `<p>Applications arrive under Staff › Applications. Approving one gives the pilot the next free ID (PAC0002, PAC0003 and so on), creates their record, and opens the <b>welcome letter</b>, ready to send.</p>
       <ul><li><b>The welcome letter</b> carries the pilot ID, home base, a one-time sign-in link (good for 7 days), the first steps and the Discord invite. Copy it, open it in your mail program, or download it as HTML.</li>
@@ -4405,9 +4405,9 @@ function renderHandbook(cfg) {
       <li><b>Which stand to start on:</b> when you book from a hub with PAC stands, PAC puts you on one, chosen by aircraft size. It's shown on the flight page, on My bids, in the dispatch release and on the ACARS page, and PAC ACARS confirms it when you start tracking. Aircraft keep their stand between flights, so you start where you last parked, and PAC moves you if another aircraft is on it. <b>It's a convenience, not a rule:</b> start from any stand you like. Where you park is never scored, flagged or reviewed.</li>
       <li><b>PAC's other hubs</b> have stands too: Hong Kong uses real cargo apron stands X12 to X17 at their published positions; Miami, Milan Malpensa, Dubai World Central and Anchorage (PC1 to PC6) have stands on their cargo areas that staff can fine-tune on the satellite map. ACARS assigns these by aircraft size as well. PAC emblems mark the stands on the satellite map; staff use <b>Position stands</b> to drag them onto the ramp.</li>
       <li><b>Downloads</b> (Resources › Downloads) has PAC ACARS and other files from staff, SimBrief airframe sheets for every PAC aircraft, and the handbook and station guide to print. Your copy of PAC ACARS comes set up for the airline's website already. PAC liveries are on the <b>Fleet</b> page under each aircraft, with credit to their painters.</li></ul>`],
-    ["missionboard", "The mission board", `<p>The mission board is alive: about 14 missions are open at a time, each for a few days, and new work arrives as others close. Missions come from real kinds of air-cargo work, many of them seasonal: Valentine's roses from Bogotá, Chilean cherries before Chinese New Year, durian and mango seasons, Alaskan king crab, smartphone launches and the 11.11 shopping festival, hurricane, typhoon and cyclone relief in their seasons, Beaujolais Nouveau in November, fashion weeks, Formula 1 and motorcycle flyaway races, pro football, basketball, baseball and hockey games abroad, European clubs' summer tours, stock cars to Mexico City, show horses, the winter World Cup circuit and stadium concert tours, the Antarctic season through Christchurch, and year-round work like vaccines on the cold chain, AOG engines, ship spares, data-centre servers, rhino reintroductions, honeybees and satellites.</p>
+    ["missionboard", "The mission board", `<p>The mission board is alive: about 14 missions are open at a time, each for a few days, and new work arrives as others close. Missions come from real kinds of air-cargo work, many of them seasonal: Valentine's roses from Bogotá, Chilean cherries before Chinese New Year, durian and mango seasons, Alaskan king crab, smartphone launches and the 11.11 shopping festival, hurricane, typhoon and cyclone relief in their seasons, Beaujolais Nouveau in November, fashion weeks, Formula 1 and motorcycle flyaway races, pro football, basketball, baseball and hockey games abroad, European clubs' summer tours, stock cars to Mexico City, show horses, the winter World Cup circuit and stadium concert tours, the Antarctic season through Christchurch, and year-round work like vaccines on the cold chain, AOG engines, ship spares, data-center servers, rhino reintroductions, honeybees and satellites.</p>
       <ul><li>Several missions always leave from where you are. The same route doesn't come back within ten days.</li>
-      <li><b>New</b> marks a mission that arrived in the last day; the grey tag shows how long it stays open.</li>
+      <li><b>New</b> marks a mission that arrived in the last day; the gray tag shows how long it stays open.</li>
       <li>PAC's original hand-written missions come back from time to time, and the line checkride is always there.</li></ul>`],
     ["jobs", "Job board", `<p>A fresh set of cargo and ferry jobs appears every day at 0000Z, with several leaving from wherever you are. Partner crew requests arrive through the day instead, each open for a day or so.</p>
       <ul><li><b>Cargo jobs:</b> one-off work of every kind: racehorses and zoo animals, Grand Prix freight, museum art, satellites and wind-turbine parts, radiopharmaceuticals, wildfire equipment and more, to airports all over the world.</li>
@@ -4420,11 +4420,11 @@ function renderHandbook(cfg) {
       <li><b>Your location</b> is where your last flight ended. You fly from there.</li>
       <li><b>Jumpseating</b> moves you somewhere else, paid from your wallet: a seat on a PAC freighter where PAC flies (cheap), or an airline ticket to anywhere (dearer).</li>
       <li>Ferry flights move you along with the aircraft, and pay you for the hours.</li></ul>`],
-    ["ratings", "Type ratings and checkrides", `<p>${cfg.type_ratings_required ? "Each aircraft family needs a <b>type rating</b> before you fly regular work in it." : "Your rank decides what you can fly. <b>Type ratings</b> are optional: they go on your licence and show what you've proved you can fly, but you don't need one to fly a type your rank has unlocked."} Ratings follow real-world families: one rating covers the 737-200C, 737-300SF and 737-800BCF; the 757 and 767 share one; the 747 classic and the 747-8 are separate.</p>
+    ["ratings", "Type ratings and checkrides", `<p>${cfg.type_ratings_required ? "Each aircraft family needs a <b>type rating</b> before you fly regular work in it." : "Your rank decides what you can fly. <b>Type ratings</b> are optional: they go on your license and show what you've proved you can fly, but you don't need one to fly a type your rank has unlocked."} Ratings follow real-world families: one rating covers the 737-200C, 737-300SF and 737-800BCF; the 757 and 767 share one; the 747 classic and the 747-8 are separate.</p>
       <ul><li><b>How to earn one:</b> Career › Qualifications › <b>Book checkride</b>. It's a short company sector (${tc.min_nm} to ${tc.max_nm} nm) in that type, in a dedicated training aircraft or an available fleet aircraft, with free travel (see Company-funded checkrides). To pass: score ${tc.min_score} or better, land softer than ${Math.abs(tc.min_rate)} fpm at no more than ${tc.max_g} G with no bounce, fly a stable approach, and no overspeed or position jump. Staff accept the report, then the rating is yours.</li>
         ${cfg.direct_entry ? `<li><b>Already fly a type?</b> You can take any type checkride at any rank. An accepted passing report unlocks that family for line flights and also counts as your line checkride. Rank and pay keep their existing progression rules; this does not grant other aircraft ratings.</li>` : ""}
       <li><b>Already rated:</b> every type you flew with PAC before ratings began, and the 737 family once you pass the line checkride in the 737.</li>
-      <li>Passing adds the checkride date to that type on your licence. Staff can grant or remove ratings, or switch the requirement off (Staff › Site and rules).</li></ul>`],
+      <li>Passing adds the checkride date to that type on your license. Staff can grant or remove ratings, or switch the requirement off (Staff › Site and rules).</li></ul>`],
     ["dispatchpaper", "Dispatch paperwork, goals and Discord", `<p>The <b>dispatch release</b> prints like real operational paperwork: the release with fuel, weights and signatures, a navigation log (when your SimBrief plan has waypoints), weather and NOTAMs, the loadsheet, the cargo manifest, <b>shipment details</b>, the NOTOC and the <b>ground handling</b> timeline. Print it or save it as a PDF from its toolbar; <b>Classic layout</b> shows the previous design.</p>
       <p><b>Shipment details:</b> every air waybill on the manifest has a shipper, a consignee and a forwarder: real companies that fit the cargo and both ends of the route (a GE Aerospace spare engine for an airline's grounded aircraft, Mowi salmon for a European wholesaler, WFP relief stock for a field team). Each shipment says why it's flying, how to handle it, and when the consignee gets it after you land. The shipments themselves are fictional.</p>
       <p><b>Ground handling:</b> the timeline from cargo acceptance, build-up, weighing and loading to doors closed, and from on-block through offload, customs and release at the other end.</p>
@@ -4459,8 +4459,8 @@ function renderHandbook(cfg) {
       <li><b>Flight plan:</b> press <b>Fetch OFP from SimBrief</b> in the app to load your plan (fuel, weights, route, alternate) before pushback.</li>
       <li><b>Messages:</b> a chime and a flashing <b>MSG</b> light tell you PAC Operations has sent something. Click MSG to read and acknowledge. Chime and volume are in the app's Settings.</li>
       <li><b>Compact mode</b> shrinks the app to a slim strip (phase, altitude, speeds, distance to go, last message) that stays on top. <b>Full</b> brings it back.</li>
-      <li><b>Tray icon:</b> PAC ACARS sits in the notification area with a coloured dot (green tracking, amber new message, blue on block, red problem). Minimizing the window mid-flight hides it to the tray. Closing it mid-flight asks whether to keep tracking in the tray or save the flight and quit; you can resume it later. To quit PAC ACARS completely, right-click the tray icon › Quit PAC ACARS.</li>
-      <li>On block, the app shows your landing: rate, G, runway, touchdown point, centreline, float, wind and the grade.</li>
+      <li><b>Tray icon:</b> PAC ACARS sits in the notification area with a colored dot (green tracking, amber new message, blue on block, red problem). Minimizing the window mid-flight hides it to the tray. Closing it mid-flight asks whether to keep tracking in the tray or save the flight and quit; you can resume it later. To quit PAC ACARS completely, right-click the tray icon › Quit PAC ACARS.</li>
+      <li>On block, the app shows your landing: rate, G, runway, touchdown point, centerline, float, wind and the grade.</li>
       <li>The first time, your browser asks whether to open PAC ACARS. Tick "always allow" to skip that next time.</li></ul>`],
     ["dispatchmsg", "Talking to dispatch", `<p>Use the <b>Dispatch</b> panel in the PAC ACARS app during a tracked flight. PAC Operations replies in the ACARS log after a short pause.</p>
       <ul><li><b>Delay:</b> report the minutes and the cause. Delays for ATC, weather, ground handling, late cargo or a technical fault are taken off your block time when judging a late delivery.</li>
@@ -4478,7 +4478,7 @@ function renderHandbook(cfg) {
       <li>The partner pays for the aircraft, fuel and fees. You earn 1.5× your hourly rate plus a shortage bonus, and PAC earns a crew placement fee.</li>
       <li>Your landing and takeoff cards show a real photo of the partner's aircraft and its logo, marked "Flown for" the partner.</li></ul>
       <ul><li><b>Partner jumpseats:</b> when both ends of a trip are in a partner's network, you can ride its freighter for less than an airline ticket.</li></ul>
-      <p class="muted" style="font-size:13px">The partnerships are simulated for a flight simulation virtual airline. Names and logos are trademarks of their owners; their use doesn't imply sponsorship or endorsement. Logos from Wikimedia Commons: FedEx Express, UPS, Qatar Airways, Emirates SkyCargo and Cathay Pacific (public domain); Atlas Air Worldwide logo by Atlas Air Worldwide Holdings, Inc., CC BY-SA 4.0. Aircraft photos on partner cards are freely licensed photos from Wikimedia Commons, credited on each card to their photographer with their licence.</p>`],
+      <p class="muted" style="font-size:13px">The partnerships are simulated for a flight simulation virtual airline. Names and logos are trademarks of their owners; their use doesn't imply sponsorship or endorsement. Logos from Wikimedia Commons: FedEx Express, UPS, Qatar Airways, Emirates SkyCargo and Cathay Pacific (public domain); Atlas Air Worldwide logo by Atlas Air Worldwide Holdings, Inc., CC BY-SA 4.0. Aircraft photos on partner cards are freely licensed photos from Wikimedia Commons, credited on each card to their photographer with their license.</p>`],
     ["economics", "Airline economics", `<p>Every flight earns freight revenue and pays for fuel, landing and navigation fees, cargo handling, crew, maintenance, aircraft ownership and overhead. Profit goes into the company cash shown on the Finance page.</p>
       <ul><li><b>Revenue</b> grows with weight and distance. Premium, medical, urgent and heavy-lift work pays more. Dedicated charters are priced per aircraft hour, so a light load still pays.</li>
       <li><b>Relief flights</b> carry the smallest markup. The company doesn't profit much from disasters.</li>
@@ -4547,7 +4547,7 @@ async function staffPartnerPhotos() {
   let rows;
   try { rows = await api("/api/staff/partner-photos"); } catch (e) { body.innerHTML = `<div class="notice err">${esc(e.message)}</div>`; return; }
   const paint = list => {
-    body.innerHTML = `<p class="muted" style="max-width:80ch">Landing and takeoff cards for partner flights use a real photo of that airline's aircraft, picked automatically from Wikimedia Commons. Only photos whose licence allows reuse are used, and each card credits the photographer and licence. New combinations are fetched in the background, so refresh in a minute if some are still missing.</p>
+    body.innerHTML = `<p class="muted" style="max-width:80ch">Landing and takeoff cards for partner flights use a real photo of that airline's aircraft, picked automatically from Wikimedia Commons. Only photos whose license allows reuse are used, and each card credits the photographer and license. New combinations are fetched in the background, so refresh in a minute if some are still missing.</p>
     <div class="pp-grid">${list.map(r => `<article class="pp-card">
       <div class="pp-img">${r.url ? `<img src="${esc(r.url)}" alt="${esc(r.partner_name + " " + r.aircraft_name)}" loading="lazy">` : `<span>${r.off ? "Using the PAC photo" : r.error ? "No photo yet" : "Fetching…"}</span>`}</div>
       <div class="pp-body"><b>${esc(r.partner_name)}</b> · ${esc(r.aircraft_name)}
@@ -4884,7 +4884,7 @@ function staffSite() {
       <label class="switch-row"><input type="checkbox" data-rule="direct_entry_checkrides" ${r.direct_entry_checkrides !== false ? "checked" : ""}><span><b>Direct entry type checkrides</b><br><span class="muted" style="font-size:13px">Experienced pilots can take any type checkride regardless of rank or hours. An accepted passing report unlocks that family for line flights. Rank and pay keep their existing progression rules. Turning this off restores rank-based access.</span></span></label>
       <label class="switch-row"><input type="checkbox" data-rule="require_release_signature" ${r.require_release_signature === true ? "checked" : ""}><span><b>Captain signs the release</b><br><span class="muted" style="font-size:13px">Pilots review and sign the dispatch release (and the NOTOC when dangerous goods are on board) before PAC ACARS will start the flight.</span></span></label>
       <label class="switch-row"><input type="checkbox" data-rule="enforce_ranks" ${r.enforce_ranks ? "checked" : ""}><span><b>Enforce rank limits</b><br><span class="muted" style="font-size:13px">Pilots can only book aircraft their rank has unlocked, and must pass the checkride before flying the line.</span></span></label>
-      <label class="switch-row"><input type="checkbox" data-rule="allow_ground_reposition" ${r.allow_ground_reposition ? "checked" : ""}><span><b>Allow ground repositioning</b><br><span class="muted" style="font-size:13px">GSX or slew moves on the ground are logged but not penalised.</span></span></label>
+      <label class="switch-row"><input type="checkbox" data-rule="allow_ground_reposition" ${r.allow_ground_reposition ? "checked" : ""}><span><b>Allow ground repositioning</b><br><span class="muted" style="font-size:13px">GSX or slew moves on the ground are logged but not penalized.</span></span></label>
       <h2 style="padding:14px 0 0">Economics</h2>
       <div class="grid2" style="margin:6px 0 10px">
         <div class="field"><label for="ec_fuel">Jet fuel price (USD per gallon)</label><input id="ec_fuel" type="number" step="0.01" min="0.5" max="10" value="${S.settings.fuel_price_gal ?? 2.85}"></div>
@@ -4896,11 +4896,11 @@ function staffSite() {
       <div class="row" style="align-items:flex-end;gap:10px;margin:0 0 6px"><div class="field" style="margin:0"><label for="filingIcao">Network ICAO code</label><input id="filingIcao" maxlength="3" value="${esc(filingIcao())}" style="width:90px;text-transform:uppercase"></div>
         <button class="btn small" type="button" id="filingSave">Save</button></div>
       <h3 style="margin:14px 0 4px;font-size:15px">VATSIM logo</h3>
-      <p class="muted" style="font-size:13px;margin:0 0 8px">Once VATSIM accepts PAC as a Virtual Airline Associate or Partner, its policy asks for the VATSIM logo on the home page, linked to www.vatsim.net. PAC includes the official full-colour logo from VATSIM's public logo pack, ready to show unaltered in a <b>Network partners</b> section. Keep it switched off until VATSIM has accepted PAC: showing it before then suggests a partnership PAC doesn't have. If VATSIM updates its logo, download the new pack from <a href="https://vats.im/logo" target="_blank" rel="noopener">vats.im/logo</a> and upload the no-tagline version (PNG, WebP or SVG) here.</p>
+      <p class="muted" style="font-size:13px;margin:0 0 8px">Once VATSIM accepts PAC as a Virtual Airline Associate or Partner, its policy asks for the VATSIM logo on the home page, linked to www.vatsim.net. PAC includes the official full-color logo from VATSIM's public logo pack, ready to show unaltered in a <b>Network partners</b> section. Keep it switched off until VATSIM has accepted PAC: showing it before then suggests a partnership PAC doesn't have. If VATSIM updates its logo, download the new pack from <a href="https://vats.im/logo" target="_blank" rel="noopener">vats.im/logo</a> and upload the no-tagline version (PNG, WebP or SVG) here.</p>
       <label class="switch-row" style="margin:0 0 8px"><input type="checkbox" id="vatsimShow" ${S.settings?.vatsim_partner_section ? "checked" : ""}><span><b>Show the VATSIM partner section on the home page</b><br><span class="muted" style="font-size:13px">Only once VATSIM has accepted PAC.</span></span></label>
       <div class="row" id="netLogoBox" style="align-items:center;gap:12px;margin:0 0 6px"></div>
       <h3 style="margin:14px 0 4px;font-size:15px">IVAO logo</h3>
-      <p class="muted" style="font-size:13px;margin:0 0 8px">IVAO asks certified virtual airlines to show the IVAO Virtual Airline logo they provide on the home page, linked to ivao.aero. Upload the file IVAO sends you (PNG, WebP or SVG), then switch the section on once IVAO has accepted PAC. Use it exactly as provided: no recolouring, cropping or added background.</p>
+      <p class="muted" style="font-size:13px;margin:0 0 8px">IVAO asks certified virtual airlines to show the IVAO Virtual Airline logo they provide on the home page, linked to ivao.aero. Upload the file IVAO sends you (PNG, WebP or SVG), then switch the section on once IVAO has accepted PAC. Use it exactly as provided: no recoloring, cropping or added background.</p>
       <label class="switch-row" style="margin:0 0 8px"><input type="checkbox" id="ivaoShow" ${S.settings?.ivao_partner_section ? "checked" : ""}><span><b>Show the IVAO logo on the home page</b><br><span class="muted" style="font-size:13px">Only once IVAO has accepted PAC, or when IVAO asks for it as part of the review.</span></span></label>
       <div class="row" id="ivaoLogoBox" style="align-items:center;gap:12px;margin:0 0 6px"></div>
       <h2 style="padding:14px 0 0">Backups</h2>
@@ -5183,7 +5183,7 @@ function renderRoster() {
   shown.sort((a, b) => by(a, b) || a.pilot_id.localeCompare(b.pilot_id));
   const active = all.filter(p => p.status === "Active").length, hours = all.reduce((s, p) => s + (p.hours || 0), 0);
   const inactive = all.filter(p => p.status === "Inactive").length;
-  const when = t => t ? new Date(t * 1000).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }) : "–";
+  const when = t => t ? new Date(t * 1000).toLocaleDateString("en-US", { day: "numeric", month: "short", year: "numeric" }) : "–";
   $("#pilotsRoot").innerHTML = `
   <div class="profile-bar"><h1>Pilots</h1><span class="muted">${fmt(active)} active ${active === 1 ? "pilot" : "pilots"} · ${esch(hours)} hours between them</span></div>
   <div class="roster-tools">
@@ -5216,7 +5216,7 @@ async function renderPilotPage(pid) {
               $("#backRoster").onclick = () => { S.pilotOpen = null; show("pilots"); }; return; }
   if (S.pilotOpen !== pid) return;                      // they've moved on while this loaded
   const p = d.profile, c = d.career, t = d.stats.totals, mine = d.you;
-  const since = p.member_since ? new Date(p.member_since + "T00:00:00").toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" }) : "–";
+  const since = p.member_since ? new Date(p.member_since + "T00:00:00").toLocaleDateString("en-US", { day: "numeric", month: "long", year: "numeric" }) : "–";
   const ratings = [...new Map((p.type_ratings || []).filter(r => r.status !== "Inactive").map(r => [r.type, r])).values()];
   root.innerHTML = `
   <div class="profile-bar"><button class="btn ghost small" type="button" id="backRoster">← All pilots</button>
@@ -5273,7 +5273,7 @@ async function renderPilotPage(pid) {
     <section class="panel">
       <h2>Recent flights</h2>
       ${d.stats.recent.length ? `<ul class="recent pilot-recent">${d.stats.recent.map(r => `<li ${S.me?.staff || mine ? `data-pirep-open="${r.id}" tabindex="0" class="clickable"` : ""}>
-          <b>${esc(r.flight_number)}</b><span>${esc(r.dep)} – ${esc(r.arr)} · ${esc(S.fleet[r.aircraft]?.icao || r.aircraft)}<small>${new Date(r.filed_at * 1000).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}${r.landing_rate != null ? ` · ${r.landing_rate} fpm` : ""}</small></span>
+          <b>${esc(r.flight_number)}</b><span>${esc(r.dep)} – ${esc(r.arr)} · ${esc(S.fleet[r.aircraft]?.icao || r.aircraft)}<small>${new Date(r.filed_at * 1000).toLocaleDateString("en-US", { day: "numeric", month: "short" })}${r.landing_rate != null ? ` · ${r.landing_rate} fpm` : ""}</small></span>
           <span class="grade-chip g-${esc(r.grade || "")}">${esc(r.grade || "–")}</span></li>`).join("")}</ul>`
         : `<p class="panel-sub" style="padding-bottom:16px">No flights filed yet.</p>`}
     </section>
@@ -5353,7 +5353,7 @@ function liveryForm(k, f) {
   const src = f.src || (l.kind === "link" ? "link" : "file"), val = n => esc(l[n] ?? "");
   return `<form class="ac-edit liv-form" id="livForm" autocomplete="off">
     <h4 class="full" style="margin:0">${f.id ? "Edit livery" : `New livery for the ${esc(a.name)}`}</h4>
-    <div class="field"><label for="lv_title">Name of the livery</label><input id="lv_title" name="title" value="${val("title")}" placeholder="PAC house colours" maxlength="80"></div>
+    <div class="field"><label for="lv_title">Name of the livery</label><input id="lv_title" name="title" value="${val("title")}" placeholder="PAC house colors" maxlength="80"></div>
     <div class="field"><label for="lv_painter">Painter</label><input id="lv_painter" name="painter" value="${val("painter")}" required maxlength="60"></div>
     <div class="field"><label for="lv_plink">Painter's page (optional)</label><input id="lv_plink" name="painter_link" type="url" value="${val("painter_link")}" placeholder="https://flightsim.to/profile/…"></div>
     <div class="field"><label for="lv_sim">Simulator</label><select id="lv_sim" name="sim">${["MSFS", "X-Plane"].map(o => `<option ${o === (l.sim || ((a.sim || "MSFS") === "X-Plane" ? "X-Plane" : "MSFS")) ? "selected" : ""}>${o}</option>`).join("")}</select></div>
@@ -5455,7 +5455,7 @@ function renderProfile() {
   const p = S.profile, st = S.pstats || { totals: {}, by_aircraft: {}, recent: [] }, t = st.totals;
   const totalHours = (p.type_ratings || []).reduce((sum, r) => sum + (Number(r.prior_hours) || 0), 0) + (t.block_hours || 0);
   $("#profileRoot").innerHTML = `
-  <div class="profile-bar"><h1>Pilot profile</h1><div class="row"><button class="btn" id="openLicence">Pilot licence</button><button class="btn ghost" id="editProfile">Edit profile</button></div></div>
+  <div class="profile-bar"><h1>Pilot profile</h1><div class="row"><button class="btn" id="openLicence">Pilot license</button><button class="btn ghost" id="editProfile">Edit profile</button></div></div>
   <article class="crew-card">
     <div class="crew-photo">
       <img src="${esc(p.photo)}" alt="Portrait of ${esc(displayName(p))}" class="${frameCls(p.flair)}">
@@ -5471,7 +5471,7 @@ function renderProfile() {
         <div><span>Callsign</span><b>${esc(p.callsign) || "–"}</b></div>
         <div><span>Home base</span><b>${esc(p.base) || "–"}</b></div>
         <div><span>Secondary base</span><b>${esc(p.secondary_base) || "–"}</b></div>
-        <div><span>With Pagani Air Cargo since</span><b>${p.member_since ? new Date(p.member_since + "T00:00:00").toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" }) : "–"}</b></div>
+        <div><span>With Pagani Air Cargo since</span><b>${p.member_since ? new Date(p.member_since + "T00:00:00").toLocaleDateString("en-US", { day: "numeric", month: "long", year: "numeric" }) : "–"}</b></div>
         <div><span>Total hours</span><b class="num">${esch(totalHours)}</b></div>
         ${S.career?.rank ? `<div><span>Career rank</span><b>${esc(S.career.rank)}</b></div>` : ""}
       </div>
@@ -5504,7 +5504,7 @@ function renderProfile() {
       <section class="panel">
         <h2>Credentials</h2>
         <dl class="creds">${(p.credentials || []).map(c => `<div><dt>${esc(c.label)}</dt><dd>${esc(c.value)}${c.detail || c.expires ? `<small>${esc(c.detail)}${c.detail && c.expires ? " · " : ""}${c.expires ? "Valid until " + esc(c.expires) : ""}</small>` : ""}</dd></div>`).join("")
-          || `<p class="muted">No credentials listed.${isFounder() ? " Choose Edit profile to add your licences and ratings." : " Staff keep these on your PAC record."}</p>`}</dl>
+          || `<p class="muted">No credentials listed.${isFounder() ? " Choose Edit profile to add your licenses and ratings." : " Staff keep these on your PAC record."}</p>`}</dl>
       </section>
       <section class="panel">
         <h2>Career with PAC</h2>
@@ -5595,7 +5595,7 @@ ${isFounder() ? `    <section class="panel">
     <div class="side-stack">
 ${isFounder() ? `      <section class="panel">
         <h2>Credentials</h2>
-        <p class="panel-sub">Licences, medical, ratings and endorsements. Validity date is optional.</p>
+        <p class="panel-sub">Licenses, medical, ratings and endorsements. Validity date is optional.</p>
         ${p.credentials.map((c, i) => `<div class="cred-edit" data-c="${i}">
           <input data-f="label" value="${esc(c.label)}" placeholder="Name, e.g. Medical" aria-label="Credential name">
           <input data-f="value" value="${esc(c.value)}" placeholder="e.g. First class" aria-label="Credential value">
@@ -5607,7 +5607,7 @@ ${isFounder() ? `      <section class="panel">
       </section>
 ` : `      <section class="panel">
         <h2>Credentials</h2>
-        <p class="panel-sub">Licences, medical and endorsements on your PAC record. Staff keep these up to date.</p>
+        <p class="panel-sub">Licenses, medical and endorsements on your PAC record. Staff keep these up to date.</p>
         ${p.credentials.length ? p.credentials.map(c => `<div class="cred-view" style="margin:0 20px"><b>${esc(c.label)}</b> ${esc(c.value)}${c.detail ? ` <span class="muted">· ${esc(c.detail)}</span>` : ""}${c.expires ? ` <span class="muted">· valid until ${esc(c.expires)}</span>` : ""}</div>`).join("")
           : `<p class="panel-sub" style="margin-bottom:16px">None recorded yet.</p>`}
       </section>
@@ -6344,7 +6344,7 @@ function preparationPanel(b, st, available) {
 async function refreshPreparation(){try{await refreshCore();await loadMe();await refreshReleaseGate();await loadBids();}catch(e){toast(e.message)}}
 function missionCargoBrief(m){
   const purpose={Humanitarian:'Relief cargo supports the teams receiving it at the destination.',Medical:'Medical cargo supports care and supply continuity at the destination.',Medicine:'Medical cargo supports care and supply continuity at the destination.',Express:'Express cargo supports time-sensitive connections and deliveries.', 'Heavy lift':'Outsize and heavy cargo needs an aircraft and load plan suited to the shipment.',AOG:'Aircraft parts help a receiving maintenance team return an aircraft to service.'};
-  const date=t=>new Date(t*1000).toLocaleString('en-GB',{timeZone:'UTC',dateStyle:'medium',timeStyle:'short'})+' UTC';
+  const date=t=>new Date(t*1000).toLocaleString('en-US',{timeZone:'UTC',dateStyle:'medium',timeStyle:'short'})+' UTC';
   const deadline=Number(m.deliver_by)>0?`Arrive by ${date(m.deliver_by)}`:'No fixed delivery deadline listed';
   return `<section class="px-cargo"><span class="kicker">THE CARGO BEHIND THE FLIGHT</span><h3>${esc(m.cargo || m.title)}</h3><p>${esc(m.briefing || 'Review the cargo, route and aircraft requirements below before requesting this flight.')}</p>${purpose[m.category]?`<div class="px-purpose"><b>Why it matters</b><p>${esc(purpose[m.category])}</p></div>`:''}<div class="px-deadline"><b>${esc(deadline)}</b>${Number(m.expires)>0?`<small>Booking offer closes ${esc(date(m.expires))}. This is separate from any arrival deadline.</small>`:''}</div><details><summary>Before you request this flight</summary><ul><li>Check your qualification and the selected aircraft’s payload and range.</li><li>Review pilot location and aircraft availability below.</li><li>${m.handling?'Read the shipment handling instructions below.':'No additional shipment handling instructions are listed in this mission.'}</li>${m.challenge?'<li>Review the airport challenge notes below.</li>':''}</ul></details></section>`;
 }
@@ -6364,22 +6364,22 @@ document.addEventListener('click',async e=>{
  catch(err){toast(err.message);b.disabled=false;}finally{patchSaving=false;}
 });
 const PAC_UPDATES=[
- {"id": "20261103-sports", "date": "3 November 2026", "kind": "New feature", "title": "Sports and events missions", "body": "A new Sports and events category on the mission board. Fly a hometown pro team's equipment to its games abroad (football, basketball, hockey and baseball, each in its real season), European clubs' summer tours, stock cars to Mexico City, motorcycle grand prix flyaways, bobsleds for the winter World Cup, show-jumping horses and stadium concert tours. Each comes with its own handling notes.", "view": "missions", "label": "Find a sports mission"},
- {"id": "20261103-missions", "date": "3 November 2026", "kind": "New feature", "title": "Six urgent requests and new kinds of work", "body": "Up to six urgent requests at a time, with new kinds: ship engine parts, grid repairs after a blackout, antivenom, rescue team equipment, servers for a failed data centre, race team spares and team equipment for tomorrow's game. The mission board adds durian and mango seasons, sashimi tuna, Alaskan king crab, fashion weeks, the 11.11 shopping festival, smartphone launches, ship spares, data-centre builds, Indian Ocean cyclone relief, rhino reintroductions, honeybees and new hot-and-high challenge airports in Africa.", "view": "missions", "label": "See the mission board"},
- {"id": "20261103-divisions", "date": "3 November 2026", "kind": "New feature", "title": "Fleet divisions", "body": "The fleet is now organised in four divisions: PAC Feeder (the 737s), PAC Mainline (A300, 757, 767), PAC Heavy (MD-11, 777F, 747-400F and 747-8F) and PAC Heritage (727s, 737-200 and 747-200). They show on the Fleet page, on every flight, in your logbook and in My stats, and the mission board can show one division at a time. Your rank and ratings still decide what you fly.", "view": "fleet", "label": "Meet the divisions"},
- {"id": "20261103-roster", "date": "3 November 2026", "kind": "New feature", "title": "Public roster and flight log", "body": "Crew room now has a Roster and flight log page that anyone can see: every active pilot (first name and initial only), rank, hours and the airline's latest accepted flights. It's part of getting PAC listed with VATSIM and IVAO.", "view": "roster", "label": "Open the roster"},
- {"id": "20261102-partner-photos", "date": "2 November 2026", "kind": "New feature", "title": "Partner flights look the part", "body": "Fly for FedEx, UPS, Atlas, Cathay, Emirates or Qatar and your landing and takeoff cards now show a real photo of that airline's aircraft, with its logo and Flown for on the card. Partner flights also use the partner's real registrations in SimBrief, on your paperwork and in your logbook.", "view": "missions", "label": "See partner requests"},
- {"id": "20261103-faster", "date": "3 November 2026", "kind": "Improvement", "title": "A faster website", "body": "Pages for signed-in pilots load several times faster, and your browser now keeps the site's files instead of checking each one on every visit. A website update or restart also no longer drops a flight you're tracking: PAC ACARS picks it straight back up.", "view": "dashboard", "label": "Back to your dashboard"},
- {"id": "20261103-downloads", "date": "3 November 2026", "kind": "Improvement", "title": "Find your livery faster", "body": "Downloads now filters liveries by simulator and aircraft, and remembers your choice. Links in descriptions are clickable.", "view": "downloads", "label": "Open Downloads"},
- {"id": "20261103-handbook", "date": "3 November 2026", "kind": "Improvement", "title": "Handbook brought up to date", "body": "The pilot handbook now covers the four-tab flight planning page and Generate OFP, the full scoring table, checkride and direct-entry rules, divisions and partner flights. A printable PDF (v1.3) is in Downloads.", "view": "handbook", "label": "Read the handbook"},
- {id:"20261028-training",date:"28 October 2026",kind:"New feature",title:"Your checkride. Your choice of airport.",body:"Company-funded checkrides now offer dedicated training at supported airports or an available fleet aircraft with free positioning travel. Same standards, free retakes, no paid ferry needed. Dedicated sessions leave the operational fleet and your normal station untouched.",view:"career/qualifications",label:"Start a checkride"},
-{"id": "20261027-dashboard-crew", "date": "27 October 2026", "kind": "New feature", "title": "Your next crew flight, on the dashboard", "body": "See the next three crew flights with UTC and local departure times, open places and your participation status. View or join a flight and download a calendar entry. Calendar downloads are snapshots; check the board for later changes.", "view": "dashboard", "label": "See upcoming crew flights"},
-{"id": "20261027-plan-with-crew", "date": "27 October 2026", "kind": "Improvement", "title": "Take a mission straight to Fly Together", "body": "Choose Plan with crew in mission details to pre-fill the route and selected aircraft type. Add your departure time and simulator setup before posting. A crew post does not reserve an aircraft.", "view": "missions", "label": "Choose a mission"},
-{"id": "20261027-reservations", "date": "27 October 2026", "kind": "Improvement", "title": "See who has an aircraft reserved", "body": "Aircraft views now show the pilot, flight and planned route when booking details are available. Live ACARS reporting distinguishes flying from ground operations. Availability is checked again when you book.", "view": "fleet", "label": "Check the fleet"},
-{"id": "20261027-fly-together", "date": "27 October 2026", "kind": "New feature", "title": "Find someone to fly with", "body": "Post a shared-cockpit or group flight under Crew room → Fly together. Include your simulator, add-on and an optional Discord username. Join or leave a flight, manage your crew and close finished plans. Past departures leave the upcoming list automatically. Bookings, qualifications and flight credit remain separate.", "view": "crewplans", "label": "Open Fly together"},
-{"id": "20261027-parked-fleet", "date": "27 October 2026", "kind": "New feature", "title": "Find your next aircraft on the map", "body": "Toggle the parked fleet on the Live map to see aircraft grouped at their recorded airport. Filter by type, qualifications or availability, then find departures, arrange pilot travel or request an aircraft-delivery quote before confirming payment.", "view": "live", "label": "Explore the fleet map"},
-{"id": "20261026-flight-debrief", "date": "26 October 2026", "kind": "Improvement", "title": "Understand your flight, not just your score", "body": "Your PIREP now explains recorded deductions, highlights what went well and summarizes shipment timing. Section shortcuts make landing, takeoff and replay details easier to reach. Scores and pay are unchanged; unverified cargo condition and customer handover are clearly identified.", "view": "logbook", "label": "Review your flights"},
- {id:'20261025-short-heavy',date:'25 October 2026',kind:'New feature',title:'Heavy freighters. Short sectors.',body:'Find 100–300 NM heavy cargo jobs using the Short-haul heavies filter on All flights or the Job board. Four rotating cargo scenarios, estimated block time and 80 handling points included in the reward. Routes favour stations with an available heavy at generation time; availability can change.',view:'missions',label:'Find short-haul heavy jobs'},
+ {"id": "20261103-sports", "date": "November 3, 2026", "kind": "New feature", "title": "Sports and events missions", "body": "A new Sports and events category on the mission board. Fly a hometown pro team's equipment to its games abroad (football, basketball, hockey and baseball, each in its real season), European clubs' summer tours, stock cars to Mexico City, motorcycle grand prix flyaways, bobsleds for the winter World Cup, show-jumping horses and stadium concert tours. Each comes with its own handling notes.", "view": "missions", "label": "Find a sports mission"},
+ {"id": "20261103-missions", "date": "November 3, 2026", "kind": "New feature", "title": "Six urgent requests and new kinds of work", "body": "Up to six urgent requests at a time, with new kinds: ship engine parts, grid repairs after a blackout, antivenom, rescue team equipment, servers for a failed data center, race team spares and team equipment for tomorrow's game. The mission board adds durian and mango seasons, sashimi tuna, Alaskan king crab, fashion weeks, the 11.11 shopping festival, smartphone launches, ship spares, data-center builds, Indian Ocean cyclone relief, rhino reintroductions, honeybees and new hot-and-high challenge airports in Africa.", "view": "missions", "label": "See the mission board"},
+ {"id": "20261103-divisions", "date": "November 3, 2026", "kind": "New feature", "title": "Fleet divisions", "body": "The fleet is now organized in four divisions: PAC Feeder (the 737s), PAC Mainline (A300, 757, 767), PAC Heavy (MD-11, 777F, 747-400F and 747-8F) and PAC Heritage (727s, 737-200 and 747-200). They show on the Fleet page, on every flight, in your logbook and in My stats, and the mission board can show one division at a time. Your rank and ratings still decide what you fly.", "view": "fleet", "label": "Meet the divisions"},
+ {"id": "20261103-roster", "date": "November 3, 2026", "kind": "New feature", "title": "Public roster and flight log", "body": "Crew room now has a Roster and flight log page that anyone can see: every active pilot (first name and initial only), rank, hours and the airline's latest accepted flights. It's part of getting PAC listed with VATSIM and IVAO.", "view": "roster", "label": "Open the roster"},
+ {"id": "20261102-partner-photos", "date": "November 2, 2026", "kind": "New feature", "title": "Partner flights look the part", "body": "Fly for FedEx, UPS, Atlas, Cathay, Emirates or Qatar and your landing and takeoff cards now show a real photo of that airline's aircraft, with its logo and Flown for on the card. Partner flights also use the partner's real registrations in SimBrief, on your paperwork and in your logbook.", "view": "missions", "label": "See partner requests"},
+ {"id": "20261103-faster", "date": "November 3, 2026", "kind": "Improvement", "title": "A faster website", "body": "Pages for signed-in pilots load several times faster, and your browser now keeps the site's files instead of checking each one on every visit. A website update or restart also no longer drops a flight you're tracking: PAC ACARS picks it straight back up.", "view": "dashboard", "label": "Back to your dashboard"},
+ {"id": "20261103-downloads", "date": "November 3, 2026", "kind": "Improvement", "title": "Find your livery faster", "body": "Downloads now filters liveries by simulator and aircraft, and remembers your choice. Links in descriptions are clickable.", "view": "downloads", "label": "Open Downloads"},
+ {"id": "20261103-handbook", "date": "November 3, 2026", "kind": "Improvement", "title": "Handbook brought up to date", "body": "The pilot handbook now covers the four-tab flight planning page and Generate OFP, the full scoring table, checkride and direct-entry rules, divisions and partner flights. A printable PDF (v1.3) is in Downloads.", "view": "handbook", "label": "Read the handbook"},
+ {id:"20261028-training",date:"October 28, 2026",kind:"New feature",title:"Your checkride. Your choice of airport.",body:"Company-funded checkrides now offer dedicated training at supported airports or an available fleet aircraft with free positioning travel. Same standards, free retakes, no paid ferry needed. Dedicated sessions leave the operational fleet and your normal station untouched.",view:"career/qualifications",label:"Start a checkride"},
+{"id": "20261027-dashboard-crew", "date": "October 27, 2026", "kind": "New feature", "title": "Your next crew flight, on the dashboard", "body": "See the next three crew flights with UTC and local departure times, open places and your participation status. View or join a flight and download a calendar entry. Calendar downloads are snapshots; check the board for later changes.", "view": "dashboard", "label": "See upcoming crew flights"},
+{"id": "20261027-plan-with-crew", "date": "October 27, 2026", "kind": "Improvement", "title": "Take a mission straight to Fly Together", "body": "Choose Plan with crew in mission details to pre-fill the route and selected aircraft type. Add your departure time and simulator setup before posting. A crew post does not reserve an aircraft.", "view": "missions", "label": "Choose a mission"},
+{"id": "20261027-reservations", "date": "October 27, 2026", "kind": "Improvement", "title": "See who has an aircraft reserved", "body": "Aircraft views now show the pilot, flight and planned route when booking details are available. Live ACARS reporting distinguishes flying from ground operations. Availability is checked again when you book.", "view": "fleet", "label": "Check the fleet"},
+{"id": "20261027-fly-together", "date": "October 27, 2026", "kind": "New feature", "title": "Find someone to fly with", "body": "Post a shared-cockpit or group flight under Crew room → Fly together. Include your simulator, add-on and an optional Discord username. Join or leave a flight, manage your crew and close finished plans. Past departures leave the upcoming list automatically. Bookings, qualifications and flight credit remain separate.", "view": "crewplans", "label": "Open Fly together"},
+{"id": "20261027-parked-fleet", "date": "October 27, 2026", "kind": "New feature", "title": "Find your next aircraft on the map", "body": "Toggle the parked fleet on the Live map to see aircraft grouped at their recorded airport. Filter by type, qualifications or availability, then find departures, arrange pilot travel or request an aircraft-delivery quote before confirming payment.", "view": "live", "label": "Explore the fleet map"},
+{"id": "20261026-flight-debrief", "date": "October 26, 2026", "kind": "Improvement", "title": "Understand your flight, not just your score", "body": "Your PIREP now explains recorded deductions, highlights what went well and summarizes shipment timing. Section shortcuts make landing, takeoff and replay details easier to reach. Scores and pay are unchanged; unverified cargo condition and customer handover are clearly identified.", "view": "logbook", "label": "Review your flights"},
+ {id:'20261025-short-heavy',date:'October 25, 2026',kind:'New feature',title:'Heavy freighters. Short sectors.',body:'Find 100–300 NM heavy cargo jobs using the Short-haul heavies filter on All flights or the Job board. Four rotating cargo scenarios, estimated block time and 80 handling points included in the reward. Routes favor stations with an available heavy at generation time; availability can change.',view:'missions',label:'Find short-haul heavy jobs'},
  {id:'20261022-preparation',kind:'New feature',title:'Your flight preparation, in one place',body:'My bids now shows your assigned aircraft, recorded pilot location, release signature and ACARS tracking connection, with actions for each step.',view:'bids',label:'Open My bids'},
  {id:'20261022-cargo',kind:'Improvement',title:'Know the cargo before you book',body:'Mission details bring the cargo brief and any arrival deadline together. Booking expiry is shown separately from delivery time.',view:'missions',label:'Browse missions'},
  {id:'20261022-patches',kind:'New feature',title:'Choose your featured patches',body:'Feature up to three owned shop patches on your profile and crew badge, and arrange their order. All your purchases stay in your collection.',view:'shop',label:'Open the shop'}
@@ -6387,7 +6387,7 @@ const PAC_UPDATES=[
 function updatesKey(){return 'pac-read-updates-'+(S.me?.id||'guest')}
 function readUpdates(){try{return JSON.parse(localStorage.getItem(updatesKey())||'[]')}catch(e){return []}}
 function updateNewsBadge(){const read=readUpdates(),count=PAC_UPDATES.filter(u=>!Array.isArray(read)||!read.includes(u.id)).length;const badge=document.getElementById('pxUpdateCount');if(badge){badge.textContent=count;badge.hidden=!S.me||!count}}
-function loadWhatsNew(){updateNewsBadge();const filter=S.updateFilter||'All';$('#updatesRoot').innerHTML=`<div class="profile-bar"><h1>What’s new</h1><button class="btn ghost small" id="pxMarkRead">Mark all as read</button></div><p class="muted">Recent site changes. Operational notices remain in company NOTAMs.</p><p class="notice">Your feedback helps shape PAC. We’re listening and working to make the site better for everyone—this is your VA too. Keep sharing ideas and use Report a problem when something needs fixing.</p><div class="row">${['All','New feature','Improvement'].map(k=>`<button class="btn ${filter===k?'':'ghost'} small" data-update-filter="${k}" aria-pressed="${filter===k}">${k}</button>`).join('')}</div><div class="px-updates">${PAC_UPDATES.filter(u=>filter==='All'||u.kind===filter).map(u=>`<article class="px-prep"><small>${u.date || "22 October 2026"} · ${u.kind}</small><h2>${u.title}</h2><p>${u.body}</p><button class="btn ghost small" data-update-go="${u.view}">${u.label} →</button></article>`).join('')}</div><p class="muted">Read status is saved for your pilot on this browser.</p>`;
+function loadWhatsNew(){updateNewsBadge();const filter=S.updateFilter||'All';$('#updatesRoot').innerHTML=`<div class="profile-bar"><h1>What’s new</h1><button class="btn ghost small" id="pxMarkRead">Mark all as read</button></div><p class="muted">Recent site changes. Operational notices remain in company NOTAMs.</p><p class="notice">Your feedback helps shape PAC. We’re listening and working to make the site better for everyone—this is your VA too. Keep sharing ideas and use Report a problem when something needs fixing.</p><div class="row">${['All','New feature','Improvement'].map(k=>`<button class="btn ${filter===k?'':'ghost'} small" data-update-filter="${k}" aria-pressed="${filter===k}">${k}</button>`).join('')}</div><div class="px-updates">${PAC_UPDATES.filter(u=>filter==='All'||u.kind===filter).map(u=>`<article class="px-prep"><small>${u.date || "October 22, 2026"} · ${u.kind}</small><h2>${u.title}</h2><p>${u.body}</p><button class="btn ghost small" data-update-go="${u.view}">${u.label} →</button></article>`).join('')}</div><p class="muted">Read status is saved for your pilot on this browser.</p>`;
  $('#pxMarkRead').onclick=()=>{try{localStorage.setItem(updatesKey(),JSON.stringify(PAC_UPDATES.map(u=>u.id)));updateNewsBadge();toast('Updates marked as read.')}catch(e){toast('This browser could not save your read status.')}};
  document.querySelectorAll('[data-update-filter]').forEach(b=>b.onclick=()=>{S.updateFilter=b.dataset.updateFilter;loadWhatsNew()});
  document.querySelectorAll('[data-update-go]').forEach(b=>b.onclick=()=>{if(b.dataset.updateGo==='shop')S.shopTab='mine';show(b.dataset.updateGo)});
@@ -6408,7 +6408,7 @@ function openManualReport(){
  dlg.showModal();
 }
 
-const PAC_CHARTER_CUSTOMERS=[{"id": "dhl", "name": "DHL Global Forwarding", "role": "Air freight connections", "logo": "/static/charter-customers/dhl.svg", "source": "https://group.dhl.com/en/about-us/corporate-divisions/global-forwarding-freight.html", "shipments": [{"id": "priority-parts", "title": "Production-line spares", "cargo": "Crated production-line spares", "brief": "A factory has grouped replacement components for its next maintenance shift. Carry the consolidated shipment to the receiving distribution station."}, {"id": "medical", "title": "Medical equipment", "cargo": "Packaged medical equipment", "brief": "Move packaged diagnostic equipment to a regional distribution centre for onward road delivery."}]}, {"id": "dachser", "name": "DACHSER", "role": "Industrial distribution", "logo": "/static/charter-customers/dachser.svg", "source": "https://www.dachser.com/en/air-sea-logistics-network-53", "shipments": [{"id": "industrial", "title": "Industrial replenishment", "cargo": "Palletised industrial components", "brief": "Connect two regional distribution points with a consolidated shipment of factory components."}, {"id": "retail", "title": "Retail replenishment", "cargo": "Packaged retail stock", "brief": "Bring a mixed shipment of retail goods to a receiving depot preparing its next distribution round."}]}, {"id": "dsv", "name": "DSV", "role": "Project and automotive freight", "logo": "/static/charter-customers/dsv.svg", "source": "https://www.dsv.com/en", "shipments": [{"id": "automotive", "title": "Automotive supply run", "cargo": "Crated automotive components", "brief": "Move replacement assemblies to a regional parts centre supporting several customers."}, {"id": "project", "title": "Project cargo connection", "cargo": "Crated machinery subassemblies", "brief": "Fly the air leg of a project shipment. The receiving team handles onward road transport; these are multiple crates, not a certified oversized load."}]}, {"id": "kn", "name": "Kuehne+Nagel", "role": "Healthcare and technology", "logo": "/static/charter-customers/kn.png", "source": "https://home.kuehne-nagel.com/en/-/services/air-freight/overview", "shipments": [{"id": "technology", "title": "Technology distribution", "cargo": "Packaged electronics and server components", "brief": "Deliver a consolidated technology shipment to a distribution station preparing customer orders."}, {"id": "healthcare", "title": "Healthcare supply run", "cargo": "Packaged laboratory equipment", "brief": "Move laboratory equipment and non-temperature-controlled medical supplies for regional distribution."}]}, {"id": "ceva", "name": "CEVA Logistics", "role": "Automotive and aerospace", "logo": "", "source": "https://www.cevalogistics.com/en/news-and-media/newsroom/ceva-welcomes-bollore-logistics", "shipments": [{"id": "aerospace", "title": "Maintenance work package", "cargo": "Crated aircraft parts and tooling", "brief": "A maintenance team is preparing its next work package. Deliver boxed components and tooling together."}, {"id": "automotive", "title": "Factory components", "cargo": "Palletised automotive spares", "brief": "Carry a consolidated factory shipment between regional logistics centres."}]}, {"id": "maersk", "name": "Maersk", "role": "Air and onward distribution", "logo": "/static/charter-customers/maersk.png", "source": "https://www.maersk.com/transportation-services/air-freight", "shipments": [{"id": "retail", "title": "Distribution connection", "cargo": "Packaged consumer goods", "brief": "Carry the air segment of a shipment with onward warehouse and road distribution."}, {"id": "industrial", "title": "Supply-chain connection", "cargo": "Crated industrial components", "brief": "Connect a dispatch warehouse with a receiving logistics centre using a PAC freighter."}]}, {"id": "noatum", "name": "Noatum Logistics", "role": "Industrial and project logistics", "logo": "/static/charter-customers/noatum.png", "source": "https://www.noatumlogistics.com/air-freight/", "shipments": [{"id": "project", "title": "Project supplies", "cargo": "Crated equipment components", "brief": "Transport a consolidated project shipment to the airport nearest the receiving logistics team."}, {"id": "spares", "title": "Regional spares delivery", "cargo": "Crated maintenance spares", "brief": "Move replacement parts and workshop supplies between regional distribution points."}]}];
+const PAC_CHARTER_CUSTOMERS=[{"id": "dhl", "name": "DHL Global Forwarding", "role": "Air freight connections", "logo": "/static/charter-customers/dhl.svg", "source": "https://group.dhl.com/en/about-us/corporate-divisions/global-forwarding-freight.html", "shipments": [{"id": "priority-parts", "title": "Production-line spares", "cargo": "Crated production-line spares", "brief": "A factory has grouped replacement components for its next maintenance shift. Carry the consolidated shipment to the receiving distribution station."}, {"id": "medical", "title": "Medical equipment", "cargo": "Packaged medical equipment", "brief": "Move packaged diagnostic equipment to a regional distribution center for onward road delivery."}]}, {"id": "dachser", "name": "DACHSER", "role": "Industrial distribution", "logo": "/static/charter-customers/dachser.svg", "source": "https://www.dachser.com/en/air-sea-logistics-network-53", "shipments": [{"id": "industrial", "title": "Industrial replenishment", "cargo": "Palletized industrial components", "brief": "Connect two regional distribution points with a consolidated shipment of factory components."}, {"id": "retail", "title": "Retail replenishment", "cargo": "Packaged retail stock", "brief": "Bring a mixed shipment of retail goods to a receiving depot preparing its next distribution round."}]}, {"id": "dsv", "name": "DSV", "role": "Project and automotive freight", "logo": "/static/charter-customers/dsv.svg", "source": "https://www.dsv.com/en", "shipments": [{"id": "automotive", "title": "Automotive supply run", "cargo": "Crated automotive components", "brief": "Move replacement assemblies to a regional parts center supporting several customers."}, {"id": "project", "title": "Project cargo connection", "cargo": "Crated machinery subassemblies", "brief": "Fly the air leg of a project shipment. The receiving team handles onward road transport; these are multiple crates, not a certified oversized load."}]}, {"id": "kn", "name": "Kuehne+Nagel", "role": "Healthcare and technology", "logo": "/static/charter-customers/kn.png", "source": "https://home.kuehne-nagel.com/en/-/services/air-freight/overview", "shipments": [{"id": "technology", "title": "Technology distribution", "cargo": "Packaged electronics and server components", "brief": "Deliver a consolidated technology shipment to a distribution station preparing customer orders."}, {"id": "healthcare", "title": "Healthcare supply run", "cargo": "Packaged laboratory equipment", "brief": "Move laboratory equipment and non-temperature-controlled medical supplies for regional distribution."}]}, {"id": "ceva", "name": "CEVA Logistics", "role": "Automotive and aerospace", "logo": "", "source": "https://www.cevalogistics.com/en/news-and-media/newsroom/ceva-welcomes-bollore-logistics", "shipments": [{"id": "aerospace", "title": "Maintenance work package", "cargo": "Crated aircraft parts and tooling", "brief": "A maintenance team is preparing its next work package. Deliver boxed components and tooling together."}, {"id": "automotive", "title": "Factory components", "cargo": "Palletized automotive spares", "brief": "Carry a consolidated factory shipment between regional logistics centers."}]}, {"id": "maersk", "name": "Maersk", "role": "Air and onward distribution", "logo": "/static/charter-customers/maersk.png", "source": "https://www.maersk.com/transportation-services/air-freight", "shipments": [{"id": "retail", "title": "Distribution connection", "cargo": "Packaged consumer goods", "brief": "Carry the air segment of a shipment with onward warehouse and road distribution."}, {"id": "industrial", "title": "Supply-chain connection", "cargo": "Crated industrial components", "brief": "Connect a dispatch warehouse with a receiving logistics center using a PAC freighter."}]}, {"id": "noatum", "name": "Noatum Logistics", "role": "Industrial and project logistics", "logo": "/static/charter-customers/noatum.png", "source": "https://www.noatumlogistics.com/air-freight/", "shipments": [{"id": "project", "title": "Project supplies", "cargo": "Crated equipment components", "brief": "Transport a consolidated project shipment to the airport nearest the receiving logistics team."}, {"id": "spares", "title": "Regional spares delivery", "cargo": "Crated maintenance spares", "brief": "Move replacement parts and workshop supplies between regional distribution points."}]}];
 function charterCustomerPanel(c){
  if(!$('#charterCustomerStyle')){const s=document.createElement('style');s.id='charterCustomerStyle';s.textContent='.cc-panel{grid-column:1 / -1;width:100%}.cc-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin:18px 0}.cc-card{background:var(--panel,#fff);color:var(--ink,#20252b);border:1px solid var(--line,#d8dde4);padding:16px;border-radius:6px;text-align:left;cursor:pointer;font:inherit}.cc-card[aria-pressed=true]{outline:2px solid #c80000;outline-offset:-2px}.cc-logo{display:flex;align-items:center;justify-content:center;height:60px;background:white;border-radius:4px;margin-bottom:12px;padding:8px}.cc-logo img{max-width:100%;max-height:44px;object-fit:contain}.cc-card b,.cc-card small{display:block}.cc-card small{margin-top:4px}.cc-brief{border-left:4px solid #c80000;padding:16px;background:var(--panel,#fff);margin:14px 0}@media(max-width:900px){.cc-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}@media(max-width:420px){.cc-grid{grid-template-columns:1fr}}.cc-textmark{font-weight:bold;color:#24324b;font-size:19px}';document.head.append(s);}
  const current=PAC_CHARTER_CUSTOMERS.find(x=>x.id===c.customer_id),shipment=current?.shipments.find(x=>x.id===c.shipment_id);

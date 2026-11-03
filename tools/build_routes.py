@@ -405,7 +405,7 @@ KJFK LFPG S Aerospace parts
 LFPG TFFR S Guadeloupe resupply
 LFPG TFFF S Martinique resupply
 TFFF LFPG H Bananas and fresh fish
-LFPG SOCA S Space-centre equipment for French Guiana
+LFPG SOCA S Space-center equipment for French Guiana
 EHAM KJFK H Flowers and pharmaceuticals
 EHAM KIAD S Pharmaceuticals
 EBLG KMEM S Express parcels
@@ -568,12 +568,12 @@ OERK OEJN S Domestic express freight
 OEJN OERK S Domestic express freight
 OEJN HAAB S General cargo
 OBBI OERK S Regional freight
-OLBA LIMC S Fresh produce and jewellery
+OLBA LIMC S Fresh produce and jewelry
 LIMC DAAG S Machinery
 LIMC GMMX S Consumer goods
 LIMC OLBA S Pharmaceuticals
 LIMC LLBG S Machinery and pharmaceuticals
-LIMC OBBI S Aluminium industry spares
+LIMC OBBI S Aluminum industry spares
 LIMC OKKK S Luxury goods and machinery
 LLBG LCLK S General cargo
 """,
@@ -583,7 +583,7 @@ ZBAA ZSPD S Domestic express freight
 ZGGG ZUUU S Consumer electronics
 ZUUU ZGGG S Laptops and electronics
 ZUCK ZSPD S Laptops and electronics
-ZHHH ZGGG S Optical fibre and electronics
+ZHHH ZGGG S Optical fiber and electronics
 ZLXY ZSPD S Semiconductors
 ZSHC ZBAA S E-commerce parcels
 ZSNJ ZGSZ S Electronics

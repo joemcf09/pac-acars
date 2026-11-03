@@ -209,7 +209,7 @@ function render(d) {
       <div><span>Pieces</span><b>${d.ferry ? "—" : fmt(t.pieces)}</b></div><div><span>Total weight</span><b>${fmt(t.weight_lbs)} lb</b><small>${kg(t.weight_lbs)}</small></div>
     </div>
     <h2>Loading plan</h2><div class="plan">${loadingPlan(d)}</div>
-    <div class="legend"><span>▢ grey: loaded</span><span style="color:var(--red)">▢ red: dangerous goods</span><span>▢ dashed: empty</span><span>Weights in thousands of lb</span></div>
+    <div class="legend"><span>▢ gray: loaded</span><span style="color:var(--red)">▢ red: dangerous goods</span><span>▢ dashed: empty</span><span>Weights in thousands of lb</span></div>
     ${d.ferry ? `<h2>Manifest</h2><p class="brief"><b>FERRY FLIGHT. NO CARGO ON BOARD.</b> Aircraft positioning only.</p>` : `
     <h2>Manifest</h2><table class="${d.positions.length > 16 ? "dense" : ""}"><thead><tr><th>Pos</th><th>Unit</th><th>Air waybill</th><th>Contents</th><th>SHC</th><th class="num">Pcs</th><th class="num">Weight lb</th><th class="num">kg</th></tr></thead><tbody>
       ${d.positions.map(p => `<tr class="${p.dg ? "dg" : ""}"><td class="mono"><b>${esc(p.pos)}</b></td><td class="mono">${esc(p.unit)}</td><td class="mono">${esc(p.awb)}</td><td>${esc(p.contents)}</td>

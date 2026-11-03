@@ -6,7 +6,7 @@ few days, with seasonal work appearing in its season. Airports are real ICAO cod
 data, or can't be reached by the fleet, are simply skipped.
 
 max_lbs caps the load where real shipments are small (isotopes, art, AOG parts), whatever the aircraft.
-Placeholders in titles and briefings: {o} {d} origin/destination ICAO, {oc} {dc} cities, {cargo} ({Cargo} capitalised),
+Placeholders in titles and briefings: {o} {d} origin/destination ICAO, {oc} {dc} cities, {cargo} ({Cargo} capitalized),
 {month}, and {challenge}: what makes the airport hard (CHALLENGES).
 
 Optional scenario fields: "ferry" (no cargo, pays the ferry bonus), "types" (only these aircraft), "challenge" (the
@@ -72,7 +72,7 @@ SCENARIOS = [
      "from": ["EBBR", "LSZH", "LIMC", "KMEM"], "to": ["VIDP", "VGHS", "OPKC", "OMDW", "OEJN", "HECA"],
      "cargo": ["Routine childhood vaccines in temperature-controlled containers", "Insulin and biologics, 2 to 8 °C"],
      "load": (0.3, 0.6), "titles": ["Cold chain: {cargo_short} to {dc}", "Vaccines for {dc}"],
-     "briefs": ["A national immunisation campaign around {dc} needs {cargo}. Every container is logged; a temperature excursion spoils the shipment."]},
+     "briefs": ["A national immunization campaign around {dc} needs {cargo}. Every container is logged; a temperature excursion spoils the shipment."]},
     {"key": "isotopes", "max_lbs": 6000, "category": "Medical", "priority": "Critical", "months": None, "weight": 1, "size": "small",
      "from": ["EHAM", "EBBR"], "to": ["LIMC", "EDDF", "LEMD", "EGLL", "LFPG", "LOWW"],
      "cargo": ["Medical isotopes in shielded containers"], "load": (0.1, 0.3),
@@ -123,7 +123,7 @@ SCENARIOS = [
      "from": ["HKJK"], "to": ["EGLL", "EHAM", "LIEO", "EDDF"],
      "cargo": ["Fresh vegetables and avocados"], "load": (0.7, 0.95),
      "titles": ["Fresh produce: Nairobi to {dc}"],
-     "briefs": ["Kenyan growers ship green beans, peas and avocados to European supermarkets overnight. The {dc} distribution centres are waiting."]},
+     "briefs": ["Kenyan growers ship green beans, peas and avocados to European supermarkets overnight. The {dc} distribution centers are waiting."]},
     {"key": "asparagus", "category": "Express", "priority": "Standard", "months": None, "weight": 1, "size": "heavy",
      "from": ["SPJC"], "to": ["KMIA", "KLAX"],
      "cargo": ["Fresh asparagus and blueberries"], "load": (0.7, 0.95),
@@ -165,7 +165,7 @@ SCENARIOS = [
      "briefs": ["A power station near {dc} is waiting on {cargo_low}. A single heavy piece: the loadmaster will brief the restraint and the floor loading."]},
     {"key": "antarctic", "category": "Heavy lift", "priority": "High", "months": [9, 10, 11, 12, 1], "weight": 2, "size": "heavy",
      "from": ["YSSY", "YMML", "NZAA"], "to": ["NZCH"],
-     "cargo": ["Antarctic programme supplies and science equipment"], "load": (0.6, 0.9),
+     "cargo": ["Antarctic program supplies and science equipment"], "load": (0.6, 0.9),
      "titles": ["Antarctic season: supplies to Christchurch"],
      "briefs": ["Christchurch is the gateway to the Antarctic research stations. This season's science equipment and supplies are staged there for the ice flights."]},
 
@@ -174,7 +174,7 @@ SCENARIOS = [
      "from": ["EIDW", "EGLL", "KJFK", "OMDW"], "to": ["OMDB", "EGLL", "KJFK", "EIDW"],
      "cargo": ["Thoroughbred racehorses in jet stalls, with grooms"], "load": (0.3, 0.5),
      "titles": ["Racehorses to {dc}", "Equine charter: {oc} to {dc}"],
-     "briefs": ["Thoroughbreds heading to a big race meeting near {dc}, travelling in jet stalls with their grooms. Smooth climbs and descents, "
+     "briefs": ["Thoroughbreds heading to a big race meeting near {dc}, traveling in jet stalls with their grooms. Smooth climbs and descents, "
                 "gentle braking, and a careful eye on the hold temperature."]},
     {"key": "supercars", "max_lbs": 55000, "category": "Premium", "priority": "Standard", "months": None, "weight": 1, "size": "heavy",
      "from": ["LIPE", "LIMC", "EDDS"], "to": ["OMDW", "KJFK", "KLAX", "VHHH"],
@@ -185,7 +185,7 @@ SCENARIOS = [
      "from": ["LIRF", "LFPG", "EGLL", "EHAM"], "to": ["KJFK", "OMDW", "VHHH", "RJAA"],
      "cargo": ["Paintings and sculpture in climate-controlled crates, with a courier"], "load": (0.2, 0.4),
      "titles": ["Exhibition loan to {dc}", "Fine art: {oc} to {dc}"],
-     "briefs": ["A museum loan for an exhibition in {dc}, travelling with the lender's courier. Climate-controlled crates: no rough handling, no hard landing."]},
+     "briefs": ["A museum loan for an exhibition in {dc}, traveling with the lender's courier. Climate-controlled crates: no rough handling, no hard landing."]},
 
     # ------------------------------------------------------------------ express and mail
     {"key": "ecommerce_peak", "category": "Express", "priority": "High", "months": [11, 12], "weight": 3, "size": "heavy",
@@ -274,19 +274,19 @@ SCENARIOS = [
                   "notes": ["Keep the hold ventilated and between 10 and 20 °C: animals give off a lot of heat.",
                             "Gentle climbs, descents and braking. Stockmen ride along and may ask you to adjust the temperature.",
                             "Plan the shortest sensible ground time; animals can't wait on a hot ramp."]},
-     "briefs": ["{Cargo} for a farming programme near {dc}. Livestock flights are flown gently and kept cool."]},
+     "briefs": ["{Cargo} for a farming program near {dc}. Livestock flights are flown gently and kept cool."]},
     {"key": "zoo_transfer", "max_lbs": 30000, "category": "Special cargo", "priority": "High", "months": None, "weight": 1, "size": "medium",
      "from": ["FAOR", "HKJK", "EHAM", "KMIA", "YSSY"], "to": ["LIMC", "EGSS", "KCVG", "ZSPD", "OMDW", "WSSS"],
-     "cargo": ["A rhino in a reinforced crate", "Zoo animals for a breeding programme", "Endangered tortoises and birds"],
+     "cargo": ["A rhino in a reinforced crate", "Zoo animals for a breeding program", "Endangered tortoises and birds"],
      "load": (0.1, 0.3), "titles": ["Zoo transfer to {dc}", "Conservation flight: {oc} to {dc}"],
      "handling": {"label": "Live animals · Keepers aboard",
                   "notes": ["Keepers fly with the animals. Keep the cabin and hold calm: smooth inputs, no steep turns.",
                             "Hold temperature as briefed, and keep the engines quiet on the ramp where you can.",
                             "Expect a vet to meet the aircraft on arrival."]},
-     "briefs": ["{Cargo}, travelling with their keepers to a conservation centre near {dc}. A stressed animal is a sick animal: fly it as smoothly as you can."]},
+     "briefs": ["{Cargo}, traveling with their keepers to a conservation center near {dc}. A stressed animal is a sick animal: fly it as smoothly as you can."]},
     {"key": "valuables", "max_lbs": 20000, "category": "Special cargo", "priority": "High", "months": None, "weight": 1, "size": "small",
      "from": ["LSZH", "EGLL", "OMDW", "FAOR", "KJFK"], "to": ["VHHH", "WSSS", "OMDW", "LSZH", "VABB", "EGLL"],
-     "cargo": ["Gold bullion", "Banknotes from the printer", "Cut diamonds and jewellery", "Precious metals"],
+     "cargo": ["Gold bullion", "Banknotes from the printer", "Cut diamonds and jewelry", "Precious metals"],
      "load": (0.05, 0.2), "titles": ["Secure consignment to {dc}", "Valuables: {oc} to {dc}"],
      "handling": {"label": "Valuable cargo · Secure handling",
                   "notes": ["Armed security meet the aircraft. Park where you're told and keep the doors shut until they're in place.",
@@ -295,10 +295,10 @@ SCENARIOS = [
      "briefs": ["{Cargo}, consigned to a client in {dc}. The load is small and worth more than the aircraft."]},
     {"key": "outsize", "category": "Special cargo", "priority": "Standard", "months": None, "weight": 1, "size": "heavy",
      "from": ["KIAH", "LIMC", "EDDF", "PANC", "YPPH"], "to": ["SCEL", "FAOR", "YPPH", "OERK", "SBGR", "CYEG"],
-     "cargo": ["Giant mining-truck tyres", "A helicopter with its rotor blades removed", "Drilling equipment on oversize pallets", "Industrial turbine sections"],
+     "cargo": ["Giant mining-truck tires", "A helicopter with its rotor blades removed", "Drilling equipment on oversize pallets", "Industrial turbine sections"],
      "load": (0.55, 0.85), "titles": ["Outsize load to {dc}", "Heavy and awkward: {cargo_short} to {dc}"],
      "handling": {"label": "Outsize cargo",
-                  "notes": ["Check the centre of gravity on the load sheet: one big piece moves the CG more than you'd think.",
+                  "notes": ["Check the center of gravity on the load sheet: one big piece moves the CG more than you'd think.",
                             "The loadmaster will brief the restraint. Avoid hard braking and abrupt pitch changes.",
                             "Main-deck pieces only: the loaders need the nose or side cargo door."]},
      "briefs": ["{Cargo} for a project near {dc}. It's one of those loads that takes longer to tie down than to fly."]},
@@ -307,7 +307,7 @@ SCENARIOS = [
      "cargo": ["A stadium tour's stage, lighting and sound rig", "Touring motorsport freight and spare engines", "Broadcast equipment for a world sporting event"],
      "load": (0.6, 0.9), "titles": ["Tour freight to {dc}", "The show must go on: {oc} to {dc}"],
      "handling": {"label": "Time-critical charter",
-                  "notes": ["The show date is fixed: a late arrival means a cancelled event. Plan fuel so you don't have to stop.",
+                  "notes": ["The show date is fixed: a late arrival means a canceled event. Plan fuel so you don't have to stop.",
                             "Road cases are heavy and fragile: gentle landing, please.",
                             "The load-in crew meets the aircraft; tell the company your on-block time."]},
      "briefs": ["{Cargo} for the next date in {dc}. The crew needs it on the ramp before the trucks leave."]},
@@ -322,7 +322,7 @@ SCENARIOS = [
     {"key": "ferry_paint", "ferry": True, "category": "Ferry", "priority": "Standard", "months": None, "weight": 1, "size": "medium",
      "from": ["EINN", "LFBT", "KMHV", "EGNX", "LETL"], "to": ["KCVG", "LIMC", "KMIA", "OMDW", "VHHH", "PANC"],
      "cargo": ["Ferry flight (no cargo)"], "load": (0, 0),
-     "titles": ["Fresh from the paint shop: {oc} to {dc}", "New PAC colours: ferry to {dc}"],
+     "titles": ["Fresh from the paint shop: {oc} to {dc}", "New PAC colors: ferry to {dc}"],
      "briefs": ["The aircraft has just been repainted in PAC red at {oc}. Bring it home to {dc} for its first revenue flight. "
                 "Light and empty: watch the speed on the way down."]},
     {"key": "ferry_delivery", "ferry": True, "category": "Ferry", "priority": "High", "months": None, "weight": 1, "size": "heavy",
@@ -382,7 +382,7 @@ SCENARIOS = [
      "cargo": ["Cross-border e-commerce parcels", "Online orders for the November shopping festival"], "load": (0.75, 0.95),
      "titles": ["11.11 shopping festival: {oc} to {dc}", "E-commerce surge to {dc}"],
      "briefs": ["November 11th is the world's biggest online shopping day and the parcels are leaving China by the planeload. "
-                "{Cargo} for the sort centre at {dc}. Volumetric freight: the hold fills before it gets heavy."]},
+                "{Cargo} for the sort center at {dc}. Volumetric freight: the hold fills before it gets heavy."]},
     {"key": "phone_launch", "max_lbs": 70000, "category": "Express", "priority": "Critical", "months": [9, 10], "weight": 2, "size": "heavy",
      "from": ["ZHCC", "ZGSZ", "RCTP"], "to": ["KCVG", "KLAX", "EDDP", "OMDW", "KJFK", "EGLL"],
      "cargo": ["New-model smartphones under embargo", "Launch-day consumer electronics under high security"], "load": (0.5, 0.8),
@@ -398,13 +398,13 @@ SCENARIOS = [
                 "{Cargo}; a marine engineer meets the aircraft and drives it straight to the quay."]},
     {"key": "data_centre", "max_lbs": 60000, "category": "Express", "priority": "High", "months": None, "weight": 2, "size": "heavy",
      "from": ["RCTP", "ZGSZ", "KSJC", "RKSI"], "to": ["KDFW", "KIAD", "EINN", "ESSA", "WSSS", "OMDB", "KCVG"],
-     "cargo": ["AI server racks and GPU modules", "Data-centre servers, switches and storage arrays"], "load": (0.4, 0.75),
-     "titles": ["Data-centre build: {oc} to {dc}", "Server racks to {dc}"],
-     "briefs": ["A new data centre near {dc} goes live as soon as these racks are installed. {Cargo}: high value and shock-sensitive, "
+     "cargo": ["AI server racks and GPU modules", "Data-center servers, switches and storage arrays"], "load": (0.4, 0.75),
+     "titles": ["Data-center build: {oc} to {dc}", "Server racks to {dc}"],
+     "briefs": ["A new data center near {dc} goes live as soon as these racks are installed. {Cargo}: high value and shock-sensitive, "
                 "so a smooth flight and the softest landing you can manage."]},
     {"key": "mining_africa", "category": "Heavy lift", "priority": "High", "months": None, "weight": 1, "size": "heavy",
      "from": ["FAOR", "OMDW", "EHAM"], "to": ["FLKK", "FZQA", "FBSK", "FYWH", "HTKJ"],
-     "cargo": ["Haul-truck tyres and drive motors", "Crusher spares and drilling tools for a copper mine"], "load": (0.6, 0.9),
+     "cargo": ["Haul-truck tires and drive motors", "Crusher spares and drilling tools for a copper mine"], "load": (0.6, 0.9),
      "titles": ["Mine spares to {dc}", "Copper belt heavy lift: {oc} to {dc}"],
      "briefs": ["A mine supplied through {dc} has trucks parked for want of {cargo_low}. Dense, awkward pieces: check the floor loading. "
                 "Hot afternoons and some high airfields: watch the take-off performance."]},
@@ -412,7 +412,7 @@ SCENARIOS = [
      "from": ["EGLL", "LIMC", "EDDP"], "to": ["OBBI", "OEJN", "YMML", "WSSS", "KAUS", "MMMX", "SBGR", "KLAS", "OMAA"],
      "cargo": ["Race cars, garage equipment and team spares", "Formula team freight: cars, tools and pit equipment"], "load": (0.55, 0.9),
      "titles": ["Race weekend: team freight to {dc}", "Flyaway race: {oc} to {dc}"],
-     "briefs": ["The circus is moving to {dc} for the next race. {Cargo}, palletised the night after the last race and due in the paddock "
+     "briefs": ["The circus is moving to {dc} for the next race. {Cargo}, palletized the night after the last race and due in the paddock "
                 "before the mechanics arrive. Miss the slot and a team starts the weekend without its cars."]},
     # humanitarian and medical
     {"key": "cyclone_indian_ocean", "category": "Humanitarian", "priority": "Critical", "months": [12, 1, 2, 3], "weight": 2, "size": "heavy",
@@ -429,7 +429,7 @@ SCENARIOS = [
                 "Check the volcanic ash advisories before you go and plan a route that stays clear of the plume."]},
     {"key": "mobile_lab", "max_lbs": 40000, "category": "Medical", "priority": "Critical", "months": None, "weight": 1, "size": "medium",
      "from": ["EBBR", "LFPG", "KATL"], "to": ["FZAA", "HUEN", "GOBD", "DNKN", "HSSK", "HKJK"],
-     "cargo": ["A containerised field laboratory and test reagents", "Outbreak testing equipment and protective gear"], "load": (0.3, 0.6),
+     "cargo": ["A containerized field laboratory and test reagents", "Outbreak testing equipment and protective gear"], "load": (0.3, 0.6),
      "titles": ["Field laboratory to {dc}", "Outbreak testing: {oc} to {dc}"],
      "briefs": ["Health teams near {dc} need to confirm cases quickly, and the nearest lab is days away. {Cargo}; some reagents are "
                 "temperature-controlled and declared on the NOTOC."]},

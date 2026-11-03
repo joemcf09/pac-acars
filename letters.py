@@ -1,6 +1,6 @@
 """The letters PAC sends to applicants.
 
-Plain text (which every mail program accepts) and an HTML version in PAC's colours. Edit the wording here; the
+Plain text (which every mail program accepts) and an HTML version in PAC's colors. Edit the wording here; the
 placeholders in braces are filled in by letter(). Anything not set, like the Discord invite, is simply left out.
 
 Placeholders: {name} {first_name} {pilot_id} {link} {hub} {hub_name} {airline} {site} {discord} {staff_name}
@@ -43,7 +43,7 @@ Thank you for applying to Pagani Air Cargo, and for taking the time to tell us a
 
 We're not able to offer you a place at the moment.
 {reason_block}
-This isn't a judgement on you as a pilot. We keep the roster small so every pilot gets proper attention, and we
+This isn't a judgment on you as a pilot. We keep the roster small so every pilot gets proper attention, and we
 can only take on so many at once. You're welcome to apply again later; a fresh application is always read
 properly.
 
