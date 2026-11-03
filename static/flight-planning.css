@@ -234,3 +234,9 @@ html[data-theme="dark"] .ls-wrap .kicker { color: #ff8f8f; }
 .consent-bar a { color: #fff; text-decoration: underline; }
 .consent-bar .btn.ghost { color: #fff; border-color: #6b7280; }
 @media print { .consent-bar, .site-foot { display: none; } }
+
+/* Full-width bands (the home page photo, the stats strip) were sized with 100vw, which on Windows includes the scrollbar,
+   so the page came out a scrollbar's width too wide and showed a sideways scrollbar. --sbw is the scrollbar's width,
+   measured by app.js. */
+html:not([data-design="loadsheet"]) .hero { width: calc(100vw - var(--sbw, 0px)); margin-left: calc(50% - (100vw - var(--sbw, 0px)) / 2); }
+html:not([data-design="loadsheet"]) .stat-band { width: calc(100vw - var(--sbw, 0px)); margin-left: calc(50% - (100vw - var(--sbw, 0px)) / 2); }

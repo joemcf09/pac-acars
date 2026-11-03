@@ -6608,3 +6608,9 @@ function lineCheckrideCard(status, via) {
 }
 
 consentNotice();   // the privacy notice on a first visit (VATSIM's VA policy asks for one on the front page)
+/* the width of the window's scrollbar (0 where scrollbars float over the page), so full-width bands fit exactly */
+(function trackScrollbar() {
+  const set = () => document.documentElement.style.setProperty("--sbw", Math.max(0, innerWidth - document.documentElement.clientWidth) + "px");
+  set(); addEventListener("resize", set);
+  try { new ResizeObserver(set).observe(document.body); } catch (e) { /* older browsers: resize only */ }
+})();
