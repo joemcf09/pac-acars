@@ -5425,9 +5425,11 @@ async function loadProfile() {
   } catch (e) { toast(e.message); }
 }
 function ratingHours(r) {
-  const a = S.pstats?.by_aircraft?.[r.fleet] || {};
-  const pac = a.block_hours || 0, prior = Number(r.prior_hours) || 0;
-  return { pac, prior, total: pac + prior, flights: a.flights || 0, landings: a.landings_90d || 0, last: a.last_flown };
+  // a rating covers its whole family (the B757/767 rating flies both), so add up every type in it
+  const list = (r.fleets && r.fleets.length ? r.fleets : [r.fleet]).map(k => S.pstats?.by_aircraft?.[k]).filter(Boolean);
+  const pac = Math.round(list.reduce((s, a) => s + (a.block_hours || 0), 0) * 10) / 10, prior = Number(r.prior_hours) || 0;
+  return { pac, prior, total: pac + prior, flights: list.reduce((s, a) => s + (a.flights || 0), 0), landings: list.reduce((s, a) => s + (a.landings_90d || 0), 0),
+           last: list.reduce((m, a) => Math.max(m, a.last_flown || 0), 0) || null };
 }
 function recencyHtml(h, r) {
   if (!r.fleet) return `<span class="recency">Not in PAC fleet</span>`;

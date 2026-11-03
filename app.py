@@ -1168,10 +1168,14 @@ def profile_stats(pid=None, recent_n=5):
     with db() as con:
         rows = [dict(r) for r in con.execute(
             "SELECT id, aircraft, block_min, flight_min, landing_rate, score, status, filed_at, payload_lbs, points, distance_nm, "
-            "flight_number, mission_title, dep, arr, grade FROM pireps WHERE demo=0 AND review_status='Accepted' AND pilot_id=? "
-            "ORDER BY filed_at DESC", (pid or va.current_pilot_id(),))]
+            "flight_number, mission_title, dep, arr, grade, "
+            "CASE WHEN category IN ('Checkride', 'Type checkride') THEN COALESCE(json_extract(detail, '$.type_checkride.passed'), "
+            "json_extract(detail, '$.checkride.passed'), 1) ELSE 1 END AS ck_ok "
+            "FROM pireps WHERE demo=0 AND review_status='Accepted' AND pilot_id=? ORDER BY filed_at DESC", (pid or va.current_pilot_id(),))]
     by_ac = {}
     for r in rows:
+        if not r.pop("ck_ok", 1):      # a checkride that didn't pass: no hours or landings on the rating (as for rank and pay)
+            continue
         a = by_ac.setdefault(r["aircraft"], {"flights": 0, "block_hours": 0.0, "landings_90d": 0, "last_flown": None})
         a["flights"] += 1
         a["block_hours"] += (r["block_min"] or 0) / 60
@@ -1195,9 +1199,21 @@ def profile_stats(pid=None, recent_n=5):
     return {"by_aircraft": by_ac, "totals": totals, "recent": recent}
 
 
+def with_rating_families(p):
+    """Each type rating covers a whole family (one rating flies the 757 and the 767), so the licence counts hours and
+    landings on every type in it, not just the first."""
+    rows = []
+    for r in p.get("type_ratings") or []:
+        fleets = [r["fleet"]] if r.get("fleet") else []
+        if r.get("fleet") and " / " in (r.get("name") or ""):   # a family row ("Boeing 757-200F / Boeing 767-300F"); a single-type row stays as it is
+            fleets = [t for t in va.family_types(va.rating_family(r["fleet"])) if t in FLEET] or fleets
+        rows.append({**r, "fleets": fleets})
+    return {**p, "type_ratings": rows}
+
+
 @app.get("/api/profile")
 def get_profile():
-    return jsonify({"profile": with_flair(load_profile()), "stats": profile_stats()})
+    return jsonify({"profile": with_rating_families(with_flair(load_profile())), "stats": profile_stats()})
 
 
 @app.post("/api/profile")
@@ -1221,7 +1237,7 @@ def save_profile():
         p = {**old, "name": name, "bio": p["bio"], "secondary_base": p["secondary_base"], "photo": p["photo"]}
         save_profile_for(pid, p)
         p = load_profile(pid)
-        return jsonify({"profile": with_flair(p), "settings": public_settings(), "stats": profile_stats()})
+        return jsonify({"profile": with_rating_families(with_flair(p)), "settings": public_settings(), "stats": profile_stats()})
     if not p["name"]:
         return jsonify({"error": "Your name can't be empty."}), 400
     p["pilot_id"] = pid                      # the founder's ID is changed in Staff, never from the profile
@@ -1231,7 +1247,7 @@ def save_profile():
     st = settings()
     st["pilot_name"] = f"{p['rank']} {p['name']}".strip() if p["rank"] else p["name"]
     save_json(SETTINGS_PATH, st)
-    return jsonify({"profile": with_flair(p), "settings": public_settings(st), "stats": profile_stats()})
+    return jsonify({"profile": with_rating_families(with_flair(p)), "settings": public_settings(st), "stats": profile_stats()})
 
 
 # ---------------------------------------------------------------- the pilots: roster and other pilots' profiles
@@ -1392,7 +1408,7 @@ def bootstrap():
     out = {"ofp_watch": part("ofp_watch", ofp_watch_status, None), "missions": part("missions", va.mission_board, []),
            "partners": PARTNERS, "fleet": FLEET, "divisions": DIVISIONS, "settings": public_settings(), "phases": PHASES,
            "booking": part("booking", load_booking, None), "routes": list(ROUTES.values()), "cargo_types": CARGO_TYPES,
-           "profile": part("profile", lambda: with_flair(load_profile()), {}), "airframes": part("airframes", va.airframes, []),
+           "profile": part("profile", lambda: with_rating_families(with_flair(load_profile())), {}), "airframes": part("airframes", va.airframes, []),
            "tour_legs": list(va.TOUR_LEGS.values()), "tours": va.TOURS, "featured": part("featured", va.featured_routes, []),
            "active_events": part("events", va.active_events, []), "career": part("career", lambda: va.career(pid), {}),
            "ranks": va.ranks_effective(), "checkride_id": va.CHECKRIDE_ID,
