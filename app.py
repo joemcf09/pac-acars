@@ -2649,11 +2649,32 @@ def live_map():
     return jsonify({"flights": live_flights(member), "time": time.time()})
 
 
+def readopt_remote(st):
+    """The website keeps who is flying in memory, so a website restart (an update, a reboot) used to forget a flight that
+    PAC ACARS was still tracking: it fell off the live map and the app showed an error. PAC ACARS carries on sending
+    updates, so when one arrives for this pilot's booking that PAC ACARS started, the website takes the flight back on."""
+    booking = load_booking()
+    if not booking or not releases.started(booking) or state.get("recorder") or not st.get("phase"):
+        return False
+    cp = load_json(CHECKPOINT_PATH, {}) or {}
+    source = cp.get("source") if cp.get("requested_at") == booking.get("requested_at") else None
+    state.update(remote={"source": source or state.get("source_name") or "ACARS app",
+                         "started": (booking.get("release_start") or {}).get("at") or time.time(),
+                         "requested_at": booking.get("requested_at"), "flight": booking["flight_number"], "readopted": True},
+                 remote_seen=time.time())
+    if source:
+        state["source_name"] = source
+    if (st.get("oooi") or {}).get("off"):       # already airborne before the restart: its departure was posted to Discord then
+        state["discord_dep_for"] = booking.get("requested_at")
+    print(f"  Picked up {booking['flight_number']} again from PAC ACARS after a restart.")
+    return True
+
+
 @app.post("/api/acars/app/live")
 def acars_app_live():
-    if not remote_active():
-        return jsonify({"error": "No flight is registered from the ACARS app. Start tracking again."}), 409
     st = (request.json or {}).get("status") or {}
+    if not remote_active() and not readopt_remote(st):
+        return jsonify({"error": "No flight is registered from the ACARS app. Start tracking again."}), 409
     st.pop("booking", None)
     state.update(remote_status=st, remote_seen=time.time())
     discord_departure(st)

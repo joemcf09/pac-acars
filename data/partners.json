@@ -202,8 +202,7 @@
       "code": "QTR",
       "callsign": "QATARI",
       "types": [
-        "B77F",
-        "B748F"
+        "B77F"
       ],
       "flight_range": [
         8000,
