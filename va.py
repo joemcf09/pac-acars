@@ -175,6 +175,7 @@ DEFAULT_AIRFRAMES = [
 
 DEFAULT_SITE = {
     "discord_invite": "",          # shown in the welcome letter when set
+    "contact_email": "ops@pac-va.com",   # the public contact address: footer, privacy policy, VATSIM
     "public_url": "",              # the address pilots reach PAC at (sign-in links use it)
     "letters_from": "",            # who the letters are signed by; blank uses the staff member's own name
     "discord_widget": "1556081575215636492",  # Discord server ID for the live widget on the home page (blank hides it)

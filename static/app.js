@@ -34,7 +34,7 @@ let toastT;
 function toast(msg, ms = 5200) { const t = $("#toast"); t.textContent = msg; t.hidden = false; clearTimeout(toastT); toastT = setTimeout(() => t.hidden = true, ms); }
 
 /* ---------------- navigation ---------------- */
-const PUBLIC_VIEWS = ["home", "fleet", "handbook", "gallery"];   // "live" joins when staff make the live map public
+const PUBLIC_VIEWS = ["home", "fleet", "handbook", "gallery", "privacy"];   // "live" joins when staff make the live map public
 function show(view) {
   if (view === "reports" && location.hash !== "#reports") captureReportContext();
   if (/^career\/(overview|qualifications|wallet|activities|awards)$/.test(view)) {
@@ -67,6 +67,7 @@ function show(view) {
   if (view === "stations") loadStations();
   if (view === "downloads") loadDownloads();
   if (view === "handbook") loadHandbook();
+  if (view === "privacy") renderPrivacy();
   if (view === "staff") loadStaff();
   if (view === "reports") loadProblemReports();
   if (view === "updates") loadWhatsNew();
@@ -3753,7 +3754,7 @@ async function openDetail(id) {
 }
 
 /* ================= VA core ================= */
-const VIEWS = ["home", "dashboard", "missions", "bids", "acars", "fleet", "stations", "downloads", "career", "stats", "finance", "shop", "live", "logbook", "gallery", "handbook", "staff", "profile", "pilots", "updates"];
+const VIEWS = ["privacy", "home", "dashboard", "missions", "bids", "acars", "fleet", "stations", "downloads", "career", "stats", "finance", "shop", "live", "logbook", "gallery", "handbook", "staff", "profile", "pilots", "updates"];
 const TOUR_ORDER = {};
 function applyCore(d) {
   if (d.partners) S.partners = d.partners;
@@ -4122,9 +4123,11 @@ async function renderHome(h, st) {
       <div class="field"><label for="ap_hub">Preferred hub</label><select id="ap_hub" name="hub">${hubs.map(([ic, n]) => `<option value="${ic}">${ic} ${esc(n)}</option>`).join("")}</select></div>
       <div class="field full"><label for="ap_why">Why do you want to fly with PAC?</label><textarea id="ap_why" name="motivation" rows="3"></textarea></div>
       <label class="full" style="display:flex;gap:10px;font-size:14px;align-items:flex-start"><input type="checkbox" name="agree" style="margin-top:3px;accent-color:#fff"> I've read the <a href="#handbook" onclick="show('handbook');return false">pilot handbook</a> and will fly by its rules.</label>
+      <p class="full ap-privacy">Staff use your details only to review your application and, if you join, to run your PAC account. See the <a href="#privacy" onclick="show('privacy');return false">privacy policy</a>.</p>
       <div class="full"><button class="btn light" type="submit" style="background:#fff;color:var(--red);border-color:#fff">Submit application</button></div>
     </form>
-  </div>`;
+  </div>
+  ${siteFooter(site)}`;
   buildBoard($("#fbDep")); buildBoard($("#fbArr")); refreshBoard(); tickClock(); tickCountdowns();
   bindShots($("#homeRoot"), shots, () => loadHome());
   const hero = $("#homeRoot .hero");
@@ -4260,6 +4263,70 @@ function renderCareer(c) {
   $('#careerRoot').querySelectorAll('[data-career-section]').forEach(b => b.onclick = () => setCareerSection(b.dataset.careerSection));
   setCareerSection(S.careerSection || 'overview', false);
   document.querySelectorAll("#careerRoot .waybill").forEach(b => b.onclick = () => flyMission(b.dataset.id));
+}
+
+/* ================= Footer, privacy policy and consent notice ================= */
+const contactEmail = () => S.home?.site?.contact_email || "ops@pac-va.com";
+function siteFooter(site) {
+  const mail = esc(site?.contact_email || contactEmail()), discord = site?.discord_invite;
+  const year = new Date().getFullYear();
+  return `<footer class="site-foot" aria-label="About this website">
+    <div class="sf-grid">
+      <div class="sf-brand"><img src="/static/pac-wordmark-white.png" alt="Pagani Air Cargo" width="120">
+        <p>Pagani Air Cargo is a virtual airline for flight simulation. It is a free, non-commercial hobby community: it is not a real airline, carries no real cargo, and is not affiliated with any real-world airline or aviation company.</p></div>
+      <div class="sf-links" role="navigation" aria-label="Pilots"><h3>Pilots</h3><a href="#apply" onclick="show('home');setTimeout(()=>$('#apply')?.scrollIntoView({behavior:'smooth'}),100);return false">Apply to fly</a><a href="#handbook" onclick="show('handbook');return false">Pilot handbook</a><a href="#fleet" onclick="show('fleet');return false">The fleet</a><a href="#gallery" onclick="show('gallery');return false">Gallery</a>${S.me ? `<a href="#downloads" onclick="show('downloads');return false">Downloads</a>` : ""}</div>
+      <div class="sf-links" role="navigation" aria-label="Contact"><h3>Contact</h3><a href="mailto:${mail}">${mail}</a>${discord ? `<a href="${esc(discord)}" target="_blank" rel="noopener">PAC on Discord</a>` : ""}<a href="#privacy" onclick="show('privacy');return false">Privacy policy</a></div>
+      <div class="sf-small"><h3>Credits</h3><p>Weather: NOAA Aviation Weather Center. Maps: &copy; OpenStreetMap contributors and Esri. Radar: RainViewer. Flight planning: SimBrief by Navigraph. Partner aircraft photos: Wikimedia Commons, credited on each card.</p></div>
+    </div>
+    <p class="sf-legal">Airline names, logos and aircraft types belong to their owners; partner operations are simulated and imply no endorsement. For flight simulation only: not for real-world navigation or flight planning.</p>
+    <p class="sf-legal">&copy; ${year} Pagani Air Cargo · pac-va.com</p>
+  </footer>`;
+}
+function renderPrivacy() {
+  const mail = esc(contactEmail());
+  const sec = (t, b) => `<section><h2>${t}</h2>${b}</section>`;
+  $("#privacyRoot").innerHTML = `<div class="profile-bar"><h1>Privacy policy</h1><span class="muted">Last updated 3 November 2026</span></div>
+  <div class="privacy">
+    <p class="lead">Pagani Air Cargo (PAC) is a free, non-commercial virtual airline for flight simulator pilots, run by Joseph Pagani. This page explains what information the PAC website and the PAC ACARS app collect, why, who else sees it, and the choices you have. Questions or requests: <a href="mailto:${mail}">${mail}</a>.</p>
+    ${sec("What we collect", `<ul>
+      <li><b>Your application:</b> name, email address, country, Discord username (optional), simulator, experience, preferred hub and your note to us.</li>
+      <li><b>Your PAC account:</b> pilot ID, name, rank, home base, current location in PAC's network, and anything you add to your profile, such as a photo or bio. Your password is stored only as a salted hash: nobody, staff included, can read it.</li>
+      <li><b>Your flights:</b> while PAC ACARS tracks a flight it records what your simulator reports (position, altitude, speeds, phase of flight, fuel, weights and landing data), plus your flight plan, dispatch paperwork, messages to PAC dispatch, and the resulting report, score and logbook entry.</li>
+      <li><b>Optional details you choose to add:</b> your VATSIM CID or IVAO VID, SimBrief username, SayIntentions.AI key, problem reports with screenshots, and gallery uploads.</li>
+      <li><b>Technical records:</b> our web server keeps short logs of requests (IP address, browser and the page asked for) to keep the site secure and running. They're overwritten automatically.</li></ul>`)}
+    ${sec("Cookies and storage on your device", `<p>PAC uses <b>one essential cookie</b> to keep you signed in (for up to 30 days if you tick <i>Keep me signed in</i>). The site also saves a few preferences in your browser, such as your theme, design and filters. PAC has <b>no advertising, analytics or tracking cookies</b>, and doesn't follow you around other websites.</p>`)}
+    ${sec("Why we use it", `<ul><li>To review applications and run your membership: your account, checkrides, ratings, ranks and in-sim pay.</li>
+      <li>To track, score and review your flights, and show them in your logbook and stats.</li>
+      <li>To run the community: the pilot roster, leaderboards, the live map, news and Discord.</li>
+      <li>To contact you about PAC, for example your welcome letter or a sign-in link.</li>
+      <li>To keep the site secure and fix problems.</li></ul>
+      <p>If you're in the EU or UK: we rely on our legitimate interest in running the virtual airline you joined, and on your consent for the optional details above, which you can remove at any time.</p>`)}
+    ${sec("What other pilots and visitors can see", `<p>Your name, pilot ID, rank and flights appear to other PAC members on the roster, boards, leaderboards and live map. The home page shows recent flights, and staff may make the live map public. Departures, arrivals and landing cards may be posted in PAC's Discord. Your email address, password and private settings are never shown.</p>`)}
+    ${sec("Services that help run PAC", `<p>We don't sell or rent your information. These services handle some of it on PAC's behalf, or when you use them:</p><ul>
+      <li><b>DigitalOcean</b> hosts the PAC server and its backups.</li>
+      <li><b>Cloudflare</b> runs PAC's domain and forwards mail sent to ${mail}.</li>
+      <li><b>Resend</b> delivers the emails PAC sends.</li>
+      <li><b>Discord</b>, if you join PAC's server.</li>
+      <li><b>SimBrief (Navigraph)</b>, when you plan a flight with your SimBrief account.</li>
+      <li><b>VATSIM and IVAO</b>: if you add your ID, PAC reads their public network data to see whether you flew online.</li>
+      <li><b>SayIntentions.AI</b>, only if you link your account.</li>
+      <li><b>Map, weather and radar providers</b> (OpenStreetMap, Esri, RainViewer, NOAA): your browser loads map pictures and weather from them when you view a map.</li></ul>`)}
+    ${sec("How long we keep it", `<p>Your account and flights are kept while you're a PAC pilot. If you leave, ask us and we'll remove your account. Your flights can either stay in PAC's history under "former pilot" or be erased completely, as you prefer. Staff clear out applications that weren't accepted after review, and you can ask us to delete yours at any time. Server backups roll over within a few weeks.</p>`)}
+    ${sec("Your choices and rights", `<p>You can see and change most of your details yourself in Settings and your profile. You can also ask us, at <a href="mailto:${mail}">${mail}</a>, for a copy of your information, a correction, or deletion. We'll reply within 30 days. If you're in the EU or UK and unhappy with our answer, you can complain to your data protection authority.</p>`)}
+    ${sec("Security", `<p>The site is served over HTTPS only, passwords are hashed, staff tools need a staff account, and the server is backed up. No system is perfectly secure, so please use a password you don't use elsewhere.</p>`)}
+    ${sec("Children", `<p>PAC is for pilots aged 13 and over. If you're under 16 and in the EU or UK, please ask a parent or guardian before applying.</p>`)}
+    ${sec("Changes", `<p>If this policy changes, we'll update the date at the top and post a note in PAC's news for anything significant.</p>`)}
+  </div>`;
+}
+function consentNotice() {
+  try { if (localStorage.getItem("pac-consent") === "1") return; } catch (e) { /* storage blocked: show it each visit */ }
+  if (document.getElementById("consentBar")) return;
+  const bar = document.createElement("div");
+  bar.id = "consentBar"; bar.className = "consent-bar"; bar.setAttribute("role", "region"); bar.setAttribute("aria-label", "Privacy notice");
+  bar.innerHTML = `<p><b>Your privacy.</b> PAC uses one essential cookie to keep you signed in and saves your preferences on this device. No advertising or tracking. By continuing, you agree to this and to how we handle your information in our <a href="#privacy" onclick="show('privacy');return false">privacy policy</a>.</p>
+    <div class="row"><button type="button" class="btn small" id="consentOk">OK</button><button type="button" class="btn ghost small" onclick="show('privacy')">Read the policy</button></div>`;
+  document.body.append(bar);
+  $("#consentOk").onclick = () => { try { localStorage.setItem("pac-consent", "1"); } catch (e) { /* private window */ } bar.remove(); };
 }
 
 /* ================= Handbook ================= */
@@ -6539,3 +6606,5 @@ function lineCheckrideCard(status, via) {
   :'Refresh Qualifications to load your current line-checkride status.';
  return `<div class="rating ${complete?'rt-held':''}"><h3>737 line checkride</h3><p><span class="tag ${complete?'green':'grey'}">${esc(label)}</span></p><p>${body}</p>${via&&passed?'<button class="btn ghost" onclick="openTraining()">Fly the 737 line checkride (optional)</button>':complete?'<button class="btn ghost" onclick="openTraining()">Retake line checkride (optional)</button>':pending?'<button class="btn" onclick="openTraining()">Start line checkride</button>':'<button class="btn ghost" onclick="fillRatings()">Refresh status</button>'}</div>`;
 }
+
+consentNotice();   // the privacy notice on a first visit (VATSIM's VA policy asks for one on the front page)

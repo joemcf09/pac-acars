@@ -202,3 +202,35 @@ html[data-theme="dark"] .ls-wrap .kicker { color: #ff8f8f; }
 .div-head h2 { margin: 0; text-transform: uppercase; letter-spacing: .02em; }
 .div-head p { margin: 4px 0 0; max-width: 80ch; }
 .mb-div { display: block; font-size: 11px; text-transform: uppercase; letter-spacing: .05em; color: var(--steel); margin-top: 2px; }
+
+/* Home page footer */
+.site-foot { margin: 48px 0 0; padding: 32px 32px 22px; background: #16181c; color: #c9ced6; font-size: 14px; line-height: 1.55; }
+.site-foot .sf-grid { display: grid; grid-template-columns: 1.6fr 1fr 1fr 1.4fr; gap: 28px; }
+.site-foot h3 { margin: 0 0 8px; font-size: 12px; text-transform: uppercase; letter-spacing: .08em; color: #fff; }
+.site-foot .sf-links { display: block; }
+.site-foot .sf-links a { display: block; color: #c9ced6; text-decoration: none; padding: 2px 0; overflow-wrap: anywhere; }
+.site-foot .sf-links a:hover, .site-foot .sf-links a:focus-visible { color: #fff; text-decoration: underline; }
+.site-foot .sf-brand img { display: block; margin: 0 0 10px; height: auto; }
+.site-foot .sf-brand p, .site-foot .sf-small p { margin: 0; }
+.site-foot .sf-small p { font-size: 13px; color: #9aa1ab; }
+.site-foot .sf-legal { margin: 18px 0 0; padding-top: 14px; border-top: 1px solid #2c3037; font-size: 12px; color: #8a919b; }
+.site-foot .sf-legal + .sf-legal { margin-top: 4px; padding-top: 0; border-top: 0; }
+@media (max-width: 900px) { .site-foot .sf-grid { grid-template-columns: 1fr 1fr; } .site-foot { padding: 24px 16px 18px; } }
+@media (max-width: 520px) { .site-foot .sf-grid { grid-template-columns: 1fr; } }
+
+/* Privacy policy */
+.privacy { max-width: 78ch; }
+.privacy .lead { font-size: 17px; }
+.privacy section { margin: 26px 0 0; }
+.privacy h2 { font-size: 20px; margin: 0 0 6px; }
+.privacy li { margin: 0 0 6px; }
+.ap-privacy { font-size: 13px; margin: 0; opacity: .85; }
+.ap-privacy a { color: inherit; text-decoration: underline; }
+
+/* First-visit privacy notice */
+.consent-bar { position: fixed; left: 16px; right: 16px; bottom: 16px; z-index: 9000; max-width: 760px; margin: 0 auto; display: flex; gap: 14px 18px; align-items: center; flex-wrap: wrap;
+  padding: 14px 18px; background: #16181c; color: #e6e9ee; border-top: 3px solid var(--red, #C80000); box-shadow: 0 10px 30px rgba(0,0,0,.35); font-size: 14px; }
+.consent-bar p { margin: 0; flex: 1 1 340px; }
+.consent-bar a { color: #fff; text-decoration: underline; }
+.consent-bar .btn.ghost { color: #fff; border-color: #6b7280; }
+@media print { .consent-bar, .site-foot { display: none; } }
