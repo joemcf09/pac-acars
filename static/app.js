@@ -237,7 +237,8 @@ function renderMissions() {
   $("#netMapWrap").hidden = S.board !== "network";
   const acSel = `<select id="acFilter" aria-label="Filter by aircraft"><option value="">Recommended for any aircraft</option>${Object.entries(S.fleet).map(([k,a]) =>
       `<option value="${k}" ${S.acFilter===k?"selected":""}>Recommended for the ${esc(a.name)}</option>`).join("")}</select>` +
-    `<select id="simFilter" aria-label="Filter by simulator"><option value="">Any simulator</option>${["MSFS", "X-Plane"].map(x => `<option ${S.simFilter === x ? "selected" : ""}>${x}</option>`).join("")}</select>`;
+    `<select id="simFilter" aria-label="Filter by simulator"><option value="">Any simulator</option>${["MSFS", "X-Plane"].map(x => `<option ${S.simFilter === x ? "selected" : ""}>${x}</option>`).join("")}</select>` +
+    `<select id="divFilter" aria-label="Filter by division"><option value="">Any division</option>${divisions().map(d => `<option value="${esc(d.name)}" ${S.divFilter === d.name ? "selected" : ""}>${esc(d.name)}</option>`).join("")}</select>`;
   let list = [];
   if (S.board === "all") {
     $("#boardTitle").textContent = "All flying opportunities";
@@ -314,6 +315,7 @@ function renderMissions() {
   list = boardSearchList(list);
   if (S.fromHere && S.me?.location && S.board !== "charter") list = list.filter(m => m.origin.icao === S.me.location.icao);
   if (S.simFilter && S.board !== "charter") list = list.filter(m => m.aircraft.some(a => S.fleet[a]?.sim === S.simFilter));
+  if (S.divFilter && S.board !== "charter") list = list.filter(m => (m.aircraft || []).some(a => divOf(a) === S.divFilter));
   if (S.board !== "charter") {
     const blk = m => m.target_block_min || 0;
     const len = S.lenFilter || "any";
@@ -335,12 +337,13 @@ function renderMissions() {
   $("#sortBar").insertAdjacentHTML("beforeend",shipmentFilterNote());
   const count = $('#boardCount');
   count.textContent = `${shown.length} shown${list.length > shown.length ? ` of ${list.length} matching flights` : ''} · ${count.textContent}`;
-  if (S.fromHere || S.simFilter || S.acFilter || (S.lenFilter && S.lenFilter !== 'any') || S.netSearch || S.region && S.region !== 'All' || S.filter !== 'All') {
-    $('#sortBar').insertAdjacentHTML('beforeend', `<span class="journey-filter-note">${S.simFilter ? esc(S.simFilter) + ' filter active · ' : ''}<button type="button" class="btn ghost small" onclick="resetMissionFilters()">Reset filters</button></span>`);
+  if (S.fromHere || S.simFilter || S.divFilter || S.acFilter || (S.lenFilter && S.lenFilter !== 'any') || S.netSearch || S.region && S.region !== 'All' || S.filter !== 'All') {
+    $('#sortBar').insertAdjacentHTML('beforeend', `<span class="journey-filter-note">${S.simFilter ? esc(S.simFilter) + ' filter active · ' : ''}${S.divFilter ? esc(S.divFilter) + ' only · ' : ''}<button type="button" class="btn ghost small" onclick="resetMissionFilters()">Reset filters</button></span>`);
   }
   $("#manifest").innerHTML = shown.map(boardCard).join("") || `<div class="empty">No flights match these filters. <button type="button" class="btn ghost small" onclick="resetMissionFilters()">Reset filters</button></div>`;
   if ($("#acFilter")) $("#acFilter").onchange = e => { S.acFilter = e.target.value; renderMissions(); };
   if ($("#simFilter")) $("#simFilter").onchange = e => { S.simFilter = e.target.value; renderMissions(); };
+  if ($("#divFilter")) $("#divFilter").onchange = e => { S.divFilter = e.target.value; S.boardPage = 1; renderMissions(); };
   const more = $("#moreRoutes"); if (more) more.onclick = () => { S.netLimit += 40; renderMissions(); };
   tickCountdowns();
   document.querySelectorAll(".waybill").forEach(b => b.onclick = () => selectMission(b.dataset.id));
@@ -1520,7 +1523,7 @@ async function loadLogbook() {
     + (careerDiffers ? ` For rank and pay, failed checkrides don't count: career ${t.career_hours} h over ${t.career_flights} flight${t.career_flights === 1 ? "" : "s"}.` : "");
   $("#lbBody").innerHTML = pireps.map(p => `<tr data-id="${p.id}">
     <td>${new Date(p.filed_at * 1000).toISOString().substr(0, 10)}</td><td><b>${esc(p.flight_number)}</b></td><td>${esc(p.mission_title)}</td>
-    <td>${p.dep} – ${p.arr}</td><td>${esc(S.fleet[p.aircraft]?.icao || p.aircraft)}</td><td>${hm(p.block_min)}</td>
+    <td>${p.dep} – ${p.arr}</td><td>${esc(S.fleet[p.aircraft]?.icao || p.aircraft)}${divOf(p.aircraft) ? `<br><small class="muted">${esc(divShort(divOf(p.aircraft)))}</small>` : ""}</td><td>${hm(p.block_min)}</td>
     <td>${p.landing_rate ?? "–"} fpm</td><td>${fmt(p.fuel_used_lbs)} lb</td><td>${p.source === "Manual" ? "Unscored · Manual" : `${p.score} (${p.grade})`}</td>
     <td><span class="badge b-${p.status.split(" ")[0]} ${p.status.includes("late") ? "late" : ""}">${esc(p.status)}</span>${p.demo ? '<span class="badge b-demo">Demo</span>' : ""}${p.checkride_result ? `<span class="tag ${p.checkride_result.passed ? "green" : ""} lb-ck" title="${esc(p.checkride_result.passed ? "All checkride standards met" : "Reason: " + p.checkride_result.reasons.join(", "))}">${p.checkride_result.kind === "type" ? esc(p.checkride_result.family || "Type") : "Line"} checkride ${p.checkride_result.passed ? "passed" : "not passed"}</span>` : ""}</td>
     <td>${p.demo ? "–" : `<span class="tag ${p.review_status === "Accepted" ? "green" : p.review_status === "Pending" ? "amber" : ""}" style="margin:0">${esc(p.review_status || "Accepted")}</span>`}</td>
@@ -1685,6 +1688,9 @@ async function loadStats() {
     ${c.country_list.length ? `<p class="muted" style="font-size:13px;margin:8px 0 0">Countries: ${c.country_list.map(esc).join(" · ")}</p>` : ""}
 
     <div class="stats-2">
+      ${(() => { const by = {}; s.by_type.forEach(x => { const dv = divOf(x.code) || "Other"; by[dv] = by[dv] || { hours: 0, flights: 0 }; by[dv].hours += x.hours; by[dv].flights += x.flights; });
+        const rows = Object.entries(by).sort((a, b) => b[1].hours - a[1].hours), top = Math.max(1, ...rows.map(r => r[1].hours));
+        return rows.length ? `<section><h2>Hours by division</h2>${rows.map(([n, v]) => `<div class="hbar"><span>${esc(n)}</span><div><i style="width:${v.hours / top * 100}%"></i></div><b>${hrs(v.hours)}</b><small>${v.flights} ${v.flights === 1 ? "flight" : "flights"}</small></div>`).join("")}</section>` : ""; })()}
       <section><h2>Hours by aircraft</h2>${s.by_type.length ? s.by_type.map(x => `<div class="hbar"><span>${esc(S.fleet[x.code]?.name || x.name)}</span><div><i style="width:${x.hours / maxTypeH * 100}%"></i></div><b>${hrs(x.hours)}</b><small>${x.flights} ${x.flights === 1 ? "flight" : "flights"}</small></div>`).join("") : `<p class="muted">–</p>`}</section>
       <section><h2>Flights per month</h2><div class="mbars">${s.months.map(m => `<div title="${m.month}: ${m.flights} flights, ${m.hours} h"><i style="height:${m.flights / maxMonth * 100}%"></i><b>${m.flights || ""}</b><span>${new Date(m.month + "-01T00:00Z").toLocaleDateString("en-GB", { month: "short", timeZone: "UTC" })}</span></div>`).join("")}</div></section>
     </div>
@@ -4276,6 +4282,9 @@ function renderHandbook(cfg) {
     ["ranks", "Ranks and aircraft", `<p>Rank depends on your hours (PAC hours plus any transfer hours staff have credited), and on your average score over your last ${cfg.avg_window} accepted flights once you have at least ${cfg.avg_min_flights}.</p>
       ${cfg.type_ratings_required ? `<p>A rank makes aircraft <b>available</b> to you. Each aircraft family also needs its type rating before you fly it: passing the line checkride (PAC001) in the 737 gives you the whole 737 family (737-200C, 737-300SF and 737-800BCF); for anything else, fly that family's short type checkride from Career › Qualifications.</p>` : `<p>Reaching a rank unlocks its aircraft straight away: you can fly them as soon as you hold the rank.</p>`}
       <table><tr><th></th><th>Rank</th><th>Hours</th><th>Average score</th><th>${cfg.type_ratings_required ? "Makes available" : "Unlocks"}</th></tr>${cfg.ranks.map(r => `<tr><td style="width:52px">${rankImg(r.name)}</td><td><b>${esc(r.name)}</b></td><td>${r.name === "Cadet" ? "–" : r.hours}</td><td>${r.avg || "–"}</td><td>${r.checkride && r.hours === 0 ? "Checkride passed. " : ""}${r.unlocks.map(a => esc(S.fleet[a]?.name || a)).join(", ") || "Checkride only"}</td></tr>`).join("")}</table>`],
+    ["divisions", "Fleet divisions", `<p>PAC's fleet is organised in four divisions. They're labels, not separate rules: your rank and ratings decide what you fly, and you can fly in any division you qualify for.</p>
+      <table><tr><th>Division</th><th>Aircraft</th><th>What it flies</th></tr>${divisions().map(d => `<tr><td><b>${esc(d.name)}</b></td><td>${Object.keys(S.fleet || {}).filter(k => divOf(k) === d.name && !S.fleet[k].retired).map(k => esc(S.fleet[k].name)).join(", ") || "–"}</td><td>${esc(d.blurb || "")}</td></tr>`).join("")}</table>
+      <p>Most pilots start in <b>PAC Feeder</b> on the 737s. The division shows on the Fleet page, on every flight, in your logbook and in My stats, and the mission board can show one division at a time.</p>`],
     ["planning", "Planning a flight", `<p><b>Pick a flight</b> from Missions (special operations), the Scheduled network, Events &amp; tours, Partners, or build a Charter. The flight page then walks you through four tabs:</p>
       <ul><li><b>Briefing:</b> the cargo, any special handling, live weather at both ends and what the flight earns the company.</li>
       <li><b>Aircraft:</b> pick a type your rank and ratings allow, then an airframe <b>at your departure airport</b>. Every aircraft is tracked by registration and stays where it last landed. If none of the right type is there, jumpseat to one, have one delivered, or fly a ferry (see Travel and aircraft delivery).</li>
@@ -4416,7 +4425,7 @@ function renderHandbook(cfg) {
     ["conduct", "Conduct", `<p>Fly honestly and help each other. Report problems with ACARS rather than working around them. Staff decisions on reviews are final, but you can always ask why.</p>`],
   ];
   // reading order: who we are and how to join first, then planning and flying, then the rules, then everything else; staff notes last, for staff only
-  const ORDER = ["welcome", "joining", "training-policy", "first-flight", "travel", "ranks", "ratings", "planning", "planhelper", "dispatchpaper", "acarsapp", "flying",
+  const ORDER = ["welcome", "joining", "training-policy", "first-flight", "travel", "ranks", "divisions", "ratings", "planning", "planhelper", "dispatchpaper", "acarsapp", "flying",
     "dispatchmsg", "integrity", "scoring", "review", "pay", "partners", "missionboard", "jobs", "urgent", "events", "online", "maintenance", "airframes", "economics",
     "stationguides", "approach", "stats", "crewbadge", "signin", "conduct", "staffletters"];
   const pos = id => { const i = ORDER.indexOf(id); return i < 0 ? 99 : i; };
@@ -4903,6 +4912,11 @@ function staffSite() {
 }
 
 /* ---------------- Fleet ---------------- */
+/* PAC's fleet divisions (Feeder, Mainline, Heavy, Heritage): the server labels each type */
+const DIVISION_FALLBACK = [{ name: "PAC Feeder", short: "Feeder" }, { name: "PAC Mainline", short: "Mainline" }, { name: "PAC Heavy", short: "Heavy" }, { name: "PAC Heritage", short: "Heritage" }];
+const divisions = () => (S.divisions && S.divisions.length ? S.divisions : DIVISION_FALLBACK);
+const divOf = code => S.fleet?.[code]?.division || "";
+const divShort = name => (divisions().find(d => d.name === name) || {}).short || String(name || "").replace(/^PAC\s+/, "");
 const FLEET_ORDER = ["B738F", "B722F", "A306F", "MD11F", "B77F", "B748F", "B732F", "B733F", "B752F", "B763F", "B742F"];
 const simTag = a => a?.sim && a.sim !== "MSFS" ? `<span class="tag ${a.sim === "X-Plane" ? "dark" : "grey"}" style="margin-left:6px">${esc(a.sim)}</span>` : "";
 const NUM_WORDS = ["zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten", "eleven", "twelve", "thirteen", "fourteen", "fifteen"];
@@ -4922,14 +4936,18 @@ function fleetCodes(includeRetired = false) {
 function simCount(sim) { return Object.values(S.fleet).filter(a => (a.sim || "MSFS").includes(sim)).length; }
 function renderFleet() {
   const all = fleetCodes(), st = S.fleetStats || {};
-  const codes = S.fleetSim === "All" ? all : all.filter(k => (S.fleet[k].sim || "MSFS").includes(S.fleetSim));
+  const divNames = divisions().map(d => d.name);
+  const bySim = S.fleetSim === "All" ? all : all.filter(k => (S.fleet[k].sim || "MSFS").includes(S.fleetSim));
+  const codes = (S.fleetDiv ? bySim.filter(k => divOf(k) === S.fleetDiv) : bySim)
+    .sort((a, b) => (divNames.indexOf(divOf(a)) + 99) % 99 - (divNames.indexOf(divOf(b)) + 99) % 99);
   const flights = codes.reduce((a, k) => a + (st[k]?.flights || 0), 0), hours = codes.reduce((a, k) => a + (st[k]?.block_hours || 0), 0);
   const longest = codes.reduce((a, k) => S.fleet[k].range_nm > S.fleet[a].range_nm ? k : a, codes[0]);
   const heaviest = codes.reduce((a, k) => S.fleet[k].max_payload_lbs > S.fleet[a].max_payload_lbs ? k : a, codes[0]);
   $("#fleetRoot").innerHTML = `
   <div class="fleet-head">
     <div><h1>The fleet</h1><p class="muted" style="margin:6px 0 0">${NUM_WORDS[all.length] ? NUM_WORDS[all.length][0].toUpperCase() + NUM_WORDS[all.length].slice(1) : all.length} freighter types, from a gravel-kit 737-200 to the nose-loading 747s.</p>${liveryCredits()}
-      <div class="filters" style="margin-top:12px">${[["All", all.length], ["MSFS", simCount("MSFS")], ["X-Plane", simCount("X-Plane")]].map(([k, n]) => `<button class="chip" data-fsim="${k}" aria-pressed="${S.fleetSim === k}">${k === "All" ? "Whole fleet" : k} (${n})</button>`).join("")}</div></div>
+      <div class="filters" style="margin-top:12px">${[["All", all.length], ["MSFS", simCount("MSFS")], ["X-Plane", simCount("X-Plane")]].map(([k, n]) => `<button class="chip" data-fsim="${k}" aria-pressed="${S.fleetSim === k}">${k === "All" ? "Whole fleet" : k} (${n})</button>`).join("")}</div>
+      <div class="filters" style="margin-top:8px" aria-label="Divisions"><button class="chip" data-fdiv="" aria-pressed="${!S.fleetDiv}">All divisions</button>${divisions().map(d => `<button class="chip" data-fdiv="${esc(d.name)}" aria-pressed="${S.fleetDiv === d.name}">${esc(d.short)} (${bySim.filter(k => divOf(k) === d.name).length})</button>`).join("")}</div></div>
     <div class="fleet-sum">
       <div><span>Aircraft types</span><b>${all.length}</b></div>
       <div><span>Heaviest payload</span><b>${tonnes(S.fleet[heaviest].max_payload_lbs)} t</b></div>
@@ -4938,10 +4956,11 @@ function renderFleet() {
     </div>
   </div>
   <nav class="fleet-jump" aria-label="Jump to aircraft">${codes.map(k => `<a href="#ac-${k}" data-jump="${k}"><img src="${esc(displayPhoto(S.fleet[k].thumb || S.fleet[k].photo, 400))}" alt="" loading="lazy"><span>${esc(S.fleet[k].icao)}${S.fleet[k].sim === "X-Plane" ? ' <span class="tag dark" style="font-size:10px;padding:1px 5px">XP</span>' : ""}<small>${esc(S.fleet[k].name)}</small></span></a>`).join("")}</nav>
-  ${codes.map(fleetSheet).join("")}
+  ${codes.map((k, i) => (i === 0 || divOf(k) !== divOf(codes[i - 1]) ? divisionHead(divOf(k)) : "") + fleetSheet(k)).join("") || `<p class="muted">No aircraft in that division for this simulator.</p>`}
   ${fleetCodes(true).some(k => S.fleet[k].retired) ? `<p class="muted" style="font-size:14px">Retired from the fleet: ${fleetCodes(true).filter(k => S.fleet[k].retired).map(k => esc(S.fleet[k].name)).join(", ")}. Past flights on these types stay in the logbook.</p>` : ""}`;
   document.querySelectorAll("#fleetRoot [data-af]").forEach(b => { b.onclick = () => openAirframe(b.dataset.af); b.onkeydown = e => { if (e.key === "Enter") openAirframe(b.dataset.af); }; });
   document.querySelectorAll("[data-fsim]").forEach(b => b.onclick = () => { S.fleetSim = b.dataset.fsim; renderFleet(); });
+  document.querySelectorAll("[data-fdiv]").forEach(b => b.onclick = () => { S.fleetDiv = b.dataset.fdiv; renderFleet(); });
   document.querySelectorAll("[data-jump]").forEach(a => a.onclick = e => { e.preventDefault(); $("#ac-" + a.dataset.jump).scrollIntoView({ behavior: "smooth" }); });
   document.querySelectorAll("[data-zoom]").forEach(b => b.onclick = () => { const a = S.fleet[b.dataset.zoom]; $("#photoBig").src = a.photo; $("#photoBig").alt = a.name; $("#photoCap").textContent = `${a.name}${a.registrations?.length ? " · " + a.registrations.join(", ") : ""}`; $("#photoDlg").showModal(); });
   document.querySelectorAll("[data-routes]").forEach(b => b.onclick = () => { S.board = "network"; S.acFilter = b.dataset.routes; S.region = "All"; S.netSearch = ""; S.selected = null; show("missions"); });
@@ -4952,6 +4971,10 @@ function renderFleet() {
   document.querySelectorAll("[data-edit-ac]").forEach(b => b.onclick = () => { S.editingAc = b.dataset.editAc; renderFleet(); $("#ac-" + S.editingAc).scrollIntoView({ block: "nearest" }); });
   if (S.editingAc) bindFleetEdit(S.editingAc);
   bindLiveries();
+}
+function divisionHead(name) {
+  const d = divisions().find(x => x.name === name);
+  return d ? `<div class="div-head" id="div-${esc(d.short.toLowerCase())}"><h2>${esc(d.name)}</h2>${d.blurb ? `<p class="muted">${esc(d.blurb)}</p>` : ""}</div>` : "";
 }
 function fleetSheet(k) {
   const a = S.fleet[k], st = S.fleetStats?.[k] || {}, editing = S.editingAc === k;
@@ -4993,7 +5016,7 @@ function fleetSheet(k) {
       <div><span>Last flown</span><b>${st.last_flown ? new Date(st.last_flown * 1000).toISOString().substr(0, 10) : "–"}</b></div>
     </div>
     ${editing ? `<form class="ac-edit" id="acEdit" autocomplete="off">
-      <div class="field"><label for="ae_div">Division</label><input id="ae_div" name="division" value="${esc(a.division || "")}"></div>
+      <div class="field"><label for="ae_div">Division</label><select id="ae_div" name="division">${divisions().map(d => `<option ${d.name === a.division ? "selected" : ""}>${esc(d.name)}</option>`).join("")}</select></div>
       <div class="field"><label for="ae_role">Role</label><input id="ae_role" name="role" value="${esc(a.role || "")}"></div>
       <div class="field full"><label for="ae_desc">Description</label><textarea id="ae_desc" name="description" rows="4">${esc(a.description || "")}</textarea></div>
       <div class="field"><label for="ae_eng">Engines</label><input id="ae_eng" name="engines" value="${esc(a.engines || "")}"></div>
@@ -5529,6 +5552,7 @@ function gcnm(a, b) {
   try {
     const d = await api("/api/bootstrap");
     S.partial = d.partial;
+    if (d.divisions) S.divisions = d.divisions;
     Object.assign(S, { missions: d.missions, fleet: d.fleet, settings: d.settings, phases: d.phases, booking: d.booking, profile: d.profile, routes: d.routes || [], cargoTypes: d.cargo_types || [] });
     if ((d.live_public || d.settings?.live_map_public) && !PUBLIC_VIEWS.includes("live")) PUBLIC_VIEWS.push("live");
     applyCore(d);
@@ -5886,7 +5910,7 @@ function setCareerSection(section, updateURL = true) {
   if (updateURL) location.hash = 'career/' + section;
 }
 function resetMissionFilters() {
-  Object.assign(S, {parkedOrigin:'',shipmentDestinations:[], shipmentFilterTitle:'', boardCampaignId:'', boardSearch:'', boardCargo:'', boardShortHeavy:false, boardQualifiedOnly:false, boardAvailableOnly:false, boardPage:1, sortBy:'default', fromHere:false, simFilter:'', acFilter:'', lenFilter:'any', netSearch:'', region:'All', filter:'All', partnerFilter:null, jobKind:'all', netLimit:40});
+  Object.assign(S, {parkedOrigin:'',shipmentDestinations:[], shipmentFilterTitle:'', boardCampaignId:'', boardSearch:'', boardCargo:'', boardShortHeavy:false, boardQualifiedOnly:false, boardAvailableOnly:false, boardPage:1, sortBy:'default', fromHere:false, simFilter:'', divFilter:'', acFilter:'', lenFilter:'any', netSearch:'', region:'All', filter:'All', partnerFilter:null, jobKind:'all', netLimit:40});
   renderPilotStrip(); renderMissions();
 }
 function travelGuideHTML() {
@@ -6003,7 +6027,7 @@ function boardCard(m) {
     <span class="mb-route"><span><b>${esc(m.origin.icao)}</b><small>${esc(m.origin.city || m.origin.name)}</small></span><span aria-hidden="true">→</span><span><b>${esc(m.destination.icao)}</b><small>${esc(m.destination.city || m.destination.name)}</small></span></span>
     <strong class="mb-title">${esc(m.title)}</strong><span class="mb-cargo">${esc(m.cargo)}</span>
     <span class="mb-tags">${m.short_heavy ? `<span class="tag dark">${fmt(m.distance_nm)} NM · Routine delivery</span>` : ""}${boardCampaignLabels(m)}${bonusTags(m)}${freshTags(m)}${m.tour || m.rotation ? `<span class="tag dark">Leg ${esc(m.leg)}/${esc(m.legs)}</span>` : ''}${m.handling ? `<span class="tag grey">${esc(m.handling.label)}</span>` : ''}${m.challenge ? `<span class="tag amber">${esc(m.challenge.label)}</span>` : ''}${m.urgent ? `<span class="tag amber">URGENT ×1.5 · deliver by ${zulu(m.deliver_by)}</span><span>Offer: <span class="countdown" data-countdown="${Number(m.expires)}"></span></span>` : ''}</span>
-    <span class="mb-facts"><span>Estimated block<b>${hm(m.target_block_min)}</b></span><span>Recommended types<b>${(m.aircraft || []).map(a=>esc(S.fleet[a]?.icao || a)).join(', ')}</b></span><span>Cargo load<b>${fmt(m.payload_lbs || 0)} lb</b></span><span>Reward<b>${fmt(m.reward || 0)} points${m.short_heavy ? ` · includes ${fmt(m.handling_points)} handling points` : ""}${m.contract_bonus ? ` · $${fmt(m.contract_bonus)} bonus` : m.ferry_bonus ? ` · $${fmt(m.ferry_bonus)} ferry bonus` : ''}</b></span></span>
+    <span class="mb-facts"><span>Estimated block<b>${hm(m.target_block_min)}</b></span><span>Recommended types<b>${(m.aircraft || []).map(a=>esc(S.fleet[a]?.icao || a)).join(', ')}</b>${(() => { const ds = [...new Set((m.aircraft || []).map(divOf).filter(Boolean))]; return ds.length ? `<small class="mb-div">${ds.map(d => esc(divShort(d))).join(" · ")}</small>` : ""; })()}</span><span>Cargo load<b>${fmt(m.payload_lbs || 0)} lb</b></span><span>Reward<b>${fmt(m.reward || 0)} points${m.short_heavy ? ` · includes ${fmt(m.handling_points)} handling points` : ""}${m.contract_bonus ? ` · $${fmt(m.contract_bonus)} bonus` : m.ferry_bonus ? ` · $${fmt(m.ferry_bonus)} ferry bonus` : ''}</b></span></span>
     <span class="mb-status">${esc(boardStatus(m))}</span><span class="mb-card-bottom"><small>Check details before planning</small><b>Review flight →</b></span></button>`;
 }
 function boardSearchList(list) {
@@ -6031,7 +6055,7 @@ function renderBoardTools() {
   $('#boardSuggestions').querySelectorAll('[data-suggestion]').forEach(b=>b.onclick=()=>selectMission(b.dataset.suggestion));
 }
 function boardPage(list) {
-  const signature=JSON.stringify([S.board,S.filter,S.region,S.netSearch,S.acFilter,S.simFilter,S.lenFilter,S.sortBy,S.fromHere,S.partnerFilter,S.jobKind,S.boardSearch,S.boardCargo,S.boardShortHeavy,S.boardQualifiedOnly,S.boardAvailableOnly,S.boardCampaignId,list.map(m=>m.id)]);
+  const signature=JSON.stringify([S.board,S.filter,S.region,S.netSearch,S.acFilter,S.simFilter,S.divFilter,S.lenFilter,S.sortBy,S.fromHere,S.partnerFilter,S.jobKind,S.boardSearch,S.boardCargo,S.boardShortHeavy,S.boardQualifiedOnly,S.boardAvailableOnly,S.boardCampaignId,list.map(m=>m.id)]);
   if(signature!==S._boardPageKey){S.boardPage=1;S._boardPageKey=signature;}
   const pages=Math.max(1,Math.ceil(list.length/6));S.boardPage=Math.min(Math.max(1,S.boardPage||1),pages);
   const start=(S.boardPage-1)*6,shown=list.slice(start,start+6);
@@ -6171,7 +6195,7 @@ function updateBrowseSummary() {
   if (!drawer) return;
   drawer.hidden = S.board === 'charter';
   const active = [S.filter && S.filter !== 'All', S.region && S.region !== 'All', S.netSearch,
-    S.acFilter, S.simFilter, S.lenFilter && S.lenFilter !== 'any', S.sortBy && S.sortBy !== 'default',
+    S.acFilter, S.simFilter, S.divFilter, S.lenFilter && S.lenFilter !== 'any', S.sortBy && S.sortBy !== 'default',
     S.partnerFilter, S.jobKind && S.jobKind !== 'all'].filter(Boolean).length;
   document.getElementById('browseSummary').textContent = `More filters & sorting${active ? ` · ${active} active` : ''}`;
 }

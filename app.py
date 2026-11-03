@@ -119,6 +119,38 @@ for _code, _edits in (json.loads(FLEET_CUSTOM_PATH.read_text(encoding="utf-8")) 
     elif _edits.get("custom_type"):
         FLEET[_code] = {**TYPE_DEFAULTS, **{k: v for k, v in _edits.items() if k in FLEET_EDITABLE}, "custom_type": True}
 
+# PAC's fleet divisions: a label for each type, used on the fleet page, flights, logbook and stats. Staff can move a
+# type by setting its Division to one of these names in Staff › Fleet types; anything else falls back to the default below.
+DIVISIONS = [
+    {"name": "PAC Feeder", "short": "Feeder", "blurb": "737 freighters on short and medium sectors around PAC's hubs. Where most pilots start."},
+    {"name": "PAC Mainline", "short": "Mainline", "blurb": "Medium widebodies and the 757 on the core network: A300-600F, 757-200F and 767-300F."},
+    {"name": "PAC Heavy", "short": "Heavy", "blurb": "Long-haul widebodies on intercontinental and outsize work: MD-11F, 777F and the 747s."},
+    {"name": "PAC Heritage", "short": "Heritage", "blurb": "Classic jets kept flying for the work they still do best: the 727s, the 737-200 and the 747-200."},
+]
+DIVISION_DEFAULT = {"B733F": "PAC Feeder", "B738F": "PAC Feeder",
+                    "A306F": "PAC Mainline", "B752F": "PAC Mainline", "B763F": "PAC Mainline",
+                    "MD11F": "PAC Heavy", "B77F": "PAC Heavy", "B744F": "PAC Heavy", "B748F": "PAC Heavy",
+                    "B722F": "PAC Heritage", "R722F": "PAC Heritage", "B732F": "PAC Heritage", "B742F": "PAC Heritage"}
+
+
+def fleet_division(code):
+    a = FLEET.get(code) or {}
+    d = str(a.get("division") or "").strip()
+    if d in {x["name"] for x in DIVISIONS}:
+        return d
+    if code in DIVISION_DEFAULT:
+        return DIVISION_DEFAULT[code]
+    m = a.get("mtow_lbs") or 0           # a type staff added later: by size
+    return "PAC Feeder" if m < 200_000 else "PAC Mainline" if m < 450_000 else "PAC Heavy"
+
+
+def apply_divisions():
+    for _k in FLEET:
+        FLEET[_k]["division"] = fleet_division(_k)
+
+
+apply_divisions()
+
 DEFAULT_SETTINGS = {"pilot_name": "", "pilot_id": "PAC0001", "simbrief_username": "", "simbrief_userid": "",
                     "source": "MSFS", "demo_speedup": 60, "xplane_host": "127.0.0.1", "map_style": "dark", "allow_ground_reposition": True,
                     "enforce_ranks": False, "enforce_airframes": True,
@@ -828,6 +860,7 @@ def save_fleet_custom(code, edits):
     custom.setdefault(code, {}).update(edits)
     save_json(FLEET_CUSTOM_PATH, custom)
     FLEET.setdefault(code, dict(TYPE_DEFAULTS)).update(edits)
+    apply_divisions()
 
 
 def _type_counts():
@@ -1338,7 +1371,7 @@ def bootstrap():
     import auth
     if not auth.current():  # visitors: what the public pages need, nothing personal
         prof = load_profile(founder_pid())
-        return jsonify({"guest": True, "missions": [], "partners": PARTNERS, "fleet": FLEET, "settings": {}, "phases": PHASES, "booking": None,
+        return jsonify({"guest": True, "missions": [], "partners": PARTNERS, "fleet": FLEET, "divisions": DIVISIONS, "settings": {}, "phases": PHASES, "booking": None,
                         "routes": [], "cargo_types": CARGO_TYPES, "airframes": va.airframes(), "tour_legs": [], "tours": va.TOURS,
                         "featured": va.featured_routes(), "active_events": va.active_events(), "career": None, "ranks": va.ranks_effective(),
                         "checkride_id": va.CHECKRIDE_ID, "tour_progress": None, "rotations": va.ROTATIONS, "rotation_progress": None, "live_public": bool(settings().get("live_map_public")),
@@ -1357,7 +1390,7 @@ def bootstrap():
             return default
 
     out = {"ofp_watch": part("ofp_watch", ofp_watch_status, None), "missions": part("missions", va.mission_board, []),
-           "partners": PARTNERS, "fleet": FLEET, "settings": public_settings(), "phases": PHASES,
+           "partners": PARTNERS, "fleet": FLEET, "divisions": DIVISIONS, "settings": public_settings(), "phases": PHASES,
            "booking": part("booking", load_booking, None), "routes": list(ROUTES.values()), "cargo_types": CARGO_TYPES,
            "profile": part("profile", lambda: with_flair(load_profile()), {}), "airframes": part("airframes", va.airframes, []),
            "tour_legs": list(va.TOUR_LEGS.values()), "tours": va.TOURS, "featured": part("featured", va.featured_routes, []),

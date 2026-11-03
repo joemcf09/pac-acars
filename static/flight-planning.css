@@ -196,3 +196,9 @@ html[data-theme="dark"] .ls-wrap .kicker { color: #ff8f8f; }
 .dl-count { font-size: 13px; margin-left: auto; }
 .dl-row[hidden] { display: none !important; }
 .dl-edit { width: 100%; }
+
+/* Fleet divisions */
+.div-head { margin: 34px 0 10px; padding-top: 14px; border-top: 3px solid var(--red, #C80000); }
+.div-head h2 { margin: 0; text-transform: uppercase; letter-spacing: .02em; }
+.div-head p { margin: 4px 0 0; max-width: 80ch; }
+.mb-div { display: block; font-size: 11px; text-transform: uppercase; letter-spacing: .05em; color: var(--steel); margin-top: 2px; }
