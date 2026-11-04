@@ -1,0 +1,965 @@
+<!doctype html>
+<html lang="en-US">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>PAC Academy · Boeing 737-800 training · Pagani Air Cargo</title>
+<meta name="description" content="Free 737-800 cockpit training from Pagani Air Cargo: PAC's Boeing-based startup flow and interactive lessons on every panel, for MSFS (PMDG) and X-Plane (LevelUp, Zibo).">
+<link rel="canonical" href="https://pac-va.com/static/academy/">
+<meta property="og:title" content="PAC Academy · Boeing 737-800 training">
+<meta property="og:description" content="Interactive 737-800 cockpit lessons and PAC's standard startup flow.">
+<meta property="og:image" content="https://pac-va.com/static/academy/01-cockpit.jpg">
+<meta name="theme-color" content="#c80000">
+<style>html{color-scheme:light}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
+</head>
+<body>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&family=JetBrains+Mono:wght@500&display=swap">
+<style>
+/* Layout: lesson list on the left, the cockpit picture with numbered markers, and the lesson card beside or below it */
+:root{
+  --bg:#f3f4f6; --panel:#ffffff; --ink:#15181d; --muted:#5b6370; --line:#d9dde3;
+  --red:#c80000; --amber:#a86400; --amber-wash:#fdf3e2; --glow:#ffd24a; --strip:#1b1e23; --sel:#15181d; --selink:#ffffff;
+  --display:"Barlow Condensed","Arial Narrow",sans-serif;
+  --body:"Barlow",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,Consolas,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#111317; --panel:#1a1d22; --ink:#eceef1; --muted:#9aa2ad; --line:#2c3138;
+  --red:#ff4b4b; --amber:#f0b04a; --amber-wash:#332611; --strip:#0b0c0e; --sel:#eceef1; --selink:#111317; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#111317; --panel:#1a1d22; --ink:#eceef1; --muted:#9aa2ad; --line:#2c3138;
+  --red:#ff4b4b; --amber:#f0b04a; --amber-wash:#332611; --strip:#0b0c0e; --sel:#eceef1; --selink:#111317; color-scheme:dark}
+body{background:var(--bg);color:var(--ink);font:16px/1.55 var(--body);
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:20px 48px}
+.app{max-width:1400px;margin:0 auto;display:grid;grid-template-columns:240px minmax(0,1fr);gap:28px;align-items:start}
+.kicker{font:500 12px var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--red)}
+aside{position:sticky;top:16px;display:flex;flex-direction:column;gap:10px}
+aside .back{font:500 13px var(--body);color:var(--red);text-decoration:none}
+aside .back:hover{text-decoration:underline}
+aside .brand{font:700 26px/1 var(--display);letter-spacing:.02em}
+aside .brand small{display:block;font:500 12px var(--mono);letter-spacing:.1em;color:var(--muted);margin-top:6px;text-transform:uppercase}
+.lessons{list-style:none;margin:6px 0 0;padding:0;display:flex;flex-direction:column;gap:2px;max-height:calc(100vh - 140px);overflow:auto}
+.lessons .grp{font:500 11px var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--muted);padding:10px 8px 4px}
+.lessons button{width:100%;text-align:left;display:flex;gap:10px;align-items:baseline;border:0;background:transparent;color:var(--ink);font:500 15px/1.3 var(--body);padding:6px 8px;border-radius:4px;cursor:pointer}
+.lessons button:hover{background:var(--line)}
+.lessons button[aria-current="true"]{background:var(--sel);color:var(--selink)}
+.lessons .num{font:500 12px var(--mono);color:inherit;opacity:.6;min-width:20px;font-variant-numeric:tabular-nums}
+.picker{display:none}
+main{display:flex;flex-direction:column;gap:16px;min-width:0}
+h1{font:700 clamp(30px,5vw,44px)/1.05 var(--display);margin:4px 0 0;text-wrap:balance;letter-spacing:.01em}
+.sub{color:var(--muted);margin:6px 0 0;max-width:70ch}
+.stage{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(320px,1fr);gap:20px;align-items:start}
+.stage.wide{grid-template-columns:minmax(0,1fr)}
+.viewer{background:var(--strip);border-radius:8px;padding:10px;display:flex;justify-content:center;overflow-x:auto;scrollbar-width:thin;min-width:0}
+.frame{position:relative;line-height:0;flex:0 1 auto;min-width:0;max-width:100%}
+.frame img{display:block;max-height:72vh;max-width:100%;width:auto;height:auto;user-select:none}
+.stage.wide .frame{width:100%;min-width:900px;max-width:none;flex:0 0 auto}
+.stage.wide .frame img{max-width:none;max-height:none;width:100%}
+.hs{position:absolute;border:0;padding:0;background:transparent;cursor:pointer;border-radius:5px}
+.hs:hover{outline:2px solid rgba(255,210,74,.6);outline-offset:1px}
+.hs:focus-visible{outline:2px solid #fff;outline-offset:2px}
+.hs.on{outline:3px solid var(--glow);outline-offset:2px;box-shadow:0 0 0 9999px rgba(0,0,0,.5);z-index:2}
+.hs.on.secondary{box-shadow:none;z-index:3}
+.frame{overflow:hidden}
+.dot{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);min-width:22px;height:22px;padding:0 5px;border-radius:11px;background:var(--red);color:#fff;font:600 11px/22px var(--mono);text-align:center;box-shadow:0 1px 4px rgba(0,0,0,.6)}
+.hs.on .dot{background:var(--glow);color:#111}
+.hs.secondary .dot{display:none}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:22px 24px;display:flex;flex-direction:column;gap:16px;min-width:0}
+.stage.wide .card{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:18px 32px}
+.stage.wide .card .full{grid-column:1/-1}
+.card h2{font:700 30px/1.1 var(--display);margin:2px 0 0;letter-spacing:.01em;text-wrap:balance}
+.lbl{font:500 11px var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.what{font-size:17px;margin:0}
+.phase{display:inline-block;font:600 13px var(--display);letter-spacing:.08em;text-transform:uppercase;background:var(--red);color:#fff;padding:2px 8px;border-radius:3px;margin-bottom:6px}
+.block{display:flex;flex-direction:column;gap:6px;min-width:0}
+.block p{margin:0}
+.block ul{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:4px}
+.mistake{background:var(--amber-wash);border-radius:6px;padding:12px 14px}
+.mistake .lbl{color:var(--amber)}
+.go{align-self:flex-start;font:600 15px var(--display);letter-spacing:.04em;text-transform:uppercase;padding:7px 14px;border-radius:4px;border:1px solid var(--red);background:transparent;color:var(--red);cursor:pointer}
+.nav{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;border-top:1px solid var(--line);padding-top:14px}
+.nav button{font:600 16px var(--display);letter-spacing:.04em;text-transform:uppercase;padding:9px 18px;border-radius:4px;cursor:pointer;border:1px solid var(--line);background:var(--panel);color:var(--ink)}
+.nav button.primary{background:var(--red);border-color:var(--red);color:#fff}
+.nav button:disabled{opacity:.4;cursor:default}
+.count{font:500 13px var(--mono);color:var(--muted);font-variant-numeric:tabular-nums}
+.hint{font-size:13px;color:var(--muted);margin:0}
+footer{font-size:13px;color:var(--muted);max-width:80ch}
+button:focus-visible,select:focus-visible{outline:2px solid var(--red);outline-offset:2px}
+@media (max-width:1100px){.stage{grid-template-columns:minmax(0,1fr)}.frame img{max-width:100%;max-height:60vh}}
+@media (max-width:860px){
+  .app{grid-template-columns:minmax(0,1fr)}
+  aside{position:static}.lessons{display:none}
+  .picker{display:block;width:100%;font:500 16px var(--body);padding:10px;border-radius:6px;border:1px solid var(--line);background:var(--panel);color:var(--ink)}
+  .stage.wide .card{display:flex}
+}
+@media (max-width:600px){.card{padding:18px}}
+</style>
+
+<div class="app">
+  <aside>
+    <a class="back" href="/">← Back to pac-va.com</a>
+    <div class="brand">PAC Academy<small>Boeing 737-800 cockpit</small></div>
+    <label class="kicker" for="picker" style="display:none">Lesson</label>
+    <select class="picker" id="picker" aria-label="Choose a lesson"></select>
+    <ul class="lessons" id="lessons"></ul>
+  </aside>
+  <main>
+    <header>
+      <div class="kicker" id="area"></div>
+      <h1 id="title"></h1>
+      <p class="sub" id="intro"></p>
+    </header>
+    <div class="stage" id="stage">
+      <div class="viewer" id="viewer"><div class="frame" id="frame"><img id="img" alt=""></div></div>
+      <section class="card" id="card" aria-live="polite">
+        <div class="full">
+          <div class="phase" id="cPhase" hidden></div><div class="lbl" id="cNum"></div>
+          <h2 id="cName"></h2>
+        </div>
+        <p class="what full" id="cWhat"></p>
+        <div class="block" id="cWhenBox"><div class="lbl" id="cWhenLbl">When you use it</div><div id="cWhen"></div></div>
+        <div class="block mistake" id="cMistakeBox"><div class="lbl">Common beginner mistake</div><p id="cMistake"></p></div>
+        <button type="button" class="go full" id="cGo" hidden></button>
+        <div class="nav full">
+          <button type="button" id="prev">← Back</button>
+          <span class="count" id="count"></span>
+          <button type="button" class="primary" id="next">Next →</button>
+        </div>
+      </section>
+    </div>
+    <p class="hint" id="hint" hidden>On a phone, swipe the panel sideways to see all of it.</p>
+    <footer>Screenshots from the PMDG 737-800 in MSFS. The LevelUp and Zibo 737s in X-Plane use the same panel layout. For simulator training only, not for real-world flight. © Pagani Air Cargo.</footer>
+  </main>
+</div>
+
+<script>
+/* PAC Academy · 737-800 cockpit lessons. Boxes are [left, top, width, height] in % of the picture, unless the slide gives px. */
+const SLIDES = [
+{ id:"tour", area:"Start here", title:"Your cockpit at a glance", img:"01-cockpit.jpg", size:[100,100],
+  intro:"Before learning any switch, learn where things live. You sit in the left seat as captain. Click an area to see what it's for, then open its lesson.",
+  items:[
+  { n:"Overhead panel", b:[[33,0,32,30]], go:"flt",
+    what:"The aircraft's systems: electrical power, fuel, hydraulics, air, anti-ice, lights and engine start. You set most of it before the engines start and touch it rarely in flight.",
+    when:"Starting up and shutting down.|Lights during taxi, takeoff and landing.",
+    mistake:"Trying to learn the whole overhead at once. Learn it in the order the startup flow uses it, which is the order of these lessons." },
+  { n:"Glareshield: autopilot panel", b:[[38,43,24,6]], go:"mcp",
+    what:"The Mode Control Panel (MCP) and the two display control panels. This is how you tell the autopilot what to do.",
+    when:"All flight long, every time ATC gives you a new heading, speed or altitude.",
+    mistake:"Looking down at the MCP for long periods while hand-flying. Glance, set, look back at your instruments." },
+  { n:"Your main displays (PFD and ND)", b:[[32,55,17,10]], go:"pfd",
+    what:"The Primary Flight Display (left) shows speed, attitude and altitude. The Navigation Display (right) shows your route and position.",
+    when:"Always. These are the instruments you scan the most.",
+    mistake:"Staring at the map display instead of the PFD while flying by hand." },
+  { n:"Engine display", b:[[48.5,55,6,10]], go:"eng",
+    what:"Engine power, temperatures and fuel on board. Below it are the autobrake, flap gauge and landing gear lever.",
+    when:"Engine start, takeoff, and quick checks in cruise." },
+  { n:"First officer's displays", b:[[55,55,15,10]],
+    what:"A copy of your PFD and ND for the right seat. In the sim you can ignore it, but set its course, minimums and altimeter to match yours." },
+  { n:"FMC (flight computer)", b:[[37.5,64,6.5,13]], go:"fmc",
+    what:"The Flight Management Computer: your route, weights, fuel and performance. There's one for each pilot.",
+    when:"Before engine start, you program the whole flight here.|In flight, for route changes and progress checks." },
+  { n:"Throttle quadrant", b:[[44,67,12,18]], go:"thr",
+    what:"Thrust levers, speedbrake, flap lever, parking brake and the fuel cutoff levers.",
+    when:"Every phase of flight." },
+  { n:"Center pedestal", b:[[40,85,22,15]], go:"ped",
+    what:"Radios, transponder, weather radar, fire switches and trim.",
+    when:"Setting frequencies before departure and before the approach." }
+  ]},
+
+{ id:"flt", area:"Overhead", title:"Flight controls and navigation", img:"02-flight-controls.jpg", size:[100,100],
+  intro:"The top left of the overhead. On a normal flight these switches stay in one position the whole time. Your job is to check they're set correctly.",
+  items:[
+  { n:"Flight control switches (FLT CONTROL A and B)", b:[[8,1,37,17]],
+    what:"Connect hydraulic systems A and B to the flight controls. They have red guards because you should never move them in normal flying.",
+    when:"Check both ON (guards down) during the preflight scan.",
+    mistake:"Lifting a guard to see what it does. Leave guarded switches alone unless a checklist tells you otherwise." },
+  { n:"Alternate flaps", b:[[50,10,45,15]],
+    what:"A backup way to move the flaps electrically if hydraulics fail.",
+    when:"Never in normal flying. Check it's OFF with the guard down." },
+  { n:"Spoiler switches (A and B)", b:[[8,19,37,15]],
+    what:"Hydraulic power to the spoilers, the panels on top of the wings used by the speedbrake.",
+    when:"Check both ON (guards down)." },
+  { n:"Yaw damper", b:[[20,39,25,8]],
+    what:"Stops the tail from wagging side to side (Dutch roll) and makes the ride smooth.",
+    when:"ON during the startup flow, once hydraulic power is available. The amber YAW DAMPER light should go out.",
+    mistake:"Leaving it OFF. The aircraft wallows and turns feel uncoordinated." },
+  { n:"Transfer switches (VHF NAV, IRS, FMC)", b:[[8,48,85,19]],
+    what:"Let one side's equipment feed both pilots if something fails.",
+    when:"Always NORMAL.",
+    mistake:"Bumping one off NORMAL. Then one side shows the other side's data and things stop making sense." },
+  { n:"Display source and control panel", b:[[8,70,85,11]],
+    what:"Which computer drives the displays, and which EFIS panel controls them.",
+    when:"SOURCE on AUTO, CONTROL PANEL on NORMAL. Leave them there." }
+  ]},
+
+{ id:"elec", area:"Overhead", title:"Electrical power", img:"03-electrical.jpg", size:[100,100],
+  intro:"The first thing you touch in a cold and dark cockpit. Power comes from the battery, then ground power or the APU, then the engine generators.",
+  items:[
+  { n:"Battery switch", b:[[12,36,17,9]],
+    what:"Turns on the battery, which powers the basic systems. Everything starts here.",
+    when:"ON (guard closed) as the very first step of the startup.|OFF as the very last step after shutdown.",
+    mistake:"Leaving the aircraft on battery only for a long time. The battery runs flat. Connect ground power or start the APU soon after." },
+  { n:"Standby power", b:[[32,52,32,9]],
+    what:"Backup power for the most important instruments if the main power fails.",
+    when:"AUTO (guard closed). Never move it in normal flying." },
+  { n:"Generator drive disconnect", b:[[10,50,20,18],[70,50,20,18]],
+    what:"Disconnects an engine's generator drive if it fails. It can't be reconnected in flight.",
+    when:"Never in normal flying. These have red guards for a reason.",
+    mistake:"Pressing one out of curiosity. In the real aircraft that generator stays dead until maintenance resets it." },
+  { n:"Ground power switch (GRD PWR)", b:[[42,69,16,12]],
+    what:"Connects the ground power cart's electricity to the aircraft. The blue GRD POWER AVAILABLE light shows a cart is plugged in.",
+    when:"Flip ON at the gate after the battery, if ground power is available.|The APU or engine generators take over later." },
+  { n:"Bus transfer", b:[[37,80,26,5]],
+    what:"Lets one generator power both sides if the other fails.",
+    when:"AUTO (guard closed)." },
+  { n:"Engine generator switches (GEN 1 and GEN 2)", b:[[12,90,16,10],[72,90,16,10]],
+    what:"Put each engine's generator on line. The blue GEN OFF BUS light means that generator is running but not connected.",
+    when:"After both engines are started, flip each one ON. The blue lights go out.",
+    mistake:"Forgetting them after engine start. You're still running on the APU, and if the APU is shut down you lose power." },
+  { n:"APU generator switches", b:[[32,90,40,10]],
+    what:"Put the APU's generator on line, taking over from ground power.",
+    when:"Once the APU is running and the blue APU GEN OFF BUS light is on, flip both ON." },
+  { n:"Cabin and entertainment power (CAB/UTIL, IFE)", b:[[43,36,45,9]],
+    what:"Power for the galleys and cabin. A freighter has no passengers, but the checklist still sets them.",
+    when:"Both ON during the startup flow." },
+  { n:"Meters and test selectors", b:[[8,2,85,14],[5,25,90,10]],
+    what:"Show voltages and frequencies for maintenance checks.",
+    when:"You can ignore these while learning." }
+  ]},
+
+{ id:"fuel", area:"Overhead", title:"Fuel pumps", img:"04-fuel.jpg", size:[100,100],
+  intro:"The 737 has three tanks: left wing (tank 1), right wing (tank 2) and the center tank. Each has two pumps that push fuel to the engines.",
+  items:[
+  { n:"Main tank pumps (tanks 1 and 2)", b:[[12,64,32,20],[58,64,32,20]],
+    what:"Two pumps in each wing tank feed the engine on that side.",
+    when:"Turn on one left pump before starting the APU, which draws fuel from the left side.|All four ON before engine start, and on for the whole flight.",
+    mistake:"Starting the APU with every pump off. It can still start, but turn a pump on first as the checklist says." },
+  { n:"Center tank pumps", b:[[33,30,32,23]],
+    what:"Pump fuel from the center tank. They push harder than the wing pumps, so the engines use center fuel first.",
+    when:"ON only when the center tank has fuel in it (more than about 1,000 lb).|OFF when it's empty and the LOW PRESSURE lights come on.",
+    mistake:"Running the center pumps with an empty center tank. Turn them off once the center tank is empty." },
+  { n:"Low pressure lights", b:[[10,54,82,11],[30,21,40,9]],
+    what:"An amber light means that pump isn't pushing fuel. Normal when the pump is off.",
+    when:"After turning pumps on, check the lights go out." },
+  { n:"Crossfeed", b:[[40,1,22,19]],
+    what:"Joins the left and right fuel lines so one tank can feed both engines.",
+    when:"Closed (vertical) for normal flying.|Open only to fix a fuel imbalance between the wings.",
+    mistake:"Leaving crossfeed open after balancing the fuel." }
+  ]},
+
+{ id:"start", area:"Overhead", title:"APU, engine start and lights", img:"05-start-lights.jpg", size:[100,100], wide:true,
+  intro:"The strip at the front of the overhead, closest to the windshield. You'll use these switches on every flight.",
+  items:[
+  { n:"APU switch", b:[[36,15,5,80]],
+    what:"Starts the Auxiliary Power Unit, a small engine in the tail that makes electricity and air for engine start.",
+    when:"Turn to START, then let it spring back to ON. Wait for the blue APU GEN OFF BUS light (about a minute).|OFF after both engines are running and the engine generators are on.",
+    mistake:"Holding it in START. Just turn it and let go." },
+  { n:"Engine start switch 1", b:[[42,20,7,80]],
+    what:"Starts engine 1. GRD spins the engine with air from the APU. CONT keeps the igniters on. FLT is for restarting in flight.",
+    when:"Turn to GRD. When N2 passes 25% on the engine display, move the engine 1 start lever to IDLE. The switch returns to OFF by itself at about 56% N2.|Set CONT before takeoff and landing, if your checklist calls for it.",
+    mistake:"Moving the start lever to IDLE too early, before 25% N2. That can cause a hot start." },
+  { n:"Ignition select", b:[[50,20,6,70]],
+    what:"Chooses which igniters fire during start: left, right or both.",
+    when:"Normally IGN L or IGN R. Many pilots alternate between flights." },
+  { n:"Engine start switch 2", b:[[59,20,7,80]],
+    what:"Starts engine 2. Same as engine 1.",
+    when:"Most crews start engine 2 first, then engine 1." },
+  { n:"Landing lights", b:[[12,10,10,80]],
+    what:"The bright lights for takeoff and landing.",
+    when:"ON when cleared onto the runway for takeoff.|OFF passing 10,000 feet in the climb, ON again descending through 10,000 feet." },
+  { n:"Runway turnoff lights", b:[[25,10,8,80]],
+    what:"Lights angled to the sides to help you see turns.",
+    when:"On the runway for takeoff and landing, and when turning off the runway.|OFF with the landing lights above 10,000 feet." },
+  { n:"Taxi light", b:[[33,10,4,80]],
+    what:"The nose gear light.",
+    when:"ON when you start taxiing, OFF when you park.|Many pilots leave it on for takeoff and turn it off with the gear up." },
+  { n:"Logo light", b:[[70,10,4,80]],
+    what:"Lights the tail logo.",
+    when:"At night, on the ground and below 10,000 feet." },
+  { n:"Position and strobe lights", b:[[74,10,7,85]],
+    what:"STEADY turns on the navigation lights. STROBE & STEADY adds the white flashing strobes.",
+    when:"STEADY whenever the aircraft has power.|STROBE & STEADY when you enter the runway, back to STEADY after landing.",
+    mistake:"Taxiing with strobes on. They dazzle other pilots on the ground." },
+  { n:"Anti-collision light (beacon)", b:[[81,10,5,80]],
+    what:"The red flashing beacon. It tells ground crews the engines are about to start or are running.",
+    when:"ON before pushback and engine start. OFF only after the engines are shut down.",
+    mistake:"Starting engines with the beacon off. In the real world that puts ground crew in danger." },
+  { n:"Wing and wheel well lights", b:[[85.5,10,9,80]],
+    what:"Wing lights shine on the wing so you can check for ice. Wheel well lights are for the ground crew.",
+    when:"Wing lights at night when checking for ice. Wheel well lights rarely." }
+  ]},
+
+{ id:"hyd", area:"Overhead", title:"Hydraulic pumps", img:"06-hydraulics.jpg", size:[100,100],
+  intro:"Hydraulics move the flight controls, flaps, landing gear and brakes. There are two systems, A and B, each with an engine pump and an electric pump.",
+  items:[
+  { n:"Engine-driven pumps (ENG 1 and ENG 2)", b:[[12,52,20,48],[72,52,20,48]],
+    what:"Run whenever their engine is running.",
+    when:"Left ON at all times, even when parked.",
+    mistake:"Turning them off at shutdown. They stay ON." },
+  { n:"Electric pumps (ELEC 1 and ELEC 2)", b:[[30,52,18,48],[56,52,18,48]],
+    what:"Electric pumps that give hydraulic pressure without the engines running.",
+    when:"ON before pushback so you have brakes and steering. On for the whole flight.|OFF after engine shutdown.",
+    mistake:"Pushing back with them off. You may have no brake pressure if you need to stop." },
+  { n:"Low pressure lights", b:[[10,36,80,15]],
+    what:"Amber means that pump isn't making pressure. Normal before engine start or with the pump off.",
+    when:"Check they go out after switching on the electric pumps and starting the engines." }
+  ]},
+
+{ id:"ice", area:"Overhead", title:"Window heat and anti-ice", img:"07-anti-ice.jpg", size:[100,100],
+  intro:"Keeps ice off the windshield, the air data probes, the engines and the wings.",
+  items:[
+  { n:"Window heat", b:[[8,15,82,15]],
+    what:"Heats the cockpit windows so they stay clear and are less likely to crack in the cold.",
+    when:"All four ON during the startup flow, at least 10 minutes before takeoff.|OFF after shutdown." },
+  { n:"Probe heat", b:[[33,30,30,18]],
+    what:"Heats the pitot tubes and sensors that measure speed and altitude. The amber lights next to it go out when the heaters work.",
+    when:"Both ON before takeoff. OFF after landing.",
+    mistake:"Forgetting probe heat. In icing, a frozen pitot tube can make your airspeed reading wrong." },
+  { n:"Engine anti-ice", b:[[53,81,37,16]],
+    what:"Blows hot air through the front of the engines so ice can't build up.",
+    when:"ON whenever there's icing: temperature (TAT) at 10°C or below with visible moisture such as cloud, fog, rain or snow. That includes on the ground.|Turn it on before you descend into cloud, not after ice appears.",
+    mistake:"Waiting until you see ice. Engine anti-ice is used to prevent ice, not remove it." },
+  { n:"Wing anti-ice", b:[[8,81,40,16]],
+    what:"Blows hot air through the front edge of the wings.",
+    when:"In flight, only when ice is actually building on the wings.|Not needed on a normal flight.",
+    mistake:"Leaving it on in clear air. It wastes fuel and isn't needed." }
+  ]},
+
+{ id:"air", area:"Overhead", title:"Air, bleeds and pressurization", img:"08-bleeds.jpg", size:[100,100],
+  intro:"Air taken from the engines or APU (bleed air) keeps the cabin pressurized, starts the engines and feeds the anti-ice.",
+  items:[
+  { n:"APU bleed", b:[[33,48,17,10]],
+    what:"Takes air from the APU. You need it to start the engines.",
+    when:"ON once the APU is running, before engine start.|OFF after both engines are started.",
+    mistake:"Trying to start an engine with APU bleed off. The engine won't turn." },
+  { n:"Engine bleeds (1 and 2)", b:[[10,48,16,10],[72,48,16,10]],
+    what:"Take air from each engine to pressurize the cabin in flight.",
+    when:"ON for the whole flight." },
+  { n:"Duct pressure gauge", b:[[27,5,40,18]],
+    what:"Shows the air pressure available. You want about 25 to 30 psi before starting an engine.",
+    when:"Glance at it just before turning an engine start switch to GRD." },
+  { n:"Packs (L PACK and R PACK)", b:[[10,23,20,9],[70,23,20,9]],
+    what:"The air conditioning units that cool and supply the cabin air.",
+    when:"AUTO for normal flying.|Some crews turn them off for engine start to give more air to the starter. Turn them back to AUTO after start." },
+  { n:"Isolation valve", b:[[40,23,22,14]],
+    what:"Joins or separates the left and right air systems.",
+    when:"AUTO." },
+  { n:"Recirculation fans", b:[[12,2,16,9],[68,2,16,9]],
+    what:"Recirculate cabin air.",
+    when:"AUTO." },
+  { n:"Flight altitude (FLT ALT)", b:[[18,63,25,22]],
+    what:"Tells the pressurization system your cruise altitude.",
+    when:"Before takeoff, set your planned cruise altitude, for example 35000.",
+    mistake:"Forgetting to set it. The cabin doesn't pressurize properly, and you get the cabin altitude warning horn in the climb." },
+  { n:"Landing altitude (LAND ALT)", b:[[18,85,25,15]],
+    what:"The elevation of the destination airport, so the cabin is at the right pressure when you land.",
+    when:"Before takeoff, set your destination's field elevation, for example 897 for Cincinnati (KCVG).",
+    mistake:"Leaving the departure airport's elevation in. Landing somewhere higher or lower gives your ears a bad time." },
+  { n:"Pressurization mode selector", b:[[55,85,30,15]],
+    what:"AUTO lets the system run itself. ALTN and MAN are backups.",
+    when:"AUTO." }
+  ]},
+
+{ id:"irs", area:"Overhead", title:"IRS and the aft overhead", img:"09-aft-overhead.jpg", size:[100,100],
+  intro:"The back part of the overhead, behind your head. The most important part for you is the IRS, the system that knows where the aircraft is.",
+  items:[
+  { n:"IRS mode selectors", b:[[25,72,18,14]],
+    what:"Turn on the two inertial reference systems. They work out the aircraft's position, attitude and heading. Without them you have no displays to fly by.",
+    when:"Turn both from OFF to NAV early in the startup, right after battery and power.|Alignment takes several minutes. Don't move the aircraft while it aligns.|OFF after shutdown.",
+    mistake:"Turning past NAV to ATT. ATT is a backup mode with no position. Stop at NAV." },
+  { n:"IRS alignment lights", b:[[24,63,22,8]],
+    what:"ALIGN shows while the IRS is aligning. It goes out when alignment is complete.",
+    when:"Wait for the ALIGN lights to go out before pushback." },
+  { n:"IRS display and keypad", b:[[23,25,30,33]],
+    what:"Enter or check your position here. In the PMDG you normally enter position through the FMC instead.",
+    when:"Rarely. The FMC's POS INIT page does the same job." },
+  { n:"Leading edge devices", b:[[3,64,20,22]],
+    what:"Shows the position of the slats and leading-edge flaps on the front of the wings.",
+    when:"You can ignore it. The flap gauge and the LE FLAPS lights on the main panel tell you the same thing." },
+  { n:"Engine control (EEC)", b:[[55,50,15,12]],
+    what:"The electronic engine computers.",
+    when:"Check both ON. Never turn them off." },
+  { n:"Crew oxygen", b:[[55,64,18,22]],
+    what:"The pressure of the crew oxygen bottle.",
+    when:"Glance at it during the preflight scan." }
+  ]},
+
+{ id:"mcp", area:"Glareshield", title:"The autopilot panel (MCP)", img:"10-mcp.jpg", size:[1919,294], wide:true,
+  intro:"The Mode Control Panel tells the 737 what to do: what speed, which way, how high. Click any numbered control, or press Next to walk through it in order.",
+  items:[
+  { n:"Flight director switches (F/D)", b:[[478,188,40,70],[1430,190,36,66]],
+    what:"Turns on the flight director: the magenta crosshair bars on your main flight display that show you where to point the nose. They follow whatever mode the MCP is in, even when you fly by hand.",
+    when:"Captain's switch ON first, then the first officer's, during the before-start checklist.|Leave both ON for the whole flight.",
+    mistake:"Taking off with the flight directors off. TO/GA then has nothing to show you, and you lose the pitch guidance you need right after liftoff." },
+  { n:"Autothrottle arm (A/T ARM)", b:[[518,96,56,86]],
+    what:"Arms the autothrottle, the system that moves the thrust levers for you. This switch only arms it. A mode button (N1, SPEED, LVL CHG, VNAV) or TO/GA makes it actually drive the throttles.",
+    when:"ARM it before takeoff.|It flips to OFF by itself when the autothrottle disconnects. Press the A/T disconnect button on the thrust levers twice to switch it off on purpose.",
+    mistake:"Forgetting to arm it, then wondering why the thrust doesn't come up when you press TO/GA for takeoff." },
+  { n:"Speed window and knob (IAS/MACH)", b:[[596,96,126,34],[652,162,60,62]],
+    what:"The speed you want the autothrottle to hold, in knots (IAS) or, up high, as a Mach number. Turn the knob to change it.",
+    when:"Set V2 here before takeoff (the PMDG fills it from the FMC once you enter takeoff speeds).|In LVL CHG and SPEED modes, this is the speed the aircraft flies.|When the window is blank, VNAV is controlling speed from the FMC.",
+    mistake:"Leaving a high speed set below 10,000 feet. The limit there is 250 knots." },
+  { n:"N1", b:[[520,198,54,48]],
+    what:"Tells the autothrottle to hold a set engine power (N1 is fan speed) instead of an airspeed. The power value comes from the FMC's thrust limit page.",
+    when:"Used mostly during climb. For takeoff you press TO/GA on the thrust levers instead.",
+    mistake:"Using N1 for level flight. It holds power, not speed, so the aircraft keeps speeding up." },
+  { n:"SPEED", b:[[580,198,54,48]],
+    what:"Tells the autothrottle to hold the speed in the IAS/MACH window by adding or taking away thrust.",
+    when:"Level flight, and on the approach while the autopilot flies the glideslope.|Comes on by itself when you level off at the MCP altitude.",
+    mistake:"Expecting SPEED to slow you down while descending steeply. At idle the throttles can't take away more power. Use the speedbrake." },
+  { n:"Changeover (C/O)", b:[[604,144,44,44]],
+    what:"Switches the speed window between knots and Mach.",
+    when:"Rarely needed. The 737 changes over by itself as you climb and descend.",
+    mistake:"Pressing it by accident and seeing .78 instead of 280. Press it again." },
+  { n:"Speed intervention (SPD INTV)", b:[[726,144,44,44]],
+    what:"While VNAV is flying, press this to open the speed window and pick your own speed, for example when ATC asks you to slow down. VNAV keeps managing the climb or descent path.",
+    when:"ATC speed instructions while in VNAV.|Press it again to give speed control back to the FMC.",
+    mistake:"Leaving VNAV and switching to LVL CHG just to change speed. SPD INTV is the quicker way." },
+  { n:"VNAV", b:[[743,77,52,46]],
+    what:"Hands the climb, cruise and descent to the FMC. It follows the route's altitude and speed restrictions and works out when to start down (the top of descent).",
+    when:"Arm it before takeoff, or press it after takeoff, once the route and performance pages in the FMC are complete.|Main mode for climb and descent on a normal flight.",
+    mistake:"Pressing VNAV with the FMC half programmed. No cost index or cruise altitude means VNAV won't engage, or it does strange things." },
+  { n:"Level change (LVL CHG)", b:[[743,198,54,48]],
+    what:"The simplest way to climb or descend. Thrust goes to climb power (or idle when descending), and the nose moves up or down to hold the speed in the window. It goes straight for the MCP altitude and ignores route restrictions.",
+    when:"When ATC gives you a new altitude and VNAV isn't the right tool.|A good mode to learn first: it never lets your speed run away.",
+    mistake:"Using it on a departure procedure with altitude restrictions. LVL CHG ignores them and climbs straight through." },
+  { n:"Heading window and knob", b:[[822,96,68,34],[820,140,62,58]],
+    what:"The compass heading you want to fly. The outer ring on the knob sets the maximum bank angle (10 to 30 degrees).",
+    when:"Set the runway heading before takeoff.|Any time ATC says \"turn left heading 270\".|Leave bank angle on AUTO or 25.",
+    mistake:"Turning the knob and expecting the aircraft to turn. It only turns if HDG SEL is the active mode." },
+  { n:"Heading select (HDG SEL)", b:[[828,198,54,48]],
+    what:"Makes the autopilot fly the heading in the heading window.",
+    when:"ATC vectors.|Radar vectors onto the final approach before you arm APP.",
+    mistake:"Forgetting you're in HDG SEL and flying away from the route. Check the mode at the top of your PFD." },
+  { n:"LNAV", b:[[912,77,54,44]],
+    what:"Makes the autopilot follow the route programmed in the FMC, turn by turn.",
+    when:"Arm it on the ground before takeoff. It takes over at about 50 feet after liftoff.|Main lateral mode for most of the flight.",
+    mistake:"Pressing LNAV when the aircraft is far from the route. It won't engage unless you're close to the active leg. Use HDG SEL to get back first." },
+  { n:"VOR/LOC", b:[[912,137,54,46]],
+    what:"Captures and follows a VOR radial or the localizer (the left-right part of an ILS), using the course set in the COURSE window.",
+    when:"Localizer-only approaches, or catching the localizer before the glideslope.",
+    mistake:"Wrong frequency or course set. The aircraft flies straight through the localizer without turning." },
+  { n:"Approach (APP)", b:[[912,198,54,48]],
+    what:"Arms the ILS approach: the localizer (left-right) and the glideslope (up-down). The autopilot then flies you down to the runway.",
+    when:"On final, after ATC clears you for the ILS and you're on an intercept heading.|Check: ILS frequency tuned, course set on both COURSE windows.|Engage CMD B as well for an autoland.",
+    mistake:"Pressing APP while still at a steep angle to the runway. The aircraft can overshoot the localizer. Be on an intercept heading of 30 degrees or less." },
+  { n:"Altitude window and knob", b:[[980,96,152,34],[1026,138,62,60]],
+    what:"The altitude the aircraft must not go past. In every climb and descent mode, this is the limit. The aircraft levels off here.",
+    when:"Always set the altitude ATC has cleared you to.|Before takeoff, set the initial altitude from your departure.",
+    mistake:"The biggest one: the aircraft won't climb or descend because the window still shows your current altitude. Set the new altitude first, then pick the mode." },
+  { n:"Altitude intervention (ALT INTV)", b:[[1094,144,44,44]],
+    what:"In VNAV, deletes the next altitude restriction in the FMC so you can keep climbing, or starts the cruise climb to a new altitude you've set.",
+    when:"ATC clears you higher than a restriction in the route.|Changing cruise altitude in VNAV.",
+    mistake:"Pressing it without setting the new altitude in the window first. Nothing happens." },
+  { n:"Altitude hold (ALT HLD)", b:[[1030,198,54,48]],
+    what:"Holds the altitude you're at right now.",
+    when:"Comes on by itself when you reach the MCP altitude.|Press it to stop a climb or descent immediately.",
+    mistake:"Thinking it holds the altitude in the window. It holds where you are when you press it." },
+  { n:"Vertical speed (V/S)", b:[[1094,198,54,48],[1138,96,140,34],[1226,138,46,98]],
+    what:"Climbs or descends at the exact rate set with the thumbwheel, in feet per minute.",
+    when:"Small altitude changes (1,000 to 2,000 feet).|Fine-tuning a descent to meet a restriction.",
+    mistake:"Climbing in V/S with a high rate. V/S doesn't protect your speed, so the 737 can slow down toward a stall. Use LVL CHG for big climbs." },
+  { n:"Autopilot engage (CMD A and B)", b:[[1308,86,124,48]],
+    what:"Turns on the autopilot. CMD A is the captain's autopilot, CMD B the first officer's. Both together are only for an autoland.",
+    when:"Engage CMD A after takeoff, not below 400 feet. Many PAC pilots wait until about 1,000 feet.|Press the disconnect button on the yoke to fly by hand.",
+    mistake:"Engaging with the aircraft out of trim or in a steep turn. Get it stable first, then press CMD." },
+  { n:"Control wheel steering (CWS)", b:[[1308,148,124,48]],
+    what:"A mode where you steer with the yoke and the autopilot holds whatever attitude you leave it in.",
+    when:"Not used in normal PAC flying. You can ignore it while you learn.",
+    mistake:"Pressing CWS instead of CMD. The aircraft then follows none of your MCP settings." },
+  { n:"Autopilot disengage bar", b:[[1318,208,112,52]],
+    what:"A bar you pull down to cut off the autopilot completely.",
+    when:"Backup only. In normal flying, use the disconnect button on the yoke.",
+    mistake:"Leaving it pulled down, then CMD won't engage. Push it back up." },
+  { n:"Course windows and knobs", b:[[440,96,58,34],[404,150,52,62],[1444,90,66,36],[1450,140,58,60]],
+    what:"The course for a VOR or the ILS. One for the captain (left), one for the first officer (right).",
+    when:"Before the approach, set both to the ILS final approach course from the chart, for example 360 for runway 36.",
+    mistake:"Setting only one side. Set both the same." },
+  { n:"Minimums knob (MINS)", b:[[34,134,104,58]],
+    what:"Sets your decision altitude for the approach. At that altitude you must see the runway, or go around. RADIO measures height above the ground, BARO uses altitude above sea level.",
+    when:"Before every approach. Use BARO and the DA from the chart for an ILS.|Press RST to clear the warning after landing.",
+    mistake:"Forgetting to set it, so there's no \"Minimums\" call to remind you to decide." },
+  { n:"Altimeter setting (BARO and STD)", b:[[222,134,100,58]],
+    what:"Sets the local pressure (from ATIS or METAR) so your altimeter reads the correct altitude. Press STD to switch to 29.92 above the transition altitude.",
+    when:"Set local pressure before takeoff.|Press STD climbing through 18,000 feet (in the US).|Set local pressure again descending through FL180.",
+    mistake:"Staying on STD on the way down. Your altitude can be hundreds of feet off on the approach." },
+  { n:"Display mode selector", b:[[118,188,48,48]],
+    what:"Chooses what the navigation display shows: MAP (your route), APP or VOR (ILS or VOR deviation), PLN (route check, north up). Press the center for a centered view.",
+    when:"MAP for almost the whole flight.|PLN on the ground to check the route with the FMC.",
+    mistake:"Leaving it in PLN after checking the route. The map won't turn with the aircraft." },
+  { n:"Range selector", b:[[206,188,50,48]],
+    what:"Zooms the navigation display, from 5 to 640 nautical miles. Press the center (TFC) to show traffic.",
+    when:"10 to 20 miles on the ground and approach, 40 to 160 in cruise.",
+    mistake:"Staying zoomed out on the approach. You can't see the turn onto final coming." },
+  { n:"Map buttons", b:[[54,232,292,30]],
+    what:"Adds layers to the navigation display: weather radar (WXR), stations (STA), waypoints (WPT), airports (ARPT), data, position and terrain (TERR).",
+    when:"TERR or WXR on for departure and approach. Many pilots put one on each side.",
+    mistake:"Turning everything on. The map gets too cluttered to read." }
+  ]},
+
+{ id:"pfd", area:"Main panel", title:"Reading the PFD and ND", img:"11-pfd-nd.jpg", size:[100,100],
+  intro:"Taken in a climb with the autopilot on. The left screen (PFD) is how you fly. The right screen (ND) is where you are.",
+  items:[
+  { n:"Flight mode annunciator (FMA)", b:[[17,13,19,7]],
+    what:"The three green boxes at the top tell you what the aircraft is actually doing: thrust mode (N1), roll mode (HDG SEL), pitch mode (MCP SPD). A green box around a mode means it just changed.",
+    when:"Check it every time you press an MCP button. Say the modes out loud, as real crews do.",
+    mistake:"Trusting the button you pressed instead of the FMA. If the FMA doesn't show it, the aircraft isn't doing it." },
+  { n:"Autopilot status", b:[[23,25,8,6]],
+    what:"CMD means the autopilot is flying. FD means only the flight director is on, and you are flying.",
+    when:"Check it after engaging or disconnecting the autopilot." },
+  { n:"Speed tape", b:[[10,20,7,58]],
+    what:"Your airspeed in knots. The magenta number on top (130) is the speed set on the MCP. The red and black stripes show the maximum speed, and amber bars near the bottom show the minimum.",
+    when:"Your most important instrument when flying by hand. Keep the speed between the limits.",
+    mistake:"Letting the speed decay toward the amber bars in a climb. Lower the nose or add thrust." },
+  { n:"Attitude and flight director", b:[[16,28,20,40]],
+    what:"Shows your pitch and bank. The magenta bars are the flight director: put the small square in the middle of the bars to follow the guidance.",
+    when:"Hand flying: follow the flight director bars.|Typical pitch: about 15 degrees after takeoff, 2.5 degrees in cruise.",
+    mistake:"Chasing the bars with big movements. Make small corrections and wait for them to work." },
+  { n:"Altitude tape", b:[[37,20,8,58]],
+    what:"Your altitude in feet. The magenta number on top (10000) is the MCP altitude you're climbing to.",
+    when:"Glance at it constantly to check you're climbing or holding as expected." },
+  { n:"Vertical speed", b:[[44,26,4,48]],
+    what:"How fast you're climbing or descending. Here, about 3,400 feet per minute climbing.",
+    when:"Approach: about 700 to 800 fpm down on a normal 3-degree glideslope.|Landing: you want 100 to 250 fpm at touchdown. PAC's limit is 400.",
+    mistake:"Diving at the runway at 1,000 fpm or more in the last few hundred feet. That's how landings end up over 400 fpm." },
+  { n:"Altimeter setting", b:[[37,80,13,6]],
+    what:"The pressure your altimeter is set to (29.88 inches here). Shows STD above the transition altitude.",
+    when:"Check it matches the ATIS before takeoff and before the approach." },
+  { n:"Heading", b:[[17,80,20,15]],
+    what:"Your compass heading. The magenta pointer is the heading set on the MCP.",
+    when:"Check it when flying ATC headings." },
+  { n:"Groundspeed and wind", b:[[54,9,14,12]],
+    what:"GS is your speed over the ground. Under it is the wind: from 204 degrees at 53 knots, with an arrow showing which way it blows.",
+    when:"Use the wind to plan your descent and expect crosswinds on landing." },
+  { n:"Track", b:[[64,8,16,6]],
+    what:"The direction you're actually moving over the ground (TRK 054). It differs from heading when there's a crosswind.",
+    when:"A quick check that you're going where you think you are." },
+  { n:"Route and position", b:[[54,30,24,45]],
+    what:"The white triangle at the bottom is your aircraft. The magenta line is the active FMC route. The arcs are distance rings. The green arc shows where you'll reach the MCP altitude.",
+    when:"Check you're following the magenta line and see what's coming next.",
+    mistake:"Ignoring the green arc. If it's past a restriction on the route, you won't make it in time." },
+  { n:"Status messages", b:[[56,72,10,12]],
+    what:"TCAS OFF here means the transponder isn't set to show traffic.",
+    when:"Set the transponder to TA/RA before takeoff and this message goes away." }
+  ]},
+
+{ id:"eng", area:"Main panel", title:"Engine display, autobrake and flaps", img:"12-upper-eng.jpg", size:[100,100],
+  intro:"The upper center screen, taken in a climb. Above it are the autobrake, the flap gauge and a few selectors.",
+  items:[
+  { n:"N1 (engine power)", b:[[17,38,38,13]],
+    what:"Fan speed in percent. This is the main way to read engine power. The green number above (93.7) is the target set by the FMC, and CLB means climb thrust.",
+    when:"Takeoff: check both engines reach the target.|Engine start: N1 starts turning soon after N2.",
+    mistake:"Not checking both engines match on takeoff. If one is low, reject the takeoff below V1." },
+  { n:"EGT (exhaust temperature)", b:[[19,51,32,11]],
+    what:"How hot the engine is running. The red line is the limit.",
+    when:"Watch it closely during engine start. If it races toward the red line, cut the fuel (start lever to CUTOFF)." },
+  { n:"Fuel flow", b:[[19,62,32,5]],
+    what:"Fuel each engine burns, in thousands of pounds per hour.",
+    when:"Engine start: fuel flow appears when you move the start lever to IDLE." },
+  { n:"Fuel quantity", b:[[59,80,25,9]],
+    what:"Fuel in the left, center and right tanks, and the total, in thousands of pounds.",
+    when:"Check it against your OFP before departure and during cruise.|When the center tank reads 0, turn the center pumps off." },
+  { n:"Autobrake", b:[[47,6,20,16]],
+    what:"Brakes automatically after landing. RTO brakes at full power if you abort a takeoff. 1, 2, 3 and MAX are landing settings.",
+    when:"Set RTO before takeoff.|Set 2 for a normal landing, 3 for a short or wet runway.|It turns off when you press the brake pedals or push the thrust levers forward.",
+    mistake:"Leaving it OFF for landing, then running off the end. Set it on the descent checklist." },
+  { n:"Flap position gauge", b:[[70,5,24,19]],
+    what:"Shows where the flaps are, from UP to 40.",
+    when:"Check the flaps moved where you selected them before you slow down further." },
+  { n:"Leading edge flap lights", b:[[70,24,22,5]],
+    what:"LE FLAPS EXT (green) means the slats are out. LE FLAPS TRANSIT (amber) means they're moving.",
+    when:"The before-takeoff checklist calls for a green light." },
+  { n:"Speed reference and N1 set", b:[[12,1,34,15]],
+    what:"Let you set takeoff speeds and engine targets by hand.",
+    when:"Leave both on AUTO. The FMC sets them for you." },
+  { n:"MFD buttons (ENG and SYS)", b:[[29,19,13,7]],
+    what:"ENG shows the secondary engine data on the lower screen. SYS shows hydraulics and other systems.",
+    when:"Press ENG during engine start to see N2 and oil pressure." }
+  ]},
+
+{ id:"eng2", area:"Main panel", title:"Secondary engine data", img:"13-lower-eng.jpg", size:[100,100],
+  intro:"The lower center screen shows these when you press the ENG button. In the PMDG they can also appear in a compact block on the upper screen.",
+  items:[
+  { n:"N2", b:[[24,20,38,13]],
+    what:"The speed of the engine's core in percent. The number that matters during start.",
+    when:"Engine start: move the start lever to IDLE when N2 reaches 25%.|The start switch pops back to OFF at about 56%." },
+  { n:"Fuel flow", b:[[24,36,38,6]],
+    what:"Fuel burn for each engine.",
+    when:"Should rise steadily once the start lever is at IDLE." },
+  { n:"Oil pressure", b:[[28,43,30,12]],
+    what:"Engine oil pressure. Rises during start.",
+    when:"Check it's in the normal range after start. The LOW OIL PRESSURE alert goes out." },
+  { n:"Oil temperature", b:[[28,56,30,12]],
+    what:"Engine oil temperature.",
+    when:"Glance at it in cruise." },
+  { n:"Oil quantity", b:[[28,69,30,5]],
+    what:"Oil in each engine, in percent.",
+    when:"Check before flight." },
+  { n:"Vibration", b:[[24,75,38,10]],
+    what:"How much the engine is shaking. Low numbers are good.",
+    when:"Glance at it in cruise. A rising number can mean engine damage." }
+  ]},
+
+{ id:"engc", area:"Main panel", title:"Compact engine display", img:"12b-compact-eng.jpg", size:[100,100],
+  intro:"The same engine data as the last two lessons, shown together on one screen. This is what you'll often see in the PMDG.",
+  items:[
+  { n:"ENG button", b:[[24,8,9,5]],
+    what:"Press to move the secondary engine data between the lower screen and this compact block.",
+    when:"Use whichever view you prefer." },
+  { n:"Thrust mode", b:[[27,27,8,4]],
+    what:"The thrust limit the FMC has set: TO for takeoff, CLB for climb, CRZ for cruise.",
+    when:"Check it shows TO before takeoff and CLB after the thrust reduction." },
+  { n:"N1 target", b:[[11,29,32,4]],
+    what:"The green numbers are the target N1 for the current thrust mode.",
+    when:"On takeoff the thrust levers should bring N1 up to this number." },
+  { n:"Compact secondary data", b:[[18,52,30,20]],
+    what:"N2, fuel flow, oil pressure, oil temperature, oil quantity and vibration, as numbers.",
+    when:"Same use as the lower screen. Check after engine start." }
+  ]},
+
+{ id:"gear", area:"Main panel", title:"Landing gear lever", img:"12c-gear.jpg", size:[100,100],
+  intro:"To the right of the engine display. The placard under the lever lists the speed limits for the gear and flaps. These are worth memorizing.",
+  items:[
+  { n:"Landing gear lever", b:[[60,14,32,14],[28,27,40,46]],
+    what:"Raises and lowers the landing gear. Pull the handle out, then move it. UP raises the gear, OFF takes hydraulic pressure off once the gear is up, DN lowers it.",
+    when:"After takeoff: UP as soon as you have a positive climb on the altimeter.|Once the gear is up and the lights are out: OFF (it's on the after-takeoff checklist).|Approach: DN at about the time you select flaps 15, usually near the final approach fix.",
+    mistake:"Raising the gear before the aircraft is clearly climbing. Wait for \"positive rate\": the altitude and vertical speed are both going up." },
+  { n:"Gear position lights", b:[[8,4,48,16]],
+    what:"Three green lights (left, right, nose) mean the gear is down and locked. Red means the gear is moving or doesn't match the lever. No lights means up and locked.",
+    when:"Check three greens before landing.|Check all lights out after retracting.",
+    mistake:"Landing without checking for three greens." },
+  { n:"Lock override", b:[[33,22,26,8]],
+    what:"Lets the lever move UP if a sensor wrongly says the aircraft is on the ground.",
+    when:"Never in normal flying." },
+  { n:"Gear speed limits", b:[[38,72,50,11]],
+    what:"Lower the gear below 270 knots. Raise it below 235 knots. With the gear down, don't go faster than 320 knots.",
+    when:"Check your speed before moving the lever.",
+    mistake:"Using the gear as a speedbrake while above 270 knots." },
+  { n:"Flap speed limits", b:[[36,83,55,9]],
+    what:"The fastest you can fly with each flap setting: flaps 1, 2 and 5 at 250 knots, 10 at 210, 15 at 200, 25 at 190, 30 at 175, 40 at 162.",
+    when:"Before selecting each flap setting on the approach, be below its limit.|The speed tape also shows the flap limits as red and black bands.",
+    mistake:"Putting flaps 30 out at 190 knots. That's over the 175 knot limit. Slow down first." },
+  { n:"Brake pressure gauge", b:[[70,8,28,12]],
+    what:"Pressure in the brake accumulator, the backup for the parking brake.",
+    when:"Glance at it before setting the parking brake. About 3,000 psi is normal." }
+  ]},
+
+{ id:"fmc", area:"Pedestal", title:"The FMC keys", img:"14-fmc.jpg", size:[100,100],
+  intro:"You'll program the FMC before every flight. This lesson shows what the keys do. A later lesson walks through a full setup step by step.",
+  items:[
+  { n:"Screen and line select keys", b:[[3,5,94,37],[0,12,13,28],[87,12,13,28]],
+    what:"The screen shows one page at a time. The keys beside each line select that line: they copy what you typed into that line, or open the option written there.",
+    when:"Type into the scratchpad (bottom line of the screen), then press the line select key next to where it should go." },
+  { n:"INIT REF", b:[[10,50,10,6]],
+    what:"Opens the setup pages in order: identification, position, performance and takeoff.",
+    when:"The first key you press when setting up a flight." },
+  { n:"RTE (route)", b:[[24,50,10,6]],
+    what:"Your origin, destination, flight number and the route.",
+    when:"Enter the route here, or load it from SimBrief." },
+  { n:"DEP ARR (departures and arrivals)", b:[[37,56,10,6]],
+    what:"Choose your departure runway and SID, or your arrival STAR and approach.",
+    when:"Before engine start for the departure. In cruise, before the descent, for the arrival." },
+  { n:"LEGS", b:[[24,56,10,6]],
+    what:"Every waypoint in order, with altitude and speed restrictions.",
+    when:"Check the route for gaps (DISCONTINUITY) and fix them.|Use it for \"direct to\" a waypoint." },
+  { n:"CLB, CRZ, DES", b:[[38,50,38,6]],
+    what:"The climb, cruise and descent pages: speeds, cruise altitude, and the descent path.",
+    when:"Check and change the planned speeds or altitude." },
+  { n:"N1 LIMIT", b:[[10,62,10,6]],
+    what:"Thrust settings for takeoff and climb.",
+    when:"Before takeoff, check the takeoff thrust and any reduced thrust." },
+  { n:"PROG (progress)", b:[[62,56,12,6]],
+    what:"Distance and time to go, fuel at destination and wind.",
+    when:"Check it in cruise to make sure you'll land with enough fuel." },
+  { n:"EXEC", b:[[79,56,12,6]],
+    what:"Confirms a change. When you change the route or a setting, the light above EXEC comes on. Press it to make the change active.",
+    when:"After every route change you want to keep.",
+    mistake:"Making a change and not pressing EXEC. The aircraft keeps flying the old route." },
+  { n:"Page keys and keypad", b:[[10,68,24,6],[42,62,50,38]],
+    what:"PREV and NEXT PAGE move between pages. Letters and numbers go into the scratchpad. CLR deletes a character, DEL deletes a line.",
+    when:"All the time when programming." }
+  ]},
+
+{ id:"thr", area:"Pedestal", title:"Throttle quadrant", img:"15-throttle.jpg", size:[100,100],
+  intro:"Between the two seats. Everything here moves the aircraft or controls its speed.",
+  items:[
+  { n:"Thrust levers", b:[[0,30,55,40]],
+    what:"Engine power. Below the knobs are the TO/GA buttons, which start takeoff thrust and go-arounds. On the outside of the levers are the autothrottle disconnect buttons.",
+    when:"Takeoff: push the levers to about 40% N1, let the engines settle, then press TO/GA.|Landing: pull to idle as you flare.",
+    mistake:"Pushing straight to full power without letting the engines stabilize. One engine can spool up faster than the other." },
+  { n:"Speedbrake lever", b:[[48,8,10,25]],
+    what:"Raises spoilers on the wings to slow down or descend faster. ARMED means they raise automatically when you touch down.",
+    when:"In flight: up to the FLIGHT DETENT to lose speed.|Before landing: ARMED (it's on the landing checklist).",
+    mistake:"Pulling it past the flight detent in flight. The placard on the panel says not to." },
+  { n:"Flap lever and positions", b:[[58,20,32,60]],
+    what:"Flaps give extra lift at low speed. Positions are UP, 1, 2, 5, 10, 15, 25, 30 and 40.",
+    when:"Takeoff: usually flaps 1 or 5, from the FMC.|Landing: extend in steps as you slow down (1, 5, 15, then 30 or 40). Each step has a minimum speed shown on the speed tape.",
+    mistake:"Extending flaps too fast for the speed, or retracting them too early after takeoff. Follow the flap speeds on the speed tape." },
+  { n:"Stabilizer trim indicator", b:[[64,50,10,18]],
+    what:"Shows the trim setting. The green band is the safe range for takeoff.",
+    when:"Before takeoff, set the trim units shown on the FMC takeoff page. It's on the before-takeoff checklist.",
+    mistake:"Taking off out of the green band. The takeoff warning horn sounds." },
+  { n:"Parking brake", b:[[15,60,13,14]],
+    what:"Holds the aircraft still. The red light shows it's set.",
+    when:"Set at the gate and while waiting for pushback. Release for pushback and taxi.|Set again when you park.",
+    mistake:"Trying to taxi with it set." },
+  { n:"Start levers (fuel cutoff)", b:[[29,63,15,14]],
+    what:"Fuel to each engine. IDLE lets fuel in; CUTOFF stops it and shuts the engine down.",
+    when:"Engine start: IDLE when N2 reaches 25%.|Shutdown at the gate: CUTOFF." },
+  { n:"Stab trim cutout switches", b:[[45,80,15,14]],
+    what:"Cut power to the trim motors if trim runs away.",
+    when:"NORMAL. Never touched in normal flying." }
+  ]},
+
+{ id:"fire", area:"Pedestal", title:"Fire panel", img:"16-fire.jpg", size:[100,100], wide:true,
+  intro:"At the back of the throttle quadrant. You won't need it on a normal flight, but you must know where it is.",
+  items:[
+  { n:"Engine fire switches (1 and 2)", b:[[19,15,9,73],[74,15,9,73]],
+    what:"If an engine catches fire, the handle lights up. Pull it to cut the fuel and air to that engine, then twist it to fire an extinguisher bottle.",
+    when:"Only in an engine fire. First, the start lever to CUTOFF.",
+    mistake:"Pulling the handle for the wrong engine. Check which one is lit." },
+  { n:"APU fire switch", b:[[46,15,9,73]],
+    what:"The same, for the APU.",
+    when:"Only in an APU fire." },
+  { n:"Fire test switch", b:[[8,60,12,35]],
+    what:"Tests the fire warning lights and bell.",
+    when:"Part of the preflight checks. Optional in the sim." }
+  ]},
+
+{ id:"ped", area:"Pedestal", title:"Radios and pedestal", img:"17-pedestal.jpg", size:[100,100],
+  intro:"The lower part of the pedestal, behind the throttles.",
+  items:[
+  { n:"VHF radio (COMM 1)", b:[[3,1,27,12]],
+    what:"Your ATC radio. Tune the next frequency in STANDBY, then press the swap button to make it ACTIVE.",
+    when:"Before every frequency change, preset the next one in STANDBY." },
+  { n:"Navigation radio (NAV 1)", b:[[3,13,27,13]],
+    what:"Tunes VORs and the ILS. ILS 110.50 is tuned here.",
+    when:"Before the approach, tune the ILS frequency from the chart in both NAV 1 and NAV 2.",
+    mistake:"Forgetting to tune the ILS. APP mode then has nothing to capture." },
+  { n:"Audio control panel", b:[[3,26,27,22]],
+    what:"Chooses which radio you talk and listen on.",
+    when:"Mostly set up already in the PMDG. Make sure VHF 1 is selected." },
+  { n:"Weather radar", b:[[33,17,28,11]],
+    what:"Controls the weather radar shown on the navigation display.",
+    when:"Turn on WXR on the display panel when there's weather around." },
+  { n:"Transponder", b:[[33,57,30,15]], go:"xpdr",
+    what:"Sends your code to ATC radar. See the next lesson.",
+    when:"Set the squawk code from your clearance." },
+  { n:"Rudder and aileron trim", b:[[33,77,30,23]],
+    what:"Trims out a sideways push on the controls.",
+    when:"Check both are at zero before takeoff." },
+  { n:"Panel and flood lights", b:[[3,83,25,17]],
+    what:"Cockpit lighting.",
+    when:"Turn them up at night." }
+  ]},
+
+{ id:"xpdr", area:"Pedestal", title:"Transponder", img:"17b-transponder.jpg", size:[100,100], wide:true,
+  intro:"Tells ATC radar who you are and how high you are. On VATSIM and IVAO this matters.",
+  items:[
+  { n:"Squawk code", b:[[58,13,28,35]],
+    what:"Your four-digit code (here 1234).",
+    when:"Set the code ATC gives you in your clearance." },
+  { n:"Keypad", b:[[22,8,35,82]],
+    what:"Type the squawk code. CLR clears it.",
+    when:"When ATC gives you a code." },
+  { n:"Mode selector", b:[[70,55,22,40]],
+    what:"XPNDR sends your code. TA/RA also turns on the traffic collision avoidance system (TCAS).",
+    when:"XPNDR or TA/RA for taxi, depending on local procedure.|TA/RA when you enter the runway, for the whole flight.",
+    mistake:"Taking off with it on standby. ATC can't see you, and you see no traffic." },
+  { n:"IDENT", b:[[84,40,13,22]],
+    what:"Highlights your aircraft on the controller's screen.",
+    when:"Only when ATC says \"squawk ident\"." },
+  { n:"Traffic display range (ABV, N, BLW)", b:[[55,55,10,38]],
+    what:"Which traffic TCAS shows: above you, normal, or below you.",
+    when:"Leave it on N." }
+  ]},
+
+{ id:"yoke", area:"Main panel", title:"The yoke", img:"18-yoke.jpg", size:[100,100],
+  intro:"Your control wheel. Two buttons on the left horn matter.",
+  items:[
+  { n:"Autopilot disengage button", b:[[40,42,40,12]],
+    what:"Press once to disconnect the autopilot, and again to silence the warning.",
+    when:"When you want to hand fly, usually at 500 to 1,000 feet on the approach.",
+    mistake:"Not mapping it to your joystick. Map it to a button so you can disconnect without reaching for the mouse." },
+  { n:"Electric trim switches", b:[[12,10,32,16]],
+    what:"Trim the stabilizer so you don't have to hold pressure on the yoke.",
+    when:"When hand flying, trim after every speed or configuration change.",
+    mistake:"Fighting the aircraft instead of trimming. If you're holding pressure, trim it away. Map trim to your joystick too." }
+  ]},
+
+{ id:"check", area:"Main panel", title:"The yoke checklist", img:"19-checklist.jpg", size:[100,100],
+  intro:"A short checklist on the captain's yoke. Read it at each phase of flight.",
+  items:[
+  { n:"Before takeoff", b:[[8,27,82,8]],
+    what:"Flaps set with a green light, and stabilizer trim set to the takeoff units.",
+    when:"Holding short of the runway." },
+  { n:"After takeoff", b:[[8,38,82,14]],
+    what:"Engine bleeds ON, packs AUTO, gear UP and lever OFF, flaps UP with no lights.",
+    when:"Once the flaps are up in the climb." },
+  { n:"Descent", b:[[8,52,82,15]],
+    what:"Pressurization landing altitude set, warnings recalled, autobrake set, Vref and minimums set, approach briefing done.",
+    when:"Before the top of descent." },
+  { n:"Approach", b:[[8,68,82,5]],
+    what:"Altimeters set to local pressure.",
+    when:"Descending through the transition level (FL180 in the US)." },
+  { n:"Landing", b:[[8,75,82,12]],
+    what:"Engine start switches CONT, speedbrake ARMED, gear down, flaps set with a green light.",
+    when:"On final, before 1,000 feet.",
+    mistake:"Skipping the speedbrake. If it isn't armed, the spoilers don't come up on touchdown and you float down the runway." }
+  ]}
+];
+
+const OH = "20-fwd-overhead.jpg", MCP = "10-mcp.jpg", MS = [1919,294];
+SLIDES.unshift({ id:"sop-start", area:"PAC standard procedure", title:"Startup flow (cold and dark to taxi)", flow:true, whenLabel:"How to do it",
+  intro:"PAC's standard startup, based on Boeing's 737 normal procedures. Do it in this order on every flight. Press Next to go step by step; each step shows the switch on the panel.",
+  items:[
+  { phase:"Power-up", n:"Battery ON", img:"03-electrical.jpg", b:[[12,36,17,9]], go:"elec",
+    what:"Turns on the battery. Every startup begins here.", when:"Close the guard with the switch ON.|The displays and overhead lights come to life." },
+  { phase:"Power-up", n:"Ground power ON", img:OH, b:[[31,55,7,9]], go:"elec",
+    what:"Connects the ground power cart so you aren't running on the battery.", when:"Request ground power on the EFB tablet (Ground Connections).|When the blue GRD POWER AVAILABLE light comes on, flip GRD PWR to ON." },
+  { phase:"Power-up", n:"IRS to NAV", img:"09-aft-overhead.jpg", b:[[25,72,18,14]], go:"irs",
+    what:"Starts the alignment of both inertial reference systems. It takes several minutes, so do it early.", when:"Turn both selectors from OFF to NAV. Stop at NAV.|The ALIGN lights stay on until alignment is done.",
+    mistake:"Moving the aircraft before the ALIGN lights go out." },
+  { phase:"Power-up", n:"Emergency exit lights ARMED", img:OH, b:[[48,50,6,10]],
+    what:"The emergency lights come on by themselves if power fails.", when:"Lift the guard, set ARMED, close the guard.|Leave ARMED for the whole flight.",
+    mistake:"Leaving them OFF. It's on the real Boeing checklist." },
+  { phase:"Power-up", n:"Fire test", img:"16-fire.jpg", size:[100,100], wide:true, b:[[8,60,12,35]], go:"fire",
+    what:"Checks the engine and APU fire warnings work.", when:"Hold the test switch. The fire handles light up and the bell rings. Release." },
+
+  { phase:"APU", n:"Left fuel pump ON", img:OH, b:[[2,74,9,8]], go:"fuel",
+    what:"The APU takes fuel from the left side. A pump gives it pressure.", when:"Switch the left AFT (or FWD) main tank pump ON.",
+    mistake:"Starting the APU with every pump off." },
+  { phase:"APU", n:"APU start", img:OH, b:[[36,84,5,8]], go:"start",
+    what:"Starts the APU for electricity and air.", when:"Turn to START and let it spring back to ON.|Wait about a minute for the blue APU GEN OFF BUS light." },
+  { phase:"APU", n:"APU generators ON", img:OH, b:[[29,66,10,7]], go:"elec",
+    what:"The APU takes over the electrical power from ground power.", when:"Flip both APU GEN switches ON. The blue light goes out.|Ground power can now be disconnected on the EFB." },
+
+  { phase:"FMC", n:"Program the FMC", img:"14-fmc.jpg", b:[[3,5,94,37]], go:"fmc",
+    what:"Real crews program the FMC while the IRS aligns, before the engines start. Takeoff speeds and trim come from here.", when:"INIT REF: check the aircraft and nav database, enter position (POS INIT).|RTE: load the SimBrief route, ACTIVATE, EXEC.|DEP ARR: runway and SID.|PERF INIT: weights, fuel, cost index, cruise altitude.|N1 LIMIT and TAKEOFF: flaps, takeoff speeds, trim.",
+    mistake:"Programming the FMC after the engines are running. Fuel is burning, and you'll rush it." },
+
+  { phase:"Preflight scan", n:"Yaw damper ON", img:OH, b:[[3,30,8,6]], go:"flt",
+    what:"Smooths out side-to-side motion.", when:"Switch ON. The amber YAW DAMPER light goes out once hydraulics are on." },
+  { phase:"Preflight scan", n:"Window heat ON", img:OH, b:[[57,14,17,5]], go:"ice",
+    what:"Heats the windows.", when:"All four ON, at least 10 minutes before takeoff." },
+  { phase:"Preflight scan", n:"Pressurization set", img:OH, b:[[79,61,10,14]], go:"air",
+    what:"Tells the system how high you're going and where you're landing.", when:"FLT ALT: your planned cruise altitude, for example 35000.|LAND ALT: your destination's field elevation, for example 897 for KCVG.",
+    mistake:"Leaving FLT ALT and LAND ALT at the defaults." },
+  { phase:"Preflight scan", n:"Position lights STEADY", img:OH, b:[[74,82,5,10]], go:"start",
+    what:"Navigation lights on.", when:"STEADY whenever the aircraft has power." },
+  { phase:"Preflight scan", n:"Autopilot panel set", img:MCP, size:MS, wide:true, b:[[478,188,40,70],[1430,190,36,66],[518,96,56,86],[596,96,126,34],[822,96,68,34],[980,96,152,34]], go:"mcp",
+    what:"Sets up the autopilot for takeoff.", when:"Both flight directors ON (captain's first).|A/T ARM.|Speed: V2.|Heading: runway heading.|Altitude: initial altitude from your clearance.|Arm LNAV and VNAV if your FMC is complete." },
+  { phase:"Preflight scan", n:"Radios and transponder", img:"17-pedestal.jpg", b:[[3,1,27,25],[33,57,30,15]], go:"ped",
+    what:"Ready to talk to ATC.", when:"Tune clearance or ground frequency.|Set the squawk code from your clearance." },
+
+  { phase:"Before start", n:"All fuel pumps ON", img:OH, b:[[2,74,19,8],[8,67,8,6]], go:"fuel",
+    what:"Fuel to both engines.", when:"All four main tank pumps ON.|Center pumps ON only if the center tank has more than about 1,000 lb." },
+  { phase:"Before start", n:"Electric hydraulic pumps ON", img:OH, b:[[58,44,17,7]], go:"hyd",
+    what:"Hydraulic pressure for brakes and steering before the engines run.", when:"ELEC 1 and ELEC 2 ON. Their LOW PRESSURE lights go out.",
+    mistake:"Pushing back with no brake pressure." },
+  { phase:"Before start", n:"Beacon ON", img:OH, b:[[79,82,5,10]], go:"start",
+    what:"The red flashing anti-collision light warns ground crew that engines are about to start.", when:"ON before pushback. It stays on until the engines are shut down.",
+    mistake:"Starting with the beacon off. In the real world this puts the ground crew in danger." },
+  { phase:"Before start", n:"Parking brake, trim, and checklist", img:"15-throttle.jpg", b:[[15,60,13,14],[64,50,10,18]], go:"thr",
+    what:"Final checks before pushback.", when:"Parking brake SET.|Stabilizer trim set to the units from the FMC takeoff page.|Read the Before Start checklist." },
+
+  { phase:"Engine start", n:"Packs OFF, APU bleed ON", img:OH, b:[[79,44,6,6],[93,44,6,6],[84,54,6,6]], go:"air",
+    what:"Sends all the APU's air to the engine starters.", when:"Both packs OFF.|APU bleed ON.|Duct pressure about 25 to 30 psi." },
+  { phase:"Engine start", n:"Start engine 2", img:OH, b:[[60,82,8,12]], go:"start",
+    what:"Boeing starts engine 2 first.", when:"Engine 2 start switch to GRD.|Watch N2 rise on the engine display." },
+  { phase:"Engine start", n:"Start lever to IDLE at 25% N2", img:"15-throttle.jpg", b:[[29,63,15,14]], go:"thr",
+    what:"Lets fuel into the engine.", when:"When N2 reaches 25%, move the engine 2 start lever to IDLE.|Watch EGT rise and stay below the red line.|The start switch returns to OFF at about 56% N2.",
+    mistake:"Moving the lever before 25%. That risks a hot start." },
+  { phase:"Engine start", n:"Watch the engine display", img:"12-upper-eng.jpg", b:[[17,38,38,13],[19,51,32,11]], go:"eng",
+    what:"Check the start is normal.", when:"N1 and N2 rising, EGT below the red line, oil pressure rising.|If EGT races toward the red line, start lever to CUTOFF." },
+  { phase:"Engine start", n:"Start engine 1", img:OH, b:[[43,82,8,12]], go:"start",
+    what:"The same steps for engine 1.", when:"Engine 1 to GRD, start lever to IDLE at 25% N2." },
+
+  { phase:"After start", n:"Engine generators ON", img:OH, b:[[25,66,5,7],[39,66,5,7]], go:"elec",
+    what:"The engines take over electrical power.", when:"GEN 1 and GEN 2 ON. The blue GEN OFF BUS lights go out." },
+  { phase:"After start", n:"Probe heat ON", img:OH, b:[[63,19,8,5]], go:"ice",
+    what:"Heats the speed and altitude sensors.", when:"Both ON. The amber lights go out." },
+  { phase:"After start", n:"Packs AUTO, APU bleed OFF, APU OFF", img:OH, b:[[79,44,6,6],[93,44,6,6],[84,54,6,6],[36,84,5,8]], go:"air",
+    what:"Back to normal air and shut down the APU.", when:"Both packs AUTO.|APU bleed OFF.|APU switch OFF (unless it's very hot or you need it)." },
+  { phase:"After start", n:"Anti-ice as needed", img:OH, b:[[57,24,17,7]], go:"ice",
+    what:"Engine anti-ice in icing conditions.", when:"ON if TAT is 10°C or below with visible moisture." },
+  { phase:"After start", n:"Autobrake RTO and flaps set", img:"12-upper-eng.jpg", b:[[47,6,20,16],[70,5,24,19]], go:"eng",
+    what:"Ready for takeoff.", when:"Autobrake to RTO.|Flaps to the takeoff setting from the FMC (check the flap gauge).|Read the Before Taxi checklist. You're ready to taxi." }
+  ]});
+
+const $ = s => document.querySelector(s);
+let S = 0, I = 0;
+const esc = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+function buildMenu() {
+  let h = "", last = "", opt = "";
+  SLIDES.forEach((s, i) => {
+    if (s.area !== last) { h += `<li class="grp">${esc(s.area)}</li>`; if (last) opt += "</optgroup>"; opt += `<optgroup label="${esc(s.area)}">`; last = s.area; }
+    h += `<li><button type="button" data-s="${i}"><span class="num">${i + 1}</span><span>${esc(s.title)}</span></button></li>`;
+    opt += `<option value="${i}">${i + 1}. ${esc(s.title)}</option>`;
+  });
+  $("#lessons").innerHTML = h; $("#picker").innerHTML = opt + "</optgroup>";
+  $("#lessons").querySelectorAll("button").forEach(b => b.onclick = () => openSlide(+b.dataset.s, 0, true));
+  $("#picker").onchange = e => openSlide(+e.target.value, 0, true);
+}
+function openSlide(si, ii, push) {
+  S = si; const s = SLIDES[si];
+  $("#lessons").querySelectorAll("button").forEach(b => b.setAttribute("aria-current", +b.dataset.s === si));
+  $("#picker").value = si;
+  $("#area").textContent = `Lesson ${si + 1} · ${s.area}`;
+  $("#title").textContent = s.title; $("#intro").textContent = s.intro;
+  $("#frame").dataset.slide = "";
+  if (!s.flow) draw(s.img, s.size, s.wide, s.items.map((it, k) => ({ it, k })), s.title);
+  if (push) { try { history.replaceState(null, "", "#" + s.id); } catch (e) {} if (innerWidth < 860) scrollTo({ top: 0 }); }
+  select(ii);
+}
+function draw(src, size, wide, list, alt) {
+  $("#stage").classList.toggle("wide", !!wide); $("#hint").hidden = !wide;
+  const img = $("#img"); if (img.getAttribute("src") !== src) img.src = src; img.alt = alt + " (PMDG 737-800)";
+  const frame = $("#frame"); frame.querySelectorAll(".hs").forEach(h => h.remove());
+  const W = size[0], H = size[1];
+  list.forEach(({ it, k }) => it.b.forEach((r, j) => {
+    const el = document.createElement("button");
+    el.type = "button"; el.className = "hs" + (j ? " secondary" : ""); el.dataset.i = k;
+    el.style.left = r[0] / W * 100 + "%"; el.style.top = r[1] / H * 100 + "%";
+    el.style.width = r[2] / W * 100 + "%"; el.style.height = r[3] / H * 100 + "%";
+    el.setAttribute("aria-label", it.n); if (j) el.tabIndex = -1;
+    el.innerHTML = j ? "" : `<span class="dot">${k + 1}</span>`;
+    el.onclick = () => select(k);
+    frame.appendChild(el);
+  }));
+}
+function select(k) {
+  I = k; const s = SLIDES[S], it = s.items[k];
+  if (s.flow) { const sz = it.size || [100, 100]; draw(it.img, sz, it.wide, [{ it, k }], it.n); }
+  $("#cPhase").hidden = !it.phase; $("#cPhase").textContent = it.phase || "";
+  $("#cWhenLbl").textContent = s.whenLabel || "When you use it";
+  $("#frame").querySelectorAll(".hs").forEach(h => h.classList.toggle("on", +h.dataset.i === k));
+  $("#cNum").textContent = `${k + 1} of ${s.items.length}`;
+  $("#cName").textContent = it.n; $("#cWhat").textContent = it.what;
+  $("#cWhenBox").hidden = !it.when;
+  if (it.when) { const p = it.when.split("|"); $("#cWhen").innerHTML = p.length > 1 ? "<ul>" + p.map(x => `<li>${esc(x)}</li>`).join("") + "</ul>" : `<p>${esc(p[0])}</p>`; }
+  $("#cMistakeBox").hidden = !it.mistake; $("#cMistake").textContent = it.mistake || "";
+  const go = $("#cGo"), gi = it.go ? SLIDES.findIndex(x => x.id === it.go) : -1;
+  go.hidden = gi < 0; if (gi >= 0) { go.textContent = `Open lesson ${gi + 1}: ${SLIDES[gi].title} →`; go.onclick = () => openSlide(gi, 0, true); }
+  const last = k === s.items.length - 1, end = last && S === SLIDES.length - 1;
+  $("#count").textContent = `${s.flow ? "Step" : "Item"} ${k + 1} of ${s.items.length}`;
+  $("#prev").disabled = k === 0 && S === 0;
+  $("#next").disabled = end;
+  $("#next").textContent = end ? "Done ✓" : last ? "Next lesson →" : (s.flow ? "Next step →" : "Next →");
+  if (s.flow ? it.wide : s.wide) {
+    const v = $("#viewer"), r = it.b[0], cx = (r[0] + r[2] / 2) / (s.flow ? (it.size||[100])[0] : s.size[0]) * $("#frame").offsetWidth;
+    if (v.scrollWidth > v.clientWidth) v.scrollTo({ left: Math.max(0, cx - v.clientWidth / 2), behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
+  }
+}
+$("#prev").onclick = () => { if (I > 0) select(I - 1); else if (S > 0) openSlide(S - 1, SLIDES[S - 1].items.length - 1, true); };
+$("#next").onclick = () => { if (I < SLIDES[S].items.length - 1) select(I + 1); else if (S < SLIDES.length - 1) openSlide(S + 1, 0, true); };
+addEventListener("keydown", e => { if (e.target.closest("select")) return; if (e.key === "ArrowRight") $("#next").click(); if (e.key === "ArrowLeft") $("#prev").click(); });
+buildMenu();
+const start = Math.max(0, SLIDES.findIndex(s => "#" + s.id === location.hash));
+openSlide(start, 0, false);
+addEventListener("hashchange", () => { const i = SLIDES.findIndex(s => "#" + s.id === location.hash); if (i >= 0 && i !== S) openSlide(i, 0, false); });
+</script>
+
+</body>
+</html>
