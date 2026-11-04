@@ -1300,7 +1300,8 @@ def run_tray():
 
     def quit_app(icon, _item=None):
         th = state.get("thread")
-        if th and th.is_alive() and not ask("A flight is being tracked. Quit PAC ACARS anyway?\n\nThe flight is saved and can be resumed."):
+        if th and th.is_alive() and not state.get("practice") and \
+                not ask("A flight is being tracked. Quit PAC ACARS anyway?\n\nThe flight is saved and can be resumed."):
             return
         shutdown()
 
