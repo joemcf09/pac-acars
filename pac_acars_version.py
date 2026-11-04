@@ -1,12 +1,12 @@
-"""PAC ACARS 1.1.0: sets the version in the Windows build files and checks the build includes the new files.
-Run on the Windows PC you build PAC ACARS on, from the PAC folder:   python pac_acars_110.py
+"""PAC ACARS: sets the version in the Windows build files and checks the build includes the new files.
+Run on the Windows PC you build PAC ACARS on, from the PAC folder:   python pac_acars_version.py
 Then build as usual with acars_client\\build\\build_acars.bat. Safe to run twice."""
 import os
 import re
 import sys
 
 ROOT = sys.argv[1] if len(sys.argv) > 1 else "."
-V, VT = "1.1.0", "1, 1, 0, 0"
+V, VT = "1.1.1", "1, 1, 1, 0"
 BUILD = os.path.join(ROOT, "acars_client", "build")
 done, warn = 0, []
 for rel, pats in {"version_info.txt": [(r"(Version', ')[0-9.]+'", rf"\g<1>{V}'"), (r"(vers=\()[0-9, ]+(\))", rf"\g<1>{VT}\2")],

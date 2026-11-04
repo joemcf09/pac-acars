@@ -1392,6 +1392,13 @@ def academy_redirect():
     return redirect("/academy/", code=301)
 
 
+@app.get("/static/academy/")
+def academy_old_address():
+    """The Academy's first address: forward to the real one."""
+    from flask import redirect
+    return redirect("/academy/", code=301)
+
+
 @app.get("/academy/")
 def academy_page():
     return send_from_directory(ACADEMY_DIR, "index.html")

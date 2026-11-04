@@ -171,6 +171,8 @@ document.querySelectorAll("[data-board]").forEach(b => b.onclick = () => {
   renderMissions();
 });
 
+/* "MSFS and X-Plane" types show under both simulator filters */
+function fliesIn(code, sim) { return (S.fleet[code]?.sim || "MSFS").includes(sim); }
 function allFlights() { return [...(S.checkrides || []), ...S.missions, ...S.routes, ...(S.tourLegs || []), ...(S.urgent || []), ...(S.jobs || []), ...(S.charterMission ? [S.charterMission] : []), ...(S.booking?.mission?.urgent ? [S.booking.mission] : [])]; }
 /* rotations: the next leg of each, for this pilot */
 function rotationBoardList() {
@@ -267,7 +269,7 @@ function renderMissions() {
     $("#netSearch").oninput = e => { S.netSearch = e.target.value; S.netLimit = 40; clearTimeout(S._nt); S._nt = setTimeout(() => { renderMissions(); const i = $("#netSearch"); i.focus(); i.setSelectionRange(i.value.length, i.value.length); }, 200); };
     const q = S.netSearch.trim().toUpperCase();
     list = S.routes.filter(r => (S.region === "All" || r.region === S.region) && (!S.acFilter || r.aircraft.includes(S.acFilter)) &&
-      (!S.simFilter || r.aircraft.some(a => S.fleet[a]?.sim === S.simFilter)) &&
+      (!S.simFilter || r.aircraft.some(a => fliesIn(a, S.simFilter))) &&
       (!q || [r.origin.icao, r.destination.icao, r.origin.city, r.destination.city, r.cargo, r.id].some(x => (x || "").toUpperCase().includes(q))));
     const stations = new Set(S.routes.flatMap(r => [r.origin.icao, r.destination.icao]));
     $("#boardCount").textContent = `${list.length} of ${S.routes.length} routes · ${stations.size} stations worldwide`;
@@ -317,7 +319,7 @@ function renderMissions() {
   if (!$("#acFilter")) $("#filters").insertAdjacentHTML("beforeend", acSel);
   list = boardSearchList(list);
   if (S.fromHere && S.me?.location && S.board !== "charter") list = list.filter(m => m.origin.icao === S.me.location.icao);
-  if (S.simFilter && S.board !== "charter") list = list.filter(m => m.aircraft.some(a => S.fleet[a]?.sim === S.simFilter));
+  if (S.simFilter && S.board !== "charter") list = list.filter(m => m.aircraft.some(a => fliesIn(a, S.simFilter)));
   if (S.divFilter && S.board !== "charter") list = list.filter(m => (m.aircraft || []).some(a => divOf(a) === S.divFilter));
   if (S.board !== "charter") {
     const blk = m => m.target_block_min || 0;
@@ -6118,7 +6120,7 @@ function missionBoardPool() {
   return [...new Map(pool.map(m => [m.id, m])).values()];
 }
 function boardTypes(m) {
-  return (m.aircraft || []).filter(a => S.fleet[a] && !S.fleet[a].retired && (!S.acFilter || a === S.acFilter) && (!S.simFilter || S.fleet[a].sim === S.simFilter));
+  return (m.aircraft || []).filter(a => S.fleet[a] && !S.fleet[a].retired && (!S.acFilter || a === S.acFilter) && (!S.simFilter || fliesIn(a, S.simFilter)));
 }
 function boardQualified(m, a) {
   if (!S.me || !S.ratings || !S.career) return false;
@@ -6373,6 +6375,8 @@ document.addEventListener('click',async e=>{
  catch(err){toast(err.message);b.disabled=false;}finally{patchSaving=false;}
 });
 const PAC_UPDATES=[
+ {"id": "20261104-acars-11", "date": "November 4, 2026", "kind": "New feature", "title": "PAC ACARS 1.1", "body": "A moving map, a landing debrief after every touchdown, landing practice (circuits and touch-and-goes, never filed), stable approach checks at 1,000 and 500 ft, SOP reminders, fuel checks against your SimBrief plan and your PAC flight in your Discord status. Install 1.1 from Downloads once: from then on PAC ACARS updates itself.", "view": "downloads", "label": "Get PAC ACARS 1.1"},
+ {"id": "20261104-academy", "date": "November 4, 2026", "kind": "New feature", "title": "PAC Academy", "body": "Free, interactive 737-800 training: PAC's standard startup flow (based on Boeing's normal procedures) and 22 lessons on every panel of the cockpit, with real screenshots. Open to everyone, members or not, under Resources \u2192 PAC Academy.", "view": "/academy/", "label": "Open PAC Academy"},
  {"id": "20261103-group-flight", "date": "November 3, 2026", "kind": "New feature", "title": "An optional weekly group flight", "body": "Each week there's one suggested route under Crew room \u2192 Group flight. It's entirely optional: fly it at the set time (Saturdays at 23:00 UTC) if you'd like company, or on your own any time that weekend, offline or online, with or without voice chat. It goes out from Cincinnati one week and back home the next, and everyone who flies it shows on the page."},
  {"id": "20261103-globe", "date": "November 3, 2026", "kind": "New feature", "title": "The live map as a globe", "body": "Operations \u2192 Live map now has a Flat map / Globe switch. Spin the globe to follow PAC flights and the parked fleet, with long routes drawn as they really curve. The station buttons and filters work on both, and your choice is remembered on this computer."},
  {"id": "20261103-sports", "date": "November 3, 2026", "kind": "New feature", "title": "Sports and events missions", "body": "A new Sports and events category on the mission board. Fly a hometown pro team's equipment to its games abroad (football, basketball, hockey and baseball, each in its real season), European clubs' summer tours, stock cars to Mexico City, motorcycle grand prix flyaways, bobsleds for the winter World Cup, show-jumping horses and stadium concert tours. Each comes with its own handling notes.", "view": "missions", "label": "Find a sports mission"},
@@ -6401,7 +6405,7 @@ function updateNewsBadge(){const read=readUpdates(),count=PAC_UPDATES.filter(u=>
 function loadWhatsNew(){updateNewsBadge();const filter=S.updateFilter||'All';$('#updatesRoot').innerHTML=`<div class="profile-bar"><h1>What’s new</h1><button class="btn ghost small" id="pxMarkRead">Mark all as read</button></div><p class="muted">Recent site changes. Operational notices remain in company NOTAMs.</p><p class="notice">Your feedback helps shape PAC. We’re listening and working to make the site better for everyone—this is your VA too. Keep sharing ideas and use Report a problem when something needs fixing.</p><div class="row">${['All','New feature','Improvement'].map(k=>`<button class="btn ${filter===k?'':'ghost'} small" data-update-filter="${k}" aria-pressed="${filter===k}">${k}</button>`).join('')}</div><div class="px-updates">${PAC_UPDATES.filter(u=>filter==='All'||u.kind===filter).map(u=>`<article class="px-prep"><small>${u.date || "October 22, 2026"} · ${u.kind}</small><h2>${u.title}</h2><p>${u.body}</p><button class="btn ghost small" data-update-go="${u.view}">${u.label} →</button></article>`).join('')}</div><p class="muted">Read status is saved for your pilot on this browser.</p>`;
  $('#pxMarkRead').onclick=()=>{try{localStorage.setItem(updatesKey(),JSON.stringify(PAC_UPDATES.map(u=>u.id)));updateNewsBadge();toast('Updates marked as read.')}catch(e){toast('This browser could not save your read status.')}};
  document.querySelectorAll('[data-update-filter]').forEach(b=>b.onclick=()=>{S.updateFilter=b.dataset.updateFilter;loadWhatsNew()});
- document.querySelectorAll('[data-update-go]').forEach(b=>b.onclick=()=>{if(b.dataset.updateGo==='shop')S.shopTab='mine';show(b.dataset.updateGo)});
+ document.querySelectorAll('[data-update-go]').forEach(b=>b.onclick=()=>{const v=b.dataset.updateGo;if(v.startsWith('/')){location.href=v;return}if(v==='shop')S.shopTab='mine';show(v)});
 }
 window.addEventListener('hashchange',updateNewsBadge);
 
