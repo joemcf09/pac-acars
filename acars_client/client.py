@@ -498,6 +498,20 @@ def api_state():
                     "win_cmd": state.get("win_cmd"), "window_restarts": state.get("window_restarts", 0)})
 
 
+@ui.get("/api/track")
+def api_track():
+    """The flown track for the moving map: [lat, lon, altitude, phase] every 30 s (the state poll leaves it out)."""
+    rec = state.get("rec")
+    if not rec:
+        return jsonify({"track": []})
+    try:
+        with TimedLock(1.0):
+            track = list(rec.track[-2000:])
+    except Busy:
+        track = []
+    return jsonify({"track": track})
+
+
 @ui.get("/api/ping")
 def api_ping():
     """Lets the PAC website see that PAC ACARS is running (read-only, no flight data)."""
@@ -926,7 +940,7 @@ def bring_to_front():
 
 
 def tray_status():
-    """(dot colour, tooltip) for the tray icon."""
+    """(dot color, tooltip) for the tray icon."""
     rec, th = state.get("rec"), state.get("thread")
     bk = state.get("booking") or (state.get("hello") or {}).get("booking")
     flight = bk["flight_number"] if bk else "no flight"
@@ -1069,7 +1083,7 @@ def forward_to_running(url=None):
 WINDOW_FROZEN_S = float(os.environ.get("PAC_ACARS_FROZEN_S", "15"))  # no check-in from the page for this long: frozen
 WINDOW_HUNG_S = 8  # Windows reports the window as not responding for this long: frozen
 
-# Chromium slows timers in minimised and hidden windows; these keep the window checking in, so it's never mistaken for frozen
+# Chromium slows timers in minimized and hidden windows; these keep the window checking in, so it's never mistaken for frozen
 APP_FLAGS = ["--no-first-run", "--no-default-browser-check", "--disable-background-timer-throttling", "--disable-renderer-backgrounding",
              "--disable-backgrounding-occluded-windows", "--disable-background-mode",
              "--disable-features=CalculateNativeWinOcclusion,IntensiveWakeUpThrottling,Translate,msEdgeSidebarV2,msHubApps"]
@@ -1231,7 +1245,7 @@ def window_supervisor():
     looked like 'window closed', so PAC ACARS shut down while the window stayed on screen: "Failed to fetch".)
     - Frozen (Windows says not responding for 8 s, or no check-in for 15 s while visible): close it, open a fresh one.
     - Closed by the pilot: keep tracking in the tray mid-flight, otherwise stop PAC ACARS.
-    - Minimised with a tray icon: tuck it away there."""
+    - Minimized with a tray icon: tuck it away there."""
     import winctl
     while True:
         time.sleep(1)
@@ -1287,7 +1301,7 @@ def window_supervisor():
                 if state.get("compact") and not state.get("compact_applied"):
                     apply_compact(True)
                 if winctl.is_minimized(h) and state.get("tray") and cfg.get("close_to_tray", True):
-                    winctl.hide(h)  # minimised with a tray icon: tucked away there
+                    winctl.hide(h)  # minimized with a tray icon: tucked away there
                 if winctl.is_hung(h):
                     state["hung_since"] = state.get("hung_since") or time.time()
                 else:
@@ -1447,7 +1461,7 @@ def run_window():
         except Exception:
             pass
 
-    def on_minimized():  # with a tray icon, minimising tucks the window away there
+    def on_minimized():  # with a tray icon, minimizing tucks the window away there
         if "--tray" in sys.argv and load_config().get("close_to_tray", True):
             window.hide()
     try:

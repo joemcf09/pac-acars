@@ -84,19 +84,19 @@ body.compact #strip{display:block}
 .strip .nums{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;margin:6px 0;font-variant-numeric:tabular-nums}
 .strip .nums span{display:block;font-size:10px;color:var(--dim)}.strip .nums b{font-size:17px}
 .strip .last{font-family:var(--mono);font-size:11.5px;color:#7CE3A1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-/* ---------------- Load Sheet design (matches the website): stencil markings, Barlow, square paperwork ---------------- */
+/* ---------------- Load Sheet design (matches the website): solid Big Shoulders markings, Barlow, square paperwork ---------------- */
 @font-face{font-family:"Barlow";src:url("/static/fonts/barlow-400.woff2") format("woff2");font-weight:400;font-display:swap}
 @font-face{font-family:"Barlow";src:url("/static/fonts/barlow-500.woff2") format("woff2");font-weight:500;font-display:swap}
 @font-face{font-family:"Barlow";src:url("/static/fonts/barlow-600.woff2") format("woff2");font-weight:600;font-display:swap}
 @font-face{font-family:"Barlow";src:url("/static/fonts/barlow-700.woff2") format("woff2");font-weight:700;font-display:swap}
-@font-face{font-family:"Big Shoulders Stencil Display";src:url("/static/fonts/big-shoulders-stencil.woff2") format("woff2");font-weight:100 900;font-display:swap}
-html[data-design="loadsheet"]{--font:"Barlow","Segoe UI",system-ui,sans-serif;--stencil:"Big Shoulders Stencil Display","Barlow",Impact,sans-serif}
+@font-face{font-family:"Big Shoulders Display";src:url("/static/fonts/big-shoulders-display.woff2") format("woff2");font-weight:100 900;font-display:swap}
+html[data-design="loadsheet"]{--font:"Barlow","Segoe UI",system-ui,sans-serif;--display:"Big Shoulders Display","Barlow",Impact,sans-serif}
 html[data-design="loadsheet"] body{font-family:var(--font);font-stretch:100%;font-size:14.5px}
 html[data-design="loadsheet"] header{background:var(--panel);padding:0 12px 0 0;border-bottom:1px solid var(--line);gap:8px}
 html[data-design="loadsheet"] header .brandblk{display:flex;align-items:center;gap:8px;background:var(--red);padding:11px 14px;align-self:stretch}
 html[data-design="loadsheet"] header b{font:700 14px var(--font);letter-spacing:.04em}
 html[data-design="loadsheet"] .fn,html[data-design="loadsheet"] .route,html[data-design="loadsheet"] .phase b,
-html[data-design="loadsheet"] #sFn,html[data-design="loadsheet"] .lrate{font-family:var(--stencil);font-stretch:100%;font-weight:800;letter-spacing:.02em}
+html[data-design="loadsheet"] #sFn,html[data-design="loadsheet"] .lrate{font-family:var(--display);font-stretch:100%;font-weight:800;letter-spacing:.02em}
 html[data-design="loadsheet"] .fn{font-size:34px}
 html[data-design="loadsheet"] .route{font-size:22px;color:var(--text)}
 html[data-design="loadsheet"] .phase b{font-size:22px}
@@ -109,7 +109,22 @@ html[data-design="loadsheet"] .card{border-left:3px solid var(--line)}
 html[data-design="loadsheet"] #flightCard{border-left-color:var(--red)}
 html[data-design="loadsheet"] .grid span,html[data-design="loadsheet"] .ofp span{font-size:11.5px}
 html[data-design="loadsheet"] .grid b,html[data-design="loadsheet"] .ofp b{font-stretch:100%}
+/* ---------------- moving map ---------------- */
+#map{height:340px;background:#0c0d10;border-radius:3px;outline:none}
+html[data-design="loadsheet"] #map{border-radius:0}
+.maphead{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:8px}
+.maphead .hbtn{background:#101215;border-color:var(--line)}
+.maphead .hbtn[aria-pressed="true"]{background:var(--red);border-color:var(--red)}
+.mapinfo{font-family:var(--mono);font-size:11.5px;color:var(--dim);margin-top:6px;display:flex;gap:14px;flex-wrap:wrap}
+.leaflet-container{font-family:var(--font);background:#0c0d10}
+.leaflet-control-attribution{font-size:9px!important;background:rgba(12,13,16,.7)!important;color:#8E96A3!important}
+.leaflet-control-attribution a{color:#8E96A3!important}
+.ac-icon{background:none;border:0}
+.leaflet-tooltip.apt-tip{background:#1E2126;color:#E8EAED;border:1px solid #2e3239;font:600 11px var(--mono);box-shadow:none;padding:2px 6px}
+.leaflet-tooltip.apt-tip::before{display:none}
 </style>
+<link rel="stylesheet" href="/static/leaflet/leaflet.css">
+<script src="/static/leaflet/leaflet.js"></script>
 </head>
 <body>
 <header><span class="brandblk"><img src="/static/pac-wordmark-white.png" alt="PAC"><b>ACARS</b></span><span class="sp"></span>
@@ -152,6 +167,14 @@ html[data-design="loadsheet"] .grid b,html[data-design="loadsheet"] .ofp b{font-
     <div class="oooi" style="margin-top:8px"><div><span>Out</span><b id="o_out">––––</b></div><div><span>Off</span><b id="o_off">––––</b></div><div><span>On</span><b id="o_on">––––</b></div><div><span>In</span><b id="o_in">––––</b></div></div>
   </section>
 
+  <section class="card hidden" id="mapCard" aria-label="Moving map">
+    <div class="maphead"><b>Moving map</b><span class="row" style="gap:6px">
+      <button class="hbtn" id="mapFollow" type="button" aria-pressed="true" title="Keep the aircraft in the middle of the map">Follow</button>
+      <button class="hbtn" id="mapRoute" type="button" title="Show the whole route">Route</button></span></div>
+    <div id="map" role="img" aria-label="Map of the flight: route, flown track and aircraft position"></div>
+    <div class="mapinfo" id="mapInfo"></div>
+  </section>
+
   <section class="card hidden" id="comms">
     <div class="row" style="justify-content:space-between;margin-bottom:8px"><b>Dispatch</b><button class="btn ghost" id="wxBtn" type="button">WX</button></div>
     <div class="tabs" role="tablist">
@@ -176,11 +199,11 @@ html[data-design="loadsheet"] .grid b,html[data-design="loadsheet"] .ofp b{font-
       <div><label for="cfgXp">X-Plane address</label><input id="cfgXp"></div>
       <div><label for="cfgDemo">Demo speed-up</label><input id="cfgDemo" type="number" min="1" max="600"></div>
       <label class="full" style="display:flex;gap:8px;align-items:center;color:var(--text)"><input type="checkbox" id="cfgTop" style="width:auto"> Keep this window on top (native window, after a restart)</label>
-      <div class="full"><label for="cfgDesign">Design</label><select id="cfgDesign"><option value="loadsheet">Load Sheet (stencil markings)</option><option value="classic">Classic</option></select></div>
+      <div class="full"><label for="cfgDesign">Design</label><select id="cfgDesign"><option value="loadsheet">Load Sheet</option><option value="classic">Classic</option></select></div>
       <label class="full" style="display:flex;gap:8px;align-items:center;color:var(--text)"><input type="checkbox" id="cfgChime" style="width:auto"> Chime for new ACARS messages</label>
       <div><label for="cfgVol">Chime volume</label><input id="cfgVol" type="range" min="0.05" max="1" step="0.05"></div>
       <div style="display:flex;align-items:flex-end"><button class="btn ghost" type="button" id="testChime">Test chime</button></div>
-      <label class="full" style="display:flex;gap:8px;align-items:center;color:var(--text)"><input type="checkbox" id="cfgTray" style="width:auto"> Minimise and close to the tray while a flight is tracked</label>
+      <label class="full" style="display:flex;gap:8px;align-items:center;color:var(--text)"><input type="checkbox" id="cfgTray" style="width:auto"> Minimize and close to the tray while a flight is tracked</label>
       <div class="full"><label for="cfgWin">Window (after a restart of PAC ACARS)</label><select id="cfgWin">
         <option value="auto">Automatic (recommended): Edge app window</option><option value="app">Edge or Chrome app window</option><option value="webview">Built-in window</option></select></div>
       <div class="full row"><button class="btn ghost" id="cfgSave" type="button">Save settings</button><span class="small muted" id="ver"></span></div>
@@ -268,10 +291,10 @@ const VCOL = r => r == null ? "#fff" : r >= -100 ? "#4BD07F" : r >= -250 ? "#A6E
 function landingCard(d) {
   if (!d) return "";
   const la = d.landing_analysis || {}, ta = d.takeoff_analysis || {}, w = la.wind || {};
-  const side = ft => ft == null ? "–" : Math.abs(ft) < 1 ? "on centreline" : `${fmt(Math.abs(ft))} ft ${ft > 0 ? "R" : "L"}`;
+  const side = ft => ft == null ? "–" : Math.abs(ft) < 1 ? "on centerline" : `${fmt(Math.abs(ft))} ft ${ft > 0 ? "R" : "L"}`;
   return `<div class="lcard"><div><div class="lrate" style="color:${VCOL(d.landing_rate)}">${d.landing_rate ?? "–"}</div><div class="lverdict" style="color:${VCOL(d.landing_rate)}">FPM · ${VERDICT(d.landing_rate)}</div></div>
       <div class="lfacts"><span>G <b>${d.landing_g != null ? Number(d.landing_g).toFixed(2) : "–"}</b></span><span>Runway <b>${esc(la.runway ? `${la.airport} ${la.runway}` : "–")}</b></span>
-        <span>Touchdown <b>${la.touchdown_ft != null ? fmt(la.touchdown_ft) + " ft" : "–"}</b></span><span>Centreline <b>${side(la.centerline_ft)}</b></span>
+        <span>Touchdown <b>${la.touchdown_ft != null ? fmt(la.touchdown_ft) + " ft" : "–"}</b></span><span>Centerline <b>${side(la.centerline_ft)}</b></span>
         <span>Float <b>${la.float_s != null ? la.float_s + " s" : "–"}</b></span><span>Approach <b>${la.stable === true ? "stable" : la.stable === false ? "unstable" : "–"}</b></span>
         ${w.text ? `<span style="grid-column:1/-1">Wind <b>${esc(w.text)}</b>${w.cross_kt != null ? ` · ${w.cross_kt} kt crosswind ${esc(w.cross_from || "")}` : ""}</span>` : ""}
         ${ta.rotate_ias ? `<span style="grid-column:1/-1">Takeoff <b>${esc(ta.runway ? ta.airport + " " + ta.runway : "")}</b> rotate ${ta.rotate_ias} kt · ${ta.rotation_rate}°/s · liftoff ${ta.liftoff_pitch}°</span>` : ""}</div></div>`;
@@ -298,6 +321,86 @@ function runCommand(c) {
 }
 
 function applyDesign() { const d = S.config?.design || "loadsheet"; if (document.documentElement.dataset.design !== d) document.documentElement.dataset.design = d; }
+
+/* ---------------- moving map ---------------- */
+const MAP = { map: null, key: null, follow: true, plane: null, route: null, flown: null, live: null, lastTrack: 0, trackT: 0 };
+const ESRI_T = "https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/";
+function unwrapLons(pts) {   // keeps lines continuous across the 180° meridian
+  const out = []; let prev = null;
+  for (const [la, lo, ...rest] of pts) { let l = lo; if (prev != null) { while (l - prev > 180) l -= 360; while (l - prev < -180) l += 360; } out.push([la, l, ...rest]); prev = l; }
+  return out;
+}
+function gcLine(a, b, n = 48) {
+  const r = x => x * Math.PI / 180, d = x => x * 180 / Math.PI, p1 = r(a.lat), l1 = r(a.lon), p2 = r(b.lat), l2 = r(b.lon);
+  const D = 2 * Math.asin(Math.sqrt(Math.sin((p2 - p1) / 2) ** 2 + Math.cos(p1) * Math.cos(p2) * Math.sin((l2 - l1) / 2) ** 2));
+  if (!D) return [[a.lat, a.lon], [b.lat, b.lon]];
+  const pts = [];
+  for (let i = 0; i <= n; i++) { const f = i / n, A = Math.sin((1 - f) * D) / Math.sin(D), B = Math.sin(f * D) / Math.sin(D);
+    const x = A * Math.cos(p1) * Math.cos(l1) + B * Math.cos(p2) * Math.cos(l2), y = A * Math.cos(p1) * Math.sin(l1) + B * Math.cos(p2) * Math.sin(l2), z = A * Math.sin(p1) + B * Math.sin(p2);
+    pts.push([d(Math.atan2(z, Math.hypot(x, y))), d(Math.atan2(y, x))]); }
+  return unwrapLons(pts);
+}
+const planeSvg = hdg => `<svg width="30" height="30" viewBox="-15 -15 30 30" style="transform:rotate(${hdg || 0}deg);filter:drop-shadow(0 1px 2px rgba(0,0,0,.8))"><path d="M0,-13 L2,-4 L12,2 L12,4.5 L2,1.5 L1.6,8 L5,10.5 L5,12.5 L0,11 L-5,12.5 L-5,10.5 L-1.6,8 L-2,1.5 L-12,4.5 L-12,2 L-2,-4 Z" fill="#fff" stroke="#C80000" stroke-width="1.4" stroke-linejoin="round"/></svg>`;
+function nearLon(l, ref) { if (ref == null) return l; while (l - ref > 180) l -= 360; while (l - ref < -180) l += 360; return l; }
+function mapFitRoute() {
+  if (!MAP.map) return;
+  const layers = [MAP.route, MAP.flown].filter(x => x && x.getLatLngs().length);
+  if (!layers.length) return;
+  MAP.map.fitBounds(L.featureGroup(layers).getBounds(), { padding: [24, 24], maxZoom: 9 });
+}
+function mapInit(bk) {
+  if (typeof L === "undefined") { $("#map").innerHTML = `<p class="muted small" style="padding:12px">The map couldn't load.</p>`; return; }
+  const m = L.map("map", { zoomControl: true, attributionControl: true, worldCopyJump: false, minZoom: 2, maxZoom: 12, zoomSnap: 0.5 });
+  L.tileLayer(ESRI_T + "World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}", { maxNativeZoom: 16, attribution: "Tiles &copy; Esri, HERE, Garmin, &copy; OpenStreetMap" }).addTo(m);
+  L.tileLayer(ESRI_T + "World_Dark_Gray_Reference/MapServer/tile/{z}/{y}/{x}", { maxNativeZoom: 16 }).addTo(m);
+  m.on("dragstart", () => { MAP.follow = false; $("#mapFollow").setAttribute("aria-pressed", "false"); });
+  MAP.map = m;
+  MAP.route = L.polyline([], { color: "#8E96A3", weight: 2, dashArray: "6 6", opacity: .9, interactive: false }).addTo(m);
+  MAP.flown = L.polyline([], { color: "#C80000", weight: 3.5, opacity: .95, interactive: false }).addTo(m);
+  MAP.live = L.polyline([], { color: "#C80000", weight: 3.5, opacity: .95, interactive: false }).addTo(m);
+  MAP.apts = L.layerGroup().addTo(m);
+  mapRoute(bk);
+}
+function mapRoute(bk) {
+  const o = bk.mission.origin, d = bk.mission.destination;
+  const rp = (bk.ofp?.route_points || []).filter(p => p[0] != null && p[1] != null);
+  let pts = rp.length >= 2 ? unwrapLons([[o.lat, o.lon], ...rp.map(p => [p[0], p[1]]), [d.lat, d.lon]]) : gcLine(o, d);
+  MAP.route.setLatLngs(pts.map(p => [p[0], p[1]]));
+  MAP.apts.clearLayers();
+  const first = pts[0], last = pts[pts.length - 1];
+  [[first, o.icao], [last, d.icao]].forEach(([p, icao]) => L.circleMarker([p[0], p[1]], { radius: 5, color: "#fff", weight: 2, fillColor: "#C80000", fillOpacity: 1 })
+    .bindTooltip(icao, { permanent: true, direction: "top", offset: [0, -6], className: "apt-tip" }).addTo(MAP.apts));
+  MAP.refLon = first[1];
+  MAP.flown.setLatLngs([]); MAP.live.setLatLngs([]); MAP.lastTrack = 0;
+  setTimeout(() => { MAP.map.invalidateSize(); mapFitRoute(); }, 50);
+}
+async function mapTrack() {
+  try {
+    const r = await api("/api/track"); let ref = MAP.refLon;
+    MAP.flown.setLatLngs(r.track.map(p => { const l = nearLon(p[1], ref); ref = l; return [p[0], l]; }));
+    MAP.lastTrack = Date.now();
+  } catch (e) { /* try again next time */ }
+}
+function mapUpdate(bk, st) {
+  const card = $("#mapCard");
+  card.classList.toggle("hidden", !bk || !!S.result);
+  if (!bk || S.result) return;
+  const key = `${bk.flight_number}|${bk.ofp?.request_id || ""}`;
+  if (!MAP.map) { mapInit(bk); MAP.key = key; if (!MAP.map) return; }
+  else if (MAP.key !== key) { MAP.key = key; mapRoute(bk); }
+  if (card.offsetHeight && !MAP.sized) { MAP.sized = true; MAP.map.invalidateSize(); mapFitRoute(); }
+  const l = st?.live;
+  if (st?.tracking && Date.now() - MAP.lastTrack > 30000) mapTrack();
+  if (!l || l.lat == null) { $("#mapInfo").textContent = st ? "" : "Your planned route. The aircraft appears when tracking starts."; return; }
+  const fl = MAP.flown.getLatLngs(), prevLon = fl.length ? fl[fl.length - 1].lng : MAP.refLon;
+  const pos = [l.lat, nearLon(l.lon, prevLon)];
+  if (!MAP.plane) MAP.plane = L.marker(pos, { icon: L.divIcon({ className: "ac-icon", html: planeSvg(l.hdg), iconSize: [30, 30], iconAnchor: [15, 15] }), interactive: false, zIndexOffset: 1000 }).addTo(MAP.map);
+  else { MAP.plane.setLatLng(pos); const svg = MAP.plane.getElement()?.querySelector("svg"); if (svg) svg.style.transform = `rotate(${l.hdg || 0}deg)`; }
+  MAP.live.setLatLngs(fl.length ? [fl[fl.length - 1], pos] : []);
+  if (MAP.follow && card.offsetHeight) MAP.map.panTo(pos, { animate: false });
+  const d = bk.mission.destination;
+  $("#mapInfo").innerHTML = `<span>HDG ${String(Math.round(((l.hdg || 0) % 360 + 360) % 360)).padStart(3, "0")}°</span><span>GS ${fmt(l.gs)} KT</span><span>${l.alt_ft != null ? (l.alt_ft >= 18000 ? "FL" + String(Math.round(l.alt_ft / 100)).padStart(3, "0") : fmt(l.alt_ft) + " FT") : ""}</span><span>${st.dtg_nm != null ? fmt(st.dtg_nm) + " NM TO " + esc(d.icao) : ""}</span>`;
+}
 
 function render() {
   const h = S.hello || {}, bk = h.booking, st = S.status, cfg = S.config || {};
@@ -414,6 +517,7 @@ function render() {
       lastLogLen = count;
     }
   }
+  try { mapUpdate(bk, st); } catch (e) { console.warn("map", e); }
   const fc = $("#fileCard");
   if (have && (st.complete || S.handed_over) && !S.result) {
     const d = S.draft;
@@ -464,6 +568,8 @@ async function filePirep() {
   catch (e) { note(esc(e.message), "err"); btn.disabled = false; }
 }
 $("#startBtn").onclick = () => start(false);
+$("#mapFollow").onclick = () => { MAP.follow = !MAP.follow; $("#mapFollow").setAttribute("aria-pressed", String(MAP.follow)); if (MAP.follow && MAP.plane) MAP.map.panTo(MAP.plane.getLatLng()); };
+$("#mapRoute").onclick = () => { MAP.follow = false; $("#mapFollow").setAttribute("aria-pressed", "false"); mapFitRoute(); };
 $("#source").onchange = () => { pickedSource = true; };
 $("#msgLight").onclick = () => { ack(); const l = $("#log"); if (l) { l.scrollTop = l.scrollHeight; $("#logCard").scrollIntoView({ behavior: "smooth", block: "nearest" }); } };
 $("#sMsg").onclick = ack;
