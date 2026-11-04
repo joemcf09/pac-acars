@@ -1,6 +1,16 @@
 PAC ACARS - CHANGELOG
 =====================
 
+1.1.1 (November 2026)
+---------------------
+Fixed
+- Quitting PAC ACARS during landing practice no longer asks about saving a
+  flight: practice is never filed, so it just closes.
+
+Good to know
+- If you have 1.1.0, PAC ACARS offers this update when it opens: press
+  Update now, then Install and restart.
+
 1.1.0 (November 2026)
 ---------------------
 New
