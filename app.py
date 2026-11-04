@@ -1382,6 +1382,26 @@ def index():
     return send_from_directory(app.static_folder, "index.html")
 
 
+ACADEMY_DIR = Path(app.static_folder) / "academy"
+
+
+@app.get("/academy")
+def academy_redirect():
+    """PAC Academy: the 737-800 lessons and PAC's startup flow (a public page)."""
+    from flask import redirect
+    return redirect("/academy/", code=301)
+
+
+@app.get("/academy/")
+def academy_page():
+    return send_from_directory(ACADEMY_DIR, "index.html")
+
+
+@app.get("/academy/<path:name>")
+def academy_file(name):
+    return send_from_directory(ACADEMY_DIR, name, max_age=86400)
+
+
 SITE_URL = "https://pac-va.com"
 
 
@@ -1395,7 +1415,7 @@ def robots_txt():
 @app.get("/sitemap.xml")
 def sitemap_xml():
     today = time.strftime("%Y-%m-%d", time.gmtime())
-    urls = [("/", "daily", "1.0")]
+    urls = [("/", "daily", "1.0"), ("/academy/", "monthly", "0.8")]
     items = "".join(f"<url><loc>{SITE_URL}{u}</loc><lastmod>{today}</lastmod><changefreq>{c}</changefreq><priority>{pr}</priority></url>"
                     for u, c, pr in urls)
     body = f'<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">{items}</urlset>\n'
