@@ -2,7 +2,7 @@
 ; Built by build_acars.bat after PyInstaller has produced dist\PAC ACARS\
 
 #define AppName "PAC ACARS"
-#define AppVersion "1.1.1"
+#define AppVersion "1.1.2"
 #define Publisher "Pagani Air Cargo"
 
 [Setup]
@@ -25,6 +25,7 @@ Compression=lzma2
 SolidCompression=yes
 WizardStyle=modern
 ArchitecturesInstallIn64BitMode=x64compatible
+CloseApplications=force
 
 [Tasks]
 Name: "desktopicon"; Description: "Create a desktop shortcut"; GroupDescription: "Shortcuts:"
@@ -49,3 +50,18 @@ Filename: "{app}\PAC ACARS.exe"; Description: "Start PAC ACARS"; Flags: nowait p
 
 [UninstallDelete]
 ; settings and logs in %APPDATA%\PAC ACARS are kept, so a reinstall remembers your setup
+
+[Code]
+// In-app updates run this installer silently while PAC ACARS is closing. Make sure it has really
+// closed (its files can't be replaced while it runs), then give Windows a moment to release them.
+function InitializeSetup(): Boolean;
+var
+  Code: Integer;
+begin
+  if WizardSilent() then
+  begin
+    Exec(ExpandConstant('{sys}\taskkill.exe'), '/F /T /IM "PAC ACARS.exe"', '', SW_HIDE, ewWaitUntilTerminated, Code);
+    Sleep(1500);
+  end;
+  Result := True;
+end;

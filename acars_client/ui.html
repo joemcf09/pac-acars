@@ -256,7 +256,7 @@ const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": 
 const fmt = n => n == null || isNaN(n) ? "–" : Math.round(n).toLocaleString("en-US");
 const PHASES = { PREFLIGHT: "Preflight", PUSHBACK: "Pushback", TAXI_OUT: "Taxi out", TAKEOFF: "Takeoff roll", INITIAL_CLIMB: "Initial climb", CLIMB: "Climb",
   CRUISE: "Cruise", DESCENT: "Descent", APPROACH: "Approach", GO_AROUND: "Go-around", LANDING: "Landing rollout", TAXI_IN: "Taxi in", ARRIVED: "On block" };
-let S = {}, pollT = null, lastLogLen = 0, cfgLoaded = false, pickedSource = false, shownServer = null;  // pickedSource: the pilot chose a simulator by hand
+let offline = 0, S = {}, pollT = null, lastLogLen = 0, cfgLoaded = false, pickedSource = false, shownServer = null;  // pickedSource: the pilot chose a simulator by hand
 
 async function api(path, body) {
   // every request has a time limit, so nothing in the window can ever hang waiting for an answer
@@ -663,7 +663,10 @@ function render() {
 
 async function poll() {
   clearTimeout(pollT);
-  try { S = await api("/api/state"); render(); } catch (e) { /* app busy or restarting: try again */ }
+  try { S = await api("/api/state"); render(); offline = 0; $("#reconnect")?.remove(); }
+  catch (e) {   /* app busy or restarting (an update): say so after a few seconds and keep trying */
+    if (++offline === 4 && !$("#reconnect")) document.body.insertAdjacentHTML("beforeend", `<div id="reconnect" role="status" style="position:fixed;inset:0;z-index:9998;background:rgba(21,23,27,.94);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;font:600 15px var(--font);color:#fff"><img src="/static/pac-wordmark-white.png" alt="PAC" style="height:34px">${S.update?.state === "installing" ? "Installing the update…" : "Reconnecting to PAC ACARS…"}<span style="font:500 12px var(--mono);color:var(--dim)">This window reconnects by itself.</span></div>`);
+  }
   finally { pollT = setTimeout(poll, 1000); }
 }
 async function useDefaultSite() { try { S = await api("/api/site/default", {}); render(); } catch (e) { note(esc(e.message), "err"); } }

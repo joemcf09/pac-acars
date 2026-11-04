@@ -1,6 +1,15 @@
 PAC ACARS - CHANGELOG
 =====================
 
+1.1.2 (November 2026)
+---------------------
+Fixed
+- Updating from inside the app: PAC ACARS now waits until it has fully
+  closed before the update installs, so the new version really goes in and
+  opens by itself afterward.
+- While PAC ACARS restarts, the window says "Reconnecting" and picks up again
+  by itself instead of showing an error page.
+
 1.1.1 (November 2026)
 ---------------------
 Fixed

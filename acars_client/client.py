@@ -89,7 +89,7 @@ import acars_core  # noqa: E402
 from sim_sources import DemoSource, MSFSSource, XPlaneSource, gc_distance_nm  # noqa: E402
 from tracker import FlightRecorder, TrackerThread  # noqa: E402
 
-VERSION = "1.1.1"
+VERSION = "1.1.2"
 PORT = int(os.environ.get("PAC_ACARS_PORT", "5070"))  # not 5060: browsers block that port (SIP)
 CONFIG_PATH = USER_DIR / "config.json"
 STATE_PATH = USER_DIR / "flight_state.pkl"
@@ -685,17 +685,42 @@ def api_update_install():
     if UPDATE["state"] != "ready" or not UPDATE["file"] or not Path(UPDATE["file"]).exists():
         return jsonify({"error": "The update isn't downloaded yet."}), 400
     import subprocess
-    script = USER_DIR / "updates" / "run-update.cmd"
-    exe = sys.executable
+    folder = USER_DIR / "updates"
+    script, log = folder / "run-update.cmd", folder / "install.log"
+    exe, pid = sys.executable, os.getpid()
+    # wait (up to ~30 s) until this copy has really closed, install, then start the new version.
+    # ping is the pause: "timeout" fails at once when there's no console window.
     script.write_text("@echo off\r\n"
-                      "timeout /t 2 /nobreak >nul\r\n"
-                      f'"{UPDATE["file"]}" /SILENT /SUPPRESSMSGBOXES /NORESTART /CLOSEAPPLICATIONS\r\n'
+                      "set n=0\r\n"
+                      ":wait\r\n"
+                      f'tasklist /FI "PID eq {pid}" 2>nul | find "{pid}" >nul || goto install\r\n'
+                      "set /a n+=1\r\n"
+                      "if %n% geq 30 goto install\r\n"
+                      "ping -n 2 127.0.0.1 >nul\r\n"
+                      "goto wait\r\n"
+                      ":install\r\n"
+                      f'"{UPDATE["file"]}" /VERYSILENT /SUPPRESSMSGBOXES /NORESTART /CLOSEAPPLICATIONS /LOG="{log}"\r\n'
+                      "ping -n 2 127.0.0.1 >nul\r\n"
                       f'start "" "{exe}"\r\n', encoding="utf-8")
     flags = 0x00000008 | 0x00000200 | 0x08000000   # detached, new process group, no console window
-    subprocess.Popen(["cmd", "/c", str(script)], creationflags=flags, close_fds=True, cwd=str(USER_DIR))
+    subprocess.Popen(["cmd", "/c", str(script)], creationflags=flags, close_fds=True, cwd=str(folder))
     UPDATE["state"] = "installing"
-    threading.Timer(1.0, shutdown).start()
+    threading.Timer(1.0, quit_for_update).start()
     return jsonify({"ok": True})
+
+
+def quit_for_update():
+    """Closes PAC ACARS quickly so the installer can replace its files (the tray icon can take seconds to stop)."""
+    try:
+        stop_thread()
+        end_window(state.get("win_proc"))
+        if state.get("win_detached"):
+            import winctl
+            winctl.close(state.get("win_hwnd"))
+    except Exception as e:
+        print("Closing for the update:", e)
+    PID_FILE.unlink(missing_ok=True)
+    os._exit(0)
 
 
 @ui.post("/api/update/later")
