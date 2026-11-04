@@ -2573,6 +2573,15 @@ def acars_downloads():
     return {"version": ".".join(map(str, v)), **found[v]}
 
 
+def acars_installer_info():
+    """The newest installer, for PAC ACARS's built-in update (1.1+). None when only a portable zip is published."""
+    d = acars_downloads() or {}
+    inst = d.get("installer")
+    if not inst:
+        return None
+    return {"version": d.get("version"), "url": inst["url"], "size_mb": inst["size_mb"], "file": inst["file"]}
+
+
 @app.get("/api/acars/build/<path:name>")
 def acars_build_file(name):
     """Download the PAC ACARS build. Members only, like the rest of the Downloads page."""
@@ -2649,10 +2658,13 @@ def acars_app_hello():
     booking = load_booking()
     ac = FLEET.get((booking or {}).get("aircraft"), {})
     return jsonify({"airline": "Pagani Air Cargo", "pilot": dispatch_pilot(), "booking": booking,
-                    "aircraft": {"name": ac.get("name"), "sim": ac.get("sim"), "icao": ac.get("icao")} if booking else None,
+                    "aircraft": {"name": ac.get("name"), "sim": ac.get("sim"), "icao": ac.get("icao"),
+                                 "mtow_lbs": ac.get("mtow_lbs"), "max_payload_lbs": ac.get("max_payload_lbs")} if booking else None,
                     "settings": {k: s.get(k) for k in ACARS_APP_SETTINGS}, "notams": [n["title"] for n in va.active_notams()[:3]],
                     "remote": state.get("remote"),
-                    "latest_app": (acars_downloads() or {}).get("version"), "checkpoint": checkpoint_meta(booking),
+                    "latest_app": (acars_downloads() or {}).get("version"), "latest_installer": acars_installer_info(),
+                    "discord_app_id": str(va.site().get("discord_app_id") or "").strip() or None,
+                    "checkpoint": checkpoint_meta(booking),
                     "ofp_watch": ofp_watch_status()})
 
 

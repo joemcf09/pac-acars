@@ -257,3 +257,60 @@ def handle_message(rec, lock, body, airports):
     else:
         return "Unknown message type."
     return None
+
+
+# ---------------------------------------------------------------- PAC ACARS 1.1: landing debrief in the app
+def landing_debrief(rec, td, runways_dir, nearest_airport=None):
+    """A coaching card for one touchdown, right after it happens: the same measurements the website makes
+    (sink rate, touchdown point, centerline, float, stable approach), plus plain-English tips."""
+    import analysis
+    from sim_sources import gc_distance_nm
+    series = [x for x in (getattr(rec, "landing_series", None) or []) if abs(x[0] - td["t"]) <= 200]
+    airports = [a for a in (rec.dest.get("icao"), (rec.alternate or {}).get("icao"),
+                            nearest_airport(td["lat"], td["lon"]) if nearest_airport else None, rec.origin.get("icao")) if a]
+    out = None
+    if series:
+        try:
+            out = analysis.analyze_landing(series, td["t"], td["rate_fpm"], td["g"], list(dict.fromkeys(airports)), runways_dir, gc_distance_nm)
+        except Exception as e:
+            print("Landing debrief failed:", e)
+    out = out or {"rate_fpm": td["rate_fpm"], "g": td["g"], "verdict": analysis.verdict(td["rate_fpm"]), "ias": td["ias"]}
+    out.pop("series", None)
+    out["n"] = td.get("n", 1)
+    out["t"] = td["t"]
+    out["z"] = zulu(td["t"])
+    out["tips"] = landing_tips(out, getattr(rec, "bounces", 0))
+    out["ok"] = out["rate_fpm"] >= -400 and out.get("stable") is not False and \
+        (out.get("touchdown_ft") is None or 500 <= out["touchdown_ft"] <= 3000)
+    return out
+
+
+def landing_tips(d, bounces=0):
+    tips = []
+    rate, fl, tdz, cl = d.get("rate_fpm"), d.get("float_s"), d.get("touchdown_ft"), d.get("centerline_ft")
+    app = d.get("approach") or {}
+    if rate is not None and rate < -600:
+        tips.append("Hard landing. Keep the descent near 700 fpm on final, and start the flare at about 30 ft: thrust to idle and raise the nose about 2 to 3 degrees.")
+    elif rate is not None and rate < -400:
+        tips.append("Firmer than PAC's 400 fpm limit. Begin the flare a little earlier (about 30 ft) and don't let the nose drop as you close the thrust.")
+    elif rate is not None and rate >= -100 and fl and fl > 8:
+        tips.append("Very soft, but you held it off a long time. A positive touchdown in the zone is better than a butter landing far down the runway.")
+    if fl is not None and fl > 8:
+        tips.append(f"You floated {fl:g} seconds from 50 ft to touchdown. Cross the threshold at Vref + 5 kt and close the thrust by 20 ft.")
+    if tdz is not None and tdz > 3000:
+        tips.append(f"Long landing: {tdz:,} ft past the threshold. Aim for the touchdown zone markers, 1,000 to 2,000 ft down the runway.")
+    elif tdz is not None and tdz < 500:
+        tips.append(f"Short: you touched down {tdz:,} ft past the threshold. Keep the aiming point steady until the flare.")
+    if cl is not None and abs(cl) > 15:
+        tips.append(f"{abs(cl)} ft {'right' if cl > 0 else 'left'} of the centerline. Small rudder inputs in the flare keep you lined up, especially in a crosswind.")
+    if d.get("stable") is False:
+        spread = (app.get("ias_max") or 0) - (app.get("ias_min") or 0)
+        if spread > 20:
+            tips.append(f"Speed varied {spread} kt below 1,000 ft. Be fully configured and on speed by 1,000 ft, and let the autothrottle or small thrust changes hold it.")
+        else:
+            tips.append("Descent was steeper than 1,100 fpm below 500 ft. Get established on the glidepath earlier so the last 500 ft is steady.")
+    if bounces:
+        tips.append("You bounced. Hold the attitude after touchdown and deploy the spoilers; don't pull up again.")
+    if not tips:
+        tips.append("Nicely done: on speed, in the zone and within limits. Keep doing exactly that.")
+    return tips[:3]

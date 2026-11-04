@@ -51,9 +51,22 @@ class Telemetry:
     sim_rate: float | None = None   # 1.0 = real time
     paused: bool = False
     true_alt_ft: float | None = None  # height above sea level; alt_ft is the altimeter reading
+    # PAC ACARS 1.1: read when the aircraft provides them (None = not available from this aircraft or sim)
+    bank: float | None = None         # degrees, positive right wing down
+    beacon: bool | None = None
+    landing_lights: bool | None = None
+    strobe: bool | None = None
+    nav_lights: bool | None = None
+    taxi_light: bool | None = None
+    num_engines: int | None = None    # engines the loaded aircraft has (to spot the wrong aircraft)
 
     def to_dict(self):
         return asdict(self)
+
+
+def _flag(v):
+    """A switch value from the sim as True/False, or None when the aircraft doesn't report it."""
+    return None if v is None else float(v) > 0.5
 
 
 def gc_distance_nm(lat1, lon1, lat2, lon2):
@@ -122,7 +135,16 @@ class MSFSSource:
         "pitch": ("PLANE PITCH DEGREES", "degrees"),
         "rate": ("SIMULATION RATE", "number"),
         "abstime": ("ABSOLUTE TIME", "seconds"),
+        # 1.1: coaching and checks only; a missing one never stops tracking
+        "bank": ("PLANE BANK DEGREES", "degrees"),
+        "beacon": ("LIGHT BEACON", "bool"),
+        "landing_lt": ("LIGHT LANDING", "bool"),
+        "strobe": ("LIGHT STROBE", "bool"),
+        "nav_lt": ("LIGHT NAV", "bool"),
+        "taxi_lt": ("LIGHT TAXI", "bool"),
+        "n_eng": ("NUMBER OF ENGINES", "number"),
     }
+    OPTIONAL = ("bank", "beacon", "landing_lt", "strobe", "nav_lt", "taxi_lt", "n_eng")
     CORE = ("lat", "lon", "alt", "ias", "gs", "vs", "on_ground")
 
     def __init__(self):
@@ -144,10 +166,18 @@ class MSFSSource:
             self.sm = SimConnect()
         except Exception as e:  # sim not running
             raise SourceError("Could not reach Microsoft Flight Simulator. Start the sim and load into the cockpit first.") from e
-        self.req = {k: Request((n.encode(), u.encode()), self.sm, _time=150) for k, (n, u) in self.VARS.items()}
+        self.req = {}
+        for k, (n, u) in self.VARS.items():
+            try:
+                self.req[k] = Request((n.encode(), u.encode()), self.sm, _time=150 if k not in self.OPTIONAL else 1000)
+            except Exception:
+                if k not in self.OPTIONAL:
+                    raise
 
     def _v(self, k):
         """Latest value, or the last good one if this read failed (up to 2 s old)."""
+        if k not in self.req:
+            return None
         try:
             val = self.req[k].value
         except Exception:
@@ -190,6 +220,10 @@ class MSFSSource:
             slew=bool(v["slew"]),
             pitch=-num("pitch") if v["pitch"] is not None else None,
             sim_rate=num("rate", 1.0) or 1.0, paused=paused,
+            bank=-num("bank") if v["bank"] is not None else None,   # SimConnect reports right bank as negative
+            beacon=_flag(v["beacon"]), landing_lights=_flag(v["landing_lt"]), strobe=_flag(v["strobe"]),
+            nav_lights=_flag(v["nav_lt"]), taxi_light=_flag(v["taxi_lt"]),
+            num_engines=int(v["n_eng"]) if v["n_eng"] else None,
         )
 
     def close(self):
@@ -230,7 +264,14 @@ class XPlaneSource:
         ("simspeed", "sim/time/sim_speed"),
         ("timeaccel", "sim/time/ground_speed"),   # X-Plane's time acceleration (1x, 2x, 4x...)
         ("paused", "sim/time/paused"),
-        ("ind_alt_ft", "sim/cockpit2/gauges/indicators/altitude_ft_pilot"),   # keep last: indexes are fixed
+        ("ind_alt_ft", "sim/cockpit2/gauges/indicators/altitude_ft_pilot"),   # indexes are fixed: only add below
+        ("bank", "sim/flightmodel/position/phi"),
+        ("beacon", "sim/cockpit/electrical/beacon_lights_on"),
+        ("landing_lt", "sim/cockpit/electrical/landing_lights_on"),
+        ("strobe", "sim/cockpit/electrical/strobe_lights_on"),
+        ("nav_lt", "sim/cockpit/electrical/nav_lights_on"),
+        ("taxi_lt", "sim/cockpit/electrical/taxi_light_on"),
+        ("n_eng", "sim/aircraft/engine/acf_num_engines"),
     ]
 
     def __init__(self, host="127.0.0.1", port=49000, freq=20):
@@ -310,6 +351,9 @@ class XPlaneSource:
             fuel_lbs=v("fuel_kg", 0.0) * KG_TO_LB, weight_lbs=v("weight_kg", 0.0) * KG_TO_LB,
             gear_down=v("gear", 1.0) > 0.5, flaps=v("flaps", 0.0), g=v("g", 1.0),
             pitch=v("pitch", None), sim_rate=max(v("simspeed", 1.0) or 1.0, v("timeaccel", 1.0) or 1.0), paused=v("paused", 0.0) > 0.5,
+            bank=v("bank", None), beacon=_flag(v("beacon", None)), landing_lights=_flag(v("landing_lt", None)),
+            strobe=_flag(v("strobe", None)), nav_lights=_flag(v("nav_lt", None)), taxi_light=_flag(v("taxi_lt", None)),
+            num_engines=int(v("n_eng")) if v("n_eng", None) else None,
         )
 
     def close(self):
@@ -456,6 +500,10 @@ class DemoSource:
             touchdown_fpm=self.touchdown,
             pitch=(min(8.5, max(0.0, (self.ias - 150) * 0.9)) if s == "roll" else 9.0 if s == "climb" and self.alt < 1500 else
                    5.0 if s == "climb" else 2.5 if s == "cruise" else 4.0 if s == "approach" else 1.0 if not self.on_ground else 0.0),
+            bank=0.0, beacon=s not in ("parked",) and not (s == "park" and not self.engines), nav_lights=True,
+            landing_lights=(s in ("roll", "approach", "rollout")) or (not self.on_ground and self.alt < 10000),
+            strobe=s in ("roll", "climb", "cruise", "descent", "approach", "rollout"), taxi_light=s in ("taxi", "taxi_in"),
+            num_engines=2,
         )
 
     def _go(self, s):

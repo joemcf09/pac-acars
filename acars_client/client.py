@@ -30,6 +30,8 @@ if not FROZEN:
 # bundled read-only files (window, logos, airport data)
 RES = Path(getattr(sys, "_MEIPASS", HERE))
 AIRPORTS_FILE = RES / "data" / "airports.json" if FROZEN else ROOT / "data" / "airports.json"
+# runway data for the in-app landing debrief (1.1): bundled with the app's assets, or the website's copy when run from source
+RUNWAYS_DIR = next((d for d in (RES / "assets", RES / "data", ROOT / "data") if (d / "runways.json").exists()), RES / "assets")
 # where the app may write: %APPDATA%\\PAC ACARS when installed, the app folder when run from source
 
 
@@ -87,7 +89,7 @@ import acars_core  # noqa: E402
 from sim_sources import DemoSource, MSFSSource, XPlaneSource, gc_distance_nm  # noqa: E402
 from tracker import FlightRecorder, TrackerThread  # noqa: E402
 
-VERSION = "1.0.8"
+VERSION = "1.1.0"
 PORT = int(os.environ.get("PAC_ACARS_PORT", "5070"))  # not 5060: browsers block that port (SIP)
 CONFIG_PATH = USER_DIR / "config.json"
 STATE_PATH = USER_DIR / "flight_state.pkl"
@@ -107,7 +109,11 @@ OFFICIAL_SITE = "https://pac-va.com"
 SITE = (os.environ.get("PAC_SITE", "").strip().rstrip("/") or _built_site()
         or (OFFICIAL_SITE if FROZEN else "http://127.0.0.1:5050"))
 DEFAULTS = {"server": SITE, "source": "MSFS", "xplane_host": "127.0.0.1", "demo_speedup": 60, "always_on_top": True,
-            "win_w": 460, "win_h": 640, "chime": True, "chime_volume": 0.5, "close_to_tray": True}
+            "win_w": 460, "win_h": 640, "chime": True, "chime_volume": 0.5, "close_to_tray": True,
+            "sop_coach": True, "discord_status": True}
+# Discord Rich Presence: the PAC application's ID from discord.com/developers (public, not a secret).
+# The website can also send one (Staff settings: discord_app_id), which wins.
+DISCORD_APP_ID = ""
 UPLINK_KINDS = ("ul", "wx")  # messages to the flight deck: they chime and light MSG
 
 _ap = json.loads(AIRPORTS_FILE.read_text(encoding="utf-8"))
@@ -426,6 +432,10 @@ def pusher():
         if not rec and time.time() - state.get("last_hello", 0) > 30:  # idle: pick up a plan attached on the website
             state["last_hello"] = time.time()
             refresh_hello()
+        if rec:
+            debrief_tick(rec)
+        if rec and getattr(rec, "practice", False):
+            continue                     # landing practice stays on this PC: nothing is sent to the website
         if not rec or not th or state.get("handed_over"):
             continue
         try:
@@ -478,6 +488,10 @@ def api_state():
         status.update(connected=bool(th and th.connected), error=th.error if th else None, tracking=bool(th and th.is_alive()))
         last = getattr(th, "last_sample", None) if th else None
         status["data_age"] = round(time.time() - last, 1) if last else None      # seconds since the sim last sent data
+        status["debriefs"] = state.get("debriefs") or []
+        status["practice"] = bool(getattr(rec, "practice", False))
+        if status["practice"]:
+            status["practice_airport"] = rec.origin.get("icao") if rec.origin.get("icao") != "----" else None
         status.pop("track", None)  # the window doesn't draw the flown track (the website's map does), so don't send it every second
     hello = state.get("hello") or {}
     bk = hello.get("booking")
@@ -495,7 +509,9 @@ def api_state():
                     "suggested_source": sug, "suggested_why": why, "detected_sims": state.get("detected_sims") or [],
                     "auth_needed": bool(state.get("auth_needed")), "signed_in_as": load_config().get("pilot"),
                     "unread": unread(), "compact": state.get("compact"), "native": bool(state.get("native")), "tray": bool(state.get("tray")),
-                    "win_cmd": state.get("win_cmd"), "window_restarts": state.get("window_restarts", 0)})
+                    "win_cmd": state.get("win_cmd"), "window_restarts": state.get("window_restarts", 0),
+                    "practice": bool(state.get("practice")), "debriefs": state.get("debriefs") or [],
+                    "update": update_info()})
 
 
 @ui.get("/api/track")
@@ -510,6 +526,288 @@ def api_track():
     except Busy:
         track = []
     return jsonify({"track": track})
+
+
+# ---------------------------------------------------------------- 1.1: landing debrief, landing practice
+def debrief_tick(rec):
+    """Turns each touchdown into a coaching card about 40 seconds after it happens (once the rollout or the climb-out
+    is recorded). Works the same for a normal flight and for landing practice."""
+    try:
+        if getattr(rec, "practice", False) and rec.last and rec.origin.get("icao") == "----":
+            icao = nearest_airport(rec.last.lat, rec.last.lon, within=6.0)
+            if icao:
+                a = AIRPORTS[icao]
+                apt = {"icao": icao, "lat": a["lat"], "lon": a["lon"], "name": a.get("name", "")}
+                with lock():
+                    rec.origin, rec.dest = dict(apt), dict(apt)
+                    rec.booking["mission"]["origin"] = rec.booking["mission"]["destination"] = dict(apt)
+                    rec.msg(time.time(), f"PRACTICE AT {icao}  EVERY LANDING IS GRADED. NOTHING IS FILED", "phase")
+        done = {d["t"] for d in state.get("debriefs") or []}
+        now_sim = rec.last.t if rec.last else 0
+        for td in list(getattr(rec, "touchdowns", []) or []):
+            if td["t"] in done or not (now_sim - td["t"] >= 40 or rec.complete):
+                continue
+            with lock():
+                card = acars_core.landing_debrief(rec, td, RUNWAYS_DIR, nearest_airport)
+            state.setdefault("debriefs", []).append(card)
+            state["debriefs"] = state["debriefs"][-20:]
+            print(f"Landing {card['n']}: {card['rate_fpm']} fpm, {card.get('verdict')}")
+    except Exception as e:
+        print("Debrief:", e)
+
+
+@ui.post("/api/practice/start")
+def api_practice_start():
+    """Landing practice: circuits and touch-and-goes at any airport. Every landing gets a debrief; nothing is filed,
+    nothing is sent to the website and no booking is needed."""
+    if state.get("thread") and state["thread"].is_alive():
+        return jsonify({"error": "A flight is being tracked. Finish or abort it first."}), 409
+    b = request.json or {}
+    cfg = load_config()
+    name = b.get("source") or cfg["source"]
+    if name == "MSFS":
+        src = MSFSSource()
+    elif name == "X-Plane":
+        src = XPlaneSource(host=cfg.get("xplane_host") or "127.0.0.1")
+    else:
+        return jsonify({"error": "Choose MSFS or X-Plane for landing practice."}), 400
+    here = {"icao": "----", "lat": 0.0, "lon": 0.0}
+    booking = {"practice": True, "flight_number": "PRACTICE", "aircraft": "", "requested_at": time.time(),
+               "mission": {"title": "Landing practice", "origin": dict(here), "destination": dict(here), "payload_lbs": 0, "cargo": ""}}
+    rec = FlightRecorder(booking)
+    rec.sop_coach = bool(cfg.get("sop_coach", True))
+    rec.msg(time.time(), "LANDING PRACTICE  FLY CIRCUITS OR TOUCH-AND-GOES. EACH LANDING GETS A DEBRIEF", "phase")
+    th = TrackerThread(src, rec, check_origin=False)
+    state.update(thread=th, rec=rec, booking=None, source=name, handed_over=False, draft=None, result=None, practice=True, debriefs=[])
+    th.start()
+    return jsonify({"ok": True})
+
+
+@ui.post("/api/practice/stop")
+def api_practice_stop():
+    if not state.get("practice"):
+        return jsonify({"error": "Landing practice isn't running."}), 400
+    rec = state.get("rec")
+    if rec:
+        debrief_tick(rec)
+        rec.complete = True
+        debrief_tick(rec)          # the last landing gets its card even if it was less than 40 s ago
+    stop_thread()
+    state.update(rec=None, practice=False)
+    return jsonify({"ok": True, "debriefs": state.get("debriefs") or []})
+
+
+# ---------------------------------------------------------------- 1.1: built-in update
+UPDATE = {"state": "idle", "progress": 0, "error": None, "file": None, "version": None, "dismissed": False}
+
+
+def _vt(v):
+    try:
+        return tuple(int(x) for x in str(v).split("."))
+    except ValueError:
+        return (0,)
+
+
+def installed_copy():
+    """True for the installed program (it can update itself); a portable copy or the source code can't."""
+    return FROZEN and any((Path(sys.executable).parent / n).exists() for n in ("unins000.exe", "unins001.exe"))
+
+
+def update_info():
+    h = state.get("hello") or {}
+    latest = h.get("latest_app")
+    inst = h.get("latest_installer") or {}
+    newer = bool(latest) and _vt(latest) > _vt(VERSION)
+    return {"current": VERSION, "latest": latest, "available": newer, "can_install": newer and installed_copy() and bool(inst.get("url")),
+            "size_mb": inst.get("size_mb"), "state": UPDATE["state"], "progress": UPDATE["progress"], "error": UPDATE["error"],
+            "dismissed": UPDATE["dismissed"], "page": server_url() + "/#downloads"}
+
+
+def _download_update(inst):
+    try:
+        UPDATE.update(state="downloading", progress=0, error=None)
+        folder = USER_DIR / "updates"
+        folder.mkdir(exist_ok=True)
+        for old in folder.glob("PAC-ACARS-Setup-*.exe"):
+            try:
+                old.unlink()
+            except OSError:
+                pass
+        target = folder / Path(inst["file"]).name
+        url = inst["url"] if inst["url"].startswith("http") else server_url() + inst["url"]
+        headers = {"User-Agent": f"PAC-ACARS/{VERSION}"}
+        token = load_config().get("token")
+        if token:
+            headers["Authorization"] = f"Bearer {token}"
+        req = urllib.request.Request(url, headers=headers)
+        opener = _DIRECT.open if is_local_site(url) else urllib.request.urlopen
+        with opener(req, timeout=30) as r, open(target, "wb") as f:
+            total = int(r.headers.get("Content-Length") or 0) or int((inst.get("size_mb") or 0) * 1_048_576)
+            got = 0
+            while True:
+                chunk = r.read(256 * 1024)
+                if not chunk:
+                    break
+                f.write(chunk)
+                got += len(chunk)
+                if total:
+                    UPDATE["progress"] = min(99, int(got * 100 / total))
+        with open(target, "rb") as f:
+            if f.read(2) != b"MZ":
+                raise ValueError("The download isn't a Windows installer. Try again, or download it from the website.")
+        if got < 1_000_000:
+            raise ValueError("The download was incomplete. Try again.")
+        UPDATE.update(state="ready", progress=100, file=str(target), version=inst.get("version"))
+    except Exception as e:
+        UPDATE.update(state="error", error=str(e) if isinstance(e, ValueError) else f"Download failed: {e}")
+
+
+@ui.post("/api/update/download")
+def api_update_download():
+    info = update_info()
+    if not info["available"]:
+        return jsonify({"error": "You already have the latest PAC ACARS."}), 400
+    if not info["can_install"]:
+        return jsonify({"error": "This copy of PAC ACARS can't update itself. Download the new version from the PAC website.",
+                        "page": info["page"]}), 400
+    if UPDATE["state"] == "downloading":
+        return jsonify({"ok": True})
+    threading.Thread(target=_download_update, args=((state.get("hello") or {}).get("latest_installer"),), daemon=True).start()
+    return jsonify({"ok": True})
+
+
+@ui.post("/api/update/install")
+def api_update_install():
+    """Runs the downloaded installer (Windows asks for permission), then starts the new PAC ACARS. A flight that's
+    being tracked must be finished or saved first; a saved flight can be resumed in the new version."""
+    if state.get("thread") and state["thread"].is_alive():
+        return jsonify({"error": "A flight is being tracked. Update after it's filed, or close PAC ACARS to save it first."}), 409
+    if UPDATE["state"] != "ready" or not UPDATE["file"] or not Path(UPDATE["file"]).exists():
+        return jsonify({"error": "The update isn't downloaded yet."}), 400
+    import subprocess
+    script = USER_DIR / "updates" / "run-update.cmd"
+    exe = sys.executable
+    script.write_text("@echo off\r\n"
+                      "timeout /t 2 /nobreak >nul\r\n"
+                      f'"{UPDATE["file"]}" /SILENT /SUPPRESSMSGBOXES /NORESTART /CLOSEAPPLICATIONS\r\n'
+                      f'start "" "{exe}"\r\n', encoding="utf-8")
+    flags = 0x00000008 | 0x00000200 | 0x08000000   # detached, new process group, no console window
+    subprocess.Popen(["cmd", "/c", str(script)], creationflags=flags, close_fds=True, cwd=str(USER_DIR))
+    UPDATE["state"] = "installing"
+    threading.Timer(1.0, shutdown).start()
+    return jsonify({"ok": True})
+
+
+@ui.post("/api/update/later")
+def api_update_later():
+    UPDATE["dismissed"] = True
+    return jsonify({"ok": True})
+
+
+# ---------------------------------------------------------------- 1.1: Discord status ("Flying PAC1234 KCVG → KMIA")
+class DiscordIPC:
+    """Talks to the Discord desktop app over its local pipe (no extra packages). Quietly does nothing when Discord isn't running."""
+
+    def __init__(self, app_id):
+        self.app_id, self.f = app_id, None
+
+    def _send(self, op, payload):
+        import struct
+        data = json.dumps(payload).encode()
+        self.f.write(struct.pack("<II", op, len(data)) + data)
+        head = self.f.read(8)
+        if len(head) < 8:
+            raise OSError("Discord closed the connection")
+        _, n = struct.unpack("<II", head)
+        return json.loads(self.f.read(n) or b"{}")
+
+    def connect(self):
+        for i in range(10):
+            try:
+                self.f = open(rf"\\.\pipe\discord-ipc-{i}", "r+b", buffering=0)
+                break
+            except OSError:
+                self.f = None
+        if not self.f:
+            return False
+        r = self._send(0, {"v": 1, "client_id": self.app_id})
+        if r.get("evt") != "READY":
+            self.close()
+            return False
+        return True
+
+    def set(self, activity):
+        import uuid
+        return self._send(1, {"cmd": "SET_ACTIVITY", "args": {"pid": os.getpid(), "activity": activity}, "nonce": str(uuid.uuid4())})
+
+    def close(self):
+        try:
+            if self.f:
+                self.f.close()
+        except OSError:
+            pass
+        self.f = None
+
+
+def discord_activity():
+    rec, h = state.get("rec"), state.get("hello") or {}
+    base = {"assets": {"large_image": "pac", "large_text": "Pagani Air Cargo · pac-va.com"},
+            "buttons": [{"label": "Fly with Pagani Air Cargo", "url": OFFICIAL_SITE}]}
+    PH = {"PREFLIGHT": "Preparing", "PUSHBACK": "Pushback", "TAXI_OUT": "Taxiing", "TAKEOFF": "Taking off", "INITIAL_CLIMB": "Climbing",
+          "CLIMB": "Climbing", "CRUISE": "Cruising", "DESCENT": "Descending", "APPROACH": "On approach", "GO_AROUND": "Going around",
+          "LANDING": "Landing", "TAXI_IN": "Taxiing in", "ARRIVED": "On block"}
+    if rec and getattr(rec, "practice", False):
+        apt = rec.origin.get("icao")
+        n = len(getattr(rec, "touchdowns", []) or [])
+        return {**base, "details": f"Landing practice{' at ' + apt if apt and apt != '----' else ''}",
+                "state": f"{n} landing{'s' if n != 1 else ''} so far"}
+    if rec and rec.start_t:
+        bk = rec.booking or {}
+        ac = (bk.get("aircraft_info") or {}).get("name") or bk.get("aircraft") or ""
+        l = rec.last
+        alt = ""
+        if l and not l.on_ground:
+            alt = f" · FL{round(l.alt_ft / 100):03d}" if l.alt_ft >= 18000 else f" · {round(l.alt_ft, -2):,.0f} ft"
+        act = {**base, "details": f"{bk.get('flight_number', 'PAC')} · {rec.origin.get('icao')} → {rec.dest.get('icao')}",
+               "state": f"{PH.get(rec.phase, rec.phase)}{alt}{' · ' + ac if ac else ''}"[:128]}
+        start = rec.oooi.get("out") or rec.start_t
+        if start:
+            act["timestamps"] = {"start": int(start)}
+        return act
+    bk = h.get("booking")
+    if bk:
+        return {**base, "details": f"Planning {bk.get('flight_number', '')}", "state": f"{bk['mission']['origin']['icao']} → {bk['mission']['destination']['icao']}"}
+    return None
+
+
+def discord_presence():
+    if sys.platform != "win32":
+        return
+    ipc, last = None, None
+    while True:
+        time.sleep(15)
+        try:
+            app_id = (state.get("hello") or {}).get("discord_app_id") or DISCORD_APP_ID
+            if not app_id or not load_config().get("discord_status", True):
+                if ipc:
+                    ipc.close()
+                    ipc, last = None, None
+                continue
+            act = discord_activity()
+            key = json.dumps(act, sort_keys=True, default=str)
+            if key == last:
+                continue
+            if not ipc:
+                ipc = DiscordIPC(app_id)
+                if not ipc.connect():
+                    ipc = None
+                    continue
+            ipc.set(act)
+            last = key
+        except Exception:
+            if ipc:
+                ipc.close()
+            ipc, last = None, None
 
 
 @ui.get("/api/ping")
@@ -664,7 +962,8 @@ def api_config():
             use_site(new, chosen=True)
             cfg = load_config()
         b = {k: v for k, v in b.items() if k != "server"}
-    for k in ("source", "xplane_host", "demo_speedup", "always_on_top", "chime", "chime_volume", "close_to_tray", "window_mode", "design"):
+    for k in ("source", "xplane_host", "demo_speedup", "always_on_top", "chime", "chime_volume", "close_to_tray", "window_mode", "design",
+              "sop_coach", "discord_status"):
         if k in b:
             cfg[k] = b[k]
     save_config(cfg)
@@ -738,10 +1037,13 @@ def api_start():
             rec.msg(time.time(), f"CO NOTAM  {title.upper()}", "wx")
     s = hello.get("settings") or {}
     rec.allow_reposition = bool(s.get("allow_ground_reposition", True))
+    rec.booking["aircraft_info"] = hello.get("aircraft") or {}
+    rec.sop_coach = bool(load_config().get("sop_coach", True))
     th = TrackerThread(src, rec, check_origin=not resuming, on_save=save_state,
                        on_wx=lambda r_, j, l: acars_core.weather_job(r_, j, l, nearest_airport),
                        on_tick=lambda r_, l: acars_core.online_job(r_, l, s))
-    state.update(thread=th, rec=rec, booking=booking, source=name, handed_over=False, draft=None, result=None,
+    state.update(thread=th, rec=rec, booking=booking, source=name, handed_over=False, draft=None, result=None, practice=False,
+                 debriefs=list(state.get("debriefs") or []) if resuming else [],
                  acked=sum(1 for m in rec.messages if m.get("kind") in UPLINK_KINDS) if resuming else 0)
     th.start()
     return jsonify({"ok": True, "warning": r.get("warning"), "resumed": resuming})
@@ -749,6 +1051,8 @@ def api_start():
 
 @ui.post("/api/stop")
 def api_stop():
+    if state.get("practice"):
+        return api_practice_stop()
     stop_thread()
     try:
         server("POST", "/api/acars/app/abort", {})
@@ -1506,7 +1810,7 @@ def main():
     else:
         refresh_hello()
     quiet_request_log()
-    for job in (pusher, sim_watch, chime_watch, window_supervisor):
+    for job in (pusher, sim_watch, chime_watch, window_supervisor, discord_presence):
         threading.Thread(target=job, daemon=True).start()
     url = f"http://127.0.0.1:{PORT}/"
     threading.Thread(target=lambda: ui.run(host="127.0.0.1", port=PORT, threaded=True, use_reloader=False), daemon=True).start()

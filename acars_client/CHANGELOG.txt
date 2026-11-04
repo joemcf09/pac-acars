@@ -1,6 +1,46 @@
 PAC ACARS - CHANGELOG
 =====================
 
+1.1.0 (November 2026)
+---------------------
+New
+- Updates from inside the app. When a new version is out, PAC ACARS asks when
+  it opens: press Update now, then Install and restart. It downloads, installs
+  and opens again by itself. Settings and saved flights are kept. It never
+  asks while a flight is being tracked.
+- Start-up screen with the PAC logo while PAC ACARS connects to the website.
+- Moving map: your SimBrief route, the track you've flown and your aircraft,
+  with heading, groundspeed, altitude and distance to go. Follow keeps the
+  aircraft centered; Route shows the whole flight.
+- Landing debrief right after touchdown: sink rate, runway, touchdown point,
+  centerline, float and approach stability, with tips on what to do better.
+- Landing practice: fly circuits or touch-and-goes at any airport. Every
+  landing gets a debrief, and PAC ACARS counts how many in a row meet the
+  checkride standard. Nothing is filed or sent to the website.
+- Stable approach checks at 1,000 and 500 ft: a chime and a message if the
+  gear is up, the sink rate is too high or the speed is wandering.
+- SOP coach: friendly reminders from PAC's standard procedures (beacon before
+  engine start, landing lights and strobes for takeoff, landing lights below
+  10,000 ft). Reminders only, never scored. Turn it off in Settings.
+- Fuel checks against your SimBrief plan at top of climb and top of descent.
+- Top of descent reminder about 20 nm before you should start down.
+- Occasional messages from PAC Operations on longer flights.
+- Aircraft check: a message if the loaded aircraft doesn't look like the
+  type you booked (wrong number of engines, or heavier than its max weight).
+- Discord status: your profile shows the PAC flight you're flying. Turn it
+  off in Settings.
+- PAC ACARS now records bank angle and your lights, for the smooth-ride
+  score and the SOP coach.
+
+Changed
+- The stencil lettering is gone: flight numbers and landing figures use the
+  same solid lettering as the website.
+- US spelling throughout (centerline, minimize, pressurization).
+
+Good to know
+- This is the last update you install by hand: download 1.1.0 from Downloads
+  on the PAC website. From now on PAC ACARS updates itself.
+
 1.0.8 (October 2026)
 --------------------
 Fixed

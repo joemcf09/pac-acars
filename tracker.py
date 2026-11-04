@@ -27,6 +27,19 @@ PHASE_LABEL = dict(PHASES)
 AIRBORNE = {"INITIAL_CLIMB", "CLIMB", "CRUISE", "DESCENT", "APPROACH", "GO_AROUND"}
 
 
+ENGINES_BY_ICAO = {"B741": 4, "B742": 4, "B743": 4, "B744": 4, "B748": 4, "B74F": 4, "B48F": 4, "MD11": 3, "B721": 3, "B722": 3,
+                   "DC10": 3, "L101": 3, "A342": 4, "A343": 4, "A345": 4, "A346": 4, "A388": 4, "IL76": 4, "C17": 4}
+
+
+def expected_engines(booking):
+    """How many engines the booked type has: 2 unless it's a known three- or four-engine type."""
+    info = booking.get("aircraft_info") or {}
+    code = str(info.get("icao") or booking.get("aircraft") or "").upper()[:4]
+    if not code:
+        return None
+    return ENGINES_BY_ICAO.get(code, 2)
+
+
 def zulu(t):
     return dt.datetime.fromtimestamp(t, dt.timezone.utc).strftime("%H%MZ")
 
@@ -83,6 +96,13 @@ class FlightRecorder:
         self.landing_series = None
         self.landing_capture_until = None
         self.position_jumps = 0
+        # PAC ACARS 1.1
+        self.practice = bool(booking.get("practice"))   # landing practice: graded, never filed
+        self.touchdowns = []      # every touchdown this session (touch-and-goes too): t, rate, ias, g, lat, lon
+        self.ride = {"max_bank": 0.0, "steep_s": 0.0, "max_g": 1.0, "min_g": 1.0, "rough": 0}
+        self.coach = {}           # SOP reminders already given (once each)
+        self.callouts = {}        # approach gates already checked
+        self.fuel_checks = {}
 
     # ---------------------------------------------------------------- logging
     def msg(self, t, text, kind="info"):
@@ -254,7 +274,12 @@ class FlightRecorder:
                 self.set_phase("ARRIVED", t, s)
                 self.complete = True
             elif db.check("roll2", s.on_ground and s.ias > 60, t, 3):
-                self.event(t, "procedure", "SECOND TAKEOFF ROLL DETECTED", penalty=10)
+                if getattr(self, "practice", False):
+                    self.msg(t, "PRACTICE  TAKEOFF FOR ANOTHER CIRCUIT")
+                    self.oooi["off"] = None
+                    self.complete = False
+                else:
+                    self.event(t, "procedure", "SECOND TAKEOFF ROLL DETECTED", penalty=10)
                 self.set_phase("TAKEOFF", t, s)
 
         # exceedances
@@ -275,6 +300,10 @@ class FlightRecorder:
         self._record_profile(s)
         self._record_takeoff(s)
         self._integrity(s, prev)
+        try:
+            self._coach_1_1(s, prev)
+        except Exception as e:   # coaching must never stop a flight from being tracked
+            self.coach_error = str(e)[:200]
 
         # periodic position report
         if self.phase in AIRBORNE and t - self.last_pos_report >= 600:
@@ -302,7 +331,8 @@ class FlightRecorder:
                 self.landing_series.append(sample)
             else:
                 self.landing_capture_until = None
-        elif not s.on_ground and s.agl_ft < 2500 and self.phase in ("APPROACH", "DESCENT", "GO_AROUND"):
+        elif not s.on_ground and s.agl_ft < 2500 and (self.phase in ("APPROACH", "DESCENT", "GO_AROUND")
+                                                       or (getattr(self, "practice", False) and self.phase in AIRBORNE)):
             if not self.approach_buf or t - self.approach_buf[-1][0] >= 0.25 or s.agl_ft < 300:
                 self.approach_buf.append(sample)
             self.approach_buf = [x for x in self.approach_buf if t - x[0] <= 150]
@@ -430,6 +460,161 @@ class FlightRecorder:
         elif self.phase in ("LANDING", "TAXI_IN"):
             self.set_phase("TAXI_IN", t, s)
 
+    # ---------------------------------------------------------------- PAC ACARS 1.1: coaching (messages only, never scored)
+    def _once(self, store, key):
+        d = getattr(self, store, None)
+        if d is None:
+            d = {}
+            setattr(self, store, d)
+        if d.get(key):
+            return False
+        d[key] = True
+        return True
+
+    def _ul(self, t, text):
+        self.msg(t, text, "ul")       # an uplink: chimes and lights MSG
+
+    def _coach_1_1(self, s, prev):
+        t, p, db = s.t, self.phase, self.db
+        dt = max(0.0, min(5.0, t - prev.t)) if prev else 0.0
+        airborne = not s.on_ground
+
+        # smooth ride: bank, steep turns and rough handling (for live animals and fragile freight)
+        ride = getattr(self, "ride", None)
+        if ride is None:
+            ride = self.ride = {"max_bank": 0.0, "steep_s": 0.0, "max_g": 1.0, "min_g": 1.0, "rough": 0}
+        if airborne and p in AIRBORNE:
+            if s.bank is not None:
+                ride["max_bank"] = round(max(ride["max_bank"], abs(s.bank)), 1)
+                if abs(s.bank) > 30:
+                    ride["steep_s"] = round(ride["steep_s"] + dt, 1)
+            ride["max_g"] = round(max(ride["max_g"], s.g), 2)
+            ride["min_g"] = round(min(ride["min_g"], s.g), 2)
+            if (s.g > 1.5 or s.g < 0.5) and db.check("rough", True, t, 0.5) and self._once("callouts", f"rough{int(t // 60)}"):
+                ride["rough"] += 1
+        else:
+            db.check("rough", False, t, 0.5)
+
+        # aircraft check: the loaded aircraft should match the booked type
+        if not self.coach.get("ac_checked") and s.num_engines and p == "PREFLIGHT":
+            self.coach["ac_checked"] = True
+            want = expected_engines(self.booking)
+            if want and s.num_engines != want:
+                self._ul(t, f"PAC OCC  LOADED AIRCRAFT HAS {s.num_engines} ENGINES. THE {self.booking.get('aircraft', 'BOOKED TYPE')} "
+                            f"HAS {want}. CHECK YOU LOADED THE RIGHT AIRCRAFT")
+        ac_max = (self.booking.get("aircraft_info") or {}).get("mtow_lbs")
+        if ac_max and s.weight_lbs > ac_max * 1.08 and p in ("PREFLIGHT", "PUSHBACK", "TAXI_OUT") and self._once("coach", "mtow"):
+            self._ul(t, f"PAC OCC  GROSS WEIGHT {s.weight_lbs:,.0f}LB IS ABOVE THE {ac_max:,.0f}LB MAX TAKEOFF WEIGHT. CHECK FUEL AND PAYLOAD")
+
+        # SOP coach: friendly reminders from PAC's standard procedures (only when the aircraft reports its lights)
+        if getattr(self, "sop_coach", True):
+            if s.beacon is False:
+                if s.engines_running and self._once("coach", "beacon_eng"):
+                    self.msg(t, "PAC SOP  BEACON SHOULD BE ON BEFORE ENGINE START", "warn")
+                elif p == "PUSHBACK" and self._once("coach", "beacon_push"):
+                    self.msg(t, "PAC SOP  BEACON ON BEFORE PUSHBACK", "warn")
+            if p == "TAKEOFF" and s.ias > 30:
+                if s.landing_lights is False and self._once("coach", "ldg_to"):
+                    self.msg(t, "PAC SOP  LANDING LIGHTS ON FOR TAKEOFF", "warn")
+                if s.strobe is False and self._once("coach", "strobe_to"):
+                    self.msg(t, "PAC SOP  STROBES ON WHEN ENTERING THE RUNWAY", "warn")
+            if db.check("ldg_high", airborne and s.landing_lights is True and s.alt_ft > 11000 and p in ("CLIMB", "CRUISE"), t, 120) \
+                    and self._once("coach", "ldg_high"):
+                self.msg(t, "PAC SOP  LANDING LIGHTS OFF ABOVE 10,000 FT", "info")
+            if db.check("ldg_low", airborne and s.landing_lights is False and s.alt_ft < 9500 and p in ("DESCENT", "APPROACH"), t, 60) \
+                    and self._once("coach", "ldg_low"):
+                self.msg(t, "PAC SOP  LANDING LIGHTS ON BELOW 10,000 FT", "warn")
+            if db.check("strobe_taxi", p == "TAXI_IN" and s.strobe is True and s.gs > 3, t, 45) and self._once("coach", "strobe_taxi"):
+                self.msg(t, "PAC SOP  STROBES OFF AFTER VACATING THE RUNWAY", "info")
+
+        # stabilized approach gates at 1,000 and 500 ft above the ground
+        on_final = p == "APPROACH" or (getattr(self, "practice", False) and p in AIRBORNE and s.gear_down)
+        if on_final and airborne and s.vs_fpm < -100:
+            buf = [x for x in getattr(self, "approach_buf", []) if t - x[0] <= 12]
+            for gate in (1000, 500):
+                key = f"gate{gate}_{len(getattr(self, 'touchdowns', []))}"
+                if s.agl_ft <= gate and (prev and prev.agl_ft > gate) and self._once("callouts", key):
+                    issues = []
+                    if not s.gear_down:
+                        issues.append("GEAR UP")
+                    if gate == 1000 and s.flaps < 0.3:
+                        issues.append("FLAPS NOT SET")
+                    recent = [x[2] for x in buf if t - x[0] <= 6] or [s.vs_fpm]
+                    if max(recent) < -1000:
+                        issues.append(f"SINK {abs(max(recent)):,.0f}FPM")
+                    spd = [x[3] for x in buf]
+                    if len(spd) >= 4 and max(spd) - min(spd) > 15:
+                        issues.append(f"SPEED UNSTABLE {min(spd):.0f}-{max(spd):.0f}KT")
+                    if issues:
+                        self._ul(t, f"UNSTABLE AT {gate}FT  {'  '.join(issues)}  CONSIDER A GO-AROUND")
+                    elif gate == 1000:
+                        self.msg(t, "STABLE AT 1000FT")
+
+        # fuel checks against the SimBrief plan at top of climb and top of descent
+        ofp = self.booking.get("ofp") or {}
+        trip, block = ofp.get("trip_fuel_lbs"), ofp.get("block_fuel_lbs")
+        route_nm = ofp.get("distance_nm") or 0
+        if trip and block and route_nm and airborne:
+            for when, ph in (("TOC", "CRUISE"), ("TOD", "DESCENT")):
+                if p == ph and self._once("fuel_checks", when):
+                    dtg = gc_distance_nm(s.lat, s.lon, self.dest["lat"], self.dest["lon"])
+                    est_arrival = s.fuel_lbs - trip * min(1.0, dtg / route_nm)
+                    plan_arrival = block - trip - (ofp.get("taxi_fuel_lbs") or 0)
+                    diff = est_arrival - plan_arrival
+                    line = f"FUEL CHECK {when}  FOB {s.fuel_lbs:,.0f}LB  EST ARRIVAL {est_arrival:,.0f}LB  PLAN {plan_arrival:,.0f}LB"
+                    reserve = ofp.get("reserve_fuel_lbs") or 0
+                    if reserve and est_arrival < reserve:
+                        self._ul(t, "PAC OCC  " + line + "  BELOW RESERVE: CONSIDER A FUEL STOP OR YOUR ALTERNATE")
+                    elif abs(diff) >= 1000:
+                        self.msg(t, line + f"  ({'+' if diff > 0 else ''}{diff:,.0f}LB VS PLAN)")
+                    else:
+                        self.msg(t, line + "  ON PLAN")
+
+        # top of descent reminder: about 3 nm per 1,000 ft to lose, plus 10 nm to slow down
+        if p == "CRUISE" and airborne:
+            dtg = gc_distance_nm(s.lat, s.lon, self.dest["lat"], self.dest["lon"])
+            elev = self.dest.get("elevation") or 0
+            tod_nm = max(0.0, (s.alt_ft - elev) / 1000 * 3 + 10)
+            if dtg <= tod_nm + 20 and self._once("callouts", "tod"):
+                self._ul(t, f"PAC OCC  TOP OF DESCENT IN ABOUT {max(0, dtg - tod_nm):.0f}NM. START DOWN AT ~{tod_nm:.0f}NM FROM "
+                            f"{self.dest.get('icao', 'DEST')}. CHECK ATIS, BRIEF THE APPROACH, SET VREF AND MINIMUMS")
+                self.wx_jobs = getattr(self, "wx_jobs", []) + ["tod"]
+                self.tod_wx_sent = True
+
+        # live dispatch: occasional realistic messages from PAC Operations on longer flights
+        if p == "CRUISE" and self.oooi.get("off") and not getattr(self, "practice", False):
+            self._dispatch_events(t, s)
+
+    def _dispatch_events(self, t, s):
+        import random
+        sent = getattr(self, "dispatch_sent", [])
+        self.dispatch_sent = sent
+        flown_min = (t - self.oooi["off"]) / 60
+        est = (self.booking.get("ofp") or {}).get("est_enroute_min") or (self.booking.get("mission") or {}).get("target_block_min") or 0
+        if est < 75 or len(sent) >= 2 or flown_min < 25 or t - getattr(self, "dispatch_last_t", 0) < 1800:
+            return
+        if random.Random(f"{self.booking.get('flight_number')}-{int(t // 600)}").random() > 0.35:
+            self.dispatch_last_t = t - 1200   # look again in about 10 minutes
+            return
+        m = self.booking.get("mission") or {}
+        dest = self.dest.get("icao", "DEST")
+        pool = [
+            ("eta", f"PAC OCC  {(m.get('cargo') or 'CARGO').upper()[:40]} CONSIGNEE REQUESTS AN UPDATED ETA FOR {dest}. "
+                    f"SEND IT FROM THE ETA TAB WHEN ABLE"),
+            ("ramp", f"PAC OCC  {dest} RAMP REPORTS A BUSY CARGO APRON ON ARRIVAL. EXPECT A SHORT WAIT FOR MARSHALLING"),
+            ("mx", "PAC MX  PLEASE WRITE UP ANY DEFECTS FROM THIS SECTOR ON THE FAULT TAB SO MAINTENANCE CAN PLAN THE TURN"),
+            ("load", f"PAC LOAD CONTROL  FINAL LOAD FIGURES CONFIRMED. NO LAST-MINUTE CHANGES FOR {dest}"),
+        ]
+        if (m.get("priority") or "").lower() in ("high", "critical") or m.get("urgent"):
+            pool.append(("prio", f"PAC OCC  CUSTOMER CONFIRMS PRIORITY HANDLING AT {dest}. A TRUCK WILL MEET THE AIRCRAFT ON STAND"))
+        pool = [x for x in pool if x[0] not in sent]
+        if not pool:
+            return
+        kind, text = random.Random(f"{self.booking.get('flight_number')}-{len(sent)}").choice(pool)
+        sent.append(kind)
+        self.dispatch_last_t = t
+        self._ul(t, text)
+
     # ---------------------------------------------------------------- OOOI
     def _out(self, t, s):
         self.oooi["out"] = t
@@ -479,6 +664,10 @@ class FlightRecorder:
             dist_dest = gc_distance_nm(lat, lon, self.dest["lat"], self.dest["lon"])
             self.landing = {"rate_fpm": round(rate), "g": round(s.g, 2),
                             "ias": round(ias), "lat": lat, "lon": lon, "dist_dest_nm": round(dist_dest, 1)}
+            if not hasattr(self, "touchdowns"):
+                self.touchdowns = []
+            self.touchdowns.append({"t": t, "rate_fpm": round(rate), "ias": round(ias), "g": round(s.g, 2), "lat": lat, "lon": lon,
+                                    "hdg": round(s.hdg, 1), "n": len(self.touchdowns) + 1})
             self.msg(t, f"ON {zulu(t)}  TOUCHDOWN {rate:.0f}FPM  IAS {ias:.0f}KT  FOB {s.fuel_lbs:,.0f}LB", "oooi")
             buf = [x for x in getattr(self, "approach_buf", []) if x[0] < t]
             self.landing_series = buf + [
