@@ -4966,12 +4966,13 @@ async function staffTransfers() {
   });
 }
 function staffRoster() {
-  $("#staffBody").innerHTML = `<div class="table-wrap"><table class="staff-table"><thead><tr><th>ID</th><th>Name</th><th>Rank</th><th>Hours</th><th>Flights</th><th>Avg</th><th>Wallet</th><th>Transfer hrs</th><th>Checkride</th><th>Rank setting</th><th title="Cleared to fly the Kodiak for Pagani Remote Aviation">PRA</th><th>Status</th><th></th></tr></thead><tbody>
+  $("#staffBody").innerHTML = `<div class="table-wrap"><table class="staff-table"><thead><tr><th>ID</th><th>Name</th><th>Rank</th><th>Hours</th><th>Flights</th><th>Avg</th><th>Wallet</th><th>Transfer hrs</th><th title="Home hub: where the pilot is based">Hub</th><th>Checkride</th><th>Rank setting</th><th title="Cleared to fly the Kodiak for Pagani Remote Aviation">PRA</th><th>Status</th><th></th></tr></thead><tbody>
     ${S.staff.roster.map(p => `<tr data-pilot="${p.id}"><td><b>${p.id}</b>${p.staff ? ' <span class="tag dark">Staff</span>' : ""}</td><td>${esc(p.name)}<br><small class="muted">${esc(p.email || "")}</small></td><td style="white-space:nowrap">${rankImg(p.rank)}${esc(p.rank)}${p.rank_override ? ' <span class="tag dark">Appointed</span>' : ""}</td>
       <td>${esch(p.hours)}</td><td>${p.flights}</td><td>${p.avg_score ?? "–"}</td>
       <td style="white-space:nowrap"><b class="${moneyCls(p.balance)}">${money(p.balance, true)}</b><br><small class="muted">at ${esc(p.location || "–")}</small>
         <div class="row" style="margin-top:4px;flex-wrap:nowrap"><input type="number" step="50" placeholder="±$" data-wamt="${p.id}" style="width:80px" aria-label="Wallet adjustment"><button class="btn ghost small" type="button" data-wadj="${p.id}">Adjust</button></div></td>
       <td><input type="number" min="0" step="0.1" value="${p.transfer_hours || 0}" data-f="transfer_hours" aria-label="Transfer hours" style="width:90px"></td>
+      <td><select data-f="hub" aria-label="Home hub">${["KCVG", "LIMC", "KMIA", "OMDW", "VHHH", "PANC"].map(h => `<option ${h === (p.hub || "KCVG") ? "selected" : ""}>${h}</option>`).join("")}</select><br><small class="muted">at ${esc(p.location || "–")}</small></td>
       <td><select data-f="checkride" aria-label="Checkride">${["Pending", "Passed", "Waived"].map(o => `<option ${o === p.checkride ? "selected" : ""}>${o}</option>`).join("")}</select></td>
       <td><select data-f="rank_override" aria-label="Rank setting"><option value="">Earned by flying</option>${(S.ranks || []).map(r => `<option ${r.name === p.rank_override ? "selected" : ""}>${esc(r.name)}</option>`).join("")}</select></td>
       <td><input type="checkbox" data-f="pra" ${p.pra ? "checked" : ""} aria-label="Cleared for Pagani Remote Aviation" style="accent-color:var(--red);width:18px;height:18px"></td>

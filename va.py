@@ -3118,6 +3118,8 @@ def staff_roster(pid):
             con.execute("UPDATE pilots SET status=? WHERE id=?", (b["status"], pid))
         if b.get("checkride") in ("Pending", "Passed", "Waived"):
             con.execute("UPDATE pilots SET checkride=? WHERE id=?", (b["checkride"], pid))
+        if b.get("hub") in LIVE_HUBS:          # the pilot's home hub (where they return to and are based)
+            con.execute("UPDATE pilots SET hub=? WHERE id=?", (b["hub"], pid))
         if "rank_override" in b:
             ro = b["rank_override"] if b["rank_override"] in [r["name"] for r in RANKS] else None
             con.execute("UPDATE pilots SET rank_override=? WHERE id=?", (ro, pid))
