@@ -4340,14 +4340,14 @@ function openTransferForm() {
     <div class="tr-grid">
       <label>Type<select name="kind"><option value="va">Virtual airline</option><option value="network">VATSIM or IVAO</option></select></label>
       <label>Name<input name="name" maxlength="80" placeholder="e.g. Delta Virtual Airlines" required></label>
-      <label class="wide">Public logbook or profile link<input name="url" type="url" maxlength="300" placeholder="https://…" required></label>
+      <label class="wide">Logbook or profile link<input name="url" type="url" maxlength="300" placeholder="https://…" required></label>
       <label>Hours shown<input name="hours" type="number" min="0.1" step="0.1" required></label>
-      <label>Screenshot of the logbook<input name="proof" type="file" accept="image/png,image/jpeg,image/webp" required></label>
+      <label>Screenshot showing your name or pilot ID and the hours<input name="proof" type="file" accept="image/png,image/jpeg,image/webp" required></label>
     </div></fieldset>`;
   let n = 1;
   const paint = () => {
     $("#trBody").innerHTML = `<form id="trForm" class="tr-form">
-      <p class="small" style="margin:0">Each source needs a <b>public</b> link where staff can see your name (or pilot ID) and hours, plus a screenshot of the same page. Staff check every link.</p>
+      <p class="small" style="margin:0">Each source needs a link to your logbook or profile page and a screenshot of it. <b>The screenshot must show your name or pilot ID together with your hours</b>: many VA systems need a login, so staff may not be able to open the link and will go by the screenshot. If staff can't confirm it's you, they may ask for a quick Discord screen share.</p>
       <ul class="small muted" style="margin:0;padding-left:18px">
         <li>Hours at different virtual airlines add up.</li>
         <li>VATSIM/IVAO hours are usually the same flights as your VA hours, so they don't add on top: staff use whichever total is larger.</li>
@@ -4604,8 +4604,8 @@ function renderHandbook(cfg) {
       <table><tr><th>Area</th><th>Status</th><th>Hazard pay</th></tr>${S.zones.zones.map(z => `<tr><td><b>${esc(z.name)}</b><br><small class="muted">${esc(z.note || "")}</small></td><td>${z.level === "restricted" ? "Restricted" : "Caution"}</td><td>${z.level === "caution" ? `+${z.pct}%` : "–"}</td></tr>`).join("")}</table>
       <p class="muted" style="font-size:13px">Based on the FAA's rules for US operators. Staff update the list when the real world changes.</p>`]] : []),
     ["transfers", "Transfer hours", `<p>Hours you flew at another virtual airline or on VATSIM/IVAO can count towards your PAC rank. Send a request from <b>Career</b> within 60 days of joining (pilots who joined before the program opened have until January 4, 2027).</p>
-      <table><tr><th>What counts</th><td>Hours on a <b>public</b> logbook or profile page at another virtual airline, or your VATSIM/IVAO pilot hours, where staff can see your name or pilot ID. Up to 3 sources, each with its link and a screenshot.</td></tr>
-      <tr><th>What doesn't</th><td>Personal or offline logbooks, hours with no public record, and hours that can't be traced to you.</td></tr>
+      <table><tr><th>What counts</th><td>Hours in your logbook at another virtual airline, or your VATSIM/IVAO pilot hours. Up to 3 sources, each with the link to the logbook or profile page and a screenshot that shows <b>your name or pilot ID together with the hours</b>. Many VA systems need a login, so staff may go by the screenshot, and may ask for a quick Discord screen share if they can't confirm it's you.</td></tr>
+      <tr><th>What doesn't</th><td>Personal or offline logbooks, single-player career modes (such as MSFS career), and hours that can't be traced to you.</td></tr>
       <tr><th>Adding up</th><td>Hours at different virtual airlines add up. VATSIM/IVAO hours are usually the same flights, so they don't add on top of VA hours: the larger total is used.</td></tr>
       <tr><th>Credit</th><td><b>Half</b> of the verified hours, up to <b>75 hours</b>. That can take you as far as Senior First Officer; Captain and Senior Captain are earned at PAC.</td></tr>
       <tr><th>Still required</th><td>The line checkride (or a type checkride), your average score (3 PAC flights before it counts) and type ratings.</td></tr>
@@ -4928,7 +4928,7 @@ async function staffTransfers() {
   const r = d.rules;
   const credit = (srcs) => { let va = 0, net = 0; srcs.forEach(s => { if (!s.ok) return; s.kind === "network" ? net += s.h : va += s.h; });
     const base = Math.max(va, net); return { base: Math.round(base * 10) / 10, cr: Math.min(r.cap, Math.round(base * r.share * 10) / 10) }; };
-  body.innerHTML = `<p class="muted" style="max-width:85ch">Open each link and check that the <b>name or pilot ID matches</b> and the <b>hours</b> are what the pilot says. Tick the sources you could verify and correct the hours if needed. PAC credits half of the verified total, up to ${r.cap} hours: VA hours add up, VATSIM/IVAO hours don't stack on top of VA hours (the larger total counts). Approving never lowers hours already set in the Roster.</p>
+  body.innerHTML = `<p class="muted" style="max-width:85ch">Open each link and check that the <b>name or pilot ID matches</b> and the <b>hours</b> are what the pilot says. If a link needs a login (common with vAMSYS, Newsky and phpVMS), go by the screenshot: it must show the pilot's name or ID together with the hours. Not sure? Leave it pending and ask the pilot for a quick Discord screen share. Tick the sources you could verify and correct the hours if needed. PAC credits half of the verified total, up to ${r.cap} hours: VA hours add up, VATSIM/IVAO hours don't stack on top of VA hours (the larger total counts). Approving never lowers hours already set in the Roster.</p>
     ${d.requests.length ? d.requests.map(q => `<div class="q-item ${statusCls(q.status === "Approved" ? "Accepted" : q.status)}" data-trq="${q.id}">
       <div><b>${esc(q.pilot_name || q.pilot_id)}</b> · ${esc(q.pilot_id)} <span class="tag ${q.status === "Pending" ? "amber" : q.status === "Approved" ? "green" : ""}">${esc(q.status)}</span>
         ${q.requests_by_pilot > 1 ? `<span class="tag dark">${q.requests_by_pilot} requests (appeal)</span>` : ""}

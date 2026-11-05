@@ -1,7 +1,8 @@
 """Transfer hours: pilots ask for verified hours from other virtual airlines (or VATSIM/IVAO) to count towards rank.
 
 The rules (also in the handbook):
-  * up to 3 sources per request, each with a public logbook link and a screenshot as proof
+  * up to 3 sources per request, each with a logbook link and a screenshot showing the pilot's name or ID with the
+    hours (many VA systems need a login, so staff may go by the screenshot or ask for a screen share)
   * hours at different VAs add up; network hours (VATSIM/IVAO) don't stack on top of VA hours, because they're
     usually the same flights, so the larger of the two totals is used
   * PAC credits half the verified hours, at most 75 hours (so transfers can take a pilot to Senior First Officer,
@@ -170,11 +171,11 @@ def submit():
         if not name:
             return jsonify({"error": f"Source {n}: enter the virtual airline or network name."}), 400
         if not url:
-            return jsonify({"error": f"Source {n}: add the link to your public logbook or profile page (starting with https://)."}), 400
+            return jsonify({"error": f"Source {n}: add the link to your logbook or profile page (starting with https://)."}), 400
         if not 0 < hours <= MAX_CLAIM:
             return jsonify({"error": f"Source {n}: enter the hours shown on that logbook."}), 400
         if not request.files.get(f"proof{i}"):
-            return jsonify({"error": f"Source {n}: add a screenshot of the logbook showing your name and hours."}), 400
+            return jsonify({"error": f"Source {n}: add a screenshot that shows your name or pilot ID and your hours."}), 400
         sources.append({"kind": kind, "name": name, "url": url, "hours": hours})
     with C["db"]() as con:
         st = status_for(con, pid)
@@ -299,7 +300,7 @@ def staff_decide(rid):
         text = ("PAC staff reviewed your transfer hours request and couldn't verify it this time.\n\n"
                 f"Reason: {note}\n\n"
                 + ("You can appeal once from Career on the PAC website, within your 60-day window. "
-                   "Fixing the reason above (for example a public logbook link that shows your name) is usually enough.\n\n"
+                   "Fixing the reason above (for example a screenshot that shows your name or pilot ID with your hours) is usually enough.\n\n"
                    if appeal_left else "")
                 + "PAC Operations Control")
         mailed = _notify(r["pilot_id"], "Your PAC transfer hours request", text)
