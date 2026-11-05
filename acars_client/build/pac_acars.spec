@@ -10,6 +10,7 @@ ROOT = os.path.dirname(CLIENT)
 
 datas = [
     (os.path.join(CLIENT, "ui.html"), "."),
+    (os.path.join(CLIENT, "CHANGELOG.txt"), "."),   # shown once after an update ("What's new")
     (os.path.join(CLIENT, "assets"), "assets"),
     (os.path.join(ROOT, "data", "airports.json"), "data"),
 ]

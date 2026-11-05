@@ -1,6 +1,12 @@
 PAC ACARS - CHANGELOG
 =====================
 
+1.1.3 (November 2026)
+---------------------
+New
+- What's new: the first time PAC ACARS opens after an update, it shows what
+  changed in the new version.
+
 1.1.2 (November 2026)
 ---------------------
 Fixed

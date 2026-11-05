@@ -122,7 +122,14 @@ html[data-design="loadsheet"] .grid b,html[data-design="loadsheet"] .ofp b{font-
 #splash .sp-ver{position:absolute;bottom:14px;font:500 11px var(--mono);color:#5c626c}
 @media (prefers-reduced-motion:reduce){#splash .sp-bar i{animation:none;width:100%}#splash{transition:none}}
 #updDlg{position:fixed;inset:0;z-index:9000;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;padding:16px}
-#updDlg[hidden]{display:none}
+#updDlg[hidden],#wnDlg[hidden]{display:none}
+#wnDlg{position:fixed;inset:0;z-index:8990;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;padding:16px}
+#wnDlg .box{background:var(--panel);border:1px solid var(--line);border-top:3px solid var(--red);padding:16px;max-width:460px;width:100%;max-height:80vh;display:flex;flex-direction:column}
+#wnDlg h3{margin:0 0 4px;font-size:17px}
+#wnBody{overflow:auto;font-size:13px;line-height:1.45}
+#wnBody h4{margin:12px 0 4px;font-size:13px;color:var(--dim);letter-spacing:.06em;text-transform:uppercase}
+#wnBody ul{margin:2px 0 6px;padding-left:18px}#wnBody li{margin:2px 0}
+#wnBody .sec{font-weight:700;margin:8px 0 2px}
 #updDlg .box{background:var(--panel);border:1px solid var(--line);border-top:3px solid var(--red);padding:16px;max-width:380px;width:100%}
 #updDlg h3{margin:0 0 6px;font-size:17px}
 #updDlg .prog{height:6px;background:#101215;margin:12px 0 4px}
@@ -159,6 +166,8 @@ html[data-design="loadsheet"] #map{border-radius:0}
 <body>
 <div id="splash" role="status" aria-live="polite"><div class="sp-brand"><img src="/static/pac-wordmark-white.png" alt="PAC"><b>ACARS</b></div>
   <div class="sp-bar" aria-hidden="true"><i></i></div><div class="sp-status" id="spStatus">Starting…</div><div class="sp-ver" id="spVer"></div></div>
+<div id="wnDlg" hidden><div class="box" role="dialog" aria-modal="true" aria-labelledby="wnTitle"><h3 id="wnTitle">What's new</h3><div id="wnBody"></div>
+  <div class="row" style="margin-top:12px"><button class="btn" type="button" id="wnOk">Got it</button></div></div></div>
 <div id="updDlg" hidden><div class="box" role="dialog" aria-modal="true" aria-labelledby="updTitle"><h3 id="updTitle">Update available</h3><div id="updBody"></div></div></div>
 <header><span class="brandblk"><img src="/static/pac-wordmark-white.png" alt="PAC"><b>ACARS</b></span><span class="sp"></span>
   <button class="hbtn msg-light" id="msgLight" type="button" title="New messages from PAC Operations" aria-live="polite">MSG</button>
@@ -485,6 +494,30 @@ function updateDialog(st) {
   const go = $("#updGo"); if (go) go.onclick = () => busy(go, "Starting…", async () => { try { await api("/api/update/download", {}); poll(); } catch (e) { note(esc(e.message), "err"); } });
   const inst = $("#updInstall"); if (inst) inst.onclick = () => busy(inst, "Starting…", async () => { try { await api("/api/update/install", {}); } catch (e) { note(esc(e.message), "err"); } });
 }
+/* ---------------- 1.1.3: what's new, once after an update ---------------- */
+let wnClosed = false;
+function changelogHtml(text) {   // the plain-text changelog: section names, "- " items, indented continuation lines
+  let h = "", open = false, item = null;
+  const flush = () => { if (item !== null) { h += `<li>${esc(item)}</li>`; item = null; } };
+  for (const raw of text.split("\n")) {
+    const line = raw.replace(/\s+$/, "");
+    if (/^- /.test(line)) { if (!open) { h += "<ul>"; open = true; } flush(); item = line.slice(2); }
+    else if (/^\s{2,}\S/.test(line) && item !== null) item += " " + line.trim();
+    else if (line.trim()) { flush(); if (open) { h += "</ul>"; open = false; } h += `<div class="sec">${esc(line.trim())}</div>`; }
+  }
+  flush(); if (open) h += "</ul>";
+  return h;
+}
+function whatsNewDialog(st) {
+  const w = S.whats_new, dlg = $("#wnDlg");
+  const show = !!w && !wnClosed && SPLASH.done && $("#updDlg").hidden && !(st && st.tracking);
+  dlg.hidden = !show;
+  if (!show || dlg.dataset.v === w.version) return;
+  dlg.dataset.v = w.version;
+  $("#wnTitle").textContent = `What's new in PAC ACARS ${w.version}`;
+  $("#wnBody").innerHTML = w.entries.map(e => `${w.entries.length > 1 ? `<h4>${esc(e.version)} · ${esc(e.date)}</h4>` : ""}${changelogHtml(e.text)}`).join("");
+  $("#wnOk").onclick = async () => { wnClosed = true; dlg.hidden = true; try { await api("/api/whatsnew/seen", {}); } catch (e) {} };
+}
 async function updLater() { updForced = false; try { await api("/api/update/later", {}); } catch (e) {} S.update = { ...(S.update || {}), dismissed: true }; render(); }
 
 /* ---------------- 1.1: landing debrief ---------------- */
@@ -517,7 +550,7 @@ function render() {
   const newer = (a, b) => { const x = String(a || "").split(".").map(Number), y = String(b || "").split(".").map(Number); for (let i = 0; i < 3; i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); } return false; };
   const upd = $("#update");
   if (upd) upd.innerHTML = newer(h.latest_app, S.version) && (S.update?.dismissed || (st && st.tracking)) ? `<div class="notice">PAC ACARS ${esc(h.latest_app)} is available. ${S.update?.can_install ? `<a href="#" style="color:var(--cyan)" onclick="openUpdate();return false">Update now</a>` : `<a style="color:var(--cyan)" href="${esc(cfg.server)}/#downloads" target="_blank" rel="noopener">Download it from the PAC website</a>`}.</div>` : "";
-  splashStep(); updateDialog(st);
+  splashStep(); updateDialog(st); whatsNewDialog(st);
   applyDesign();
   S.unread = S.unread ?? 0;
   runCommand(S.win_cmd);

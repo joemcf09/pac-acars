@@ -13,6 +13,7 @@ from __future__ import annotations
 import json
 import os
 import pickle
+import re
 import sys
 import threading
 import time
@@ -89,7 +90,7 @@ import acars_core  # noqa: E402
 from sim_sources import DemoSource, MSFSSource, XPlaneSource, gc_distance_nm  # noqa: E402
 from tracker import FlightRecorder, TrackerThread  # noqa: E402
 
-VERSION = "1.1.2"
+VERSION = "1.1.3"
 PORT = int(os.environ.get("PAC_ACARS_PORT", "5070"))  # not 5060: browsers block that port (SIP)
 CONFIG_PATH = USER_DIR / "config.json"
 STATE_PATH = USER_DIR / "flight_state.pkl"
@@ -511,7 +512,7 @@ def api_state():
                     "unread": unread(), "compact": state.get("compact"), "native": bool(state.get("native")), "tray": bool(state.get("tray")),
                     "win_cmd": state.get("win_cmd"), "window_restarts": state.get("window_restarts", 0),
                     "practice": bool(state.get("practice")), "debriefs": state.get("debriefs") or [],
-                    "update": update_info()})
+                    "update": update_info(), "whats_new": whats_new()})
 
 
 @ui.get("/api/track")
@@ -611,6 +612,51 @@ def _vt(v):
 def installed_copy():
     """True for the installed program (it can update itself); a portable copy or the source code can't."""
     return FROZEN and any((Path(sys.executable).parent / n).exists() for n in ("unins000.exe", "unins001.exe"))
+
+
+def changelog_since(prev):
+    """The changelog entries newer than `prev`, up to this version: [{version, date, text}]."""
+    try:
+        text = (RES / "CHANGELOG.txt").read_text(encoding="utf-8")
+    except OSError:
+        try:
+            text = (HERE / "CHANGELOG.txt").read_text(encoding="utf-8")
+        except OSError:
+            return []
+    out, cur = [], None
+    for line in text.replace("\r\n", "\n").split("\n"):
+        m = re.match(r"^(\d+\.\d+\.\d+) \((.+)\)\s*$", line)
+        if m:
+            cur = {"version": m.group(1), "date": m.group(2), "lines": []}
+            out.append(cur)
+        elif cur is not None and not re.match(r"^-{3,}\s*$", line):
+            cur["lines"].append(line)
+    keep = [e for e in out if _vt(e["version"]) <= _vt(VERSION) and (prev is None or _vt(e["version"]) > _vt(prev))]
+    return [{"version": e["version"], "date": e["date"], "text": "\n".join(e["lines"]).strip()} for e in keep[:4]]
+
+
+def whats_new():
+    """After an update, the first start shows what changed (once). A brand-new install just remembers the version."""
+    cfg = load_config()
+    seen = cfg.get("seen_version")
+    if seen == VERSION:
+        return None
+    if seen is None and not cfg.get("token"):
+        cfg["seen_version"] = VERSION      # first ever start: nothing to compare with
+        save_config(cfg)
+        return None
+    entries = changelog_since(seen if seen and _vt(seen) < _vt(VERSION) else None)
+    if seen is None:
+        entries = entries[:1]              # updated from a version before 1.1.3: this version's notes
+    return {"version": VERSION, "from": seen, "entries": entries} if entries else None
+
+
+@ui.post("/api/whatsnew/seen")
+def api_whatsnew_seen():
+    cfg = load_config()
+    cfg["seen_version"] = VERSION
+    save_config(cfg)
+    return jsonify({"ok": True})
 
 
 def update_info():
