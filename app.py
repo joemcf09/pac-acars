@@ -2586,7 +2586,13 @@ def acars_installer_info():
     inst = d.get("installer")
     if not inst:
         return None
-    return {"version": d.get("version"), "url": inst["url"], "size_mb": inst["size_mb"], "file": inst["file"]}
+    url = inst["url"]
+    # Staff can serve installers from a host that skips Cloudflare (data/site.json "download_host", e.g.
+    # https://dl.pac-va.com): the update then downloads straight from this server, much faster.
+    host = str(va.site().get("download_host") or "").strip().rstrip("/")
+    if host.startswith("https://") and url.startswith("/api/acars/build/"):
+        url = host + url
+    return {"version": d.get("version"), "url": url, "size_mb": inst["size_mb"], "file": inst["file"]}
 
 
 @app.get("/api/acars/build/<path:name>")

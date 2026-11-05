@@ -19,3 +19,14 @@ pac-va.com, www.pac-va.com {
 		}
 	}
 }
+
+# PAC ACARS updates download from here: this name is "DNS only" (grey cloud) in Cloudflare, so the
+# installer comes straight from this server instead of through Cloudflare. Only the build files are served.
+dl.pac-va.com {
+	handle /api/acars/build/* {
+		reverse_proxy 127.0.0.1:5050
+	}
+	handle {
+		respond "PAC downloads" 404
+	}
+}
