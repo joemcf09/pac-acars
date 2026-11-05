@@ -4236,9 +4236,100 @@ async function renderHome(h, st) {
   }
 }
 
+/* ================= Transfer hours (pilot side) ================= */
+const trDate = t => new Date(t * 1000).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+async function fillTransfers() {
+  const el = $("#transferPanel");
+  if (!el) return;
+  let d;
+  try { d = await api("/api/transfers"); } catch (e) { el.innerHTML = ""; return; }
+  S.transfers = d;
+  const r = d.rules, last = d.requests[0];
+  const tag = st => `<span class="tag ${st === "Pending" ? "amber" : st === "Approved" ? "green" : ""}">${esc(st)}</span>`;
+  const history = d.requests.map(q => `<div class="tr-hist">
+      <div><b>${q.status === "Approved" ? `${esch(q.credited)} hours credited` : q.status === "Pending" ? "Waiting for staff" : "Not verified"}</b> ${tag(q.status)}
+        <span class="muted small">sent ${trDate(q.submitted)}${q.reviewed_at ? ` · reviewed ${trDate(q.reviewed_at)}` : ""}</span></div>
+      <div class="muted small">${q.sources.map(s => `${esc(s.name)} (${esch(s.hours)} h claimed${q.status === "Approved" ? s.approved ? `, ${esch(s.verified)} verified` : ", not verified" : ""})`).join(" · ")}</div>
+      ${q.note ? `<div class="small">Staff note: ${esc(q.note)}</div>` : ""}</div>`).join("");
+  el.innerHTML = `<section class="panel tr-panel" aria-labelledby="trHead">
+    <div class="tr-top"><div><span class="kicker">Experience from other airlines</span><h2 id="trHead">Transfer hours</h2>
+      <p class="muted" style="margin:4px 0 0;max-width:72ch">Flown at another virtual airline or on VATSIM/IVAO? Send your verified hours and PAC credits <b>half of them, up to ${r.cap} hours</b>, towards rank. That can take you as far as Senior First Officer; Captain is earned at PAC. The checkride, your average score and type ratings still apply, and transfer hours never add pay, points or leaderboard hours.</p></div>
+      <div class="tr-now"><span>Credited now</span><b>${esch(d.transfer_hours)} h</b><small>of ${r.cap} max</small></div></div>
+    ${d.can_request ? `<div class="row" style="align-items:center;gap:12px;margin-top:12px"><button class="btn" type="button" id="trOpen">${d.is_appeal ? "Appeal with new proof" : "Request transfer hours"}</button>
+        <span class="muted small">${d.is_appeal ? "This is your one appeal. " : ""}Open until ${trDate(d.closes)}.</span></div>`
+      : d.why_not ? `<p class="small muted" style="margin:12px 0 0">${esc(d.why_not)}</p>` : ""}
+    ${history ? `<div class="tr-history">${history}</div>` : ""}</section>`;
+  const b = $("#trOpen"); if (b) b.onclick = openTransferForm;
+}
+function openTransferForm() {
+  const d = S.transfers, r = d.rules, dlg = $("#transferDlg");
+  $("#trTitle").textContent = d.is_appeal ? "Appeal: transfer hours" : "Request transfer hours";
+  const row = i => `<fieldset class="tr-src" data-src="${i}"><legend>Source ${i + 1}${i ? ` <button type="button" class="btn ghost small" data-src-del="${i}">Remove</button>` : ""}</legend>
+    <div class="tr-grid">
+      <label>Type<select name="kind"><option value="va">Virtual airline</option><option value="network">VATSIM or IVAO</option></select></label>
+      <label>Name<input name="name" maxlength="80" placeholder="e.g. Delta Virtual Airlines" required></label>
+      <label class="wide">Public logbook or profile link<input name="url" type="url" maxlength="300" placeholder="https://…" required></label>
+      <label>Hours shown<input name="hours" type="number" min="0.1" step="0.1" required></label>
+      <label>Screenshot of the logbook<input name="proof" type="file" accept="image/png,image/jpeg,image/webp" required></label>
+    </div></fieldset>`;
+  let n = 1;
+  const paint = () => {
+    $("#trBody").innerHTML = `<form id="trForm" class="tr-form">
+      <p class="small" style="margin:0">Each source needs a <b>public</b> link where staff can see your name (or pilot ID) and hours, plus a screenshot of the same page. Staff check every link.</p>
+      <ul class="small muted" style="margin:0;padding-left:18px">
+        <li>Hours at different virtual airlines add up.</li>
+        <li>VATSIM/IVAO hours are usually the same flights as your VA hours, so they don't add on top: staff use whichever total is larger.</li>
+        <li>PAC credits half of the verified total, up to ${r.cap} hours. ${d.is_appeal ? "This is your appeal, so there's no further request after it." : "You get one request and one appeal."}</li>
+      </ul>
+      <div id="trSrcs">${Array.from({ length: n }, (_, i) => row(i)).join("")}</div>
+      ${n < r.max_sources ? `<button type="button" class="btn ghost small" id="trAdd" style="align-self:flex-start">+ Add another source</button>` : ""}
+      <label>Anything staff should know? (optional)<textarea name="comment" maxlength="1000" rows="2" placeholder="e.g. my pilot ID there was DAL1234"></textarea></label>
+      <div class="tr-est small" id="trEst"></div>
+      <div class="auth-err" id="trErr" role="alert"></div>
+      <div class="row"><button class="btn" type="submit">Send to staff</button><button class="btn ghost" type="button" data-tr-cancel>Cancel</button></div></form>`;
+    $("#trAdd") && ($("#trAdd").onclick = () => { keep(); n++; paint(); restore(); });
+    document.querySelectorAll("[data-src-del]").forEach(b => b.onclick = () => { keep(); saved.splice(+b.dataset.srcDel, 1); n--; paint(); restore(); });
+    $("[data-tr-cancel]").onclick = () => dlg.close();
+    $("#trForm").oninput = est;
+    $("#trForm").onsubmit = send;
+    est();
+  };
+  let saved = [];
+  const srcEls = () => [...document.querySelectorAll("#trSrcs [data-src]")];
+  const keep = () => { saved = srcEls().map(f => ({ kind: f.querySelector("[name=kind]").value, name: f.querySelector("[name=name]").value, url: f.querySelector("[name=url]").value, hours: f.querySelector("[name=hours]").value, file: f.querySelector("[name=proof]").files[0] || null })); };
+  const restore = () => srcEls().forEach((f, i) => { const v = saved[i]; if (!v) return;
+    f.querySelector("[name=kind]").value = v.kind; f.querySelector("[name=name]").value = v.name; f.querySelector("[name=url]").value = v.url; f.querySelector("[name=hours]").value = v.hours;
+    if (v.file) { const dt = new DataTransfer(); dt.items.add(v.file); f.querySelector("[name=proof]").files = dt.files; } });
+  const est = () => {
+    let va = 0, net = 0;
+    srcEls().forEach(f => { const h = Number(f.querySelector("[name=hours]").value) || 0; f.querySelector("[name=kind]").value === "network" ? net += h : va += h; });
+    const base = Math.max(va, net), cr = Math.min(r.cap, Math.round(base * r.share * 10) / 10);
+    $("#trEst").innerHTML = base ? `If staff verify everything: <b>${esch(Math.round(base * 10) / 10)} h</b>${va && net ? ` (the larger of ${esch(va)} h VA and ${esch(net)} h network)` : ""} → <b>${esch(cr)} h credited</b>${base * r.share > r.cap ? ` (capped at ${r.cap})` : ""}.` : "";
+  };
+  const send = async e => {
+    e.preventDefault();
+    const btn = e.target.querySelector("[type=submit]"), fd = new FormData(), list = [];
+    srcEls().forEach((f, i) => {
+      list.push({ kind: f.querySelector("[name=kind]").value, name: f.querySelector("[name=name]").value.trim(), url: f.querySelector("[name=url]").value.trim(), hours: f.querySelector("[name=hours]").value });
+      const file = f.querySelector("[name=proof]").files[0]; if (file) fd.append(`proof${i}`, file);
+    });
+    fd.append("sources", JSON.stringify(list));
+    fd.append("comment", e.target.comment.value);
+    btn.disabled = true; btn.textContent = "Sending…"; $("#trErr").textContent = "";
+    try {
+      const res = await fetch("/api/transfers", { method: "POST", body: fd });
+      const out = await res.json().catch(() => ({ error: `Sending failed (HTTP ${res.status}).` }));
+      if (!res.ok) throw new Error(out.error);
+      dlg.close(); toast("Sent. Staff will check your logbook and you'll hear back by email."); fillTransfers();
+    } catch (err) { $("#trErr").textContent = err.message; btn.disabled = false; btn.textContent = "Send to staff"; }
+  };
+  paint();
+  if (!dlg.open) dlg.showModal();
+}
+
 /* ================= Career ================= */
 async function loadCareer() {
-  try { const [c, , , wallet] = await Promise.all([api("/api/va/career"), refreshCore(), loadMe(), api("/api/pilot/wallet-transactions?page=1")]); S.careerData = c; S.walletData = wallet; renderCareer(c); S.statsData = null; fillCollection(); fillRatings(); fillCargoAwards(); } catch (e) {
+  try { const [c, , , wallet] = await Promise.all([api("/api/va/career"), refreshCore(), loadMe(), api("/api/pilot/wallet-transactions?page=1")]); S.careerData = c; S.walletData = wallet; renderCareer(c); S.statsData = null; fillCollection(); fillRatings(); fillCargoAwards(); fillTransfers(); } catch (e) {
     $('#careerRoot').innerHTML = '<div class="journey-intro"><div><h1>Career is temporarily unavailable</h1><p role="status">We could not load your career information. Your progress has not changed.</p></div><button class="btn" onclick="loadCareer()">Try again</button></div>';
   }
 }
@@ -4284,7 +4375,7 @@ function renderCareer(c) {
         : `<h2 style="margin:0">Top of the ladder</h2><p style="margin:0">You've reached Senior Captain. Every aircraft in the fleet is yours.</p>`}
     </div>
   </article>
-
+  <div id="transferPanel"></div>
   </section>
   <section data-career-pane="wallet" aria-label="Pay and wallet" hidden><div id="careerWallet">${walletPanel(S.me, S.walletData)}</div></section>
   <section data-career-pane="activities" aria-label="Events tours and rotations" hidden>
@@ -4431,9 +4522,17 @@ function renderHandbook(cfg) {
       <tr><th>To pass</th><td>Arrive at the booked destination, score ${ck.min_score} or better, landing softer than ${Math.abs(ck.min_rate)} fpm at no more than ${ck.max_g} G, no bounce, no overspeed below 10,000 ft and no position jumps in the air.</td></tr></table>
       <p>ACARS grades the checkride automatically when you file the PIREP. If it doesn't pass, fly it again. There's no limit on attempts, and checkrides cost you nothing (see Company-funded checkrides).</p>
       ${cfg.direct_entry ? `<p><b>Already fly a bigger type?</b> You can start with that family's type checkride instead (Career › Qualifications). An accepted pass counts as your line checkride and rates you on that family; it doesn't give you the 737.</p>` : ""}`],
-    ["ranks", "Ranks and aircraft", `<p>Rank depends on your hours (PAC hours plus any transfer hours staff have credited), and on your average score over your last ${cfg.avg_window} accepted flights once you have at least ${cfg.avg_min_flights}.</p>
+    ["ranks", "Ranks and aircraft", `<p>Rank depends on your hours (PAC hours plus any transfer hours staff have credited, see Transfer hours below), and on your average score over your last ${cfg.avg_window} accepted flights once you have at least ${cfg.avg_min_flights}.</p>
       ${cfg.type_ratings_required ? `<p>A rank makes aircraft <b>available</b> to you. Each aircraft family also needs its type rating before you fly it: passing the line checkride (PAC001) in the 737 gives you the whole 737 family (737-200C, 737-300SF and 737-800BCF); for anything else, fly that family's short type checkride from Career › Qualifications.</p>` : `<p>Reaching a rank unlocks its aircraft straight away: you can fly them as soon as you hold the rank.</p>`}
       <table><tr><th></th><th>Rank</th><th>Hours</th><th>Average score</th><th>${cfg.type_ratings_required ? "Makes available" : "Unlocks"}</th></tr>${cfg.ranks.map(r => `<tr><td style="width:52px">${rankImg(r.name)}</td><td><b>${esc(r.name)}</b></td><td>${r.name === "Cadet" ? "–" : r.hours}</td><td>${r.avg || "–"}</td><td>${r.checkride && r.hours === 0 ? "Checkride passed. " : ""}${r.unlocks.map(a => esc(S.fleet[a]?.name || a)).join(", ") || "Checkride only"}</td></tr>`).join("")}</table>`],
+    ["transfers", "Transfer hours", `<p>Hours you flew at another virtual airline or on VATSIM/IVAO can count towards your PAC rank. Send a request from <b>Career</b> within 60 days of joining (pilots who joined before the program opened have until January 4, 2027).</p>
+      <table><tr><th>What counts</th><td>Hours on a <b>public</b> logbook or profile page at another virtual airline, or your VATSIM/IVAO pilot hours, where staff can see your name or pilot ID. Up to 3 sources, each with its link and a screenshot.</td></tr>
+      <tr><th>What doesn't</th><td>Personal or offline logbooks, hours with no public record, and hours that can't be traced to you.</td></tr>
+      <tr><th>Adding up</th><td>Hours at different virtual airlines add up. VATSIM/IVAO hours are usually the same flights, so they don't add on top of VA hours: the larger total is used.</td></tr>
+      <tr><th>Credit</th><td><b>Half</b> of the verified hours, up to <b>75 hours</b>. That can take you as far as Senior First Officer; Captain and Senior Captain are earned at PAC.</td></tr>
+      <tr><th>Still required</th><td>The line checkride (or a type checkride), your average score (3 PAC flights before it counts) and type ratings.</td></tr>
+      <tr><th>Never</th><td>Pay, points, wallet money, leaderboard hours or PAC totals.</td></tr>
+      <tr><th>Requests</th><td>One request and one appeal. Staff check every link, and you hear back by email and on Career.</td></tr></table>`],
     ["divisions", "Fleet divisions", `<p>PAC's fleet is organized in four divisions. They're labels, not separate rules: your rank and ratings decide what you fly, and you can fly in any division you qualify for.</p>
       <table><tr><th>Division</th><th>Aircraft</th><th>What it flies</th></tr>${divisions().map(d => `<tr><td><b>${esc(d.name)}</b></td><td>${Object.keys(S.fleet || {}).filter(k => divOf(k) === d.name && !S.fleet[k].retired).map(k => esc(S.fleet[k].name)).join(", ") || "–"}</td><td>${esc(d.blurb || "")}</td></tr>`).join("")}</table>
       <p>Most pilots start in <b>PAC Feeder</b> on the 737s. The division shows on the Fleet page, on every flight, in your logbook and in My stats, and the mission board can show one division at a time.</p>`],
@@ -4601,13 +4700,13 @@ function renderStaff() {
   const d = S.staff;
   const pendingReviews = d.reviews.filter(r => r.review_status === "Pending").length;
   const pendingApps = d.applications.filter(a => a.status === "Pending").length;
-  const tabs = [["reports", "Problem reports", 0], ["health", "Operations health", 0], ["campaigns", "Cargo campaigns", 0], ["reviews", "PIREP review", pendingReviews], ["applications", "Applications", pendingApps], ["roster", "Roster", 0],
+  const tabs = [["reports", "Problem reports", 0], ["health", "Operations health", 0], ["campaigns", "Cargo campaigns", 0], ["reviews", "PIREP review", pendingReviews], ["applications", "Applications", pendingApps], ["transfers", "Transfer hours", d.transfer_pending || 0], ["roster", "Roster", 0],
     ["news", "News", 0], ["mx", "Maintenance", d.airframes.reduce((n, a) => n + (a.open_items || []).length, 0)], ["types", "Fleet types", 0], ["pphotos", "Partner photos", 0], ["airframes", "Airframes", d.airframes.filter(a => ["Maintenance", "Inspection", "A-check due", "Damaged"].includes(a.status)).length], ["events", "Events", 0], ["site", "Site and rules", 0]];
   $("#staffRoot").innerHTML = `<div class="profile-bar"><h1>Staff</h1><span class="muted">Running the airline. Only staff accounts can see this area.</span></div>
     <div class="staff-tabs" role="tablist">${tabs.map(([k, t, n]) => `<button role="tab" data-st="${k}" aria-selected="${S.staffTab === k}">${t}${n ? `<span class="count">${n}</span>` : ""}</button>`).join("")}</div>
     <div id="staffBody"></div>`;
   document.querySelectorAll("[data-st]").forEach(b => b.onclick = () => { S.staffTab = b.dataset.st; renderStaff(); });
-  ({ reports: staffProblemReports, health: staffOperationsHealth, campaigns: staffCargoCampaigns, reviews: staffReviews, applications: staffApps, roster: staffRoster, news: staffNews, mx: staffMx, types: staffTypes, pphotos: staffPartnerPhotos, airframes: staffAirframes, events: staffEvents, site: staffSite })[S.staffTab]();
+  ({ reports: staffProblemReports, health: staffOperationsHealth, campaigns: staffCargoCampaigns, reviews: staffReviews, applications: staffApps, transfers: staffTransfers, roster: staffRoster, news: staffNews, mx: staffMx, types: staffTypes, pphotos: staffPartnerPhotos, airframes: staffAirframes, events: staffEvents, site: staffSite })[S.staffTab]();
 }
 const statusCls = s => ({ Pending: "pending", Rejected: "rejected", Accepted: "accepted" })[s] || "";
 /* Staff › Partner photos: the Wikimedia Commons photo each partner flight's landing card uses, with its credit */
@@ -4742,6 +4841,52 @@ function staffApps() {
     }
   });
 }
+/* Staff › Transfer hours: check each source's public logbook, then approve (credit is worked out) or reject with a reason */
+async function staffTransfers() {
+  const body = $("#staffBody");
+  body.innerHTML = `<p class="muted">Loading transfer requests…</p>`;
+  let d;
+  try { d = await api("/api/staff/transfers"); } catch (e) { body.innerHTML = `<div class="notice err">${esc(e.message)}</div>`; return; }
+  const r = d.rules;
+  const credit = (srcs) => { let va = 0, net = 0; srcs.forEach(s => { if (!s.ok) return; s.kind === "network" ? net += s.h : va += s.h; });
+    const base = Math.max(va, net); return { base: Math.round(base * 10) / 10, cr: Math.min(r.cap, Math.round(base * r.share * 10) / 10) }; };
+  body.innerHTML = `<p class="muted" style="max-width:85ch">Open each link and check that the <b>name or pilot ID matches</b> and the <b>hours</b> are what the pilot says. Tick the sources you could verify and correct the hours if needed. PAC credits half of the verified total, up to ${r.cap} hours: VA hours add up, VATSIM/IVAO hours don't stack on top of VA hours (the larger total counts). Approving never lowers hours already set in the Roster.</p>
+    ${d.requests.length ? d.requests.map(q => `<div class="q-item ${statusCls(q.status === "Approved" ? "Accepted" : q.status)}" data-trq="${q.id}">
+      <div><b>${esc(q.pilot_name || q.pilot_id)}</b> · ${esc(q.pilot_id)} <span class="tag ${q.status === "Pending" ? "amber" : q.status === "Approved" ? "green" : ""}">${esc(q.status)}</span>
+        ${q.requests_by_pilot > 1 ? `<span class="tag dark">${q.requests_by_pilot} requests (appeal)</span>` : ""}
+        <div class="meta">Sent ${trDate(q.submitted)} · currently ${esch(q.current_hours)} transfer h${q.reviewed_at ? ` · reviewed ${trDate(q.reviewed_at)} by ${esc(q.reviewed_by || "")}, ${esch(q.credited || 0)} h credited` : ""}</div>
+        ${q.comment ? `<p class="small" style="margin:6px 0 0;max-width:80ch">Pilot's note: ${esc(q.comment)}</p>` : ""}
+        <table class="tr-staff"><thead><tr><th>Verified</th><th>Source</th><th>Logbook</th><th>Proof</th><th>Claimed</th><th>Verified hours</th></tr></thead><tbody>
+        ${q.sources.map((s, i) => `<tr><td>${q.status === "Pending" ? `<input type="checkbox" data-tok="${i}" style="accent-color:var(--red);width:18px;height:18px" aria-label="Verified">` : s.approved ? "✓" : "✗"}</td>
+          <td><b>${esc(s.name)}</b><br><small class="muted">${s.kind === "network" ? "VATSIM/IVAO" : "Virtual airline"}</small></td>
+          <td><a href="${esc(s.url)}" target="_blank" rel="noopener noreferrer">Open link ↗</a><br><small class="muted" style="word-break:break-all">${esc(s.url)}</small></td>
+          <td>${s.proof ? `<a href="${esc(s.proof)}" target="_blank" rel="noopener">Screenshot ↗</a>` : "–"}</td>
+          <td>${esch(s.hours)} h</td>
+          <td>${q.status === "Pending" ? `<input type="number" min="0" step="0.1" value="${s.hours}" data-thr="${i}" style="width:90px" aria-label="Verified hours">` : s.approved ? `${esch(s.verified)} h` : "–"}</td></tr>`).join("")}</tbody></table>
+        ${q.status === "Pending" ? `<div class="small" data-trest style="margin-top:6px"></div>` : ""}
+        ${q.note ? `<div class="meta" style="margin-top:4px">Staff note: ${esc(q.note)}</div>` : ""}</div>
+      <div class="q-actions">${q.status === "Pending" ? `<input placeholder="Note to the pilot (required to reject)" data-trnote aria-label="Note to the pilot">
+        <button class="btn small" data-trgo="approve">Approve</button><button class="btn ghost small" data-trgo="reject">Reject</button>` : ""}</div></div>`).join("")
+    : `<div class="empty">No transfer requests yet. Pilots send them from Career.</div>`}`;
+  body.querySelectorAll("[data-trq]").forEach(card => {
+    const q = d.requests.find(x => String(x.id) === card.dataset.trq);
+    if (q.status !== "Pending") return;
+    const read = () => q.sources.map((s, i) => ({ kind: s.kind, ok: card.querySelector(`[data-tok="${i}"]`).checked, h: Number(card.querySelector(`[data-thr="${i}"]`).value) || 0 }));
+    const show = () => { const c = credit(read()); card.querySelector("[data-trest]").innerHTML = c.base ? `Verified total <b>${esch(c.base)} h</b> → <b>${esch(c.cr)} h</b> credited${c.base * r.share > r.cap ? ` (capped at ${r.cap})` : ""}.` : `<span class="muted">Tick the sources you verified to see the credit.</span>`; };
+    card.oninput = show; card.onchange = show; show();
+    card.querySelectorAll("[data-trgo]").forEach(b => b.onclick = async () => {
+      const act = b.dataset.trgo, src = read();
+      const c = credit(src);
+      if (act === "approve" && !confirm(`Credit ${c.cr} transfer hours to ${q.pilot_name || q.pilot_id}?`)) return;
+      b.disabled = true;
+      try {
+        const out = await api(`/api/staff/transfers/${q.id}`, { method: "POST", body: { action: act, note: card.querySelector("[data-trnote]").value, sources: src.map(s => ({ approved: s.ok, verified: s.h })) } });
+        toast(act === "approve" ? `${out.credited} h credited${out.mailed ? ", pilot emailed" : ""}.` : `Request rejected${out.mailed ? ", pilot emailed" : ""}.`);
+        loadStaff();
+      } catch (e) { toast(e.message); b.disabled = false; }
+    });
+  });
+}
 function staffRoster() {
   $("#staffBody").innerHTML = `<div class="table-wrap"><table class="staff-table"><thead><tr><th>ID</th><th>Name</th><th>Rank</th><th>Hours</th><th>Flights</th><th>Avg</th><th>Wallet</th><th>Transfer hrs</th><th>Checkride</th><th>Rank setting</th><th title="Cleared to fly the Kodiak for Pagani Remote Aviation">PRA</th><th>Status</th><th></th></tr></thead><tbody>
     ${S.staff.roster.map(p => `<tr data-pilot="${p.id}"><td><b>${p.id}</b>${p.staff ? ' <span class="tag dark">Staff</span>' : ""}</td><td>${esc(p.name)}<br><small class="muted">${esc(p.email || "")}</small></td><td style="white-space:nowrap">${rankImg(p.rank)}${esc(p.rank)}${p.rank_override ? ' <span class="tag dark">Appointed</span>' : ""}</td>
@@ -4758,7 +4903,7 @@ function staffRoster() {
         <button class="btn ghost small" type="button" data-letter="${p.id}" title="A letter with a fresh sign-in link, ready to send">Letter</button>
         ${p.id === S.me?.id ? "" : `<button class="btn ghost small danger" type="button" data-remove="${p.id}" title="Remove this pilot from PAC">Remove</button>`}
         <button class="btn ghost small" type="button" data-ratings="${p.id}" title="Grant or remove type ratings">Ratings</button></td></tr>`).join("")}</tbody></table></div>
-    <p class="muted" style="font-size:13px">Transfer hours count towards rank, not towards PAC totals or leaderboards. Tick <b>PRA</b> for pilots cleared to fly the Kodiak for Pagani Remote Aviation; they show in that division on the group hub. Each pilot signs in with their own pilot ID; <b>Sign-in link</b> makes a one-time link to set or reset a pilot's password.</p>`;
+    <p class="muted" style="font-size:13px">Transfer hours count towards rank, not towards PAC totals or leaderboards. Pilots normally request them under Career (reviewed in the Transfer hours tab); editing them here is for corrections. Tick <b>PRA</b> for pilots cleared to fly the Kodiak for Pagani Remote Aviation; they show in that division on the group hub. Each pilot signs in with their own pilot ID; <b>Sign-in link</b> makes a one-time link to set or reset a pilot's password.</p>`;
   document.querySelectorAll("[data-signin]").forEach(b => b.onclick = () => showSigninLink(b.dataset.signin));
   document.querySelectorAll("[data-ratings]").forEach(b => b.onclick = () => staffRatings(b.dataset.ratings));
   document.querySelectorAll("[data-letter]").forEach(b => b.onclick = () => openLetter("reminder", { pid: b.dataset.letter }));

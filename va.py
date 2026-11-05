@@ -2776,6 +2776,10 @@ def staff_overview():
             """SELECT a.*, (p.id IS NOT NULL) on_roster FROM applications a LEFT JOIN pilots p ON p.id=a.pilot_id
                ORDER BY CASE a.status WHEN 'Pending' THEN 0 ELSE 1 END, a.submitted DESC""")]
         roster = [dict(r) for r in con.execute("SELECT * FROM pilots ORDER BY id")]
+        try:
+            transfer_pending = con.execute("SELECT COUNT(*) FROM transfer_requests WHERE status='Pending'").fetchone()[0]
+        except Exception:  # table not created yet
+            transfer_pending = 0
     for r in reviews:
         r["flags"] = json.loads(r["flags"] or "[]")
         d = json.loads(r.pop("detail") or "{}")
@@ -2788,7 +2792,7 @@ def staff_overview():
         c = career(p["id"])
         p.update(rank=c["rank"], hours=c["hours"], flights=c["flights"], avg_score=c["avg_score"], balance=balance(p["id"]))
     s = C["settings"]()
-    return jsonify({"reviews": reviews, "applications": apps, "roster": roster, "airframes": airframes(),
+    return jsonify({"reviews": reviews, "applications": apps, "roster": roster, "airframes": airframes(), "transfer_pending": transfer_pending,
                     "events": sorted(load_events(), key=lambda e: e["start"]), "site": site(),
                     "rules": {"enforce_ranks": bool(s.get("enforce_ranks")), "enforce_airframes": bool(s.get("enforce_airframes", True)),
                               "allow_ground_reposition": bool(s.get("allow_ground_reposition", True)),

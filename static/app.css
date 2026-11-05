@@ -1453,3 +1453,24 @@ html[data-theme="dark"] #boardCampaignPanel .btn.ghost{color:#ffb0b0;border-colo
 .ce-ledger>div{display:flex;justify-content:space-between;gap:15px;padding:10px 0;border-bottom:1px solid var(--line)}.ce-ledger b{white-space:nowrap}.ce-features article{padding:16px;border:1px solid var(--line);margin-top:12px}.ce-filter{font-size:13px}.ce-receipt-offer p{margin:4px 0}
 html[data-theme="dark"] .ce-feature .btn.ghost{color:#ffb0b0}
 @media(max-width:600px){.ce-receipt-totals{grid-template-columns:1fr}.ce-feature,.ce-receipt-offer{padding:16px}.ce-awards figure{width:125px}}
+
+/* Transfer hours */
+.tr-panel{padding:18px 20px;margin-top:16px}
+.tr-panel h2{margin:2px 0 0}
+.tr-top{display:flex;gap:18px;justify-content:space-between;align-items:flex-start;flex-wrap:wrap}
+.tr-now{border:1px solid var(--line);padding:8px 14px;min-width:120px;text-align:center}
+.tr-now span,.tr-now small{display:block;font-size:12px;color:var(--steel)}
+.tr-now b{font-size:22px}
+.tr-history{margin-top:14px;border-top:1px solid var(--line)}
+.tr-hist{padding:10px 0;border-bottom:1px solid var(--line);display:flex;flex-direction:column;gap:3px}
+.tr-form{display:flex;flex-direction:column;gap:12px}
+.tr-form label{display:flex;flex-direction:column;gap:4px;font-size:13px;font-weight:600}
+.tr-form input,.tr-form select,.tr-form textarea{font:inherit;font-weight:400;border:1px solid var(--line);border-radius:3px;padding:7px 9px;background:var(--white);color:inherit}
+.tr-src{border:1px solid var(--line);border-radius:3px;padding:10px 14px 14px;margin:0 0 10px}
+.tr-src legend{font-weight:700;padding:0 6px;display:flex;gap:10px;align-items:center}
+.tr-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px 14px}
+.tr-grid .wide{grid-column:1/-1}
+.tr-est{min-height:1.2em}
+.tr-staff{width:100%;border-collapse:collapse;margin-top:10px;font-size:13.5px}
+.tr-staff th,.tr-staff td{border-bottom:1px solid var(--line);padding:6px 8px;text-align:left;vertical-align:top}
+@media(max-width:600px){.tr-grid{grid-template-columns:1fr}}

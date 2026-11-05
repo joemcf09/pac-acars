@@ -1900,7 +1900,7 @@ def backup_data(reason="startup"):
 # ---------------------------------------------------------------- full backup and restore (download / upload)
 USER_FILES = ("logbook.db", "settings.json", "profile.json", "site.json", "fleet_custom.json", "booking.json", "secret_key",
               "flight_checkpoint.json", "stand_positions.json", "liveries.json")
-USER_DIRS = ("fleet_photos", "gallery", "downloads", "flights", "acars-builds", "profiles", "liveries", "network_logos")
+USER_DIRS = ("fleet_photos", "gallery", "downloads", "flights", "acars-builds", "profiles", "liveries", "network_logos", "transfers")
 BACKUP_MARK = "pac-backup.json"
 
 
@@ -3327,6 +3327,9 @@ app.register_blueprint(shop.bp)
 import liveries  # noqa: E402
 liveries.init({"DATA": DATA, "FLEET": FLEET, "settings": settings, "load_json": load_json, "save_json": save_json, "clean_text": clean_text})
 app.register_blueprint(liveries.bp)
+import transfers  # noqa: E402  (pilots ask for verified hours from other VAs to count towards rank)
+transfers.init({"db": db, "settings": settings, "clean_text": clean_text, "DATA": DATA})
+app.register_blueprint(transfers.bp)
 import botlink  # noqa: E402
 botlink.init({"db": db, "settings": settings, "DATA": DATA, "va": va, "live_flights": lambda member=True: live_flights(member),
               "FLEET": FLEET, "AIRPORTS": AIRPORTS})
