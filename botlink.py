@@ -171,7 +171,7 @@ def bot_config():
     ranks = [r["name"] for r in C["va"].ranks_effective()]
     return jsonify({"enabled": enabled(), "token": (st.get("discord_bot_token") or "").strip(),
                     "guild": (st.get("discord_guild") or "").strip(),
-                    "channels": {k: (st.get(f"discord_ch_{k}") or "").strip().lstrip("#") for k in ("flights", "news", "welcome", "dispatch", "notams")},
+                    "channels": {k: (st.get(f"discord_ch_{k}") or "").strip().lstrip("#") for k in ("flights", "news", "welcome", "dispatch", "notams", "honeypot", "modlog")},
                     "dispatch": dispatch_settings(st),
                     "pilot_role": (st.get("discord_pilot_role") or "PAC Pilot").strip(),
                     "staff_role": (st.get("discord_staff_role") or "").strip(),

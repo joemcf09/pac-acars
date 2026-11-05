@@ -2234,10 +2234,16 @@ async function renderBotBox() {
        ["botDispPartners", "discord_dispatch_partners", "Partner crew requests", "When a partner airline needs a PAC captain (one every hour or two)."],
        ["botDispUrgent", "discord_dispatch_urgent", "Urgent requests", "Short-notice jobs with a deliver-by time (open for a few hours)."]]
       .map(([id, k, t, d]) => `<label class="switch-row"><input type="checkbox" id="${id}" ${st[k] !== false ? "checked" : ""}><span><b>${t}</b><br><span class="muted" style="font-size:13px">${d}</span></span></label>`).join("")}
+    <h4 style="margin:18px 0 4px">Bot trap</h4>
+    <p class="muted" style="font-size:13px;margin:0 0 8px">A channel that tells people not to post. Spam bots post everywhere, so anyone who posts there (except staff, moderators and the server's own bots) is removed straight away and their messages from the last 24 hours are deleted. It's a soft ban, so a real person can rejoin. The bot's role needs <b>Ban Members</b> and <b>Manage Messages</b>, placed above ordinary members' roles. Leave the channel empty to switch the trap off.</p>
+    <div class="mail-grid">
+      ${fld("botChTrap", "Bot-trap channel", st.discord_ch_honeypot, "do-not-post")}
+      ${fld("botChModlog", "Staff channel for trap reports <span class=\"muted\" style=\"font-weight:400\">(optional)</span>", st.discord_ch_modlog, "staff-log")}
+    </div>
     <div class="row" style="margin-top:8px"><button class="btn small" type="button" id="botSave">Save Discord bot settings</button></div>`;
   $("#botSave").onclick = async () => {
     const body = { discord_bot_enabled: $("#botOn").checked, discord_guild: $("#botGuild").value.trim(), discord_ch_flights: $("#botChFlights").value.trim(),
-      discord_ch_news: $("#botChNews").value.trim(), discord_ch_welcome: $("#botChWelcome").value.trim(), discord_ch_notams: $("#botChNotams").value.trim(), discord_pilot_role: $("#botPilotRole").value.trim(),
+      discord_ch_news: $("#botChNews").value.trim(), discord_ch_welcome: $("#botChWelcome").value.trim(), discord_ch_notams: $("#botChNotams").value.trim(), discord_ch_honeypot: $("#botChTrap").value.trim(), discord_ch_modlog: $("#botChModlog").value.trim(), discord_pilot_role: $("#botPilotRole").value.trim(),
       discord_staff_role: $("#botStaffRole").value.trim(), discord_rank_roles: $("#botRanks").checked,
       discord_ch_dispatch: $("#botChDispatch").value.trim(), discord_dispatch_missions: $("#botDispMissions").checked,
       discord_dispatch_partners: $("#botDispPartners").checked, discord_dispatch_urgent: $("#botDispUrgent").checked,

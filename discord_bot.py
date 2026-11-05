@@ -12,7 +12,12 @@ Staff › Site and rules › Discord bot on the website, so nothing here needs e
 
 It also gives linked pilots their roles (PAC Pilot, their rank, PAC Staff), posts accepted PIREPs, promotions, new
 pilots, shop purchases and new liveries, posts new missions, partner crew requests and urgent requests in the dispatch
-channel (within an hourly limit), and welcomes people who join the Discord server."""
+channel (within an hourly limit), and welcomes people who join the Discord server.
+
+Bot trap: a channel (do-not-post) that tells people not to post. Spam bots post everywhere, so anyone who posts there
+(except staff and the server's own bots) is soft-banned: banned and unbanned straight away, which removes them and
+deletes their messages from the last 24 hours across the server. A real person can rejoin with an invite. This needs
+the bot's role to have Ban Members and Manage Messages, and to sit above ordinary members' roles."""
 
 import asyncio
 import json
@@ -237,6 +242,45 @@ def managed_roles(cfg):
     return out
 
 
+# ---------------------------------------------------------------- bot trap (honeypot channel)
+TRAP_DELETE_SECONDS = 24 * 3600   # how far back their messages are deleted across the server
+
+
+def _bare(name):
+    """A channel name without emoji or separators, so "🚫・do-not-post" matches "do-not-post"."""
+    return "".join(ch for ch in (name or "").lower() if ch.isalnum() or ch == "-").strip("-")
+
+
+def is_trap_channel(channel_name, channel_id, configured):
+    configured = (configured or "").strip().lstrip("#")
+    if not configured:
+        return False
+    if configured.isdigit():
+        return str(channel_id) == configured
+    return _bare(channel_name) == _bare(configured) and bool(_bare(configured))
+
+
+def trap_exempt(is_bot, is_owner, perms, role_names, staff_role):
+    """Who the trap never touches: the server's own bots, the owner, anyone who can moderate, and PAC staff."""
+    if is_bot or is_owner:
+        return True
+    if any(perms.get(k) for k in ("administrator", "manage_messages", "ban_members", "kick_members", "manage_guild")):
+        return True
+    return bool(staff_role) and staff_role in (role_names or [])
+
+
+def trap_dm(server_name, site):
+    return (f"You were removed from **{server_name}** because your account posted in the bot-trap channel, which says not to post. "
+            f"This catches spam bots and hacked accounts.\n\nIf you're a real person, sorry! Secure your account (change your "
+            f"password, check connected apps) and rejoin with the Discord link on {site}.")
+
+
+def trap_log(member_label, member_id, channel_name, ok, why=""):
+    if ok:
+        return f"🪤 **Bot trap:** removed {member_label} (`{member_id}`) for posting in #{channel_name}. Their messages from the last 24 hours were deleted."
+    return f"🪤 **Bot trap:** {member_label} (`{member_id}`) posted in #{channel_name}, but I couldn't remove them: {why}"
+
+
 # ---------------------------------------------------------------- the bot
 def run(cfg):
     import discord
@@ -392,6 +436,46 @@ def run(cfg):
                 await tree.sync(guild=g)
         except Exception as e:
             print(f"Couldn't register the slash commands: {e}")
+
+    @client.event
+    async def on_message(message):
+        """Bot trap: anyone who posts in the do-not-post channel is soft-banned (see the top of this file)."""
+        g = guild()
+        if not g or not message.guild or message.guild.id != g.id or message.author.id == client.user.id:
+            return
+        ch = message.channel
+        if not is_trap_channel(getattr(ch, "name", ""), ch.id, cfg["channels"].get("honeypot")):
+            return
+        if message.webhook_id:                      # a webhook can't be banned; just tidy up
+            try:
+                await message.delete()
+            except discord.HTTPException:
+                pass
+            return
+        m = message.author
+        perms = dict(iter(ch.permissions_for(m))) if isinstance(m, discord.Member) else {}
+        roles = [r.name for r in getattr(m, "roles", [])]
+        if trap_exempt(m.bot, m.id == g.owner_id, perms, roles, cfg.get("staff_role")):
+            return
+        label = f"{m} ({m.display_name})" if getattr(m, "display_name", None) and m.display_name != m.name else str(m)
+        try:
+            await m.send(trap_dm(g.name, site))     # before the ban, while we still share a server
+        except discord.HTTPException:
+            pass
+        ok, why = True, ""
+        try:
+            await g.ban(m, reason="PAC bot trap: posted in the do-not-post channel", delete_message_seconds=TRAP_DELETE_SECONDS)
+            await g.unban(m, reason="PAC bot trap: soft ban (they can rejoin with an invite)")
+        except discord.Forbidden:
+            ok, why = False, "give my role Ban Members and move it above ordinary members' roles (Server Settings › Roles)."
+            try:
+                await message.delete()
+            except discord.HTTPException:
+                pass
+        except discord.HTTPException as e:
+            ok, why = False, str(e)
+        print(trap_log(str(m), m.id, ch.name, ok, why))
+        await post("modlog", trap_log(label, m.id, ch.name, ok, why))
 
     @client.event
     async def on_member_join(member):
