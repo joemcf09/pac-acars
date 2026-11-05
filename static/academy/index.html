@@ -4,10 +4,10 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>PAC Academy · Boeing 737-800 training · Pagani Air Cargo</title>
-<meta name="description" content="Free 737-800 cockpit training from Pagani Air Cargo: PAC's Boeing-based startup flow and interactive lessons on every panel, for MSFS (PMDG) and X-Plane (LevelUp, Zibo).">
+<meta name="description" content="Free 737-800 cockpit training from Pagani Air Cargo: PAC's Boeing-based flows from startup to shutdown and interactive lessons on every panel, for MSFS (PMDG) and X-Plane (LevelUp, Zibo).">
 <link rel="canonical" href="https://pac-va.com/academy/">
 <meta property="og:title" content="PAC Academy · Boeing 737-800 training">
-<meta property="og:description" content="Interactive 737-800 cockpit lessons and PAC's standard startup flow.">
+<meta property="og:description" content="Interactive 737-800 cockpit lessons and PAC's standard flows: startup, taxi, takeoff and shutdown.">
 <meta property="og:image" content="https://pac-va.com/academy/01-cockpit.jpg">
 <meta name="theme-color" content="#c80000">
 <style>html{color-scheme:light}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
@@ -810,7 +810,7 @@ const SLIDES = [
   ]}
 ];
 
-const OH = "20-fwd-overhead.jpg", MCP = "10-mcp.jpg", MS = [1919,294];
+const OH = "20-fwd-overhead.jpg", MCP = "10-mcp.jpg", MS = [1919,294], L5 = "05-start-lights.jpg";
 SLIDES.unshift({ id:"sop-start", area:"PAC standard procedure", title:"Startup flow (cold and dark to taxi)", flow:true, whenLabel:"How to do it",
   intro:"PAC's standard startup, based on Boeing's 737 normal procedures. Do it in this order on every flight. Press Next to go step by step; each step shows the switch on the panel.",
   items:[
@@ -886,6 +886,97 @@ SLIDES.unshift({ id:"sop-start", area:"PAC standard procedure", title:"Startup f
     what:"Engine anti-ice in icing conditions.", when:"ON if TAT is 10°C or below with visible moisture." },
   { phase:"After start", n:"Autobrake RTO and flaps set", img:"12-upper-eng.jpg", b:[[47,6,20,16],[70,5,24,19]], go:"eng",
     what:"Ready for takeoff.", when:"Autobrake to RTO.|Flaps to the takeoff setting from the FMC (check the flap gauge).|Read the Before Taxi checklist. You're ready to taxi." }
+  ]},
+{ id:"sop-taxi", area:"PAC standard procedure", title:"Taxi and before takeoff", flow:true, whenLabel:"How to do it",
+  intro:"From the Before Taxi checklist to lined up on the runway. Based on Boeing's 737 normal procedures. Press Next to go step by step.",
+  items:[
+  { phase:"Before taxi", n:"Taxi clearance and taxi light ON", img:L5, b:[[33,10,4,80]], go:"start",
+    what:"Get your taxi route from ATC (or plan it yourself offline) before you move.", when:"Write down the route and the holding point.|Taxi light ON.|Runway turnoff lights ON too at night or in low visibility.",
+    mistake:"Moving before you know the route. Check the airport diagram first, especially at a big hub like KCVG." },
+  { phase:"Before taxi", n:"Release the parking brake", img:"15-throttle.jpg", b:[[15,60,13,14]], go:"thr",
+    what:"Hold the toe brakes, release the parking brake, then let the aircraft roll.", when:"Hold the toe brakes and release the parking brake.|Release the toe brakes. If the aircraft doesn't move, add a little thrust, no more than about 40% N1, then bring it back to idle once rolling.",
+    mistake:"Using big thrust to get moving. A heavy freighter needs patience, and jet blast behind you is dangerous." },
+  { phase:"Taxi", n:"Taxi speed and braking", img:"12c-gear.jpg", b:[[70,8,28,12]], go:"gear",
+    what:"Keep it slow and smooth. The 737 has no groundspeed limiter: watch GS on the navigation display.", when:"About 20 knots on straight taxiways, never more than 30.|About 10 knots for sharp turns.|Brake in a few firm, short applications instead of riding the brakes. Riding them overheats them.",
+    mistake:"Taxiing at 40 knots. PAC's ACARS notes fast taxiing, and you'll overshoot turns." },
+  { phase:"Taxi", n:"Flight control check", img:"18-yoke.jpg", b:[[12,10,70,60]], go:"yoke",
+    what:"Proves every control moves freely and fully before you need it.", when:"Yoke fully left and right, full forward and back, rudder fully left and right, slowly.|Do it on a straight taxiway or while holding short, never while turning.",
+    mistake:"Skipping it. In the sim it also catches a misconfigured or reversed axis before takeoff instead of at rotation." },
+  { phase:"Taxi", n:"Takeoff briefing", img:MCP, size:MS, wide:true, b:[[980,96,152,34],[596,96,126,34],[822,96,68,34]], go:"mcp",
+    what:"Say it out loud, even alone: it's how you catch mistakes before they matter.", when:"Runway, SID and first turn, initial altitude.|V1, VR and V2, flap setting and trim.|What you'll do if an engine fails before V1 (stop) and after V1 (go, and fly the engine-out procedure).|Check the MCP: speed V2, heading, altitude, F/Ds ON, A/T ARM." },
+
+  { phase:"Before takeoff", n:"Transponder TA/RA", img:"17b-transponder.jpg", b:[[70,55,22,40]], go:"xpdr",
+    what:"Turns on TCAS traffic alerts and resolution advisories for the flight.", when:"Set TA/RA when cleared onto the runway (or when lining up).|Check the squawk code is your assigned one.",
+    mistake:"Taking off in standby. ATC can't see your altitude and TCAS won't warn you about traffic." },
+  { phase:"Before takeoff", n:"Engine start switches CONT", img:OH, b:[[43,82,8,12],[60,82,8,12]], go:"start",
+    what:"Keeps the igniters ready during takeoff, when an engine flameout would hurt most.", when:"Both engine start switches to CONT before takeoff.|They go back to OFF after takeoff." },
+  { phase:"Before takeoff", n:"Takeoff lights ON", img:L5, b:[[12,10,10,80],[25,10,8,80],[74,10,7,85]], go:"start",
+    what:"Makes you visible to everyone else on and around the runway.", when:"Landing lights ON.|Runway turnoff lights ON.|Position switch to STROBE & STEADY.|Leave the taxi light ON.",
+    mistake:"Forgetting the strobes. It's how ATC and other pilots see an aircraft on the runway." },
+  { phase:"Before takeoff", n:"Before Takeoff checklist", img:"19-checklist.jpg", b:[[8,27,82,8]], go:"check",
+    what:"The last check before the takeoff roll.", when:"Flaps: set to the takeoff setting, green light on the flap gauge.|Stabilizer trim: set to the FMC's units.|Read the Before Takeoff checklist." },
+  { phase:"Line up", n:"Line up and check", img:"11-pfd-nd.jpg", b:[[17,80,20,15],[54,30,24,45]], go:"pfd",
+    what:"Make sure you're on the right runway, pointing the right way.", when:"Line up on the centerline without stopping long.|Heading on the PFD matches the runway.|The ND shows you at the start of your route.",
+    mistake:"Lining up on the wrong runway or an intersection you didn't plan for. Your takeoff speeds assume the full length." }
+  ]},
+
+{ id:"sop-takeoff", area:"PAC standard procedure", title:"Takeoff and climb", flow:true, whenLabel:"How to do it",
+  intro:"From brakes released to cruise climb. Based on Boeing's 737 normal procedures and the Flight Crew Training Manual. Press Next to go step by step.",
+  items:[
+  { phase:"Takeoff roll", n:"Thrust to 40% N1, then TO/GA", img:"15-throttle.jpg", b:[[0,30,55,40]], go:"thr",
+    what:"Spool both engines up evenly, then let the autothrottle set takeoff thrust.", when:"Release the brakes.|Advance the thrust levers to about 40% N1 and let both engines stabilize.|Press TO/GA. The autothrottle sets takeoff thrust.|Keep a hand on the thrust levers until V1.",
+    mistake:"Slamming the levers forward from idle. Uneven spool-up pushes the aircraft off the centerline." },
+  { phase:"Takeoff roll", n:"Check the FMA and engines", img:"11-pfd-nd.jpg", b:[[17,13,19,7]], go:"pfd",
+    what:"Confirms the autothrottle and flight directors are doing what you expect.", when:"The FMA shows N1, then THR HLD at about 84 knots.|N1 on the engine display reaches the takeoff value.|Keep straight on the centerline with the rudder." },
+  { phase:"Takeoff roll", n:"V1, rotate, positive rate", img:"11-pfd-nd.jpg", b:[[16,28,20,40],[10,20,7,58]], go:"pfd",
+    what:"V1 is the go/no-go speed: after it you're committed to fly. At VR, rotate.", when:"At V1, take your hand off the thrust levers. You're going.|At VR, rotate smoothly at about 2 to 3 degrees per second to about 15 degrees nose up, then follow the flight director.|Climb at V2 + 15 to V2 + 25 knots.",
+    mistake:"Yanking the nose up. Over-rotating is how tail strikes happen, and PAC's ACARS scores them." },
+  { phase:"Initial climb", n:"Gear up", img:"12c-gear.jpg", b:[[60,14,32,14],[28,27,40,46]], go:"gear",
+    what:"Raise the gear as soon as you're sure you're climbing.", when:"Positive rate on the vertical speed and altimeter: gear lever UP.|Taxi light OFF.",
+    mistake:"Raising the gear before you're definitely climbing." },
+  { phase:"Initial climb", n:"Roll and pitch modes", img:MCP, size:MS, wide:true, b:[[912,77,54,44],[743,77,52,46],[828,198,54,48]], go:"mcp",
+    what:"Above 400 ft the autopilot modes take over the navigation.", when:"LNAV (if armed) engages after takeoff, otherwise select HDG SEL or LNAV above 400 ft.|VNAV (if armed) engages above 400 ft.",
+    mistake:"Turning before 400 ft unless the departure tells you to." },
+  { phase:"Initial climb", n:"Autopilot ON", img:MCP, size:MS, wide:true, b:[[1308,86,124,48]], go:"mcp",
+    what:"Boeing allows the autopilot from 400 ft after takeoff. Trim the aircraft first so it doesn't jerk when engaged.", when:"Fly it in trim, following the flight director.|Press CMD A. Check CMD on the PFD.",
+    mistake:"Engaging the autopilot out of trim. The aircraft lurches as it takes over." },
+  { phase:"Acceleration", n:"Climb thrust and flaps up", img:"15-throttle.jpg", b:[[58,20,32,60]], go:"thr",
+    what:"At acceleration height (normally 1,000 ft above the airport, or 3,000 ft on a noise departure), lower the nose, accelerate and clean up.", when:"VNAV sets climb thrust by itself. Without VNAV, press N1 on the MCP.|Retract the flaps on schedule: when the speed passes the bug for your current flap setting on the speed tape, select the next one (for example 5, then 1, then UP).|Keep below 250 knots under 10,000 ft.",
+    mistake:"Retracting the flaps all at once, or before the speed bug. The aircraft can get too slow for its wing." },
+  { phase:"Acceleration", n:"After Takeoff checklist", img:"19-checklist.jpg", b:[[8,38,82,14]], go:"check",
+    what:"Cleans up the aircraft for the climb.", when:"Landing gear lever OFF (after it's up).|Flaps UP, no lights on the flap gauge.|Engine start switches OFF.|Autobrake OFF.|Read the After Takeoff checklist." },
+  { phase:"Climb", n:"Passing 10,000 ft", img:L5, b:[[12,10,10,80],[25,10,8,80]], go:"start",
+    what:"Out of the busy low-level airspace.", when:"Landing lights and runway turnoff lights OFF.|You can now accelerate above 250 knots.|At the transition altitude (18,000 ft in the US), set the altimeter to STD.",
+    mistake:"Speeding up above 250 knots below 10,000 ft. It's a real-world rule, and PAC's ACARS checks it." }
+  ]},
+
+{ id:"sop-shutdown", area:"PAC standard procedure", title:"After landing, shutdown and secure", flow:true, whenLabel:"How to do it",
+  intro:"From clearing the runway to a cold and dark cockpit. Based on Boeing's 737 normal procedures. Press Next to go step by step.",
+  items:[
+  { phase:"After landing", n:"Clear the runway, then clean up", img:"15-throttle.jpg", b:[[48,8,10,25],[58,20,32,60]], go:"thr",
+    what:"Do nothing until you're fully clear of the runway, past the hold line. Then clean up.", when:"Speedbrake lever DOWN.|Flaps UP.|Autobrake OFF.",
+    mistake:"Raising the flaps while still rolling on the runway. Wait until you've turned off." },
+  { phase:"After landing", n:"Lights and transponder", img:L5, b:[[12,10,10,80],[25,10,8,80],[74,10,7,85]], go:"start",
+    what:"Back to taxi lighting.", when:"Landing lights OFF. Turnoff lights OFF once clear (keep them at night if they help).|Strobes OFF: position switch to STEADY.|Taxi light stays ON.|Transponder: leave it on as local rules ask (in the US, on with altitude reporting until parked)." },
+  { phase:"After landing", n:"Engine start switches OFF, APU as needed", img:OH, b:[[43,82,8,12],[60,82,8,12],[36,84,5,8]], go:"start",
+    what:"Ignition off, and power ready for when the engines stop.", when:"Engine start switches OFF (from CONT).|Start the APU during the taxi in if you'll need it at the stand. If there's ground power at the stand, you can skip it." },
+  { phase:"Shutdown", n:"Parking brake SET", img:"15-throttle.jpg", b:[[15,60,13,14]], go:"thr",
+    what:"Stop on the stand line and hold the aircraft.", when:"Stop on the stand marking.|Set the parking brake and check the light comes on." },
+  { phase:"Shutdown", n:"Power before engines off", img:"03-electrical.jpg", b:[[32,90,40,10],[42,69,16,12]], go:"elec",
+    what:"Something has to take over the electrics before the engine generators stop.", when:"APU running: both APU GEN switches ON.|Or ground power: request it on the EFB, then GRD PWR ON when the blue light shows." },
+  { phase:"Shutdown", n:"Start levers CUTOFF", img:"15-throttle.jpg", b:[[29,63,15,14]], go:"thr",
+    what:"Shuts down both engines.", when:"Let the engines run at idle for at least 3 minutes after landing (the taxi in usually covers it).|Both start levers to CUTOFF.",
+    mistake:"Cutting the engines before setting up another source of power. The cockpit goes dark." },
+  { phase:"Shutdown", n:"Beacon OFF", img:OH, b:[[79,82,5,10]], go:"start",
+    what:"Tells the ground crew it's safe to approach the aircraft.", when:"Once both engines have spooled down, beacon OFF.|PAC's ACARS goes on block now: parking brake set and engines off.",
+    mistake:"Turning the beacon off while the engines are still turning. The ground crew walks into danger." },
+  { phase:"Shutdown", n:"Pumps and systems OFF", img:OH, b:[[2,74,19,8],[58,44,17,7],[63,19,8,5]], go:"fuel",
+    what:"The aircraft no longer needs fuel or hydraulic pressure.", when:"Fuel pumps OFF.|Electric hydraulic pumps OFF.|Probe heat and engine anti-ice OFF.|Flight directors OFF, transponder to standby.|Read the Shutdown checklist." },
+  { phase:"Shutdown", n:"File your PIREP", img:"19-checklist.jpg", b:[[8,75,82,12]],
+    what:"Your flight is over. PAC ACARS shows the PIREP ready to file.", when:"Check the summary and landing debrief in PAC ACARS.|Add remarks if anything happened, then File.",
+    mistake:"Closing ACARS before filing. Your flight is saved, but nobody gets paid until it's filed." },
+  { phase:"Secure", n:"Leaving the aircraft", img:"09-aft-overhead.jpg", b:[[25,72,18,14]], go:"irs",
+    what:"Only if you're ending the day and leaving the aircraft cold and dark.", when:"IRS selectors OFF.|Emergency exit lights OFF, window heat OFF, packs OFF.|APU bleed OFF, then APU OFF.|Battery OFF last, after the APU has fully stopped (about 2 minutes)." }
   ]});
 
 const $ = s => document.querySelector(s);
