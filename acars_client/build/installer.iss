@@ -2,7 +2,7 @@
 ; Built by build_acars.bat after PyInstaller has produced dist\PAC ACARS\
 
 #define AppName "PAC ACARS"
-#define AppVersion "1.1.2.1"
+#define AppVersion "1.1.2.2"
 #define Publisher "Pagani Air Cargo"
 
 [Setup]
@@ -47,12 +47,14 @@ Root: HKCU; Subkey: "Software\Classes\pacacars\shell\open\command"; ValueType: s
 
 [Run]
 Filename: "{app}\PAC ACARS.exe"; Description: "Start PAC ACARS"; Flags: nowait postinstall skipifsilent
+; in-app updates install silently: start the new version when it's done
+Filename: "{app}\PAC ACARS.exe"; Flags: nowait skipifnotsilent
 
 [UninstallDelete]
 ; settings and logs in %APPDATA%\PAC ACARS are kept, so a reinstall remembers your setup
 
 [Code]
-// In-app updates run this installer silently while PAC ACARS is closing. Make sure it has really
+// In-app updates start this installer silently and PAC ACARS closes a second later. Make sure it has really
 // closed (its files can't be replaced while it runs), then give Windows a moment to release them.
 // No /T: the installer itself was started by PAC ACARS, and /T would close the installer too.
 function InitializeSetup(): Boolean;

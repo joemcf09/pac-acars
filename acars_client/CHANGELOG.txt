@@ -1,6 +1,12 @@
 PAC ACARS - CHANGELOG
 =====================
 
+1.1.2 hotfix 2 (November 2026)
+------------------------------
+Fixed
+- Update now works: the update installs and PAC ACARS opens again by itself.
+  If you're on 1.1.2 or earlier, install this version from Downloads once.
+
 1.1.2 hotfix 1 (November 2026)
 ------------------------------
 New

@@ -1,12 +1,22 @@
-"""PAC ACARS: sets the version in the Windows build files and checks the build includes the new files.
-Run on the Windows PC you build PAC ACARS on, from the PAC folder:   python pac_acars_version.py
-Then build as usual with acars_client\\build\\build_acars.bat. Safe to run twice."""
+"""PAC ACARS: sets the version in the app and the Windows build files, and checks the build includes the new files.
+Run on the Windows PC you build PAC ACARS on, from the PAC folder:   python pac_acars_version.py 1.1.2.2
+(no version: just checks). Then build as usual with acars_client\\build\\build_acars.bat. Safe to run twice."""
 import os
 import re
 import sys
 
-ROOT = sys.argv[1] if len(sys.argv) > 1 else "."
-V = "1.1.2.1"   # major.minor.patch[.hotfix]
+ROOT = "."
+ARG = sys.argv[1] if len(sys.argv) > 1 else ""
+if ARG and not re.fullmatch(r"\d+\.\d+\.\d+(\.\d+)?", ARG):
+    sys.exit("Give the version like 1.1.2 or 1.1.2.1")
+_cur = re.search(r'\nVERSION = "([0-9.]+)"', open(os.path.join(ROOT, "acars_client", "client.py"), encoding="utf-8").read())
+V = ARG or (_cur.group(1) if _cur else "")   # major.minor.patch[.hotfix]
+if ARG:
+    _p = os.path.join(ROOT, "acars_client", "client.py")
+    _s = open(_p, encoding="utf-8", newline="").read()
+    _n = re.sub(r'(\nVERSION = ")[0-9.]+"', rf'\g<1>{V}"', _s)
+    if _n != _s:
+        open(_p, "w", encoding="utf-8", newline="").write(_n)
 VT = ", ".join((V.split(".") + ["0"])[:4])
 BUILD = os.path.join(ROOT, "acars_client", "build")
 done, warn = 0, []
