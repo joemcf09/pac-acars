@@ -90,7 +90,7 @@ import acars_core  # noqa: E402
 from sim_sources import DemoSource, MSFSSource, XPlaneSource, gc_distance_nm  # noqa: E402
 from tracker import FlightRecorder, TrackerThread  # noqa: E402
 
-VERSION = "1.1.3"
+VERSION = "1.1.2.1"   # major.minor.patch, plus a fourth number for hotfixes (shown as "1.1.2 hotfix 1")
 PORT = int(os.environ.get("PAC_ACARS_PORT", "5070"))  # not 5060: browsers block that port (SIP)
 CONFIG_PATH = USER_DIR / "config.json"
 STATE_PATH = USER_DIR / "flight_state.pkl"
@@ -625,9 +625,9 @@ def changelog_since(prev):
             return []
     out, cur = [], None
     for line in text.replace("\r\n", "\n").split("\n"):
-        m = re.match(r"^(\d+\.\d+\.\d+) \((.+)\)\s*$", line)
+        m = re.match(r"^(\d+\.\d+\.\d+)(?: hotfix (\d+))? \((.+)\)\s*$", line)
         if m:
-            cur = {"version": m.group(1), "date": m.group(2), "lines": []}
+            cur = {"version": m.group(1) + (f".{m.group(2)}" if m.group(2) else ""), "date": m.group(3), "lines": []}
             out.append(cur)
         elif cur is not None and not re.match(r"^-{3,}\s*$", line):
             cur["lines"].append(line)
@@ -647,7 +647,7 @@ def whats_new():
         return None
     entries = changelog_since(seen if seen and _vt(seen) < _vt(VERSION) else None)
     if seen is None:
-        entries = entries[:1]              # updated from a version before 1.1.3: this version's notes
+        entries = entries[:1]              # updated from a version without this feature: this version's notes
     return {"version": VERSION, "from": seen, "entries": entries} if entries else None
 
 

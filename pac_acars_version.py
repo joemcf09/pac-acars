@@ -6,7 +6,8 @@ import re
 import sys
 
 ROOT = sys.argv[1] if len(sys.argv) > 1 else "."
-V, VT = "1.1.1", "1, 1, 1, 0"
+V = "1.1.2.1"   # major.minor.patch[.hotfix]
+VT = ", ".join((V.split(".") + ["0"])[:4])
 BUILD = os.path.join(ROOT, "acars_client", "build")
 done, warn = 0, []
 for rel, pats in {"version_info.txt": [(r"(Version', ')[0-9.]+'", rf"\g<1>{V}'"), (r"(vers=\()[0-9, ]+(\))", rf"\g<1>{VT}\2")],

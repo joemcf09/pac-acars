@@ -287,6 +287,7 @@ async function busy(btn, label, fn) {
   try { return await fn(); } finally { btn.disabled = false; btn.textContent = was; }
 }
 function note(text, kind = "") { $("#msg").innerHTML = text ? `<div class="notice ${kind}">${text}</div>` : ""; if (text && kind !== "err") setTimeout(() => { if ($("#msg").textContent.includes(text.replace(/<[^>]+>/g, "").slice(0, 20))) $("#msg").innerHTML = ""; }, 7000); }
+function verLabel(v) { const p = String(v || "").split("."); return p.length > 3 && +p[3] ? `${p.slice(0, 3).join(".")} hotfix ${+p[3]}` : p.slice(0, 3).join("."); }
 const zulu = t => t ? new Date(t * 1000).toISOString().substr(11, 5).replace(":", "") + "Z" : "––––";
 
 /* ---------------- ACARS chime ---------------- */
@@ -453,7 +454,7 @@ function mapUpdate(bk, st) {
 const SPLASH = { shown: Date.now(), done: false };
 function splashStep() {
   if (SPLASH.done) return;
-  $("#spVer").textContent = S.version ? `PAC ACARS ${S.version}` : "";
+  $("#spVer").textContent = S.version ? `PAC ACARS ${verLabel(S.version)}` : "";
   const bk = S.hello?.booking;
   $("#spStatus").textContent = !S.server_ok && !S.auth_needed && !S.server_error ? "Connecting to PAC…"
     : S.server_error ? "Website offline. Opening anyway…" : S.auth_needed ? "Ready to sign in" : bk ? `Loading ${bk.flight_number}…` : "Ready";
@@ -472,7 +473,7 @@ function updateDialog(st) {
   const show = !!u.available && !busyFlight && (updForced || !u.dismissed || ["downloading", "ready", "installing"].includes(u.state));
   dlg.hidden = !show;
   if (!show) return;
-  const head = `<p class="small" style="margin:0 0 4px">PAC ACARS <b>${esc(u.latest)}</b> is ready. You have ${esc(u.current)}.</p>`;
+  const head = `<p class="small" style="margin:0 0 4px">PAC ACARS <b>${esc(verLabel(u.latest))}</b> is ready. You have ${esc(verLabel(u.current))}.</p>`;
   let body;
   if (!u.can_install) {
     body = `${head}<p class="small muted" style="margin:6px 0 12px">This copy can't update itself (it's the portable version, or run from the source code). Download the new version from the PAC website.</p>
@@ -514,8 +515,8 @@ function whatsNewDialog(st) {
   dlg.hidden = !show;
   if (!show || dlg.dataset.v === w.version) return;
   dlg.dataset.v = w.version;
-  $("#wnTitle").textContent = `What's new in PAC ACARS ${w.version}`;
-  $("#wnBody").innerHTML = w.entries.map(e => `${w.entries.length > 1 ? `<h4>${esc(e.version)} · ${esc(e.date)}</h4>` : ""}${changelogHtml(e.text)}`).join("");
+  $("#wnTitle").textContent = `What's new in PAC ACARS ${verLabel(w.version)}`;
+  $("#wnBody").innerHTML = w.entries.map(e => `${w.entries.length > 1 ? `<h4>${esc(verLabel(e.version))} · ${esc(e.date)}</h4>` : ""}${changelogHtml(e.text)}`).join("");
   $("#wnOk").onclick = async () => { wnClosed = true; dlg.hidden = true; try { await api("/api/whatsnew/seen", {}); } catch (e) {} };
 }
 async function updLater() { updForced = false; try { await api("/api/update/later", {}); } catch (e) {} S.update = { ...(S.update || {}), dismissed: true }; render(); }
@@ -547,9 +548,9 @@ function renderDebriefs() {
 
 function render() {
   const h = S.hello || {}, bk = h.booking, st = S.status, cfg = S.config || {};
-  const newer = (a, b) => { const x = String(a || "").split(".").map(Number), y = String(b || "").split(".").map(Number); for (let i = 0; i < 3; i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); } return false; };
+  const newer = (a, b) => { const x = String(a || "").split(".").map(Number), y = String(b || "").split(".").map(Number); for (let i = 0; i < 4; i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); } return false; };
   const upd = $("#update");
-  if (upd) upd.innerHTML = newer(h.latest_app, S.version) && (S.update?.dismissed || (st && st.tracking)) ? `<div class="notice">PAC ACARS ${esc(h.latest_app)} is available. ${S.update?.can_install ? `<a href="#" style="color:var(--cyan)" onclick="openUpdate();return false">Update now</a>` : `<a style="color:var(--cyan)" href="${esc(cfg.server)}/#downloads" target="_blank" rel="noopener">Download it from the PAC website</a>`}.</div>` : "";
+  if (upd) upd.innerHTML = newer(h.latest_app, S.version) && (S.update?.dismissed || (st && st.tracking)) ? `<div class="notice">PAC ACARS ${esc(verLabel(h.latest_app))} is available. ${S.update?.can_install ? `<a href="#" style="color:var(--cyan)" onclick="openUpdate();return false">Update now</a>` : `<a style="color:var(--cyan)" href="${esc(cfg.server)}/#downloads" target="_blank" rel="noopener">Download it from the PAC website</a>`}.</div>` : "";
   splashStep(); updateDialog(st); whatsNewDialog(st);
   applyDesign();
   S.unread = S.unread ?? 0;
@@ -584,7 +585,7 @@ function render() {
   if (!cfgLoaded) { $("#cfgXp").value = cfg.xplane_host || ""; $("#cfgDemo").value = cfg.demo_speedup || 60; $("#cfgTop").checked = !!cfg.always_on_top; $("#source").value = cfg.source || "MSFS";
     $("#cfgWin").value = cfg.window_mode || "auto";
     $("#cfgDesign").value = cfg.design || "loadsheet";
-    $("#cfgChime").checked = cfg.chime !== false; $("#cfgVol").value = cfg.chime_volume ?? 0.5; $("#cfgTray").checked = cfg.close_to_tray !== false; $("#cfgCoach").checked = cfg.sop_coach !== false; $("#cfgDiscord").checked = cfg.discord_status !== false; $("#ver").textContent = `PAC ACARS ${S.version}`; cfgLoaded = true; }
+    $("#cfgChime").checked = cfg.chime !== false; $("#cfgVol").value = cfg.chime_volume ?? 0.5; $("#cfgTray").checked = cfg.close_to_tray !== false; $("#cfgCoach").checked = cfg.sop_coach !== false; $("#cfgDiscord").checked = cfg.discord_status !== false; $("#ver").textContent = `PAC ACARS ${verLabel(S.version)}`; cfgLoaded = true; }
   if (S.auth_needed && !st) {
     if (!$("#appSignin")) {
       $("#flightCard").innerHTML = `<form id="appSignin" class="mform"><b class="full" style="font-size:16px">Sign in to PAC</b>

@@ -173,6 +173,8 @@ document.querySelectorAll("[data-board]").forEach(b => b.onclick = () => {
 
 /* "MSFS and X-Plane" types show under both simulator filters */
 function fliesIn(code, sim) { return (S.fleet[code]?.sim || "MSFS").includes(sim); }
+/* PAC ACARS versions: a fourth number is a hotfix, shown as "1.1.2 hotfix 1" */
+function verLabel(v) { const p = String(v || "").split("."); return p.length > 3 && +p[3] ? `${p.slice(0, 3).join(".")} hotfix ${+p[3]}` : p.slice(0, 3).join("."); }
 function allFlights() { return [...(S.checkrides || []), ...S.missions, ...S.routes, ...(S.tourLegs || []), ...(S.urgent || []), ...(S.jobs || []), ...(S.charterMission ? [S.charterMission] : []), ...(S.booking?.mission?.urgent ? [S.booking.mission] : [])]; }
 /* rotations: the next leg of each, for this pilot */
 function rotationBoardList() {
@@ -1402,7 +1404,7 @@ function paintStatus(st) {
 function hintFor(st) {
   const p = st.phase, r = st.live;
   if (!st.tracking && !st.complete) return `Load the aircraft at <b>${S.booking.dep_stand?.icao === S.booking.mission.origin.icao ? standName(S.booking.dep_stand) + " at " + esc(S.booking.mission.origin.icao) : "a stand at " + esc(S.booking.mission.origin.icao)}</b>${S.booking.dep_stand?.icao === S.booking.mission.origin.icao ? " (or any other stand)" : ""} with the parking brake set, press <b>Open in PAC ACARS</b>, then start tracking in the app. The flight shows here live.<br><span class="muted">${
-    S.appInfo ? `PAC ACARS ${esc(S.appInfo.version)} is running on this PC.` : S.appInfo === false ? `PAC ACARS isn't running on this PC. Nothing happens when you press the button? <a href="#" onclick="event.preventDefault();$('#acarsDownload .dl-card') ? scrollTo({ top: 0, behavior: 'smooth' }) : show('handbook')">Get PAC ACARS</a>.` : ""}</span>`;
+    S.appInfo ? `PAC ACARS ${esc(verLabel(S.appInfo.version))} is running on this PC.` : S.appInfo === false ? `PAC ACARS isn't running on this PC. Nothing happens when you press the button? <a href="#" onclick="event.preventDefault();$('#acarsDownload .dl-card') ? scrollTo({ top: 0, behavior: 'smooth' }) : show('handbook')">Get PAC ACARS</a>.` : ""}</span>`;
   if (st.remote && st.error) return `<b>${esc(st.error)}</b>`;
   if (!r) return "Waiting for simulator data…";
   const tips = {
@@ -2087,7 +2089,7 @@ async function loadDownloads() {
       <span class="muted dl-count" id="dlCount" aria-live="polite"></span></div>` : "";
   root.innerHTML = `<div class="profile-bar"><h1>Downloads</h1><span class="muted">Everything you need to fly for PAC. Liveries are on the <a href="#fleet" onclick="show('fleet');return false">Fleet page</a>, under each aircraft.</span></div>
     <section class="dl-sec"><h2>PAC ACARS</h2>
-      ${ac ? `<div class="dl-row"><div><b>PAC ACARS ${esc(ac.version)}</b><p>Tracks your flights from MSFS or X-Plane, talks to PAC Operations and files your PIREP.</p></div>
+      ${ac ? `<div class="dl-row"><div><b>PAC ACARS ${esc(verLabel(ac.version))}</b><p>Tracks your flights from MSFS or X-Plane, talks to PAC Operations and files your PIREP.</p></div>
         <div class="dl-actions">${ac.installer ? `<a class="btn small" href="${esc(ac.installer.url)}">Installer (${ac.installer.size_mb} MB)</a>` : ""}${ac.portable ? `<a class="btn ghost small" href="${esc(ac.portable.url)}">Portable zip (${ac.portable.size_mb} MB)</a>` : ""}</div></div>`
         : `<p class="muted">No PAC ACARS build here yet.${staff ? " Build it on Windows with <code>acars_client\\build\\build_acars.bat</code>, then upload <code>PAC-ACARS-…-portable.zip</code> or <code>PAC-ACARS-Setup-….exe</code> from your <code>static\\downloads</code> folder." : " Ask staff to upload one."}</p>`}
       ${staff ? `<div class="row" style="margin-top:10px;align-items:center">
@@ -2476,7 +2478,7 @@ async function showAcarsDownload() {
   let d = null;
   try { d = await api("/api/acars/app/download"); } catch (e) { d = null; }
   if (!d?.version) { el.innerHTML = ""; return; }
-  el.innerHTML = `<div class="dl-card"><img src="/static/pac-acars-icon.png" alt=""><div><b>PAC ACARS ${esc(d.version)} for Windows</b><br>
+  el.innerHTML = `<div class="dl-card"><img src="/static/pac-acars-icon.png" alt=""><div><b>PAC ACARS ${esc(verLabel(d.version))} for Windows</b><br>
       <span class="muted" style="font-size:13px">Track flights in a compact window next to your simulator. See Handbook › The PAC ACARS app.</span></div>
     <span style="flex:1"></span>
     ${d.installer ? `<a class="btn small" href="${esc(d.installer.url)}" download>Download installer · ${d.installer.size_mb} MB</a>` : ""}

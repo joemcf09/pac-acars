@@ -2567,7 +2567,7 @@ def acars_downloads():
     for folder, url_for in ((ACARS_BUILD_DIR, lambda n: f"/api/acars/build/{n}"),
                             (Path(app.static_folder) / "downloads", lambda n: f"/static/downloads/{n}")):
         for f in folder.glob("PAC-ACARS-*"):
-            m = re.fullmatch(r"PAC-ACARS-(?:Setup-)?(\d+\.\d+\.\d+)(-portable)?\.(exe|zip)", f.name)
+            m = re.fullmatch(r"PAC-ACARS-(?:Setup-)?(\d+\.\d+\.\d+(?:\.\d+)?)(-portable)?\.(exe|zip)", f.name)
             if not m:
                 continue
             v = tuple(int(x) for x in m.group(1).split("."))
@@ -2598,12 +2598,12 @@ def acars_installer_info():
 @app.get("/api/acars/build/<path:name>")
 def acars_build_file(name):
     """Download the PAC ACARS build. Members only, like the rest of the Downloads page."""
-    if not re.fullmatch(r"PAC-ACARS-(?:Setup-)?\d+\.\d+\.\d+(-portable)?\.(exe|zip)", name):
+    if not re.fullmatch(r"PAC-ACARS-(?:Setup-)?\d+\.\d+\.\d+(?:\.\d+)?(-portable)?\.(exe|zip)", name):
         return jsonify({"error": "No such build."}), 404
     return send_from_directory(ACARS_BUILD_DIR, name, as_attachment=True)
 
 
-_BUILD_LOOSE = re.compile(r"pac[\s_-]*acars[\s_-]*(setup[\s_-]*)?v?(\d+\.\d+\.\d+)[\s_-]*(portable)?.*\.(exe|zip)", re.I)
+_BUILD_LOOSE = re.compile(r"pac[\s_-]*acars[\s_-]*(setup[\s_-]*)?v?(\d+\.\d+\.\d+(?:\.\d+)?)[\s_-]*(portable)?.*\.(exe|zip)", re.I)
 
 
 def acars_build_name(filename, head=b""):
@@ -2650,7 +2650,7 @@ def acars_build_upload():
 
 @app.delete("/api/staff/acars/build/<path:name>")
 def acars_build_delete(name):
-    if not re.fullmatch(r"PAC-ACARS-(?:Setup-)?\d+\.\d+\.\d+(-portable)?\.(exe|zip)", name):
+    if not re.fullmatch(r"PAC-ACARS-(?:Setup-)?\d+\.\d+\.\d+(?:\.\d+)?(-portable)?\.(exe|zip)", name):
         return jsonify({"error": "No such build."}), 404
     (ACARS_BUILD_DIR / name).unlink(missing_ok=True)
     return jsonify({"ok": True, "acars": acars_downloads()})
