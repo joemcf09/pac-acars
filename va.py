@@ -584,6 +584,13 @@ def _pay_pirep(pirep_id):
                 "flags": json.loads(r["flags"] or "[]"), "status": r["status"], "demo": r["demo"]}
 
         def pay_skill(pay):
+            cz = d.get("conflict") or {}
+            if cz.get("level") == "caution" and cz.get("pct"):       # hazard pay for caution areas (conflict zones)
+                hz = round((pay.get("flight_pay") or 0) * cz["pct"] / 100, 2)
+                if hz > 0:
+                    names = ", ".join(z["name"] for z in cz.get("zones", []))
+                    add_tx(r["pilot_id"], "hazard_pay", hz, f"{r['flight_number']}: {cz['pct']}% hazard pay ({names})", pirep_id, con)
+                    pay["hazard_pay"], pay["total"] = hz, round(pay["total"] + hz, 2)
             add_skill(pay, perf)
             if pay["skill_total"]:
                 add_tx(r["pilot_id"], "skill_bonus", pay["skill_total"],

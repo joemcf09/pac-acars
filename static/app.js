@@ -20,7 +20,7 @@ async function api(path, opts = {}) {
   const data = await res.json().catch(() => ({ error: `The ACARS server answered with an error (HTTP ${res.status}). Check the ACARS console window.` }));
   if (!res.ok) {
     const err = new Error(data.error || `Request failed (${res.status})`);
-    err.status = res.status;
+    err.status = res.status; err.data = data;
     if (res.status === 401 && S.me) { S.me = null; S.authPilot = null; applyAuth(); openSignIn("Your sign-in has ended. Please sign in again."); }
     throw err;
   }
@@ -218,12 +218,38 @@ function standName(st, caps) {
   return caps ? t.toUpperCase() : t;
 }
 
+/* ---------------- conflict zones: restricted (not authorized) and caution (hazard pay) airspace ---------------- */
+function zoneFor(m) {
+  const z = S.zones;
+  if (!z?.enabled || !m?.origin || !m?.destination) return null;
+  const hit = icao => z.zones.find(x => (x.prefixes || []).some(p => String(icao || "").toUpperCase().startsWith(p)));
+  const ends = [hit(m.origin.icao), hit(m.destination.icao)].filter(Boolean);
+  if (!ends.length) return null;
+  const r = ends.filter(x => x.level === "restricted");
+  return r.length ? { level: "restricted", names: [...new Set(r.map(x => x.name))] }
+    : { level: "caution", names: [...new Set(ends.map(x => x.name))], pct: Math.max(...ends.map(x => x.pct || 0)) };
+}
+function zoneTag(m) {
+  const z = zoneFor(m);
+  if (!z) return "";
+  return z.level === "restricted" ? `<span class="tag zone-r" title="${esc(z.names.join(", "))} is restricted airspace for PAC. The flight won't be credited.">Not authorized · ${esc(z.names.join(", "))}</span>`
+    : `<span class="tag amber" title="${esc(z.names.join(", "))}: caution area">Caution · +${z.pct}% hazard pay</span>`;
+}
+function zoneNotice(z) {
+  if (!z) return "";
+  const list = (z.zones || []).map(x => x.name).join(", ") || (z.names || []).join(", ");
+  if (z.level === "restricted") return `<div class="zone-box restricted"><span class="zone-stamp">Not authorized</span><div><b>Restricted airspace${list ? `: ${esc(list)}` : ""}</b>
+    <p>${esc(z.text || "")} ${z.restricted_airport === false ? "A flight whose track crosses restricted airspace goes to staff review, and is only credited if staff accept it." : "You can still fly it, but the PIREP is rejected automatically: no pay, points or hours. See Handbook › Conflict zones."}</p></div></div>`;
+  return `<div class="zone-box caution"><span class="zone-stamp">Caution</span><div><b>Caution area${list ? `: ${esc(list)}` : ""}</b><p>Allowed, with <b>${z.pct}% hazard pay</b> on top of your flight pay. Stay alert and keep to your planned route.</p></div></div>`;
+}
+async function loadZones() { try { S.zones = await api("/api/conflict-zones"); } catch (e) { S.zones = null; } }
+
 function waybillHtml(m) {
   const dist = m.distance_nm || gcnm(m.origin, m.destination);
-  return `<button class="waybill" role="option" data-id="${esc(m.id)}" data-priority="${m.priority}" data-kind="${m.charter ? "charter" : ""}" aria-selected="${S.selected?.id === m.id}">
+  return `<button class="waybill${zoneFor(m)?.level === "restricted" ? " wb-restricted" : ""}" role="option" data-id="${esc(m.id)}" data-priority="${m.priority}" data-kind="${m.charter ? "charter" : ""}" aria-selected="${S.selected?.id === m.id}">
       <span class="tab" aria-hidden="true"></span>
       <span class="wb-body">
-        <span><span class="wb-title">${esc(m.title)}</span><br><span class="wb-meta">${esc(m.id)} · ${esc(m.region === "Live" ? m.category : (m.region || m.category))} · ${m.priority} priority</span>${bonusTags(m)}${freshTags(m)}${m.tour ? `<span class="tag dark">Tour leg ${m.leg}/${m.legs}</span>` : ""}${m.rotation ? `<span class="tag dark">Rotation leg ${m.leg}/${m.legs}</span>` : ""}${m.challenge ? `<span class="tag amber" title="${esc(m.challenge.note)}">${esc(m.challenge.label)}</span>` : ""}${m.handling ? `<span class="tag dark">${esc(m.handling.label.split(" · ")[0])}</span>` : ""}${m.ferry && !m.job_kind ? `<span class="tag grey">No cargo · +$${fmt(m.ferry_bonus || 0)} ferry bonus</span>` : ""}${m.category === "Checkride" ? `<span class="tag amber">Checkride</span>` : ""}${S.me?.location?.icao === m.origin.icao ? `<span class="tag green">You're here</span>` : ""}${m.contract ? `${m.operator.logo ? `<img class="wb-partner" src="${esc(m.operator.logo)}" alt="${esc(m.operator.name)}">` : ""}<span class="tag dark">Crew hire · ${esc(m.operator.callsign)}</span><span class="tag green">+$${fmt(m.contract_bonus)} bonus</span>` : ""}${m.job_kind === "ferry" ? `<span class="tag grey">Ferry · ${esc(m.fixed_airframe)}</span>` : ""}${m.job_kind === "cargo" ? `<span class="tag grey">${esc(m.job_type)}</span>` : ""}${m.urgent ? `<br><span class="urgent-strip"><span class="tag" style="margin:0">URGENT ×1.5</span><span>Offer expires in <span class="countdown" data-countdown="${m.expires}"></span></span><span>· deliver by ${zulu(m.deliver_by)}</span></span>` : ""}</span>
+        <span><span class="wb-title">${esc(m.title)}</span><br><span class="wb-meta">${esc(m.id)} · ${esc(m.region === "Live" ? m.category : (m.region || m.category))} · ${m.priority} priority</span>${bonusTags(m)}${freshTags(m)}${m.tour ? `<span class="tag dark">Tour leg ${m.leg}/${m.legs}</span>` : ""}${m.rotation ? `<span class="tag dark">Rotation leg ${m.leg}/${m.legs}</span>` : ""}${m.challenge ? `<span class="tag amber" title="${esc(m.challenge.note)}">${esc(m.challenge.label)}</span>` : ""}${m.handling ? `<span class="tag dark">${esc(m.handling.label.split(" · ")[0])}</span>` : ""}${m.ferry && !m.job_kind ? `<span class="tag grey">No cargo · +$${fmt(m.ferry_bonus || 0)} ferry bonus</span>` : ""}${m.category === "Checkride" ? `<span class="tag amber">Checkride</span>` : ""}${S.me?.location?.icao === m.origin.icao ? `<span class="tag green">You're here</span>` : ""}${zoneTag(m)}${m.contract ? `${m.operator.logo ? `<img class="wb-partner" src="${esc(m.operator.logo)}" alt="${esc(m.operator.name)}">` : ""}<span class="tag dark">Crew hire · ${esc(m.operator.callsign)}</span><span class="tag green">+$${fmt(m.contract_bonus)} bonus</span>` : ""}${m.job_kind === "ferry" ? `<span class="tag grey">Ferry · ${esc(m.fixed_airframe)}</span>` : ""}${m.job_kind === "cargo" ? `<span class="tag grey">${esc(m.job_type)}</span>` : ""}${m.urgent ? `<br><span class="urgent-strip"><span class="tag" style="margin:0">URGENT ×1.5</span><span>Offer expires in <span class="countdown" data-countdown="${m.expires}"></span></span><span>· deliver by ${zulu(m.deliver_by)}</span></span>` : ""}</span>
         <span class="wb-reward num">${m.reward}<small>points</small></span>
         <span class="route"><span class="icao">${m.origin.icao}</span><span class="leg"><span class="num">${fmt(dist)} nm</span></span><span class="icao">${m.destination.icao}</span></span>
         <span class="wb-foot"><span>Cargo <b>${esc(m.cargo)}</b></span><span>Load <b class="num">${m.payload_lbs ? fmt(m.payload_lbs) + " lb" : "None"}</b></span><span>Block <b>${hm(m.target_block_min)}</b></span><span>${m.charter ? "Aircraft" : "Recommended"} <b>${m.aircraft.map(a => S.fleet[a]?.icao || a).join(", ")}</b></span></span>
@@ -873,7 +899,9 @@ async function loadDossierEcon(m) {
     }
     setChip(total == null ? "–" : money(total, true), "Before skill bonuses (up to $475). Details under PAC's economics on the Briefing step.");
     const box = $("#econPanel");
-    if (box) box.innerHTML = payLine + econBox(e, `${S.fleet[ac]?.icao || ""} plan`, ofp ? "Based on your OFP" : "Based on typical fuel burn and the mission load");
+    const zq = zoneFor(m);
+    if (zq && zq.level === "caution" && total != null) payLine = payLine.replace("</div>", ` <b>+ ${zq.pct}% hazard pay</b> for the caution area.</div>`);
+    if (box) box.innerHTML = (zq ? zoneNotice({ ...zq, text: zq.level === "restricted" ? `${zq.names.join(", ")} is restricted airspace for PAC.` : "" }) : "") + payLine + econBox(e, `${S.fleet[ac]?.icao || ""} plan`, ofp ? "Based on your OFP" : "Based on typical fuel burn and the mission load");
   } catch (err) { if ($("#econPanel")) $("#econPanel").innerHTML = `<span class="muted" style="font-size:13px">${esc(err.message)}</span>`; setChip("–"); }
 }
 function defaultAirframe(m, ac) {
@@ -1082,15 +1110,34 @@ async function importOfp(raw, ofpId) {
     toast(r.errors.length ? "Your SimBrief plan doesn't match this flight: " + r.errors[0] : sw ? `OFP imported. Switched to the ${S.fleet[sw].name} to match your plan.` : "OFP imported.");
   } catch (e) { toast(e.message); }
 }
-async function requestMission(ofp) {
+async function requestMission(ofp, zoneAck = false) {
   try {
     const seed = (S.lsCache || {})[lsKey(S.selected)]?.seed;   // the preliminary load sheet becomes the release's load
-    S.booking = await api("/api/booking", { method: "POST", body: { mission_id: S.selected.id, charter: S.selected.charter, aircraft: S.selected.charter ? S.selected.aircraft[0] : S.aircraft, ofp, airframe: S.airframe, manifest_seed: seed } });
+    try {
+      S.booking = await api("/api/booking", { method: "POST", body: { mission_id: S.selected.id, charter: S.selected.charter, aircraft: S.selected.charter ? S.selected.aircraft[0] : S.aircraft, ofp, airframe: S.airframe, manifest_seed: seed, zone_ack: zoneAck } });
+    } catch (e) {
+      if (e.data?.needs_zone_ack) return confirmZone(e.data.zone, () => requestMission(ofp, true));
+      throw e;
+    }
     paintBid();
     refreshCore();
     toast(`${S.booking.flight_number} requested. Review and sign your dispatch release before starting ACARS.`);
     show("acars");
   } catch (e) { toast(e.message); }
+}
+
+function confirmZone(z, go) {
+  const dlg = $("#zoneDlg");
+  $("#zoneTitle").textContent = z.level === "restricted" ? "Restricted airspace" : "Caution area";
+  $("#zoneBody").innerHTML = `${zoneNotice(z)}
+    <label class="switch-row" style="margin:0"><input type="checkbox" id="zoneAck"><span>${z.level === "restricted"
+      ? (z.restricted_airport ? "I understand this flight isn't authorized and won't be credited." : "I understand staff review this flight, and it's only credited if they accept it. I'll plan around the restricted airspace.")
+      : "I understand the risks of flying into a caution area."}</span></label>
+    <div class="row"><button class="btn" id="zoneGo" disabled>${z.level === "restricted" ? "Request anyway" : "Request flight"}</button><button class="btn ghost" data-close>Cancel</button></div>`;
+  $("#zoneAck").onchange = e => { $("#zoneGo").disabled = !e.target.checked; };
+  $("#zoneGo").onclick = () => { dlg.close(); go(); };
+  dlg.querySelectorAll("[data-close]").forEach(b => b.onclick = () => dlg.close());
+  if (!dlg.open) dlg.showModal();
 }
 
 /* ---------------- ACARS ---------------- */
@@ -1443,7 +1490,7 @@ function renderPirep() {
       ${checkrideBanner(p)}
       ${pacDebrief(p)}
       ${econBox(p.economics)}
-      ${p.pay ? `<div class="notice" style="border-color:#1f9d55;background:var(--ok-wash)">Your pay: <b>${money(p.pay.flight_pay, true)}</b> flight pay (${p.pay.hours} h at $${p.pay.rate}/h)${p.pay.profit_share ? ` + <b>${money(p.pay.profit_share, true)}</b> profit share` : ""}${p.pay.contract_bonus ? ` + <b>${money(p.pay.contract_bonus, true)}</b> shortage bonus` : ""}${p.pay.ferry_bonus ? ` + <b>${money(p.pay.ferry_bonus, true)}</b> ferry bonus` : ""}${p.pay.skill_total ? ` + <b>${money(p.pay.skill_total, true)}</b> skill bonus` : ""} = <b>${money(p.pay.total, true)}</b>${p.review_status === "Pending" ? ", paid once staff accept the PIREP" : ""}.
+      ${p.pay ? `<div class="notice" style="border-color:#1f9d55;background:var(--ok-wash)">Your pay: <b>${money(p.pay.flight_pay, true)}</b> flight pay (${p.pay.hours} h at $${p.pay.rate}/h)${p.pay.profit_share ? ` + <b>${money(p.pay.profit_share, true)}</b> profit share` : ""}${p.pay.contract_bonus ? ` + <b>${money(p.pay.contract_bonus, true)}</b> shortage bonus` : ""}${p.pay.ferry_bonus ? ` + <b>${money(p.pay.ferry_bonus, true)}</b> ferry bonus` : ""}${p.pay.hazard_pay ? ` + <b>${money(p.pay.hazard_pay, true)}</b> hazard pay` : ""}${p.pay.skill_total ? ` + <b>${money(p.pay.skill_total, true)}</b> skill bonus` : ""} = <b>${money(p.pay.total, true)}</b>${p.review_status === "Pending" ? ", paid once staff accept the PIREP" : ""}.
         ${p.pay.skill?.length ? `<div style="margin-top:6px;font-size:13px">Flown well: ${p.pay.skill.map(x => `${esc(x.label)} <b>+$${x.amount}</b>`).join(" · ")}</div>` : `<div style="margin-top:6px;font-size:13px">No skill bonus this time. An A grade, a smooth landing, fuel on plan, an on-time and stable approach and a clean flight each pay extra.</div>`}</div>` : ""}
       ${integrityNote(p.integrity)}
       <h3 style="margin:4px 0 0;font-size:18px">Landing</h3>
@@ -2207,6 +2254,24 @@ async function renderGroupBox(g) {
     try { await navigator.clipboard.writeText(text); toast("Copied."); } catch (e) { $("#grpKey").select(); toast("Select and copy the key by hand."); }
   };
 }
+async function renderZoneBox() {
+  const el = $("#zoneBox"); if (!el) return;
+  let d; try { d = await api("/api/staff/conflict-zones"); } catch (e) { el.innerHTML = `<span class="muted">${esc(e.message)}</span>`; return; }
+  el.innerHTML = `<label class="switch-row"><input type="checkbox" id="zoneOn" ${d.enabled ? "checked" : ""}><span><b>Enforce conflict zones</b><br><span class="muted" style="font-size:13px">${d.enabled ? "On: flights are tagged, pilots confirm before booking, and the rules apply when PIREPs are filed." : "Off: nothing is tagged or enforced. Switch on once the rules are announced."}</span></span></label>
+    <div class="table-wrap"><table class="staff-table"><thead><tr><th>Area</th><th>Status</th><th>Hazard pay</th><th>Note</th></tr></thead><tbody>
+    ${d.zones.map(z => `<tr data-zone="${z.id}"><td><b>${esc(z.name)}</b><br><small class="muted">${esc(z.prefixes.join(", "))}</small></td>
+      <td><select data-zl aria-label="Status for ${esc(z.name)}">${[["restricted", "Restricted"], ["caution", "Caution"], ["off", "Off"]].map(([v, t]) => `<option value="${v}" ${z.level === v ? "selected" : ""}>${t}</option>`).join("")}</select></td>
+      <td><input type="number" min="0" max="50" step="1" value="${z.pct}" data-zp style="width:70px" aria-label="Hazard pay % for ${esc(z.name)}"> %</td>
+      <td><small class="muted">${esc(z.note)}</small></td></tr>`).join("")}</tbody></table></div>
+    <p class="muted" style="font-size:13px;margin:6px 0">Hazard pay only applies to caution areas: it's a percentage of flight pay, paid with the flight.</p>
+    <div class="row"><button class="btn small" type="button" id="zoneSave">Save conflict zones</button></div>`;
+  $("#zoneSave").onclick = async () => {
+    const zones = {};
+    el.querySelectorAll("[data-zone]").forEach(tr => zones[tr.dataset.zone] = { level: tr.querySelector("[data-zl]").value, pct: Number(tr.querySelector("[data-zp]").value) });
+    try { await api("/api/staff/conflict-zones", { method: "POST", body: { enabled: $("#zoneOn").checked, zones } }); toast("Conflict zones saved."); await loadZones(); renderZoneBox(); }
+    catch (e) { toast(e.message); }
+  };
+}
 async function renderBotBox() {
   const el = $("#botBox"); if (!el) return;
   const st = S.settings || {};
@@ -2672,7 +2737,7 @@ async function quoteJump(to) {
 }
 function walletPanel(me, wallet) {
   if (!me) return "";
-  const kinds = { flight_pay: "Flight pay", profit_share: "Profit share", skill_bonus: "Skill bonus", contract_bonus: "Shortage bonus", ferry_bonus: "Ferry bonus", jumpseat: "Travel", shop: "PAC shop", gear_bonus: "Gear bonus", adjustment: "Staff adjustment" };
+  const kinds = { flight_pay: "Flight pay", profit_share: "Profit share", skill_bonus: "Skill bonus", contract_bonus: "Shortage bonus", ferry_bonus: "Ferry bonus", hazard_pay: "Hazard pay", jumpseat: "Travel", shop: "PAC shop", gear_bonus: "Gear bonus", adjustment: "Staff adjustment" };
   const entries = wallet?.transactions || [];
   const pager = wallet && wallet.pages > 1 ? `<nav class="wallet-pages" aria-label="Wallet transaction pages" style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:12px 14px;border-top:1px solid var(--line)">
     <span class="muted" role="status">Transactions ${(wallet.page - 1) * wallet.per_page + 1}–${Math.min(wallet.page * wallet.per_page, wallet.total)} of ${wallet.total}</span>
@@ -3847,6 +3912,7 @@ async function refreshCore({profileOnly = false} = {}) {
   await Promise.allSettled([
     (async () => { try { S.ratings = await api("/api/ratings"); S.checkrides = S.ratings.families.map(f => f.mission).filter(Boolean); } catch (e) { /* ignore */ } })(),
     (async () => { loadMe(); })(),
+    loadZones(),
     (async () => { try { S.jobs = await api("/api/jobs"); const n = S.jobs.filter(j => !j.contract).length, jc = $("#jobsCount"); if (jc) { jc.textContent = n; jc.hidden = !n; } } catch (e) { /* ignore */ } })(),
     (async () => { try { S.urgent = await api("/api/urgent"); const c = $("#urgentCount"); if (c) { c.textContent = S.urgent.length; c.hidden = !S.urgent.length; } } catch (e) { /* ignore */ } })()
   ]);
@@ -4531,6 +4597,12 @@ function renderHandbook(cfg) {
     ["ranks", "Ranks and aircraft", `<p>Rank depends on your hours (PAC hours plus any transfer hours staff have credited, see Transfer hours below), and on your average score over your last ${cfg.avg_window} accepted flights once you have at least ${cfg.avg_min_flights}.</p>
       ${cfg.type_ratings_required ? `<p>A rank makes aircraft <b>available</b> to you. Each aircraft family also needs its type rating before you fly it: passing the line checkride (PAC001) in the 737 gives you the whole 737 family (737-200C, 737-300SF and 737-800BCF); for anything else, fly that family's short type checkride from Career › Qualifications.</p>` : `<p>Reaching a rank unlocks its aircraft straight away: you can fly them as soon as you hold the rank.</p>`}
       <table><tr><th></th><th>Rank</th><th>Hours</th><th>Average score</th><th>${cfg.type_ratings_required ? "Makes available" : "Unlocks"}</th></tr>${cfg.ranks.map(r => `<tr><td style="width:52px">${rankImg(r.name)}</td><td><b>${esc(r.name)}</b></td><td>${r.name === "Cadet" ? "–" : r.hours}</td><td>${r.avg || "–"}</td><td>${r.checkride && r.hours === 0 ? "Checkride passed. " : ""}${r.unlocks.map(a => esc(S.fleet[a]?.name || a)).join(", ") || "Checkride only"}</td></tr>`).join("")}</table>`],
+    ...(S.zones?.enabled ? [["zones", "Conflict zones", `<p>PAC is a US cargo carrier, so it follows the same airspace rules a US carrier would. Some areas are <b>restricted</b> and some are <b>caution areas</b>. Flights there stay on the board and you can still fly them, but the consequences follow the real-world rules.</p>
+      <table><tr><th>Restricted</th><td>Not authorized. A flight that departs from, lands in or is planned to a restricted country is <b>rejected automatically</b>: no pay, points or hours. If your track crosses restricted airspace, the PIREP goes to staff review and is only credited if staff accept it. Plan your route around these areas.</td></tr>
+      <tr><th>Caution</th><td>Allowed, with <b>hazard pay</b> on top of your flight pay for flights to, from or across the area.</td></tr>
+      <tr><th>Before you book</th><td>Flights are tagged on the board, and you confirm you understand before requesting one.</td></tr></table>
+      <table><tr><th>Area</th><th>Status</th><th>Hazard pay</th></tr>${S.zones.zones.map(z => `<tr><td><b>${esc(z.name)}</b><br><small class="muted">${esc(z.note || "")}</small></td><td>${z.level === "restricted" ? "Restricted" : "Caution"}</td><td>${z.level === "caution" ? `+${z.pct}%` : "–"}</td></tr>`).join("")}</table>
+      <p class="muted" style="font-size:13px">Based on the FAA's rules for US operators. Staff update the list when the real world changes.</p>`]] : []),
     ["transfers", "Transfer hours", `<p>Hours you flew at another virtual airline or on VATSIM/IVAO can count towards your PAC rank. Send a request from <b>Career</b> within 60 days of joining (pilots who joined before the program opened have until January 4, 2027).</p>
       <table><tr><th>What counts</th><td>Hours on a <b>public</b> logbook or profile page at another virtual airline, or your VATSIM/IVAO pilot hours, where staff can see your name or pilot ID. Up to 3 sources, each with its link and a screenshot.</td></tr>
       <tr><th>What doesn't</th><td>Personal or offline logbooks, hours with no public record, and hours that can't be traced to you.</td></tr>
@@ -4685,7 +4757,7 @@ function renderHandbook(cfg) {
     ["conduct", "Conduct", `<p>Fly honestly and help each other. Report problems with ACARS rather than working around them. Staff decisions on reviews are final, but you can always ask why.</p>`],
   ];
   // reading order: who we are and how to join first, then planning and flying, then the rules, then everything else; staff notes last, for staff only
-  const ORDER = ["welcome", "joining", "training-policy", "first-flight", "travel", "ranks", "divisions", "ratings", "planning", "planhelper", "dispatchpaper", "acarsapp", "flying",
+  const ORDER = ["welcome", "joining", "training-policy", "first-flight", "travel", "ranks", "transfers", "divisions", "ratings", "planning", "zones", "planhelper", "dispatchpaper", "acarsapp", "flying",
     "dispatchmsg", "integrity", "scoring", "review", "pay", "partners", "missionboard", "jobs", "urgent", "events", "online", "maintenance", "airframes", "economics",
     "stationguides", "approach", "stats", "crewbadge", "signin", "conduct", "staffletters"];
   const pos = id => { const i = ORDER.indexOf(id); return i < 0 ? 99 : i; };
@@ -5144,6 +5216,9 @@ function staffSite() {
       <h2 style="padding:14px 0 0">Discord bot</h2>
       <p class="muted" style="font-size:13px;margin:4px 0 8px">PAC Operations, PAC's own bot: <code>/flights</code>, <code>/live</code>, <code>/pilot</code> and <code>/link</code>, rank roles for linked pilots, and posts for accepted PIREPs, promotions, new pilots and shop purchases. It runs on the server next to PAC (see deploy/DEPLOY.md, section 10).</p>
       <div id="botBox"></div>
+      <h2 style="padding:14px 0 0">Conflict zones</h2>
+      <p class="muted" style="font-size:13px;margin:4px 0 8px">Airspace a US cargo carrier wouldn't fly into or over. <b>Restricted</b>: flights stay on the board, but one that departs from, lands in or is planned to that country is rejected automatically, and one whose track crosses it goes to PIREP review. <b>Caution</b>: allowed, with hazard pay on top of flight pay. The list starts from the FAA's rules for US operators and Russia (closed to US carriers); change any area as the real world changes.</p>
+      <div id="zoneBox"><span class="muted" style="font-size:13px">Loading…</span></div>
       <h2 style="padding:14px 0 0">Pagani Aviation Group</h2>
       <p class="muted" style="font-size:13px;margin:4px 0 8px">The group hub reads PAC's roster, hours and Anchorage arrivals from a private feed, and adds each pilot's Pagani Remote Aviation hours. Names, ranks, hours and flights are shared; emails, Discord, network IDs and wallets never are. Tick <b>PRA</b> in Pilots for anyone cleared to fly the Kodiak.</p>
       <div id="groupBox"><span class="muted" style="font-size:13px">Loading…</span></div>
@@ -5161,6 +5236,7 @@ function staffSite() {
   loadMailBox();
   renderSiBox();
   renderBotBox();
+  renderZoneBox();
   loadDiscordBox();
   renderGroupBox();
   if ($("#previewAccept")) $("#previewAccept").onclick = () => openLetter("accepted", { pid: S.me?.id });

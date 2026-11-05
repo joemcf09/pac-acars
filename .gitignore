@@ -22,6 +22,7 @@ data/*
 !data/runways.json
 !data/routes.json
 !data/partners.json
+!data/conflict_zones_shapes.json
 
 # ---- Python and local tooling ----
 .venv/

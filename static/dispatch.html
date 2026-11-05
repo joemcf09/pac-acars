@@ -160,7 +160,11 @@ function releasePage(d) {
   const p = d.paper, f = d.fuel || {}, w = d.weights || {}, lim = p.limits, ls = p.loadsheet;
   const ia = i => p.iata[i] || i.slice(-3);
   const cap = d.captain || {};
-  const capShort = U((cap.name || "").replace(/^Capt\.?\s*/i, "").replace(/^(\S)\S*\s+/, "$1. "));
+  // "Sr. Capt. Joseph Pagani" or "Senior Captain Joseph Pagani" → "J. PAGANI": rank words come off first, then the first name
+  // becomes an initial (the rank is printed in its own column)
+  const RANK_WORD = /^(senior|sr\.?|chief|captain|capt\.?|cpt\.?|first|second|officer|f\/o|s\/o|cadet|trainee)\s+/i;
+  let capName = String(cap.name || "").trim(); while (RANK_WORD.test(capName)) capName = capName.replace(RANK_WORD, "");
+  const capShort = U(capName.replace(/^(\S)\S*\s+/, "$1. "));
   const block = f.block_fuel_lbs || ls.block, taxi = f.taxi_fuel_lbs || ls.taxi, trip = f.trip_fuel_lbs || ls.trip;
   const burn = d.perf?.burn_pph || (trip / Math.max(.5, (d.block_min - 20) / 60));
   const finres = f.reserve_fuel_lbs || Math.round(burn * .5);
@@ -177,7 +181,12 @@ function releasePage(d) {
   out.push(esc(L(`CALLSIGN   ${p.callsign}`, 28) + L(`SELCAL ${p.selcal}`, 24) + L(`OFP NBR      ${d.ofp_id || "NOT FILED"}`, 32)));
   if (p.atc_callsign) out.push(esc(L(`ATC FPL    ${p.atc_callsign}`, 28) + L(`RMK/CALLSIGN ${String(p.callsign || "").split(" ")[0]}`, 56)));
   out.push(esc(L(`ACFT       ${d.icao}  ${d.tail}`, 28) + L(U(d.aircraft_name), 24) + L(`CREW         ${ls.crew}`, 32)));
-  out.push(esc(L(`PIC        CAPT ${capShort}`, 28) + L(`${cap.id || ""}  ${p.pic_cert}`, 24) + L(U(p.captain_rank || cap.rank || ""), 32)));
+  out.push(esc(L(`PIC        CAPT ${capShort}`, 27) + " " + L(`${cap.id || ""}  ${p.pic_cert}`, 24) + L(U(p.captain_rank || cap.rank || ""), 32)));
+  if (d.conflict) {   // conflict zones: printed the way a real release flags restricted or caution airspace
+    const zn = (d.conflict.zones || []).map(z => U(z.name)).join(", ");
+    out.push("", `<b>${esc(d.conflict.level === "restricted" ? "*** AIRSPACE RESTRICTION *** NOT AUTHORIZED FOR PAC OPERATIONS" : "*** CAUTION AREA *** HAZARD PAY " + d.conflict.pct + " PCT")}</b>`,
+      esc(L("", 11) + U(d.conflict.level === "restricted" ? (d.conflict.restricted_airport ? `${zn}: FLIGHT WILL NOT BE CREDITED` : `ROUTE CROSSES ${zn}: REPLAN AROUND RESTRICTED AIRSPACE`) : `${zn}: EXERCISE CAUTION, MAINTAIN PLANNED ROUTE`)));
+  }
   out.push("", "<b>ROUTING</b>", esc(L("", 6) + L("STATION", 14) + L("STD/STA", 9) + L("NAME", 55)));
   out.push(esc(L("DEP", 6) + L(`${d.origin.icao}/${ia(d.origin.icao)}`, 14) + L(d.std, 9) + L(U(d.origin.name), 55)));
   if (d.dep_stand?.stand && d.dep_stand.icao === d.origin.icao) out.push(esc(L("", 6) + L("STAND " + d.dep_stand.stand, 14) + L("", 9) + L(U(d.dep_stand.info || ""), 55)));
@@ -223,7 +232,7 @@ function releasePage(d) {
   out.push("", "<b>RELEASE</b>");
   wrap(`THIS FLIGHT IS RELEASED UNDER THE PAGANI AIR CARGO OPERATIONS MANUAL. THE PILOT IN COMMAND AND THE DISPATCHER AGREE THE FLIGHT CAN BE MADE SAFELY AS PLANNED. RELEASE VALID UNTIL ${validUntil(d.std)} UNLESS AMENDED.`, W).forEach(l => out.push(esc(l)));
   out.push("", esc(L("DISPATCHER", 14) + L(p.dispatcher.name, 22) + L(p.dispatcher.cert, 16) + L(`/S/ ELECTRONICALLY SIGNED ${p.issued_at ? zulu(p.issued_at) : d.std}`, 32)));
-  out.push("", esc(L("PIC", 14) + L(`CAPT ${capShort}`, 22) + L(p.pic_cert, 16) + (d.signed ? `/S/ ELECTRONICALLY SIGNED ${zulu(d.signed.at)}` : "SIGNATURE ...................")));
+  out.push("", esc(L("PIC", 14) + L(`CAPT ${capShort}`, 21) + " " + L(p.pic_cert, 16) + (d.signed ? `/S/ ELECTRONICALLY SIGNED ${zulu(d.signed.at)}` : "SIGNATURE ...................")));
   out.push("I HAVE REVIEWED THE WEATHER, NOTAMS, FUEL AND LOAD FOR THIS FLIGHT.");
   return out;
 }

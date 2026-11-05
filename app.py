@@ -34,6 +34,7 @@ import weather
 import shutil
 import economics
 import acars_core
+import conflict_zones  # noqa: E402  (restricted and caution airspace)
 
 BASE = Path(__file__).parent
 DATA = BASE / "data"
@@ -164,7 +165,7 @@ DEFAULT_SETTINGS = {"pilot_name": "", "pilot_id": "PAC0001", "simbrief_username"
                     "discord_ch_flights": "flight-log", "discord_ch_news": "announcements", "discord_ch_welcome": "welcome",
                     "filing_icao": "PGC",
                     "vatsim_partner_section": False, "ivao_partner_section": False,   # the VATSIM logo on the home page: only once VATSIM has accepted PAC     # the ICAO code pilots file under on VATSIM and IVAO (PAC belongs to Polar Air Cargo)
-                    "discord_ch_dispatch": "dispatch", "discord_ch_notams": "notams", "discord_ch_honeypot": "do-not-post", "discord_ch_modlog": "", "discord_dispatch_missions": True, "discord_dispatch_partners": True,
+                    "discord_ch_dispatch": "dispatch", "discord_ch_notams": "notams", "discord_ch_honeypot": "do-not-post", "discord_ch_modlog": "", "conflict_zones_enabled": False, "conflict_zone_overrides": {}, "discord_dispatch_missions": True, "discord_dispatch_partners": True,
                     "discord_dispatch_urgent": True, "discord_dispatch_per_hour": 4,
                     "discord_pilot_role": "PAC Pilot", "discord_staff_role": "PAC Staff", "discord_rank_roles": True,
                     "si_enabled": False, "si_va_key": "", "si_coupon": "", "si_dispatcher_freq": "118.94", "si_notes": ""}
@@ -642,6 +643,7 @@ def build_pirep(booking, rec: FlightRecorder):
         p['payload_lbs'] = 0
         if m_['training']['mode'] == 'dedicated':
             p['registration'] = 'TRAINING'
+    p = apply_conflict_zones(p, booking, rec)
     return p
 
 
@@ -1587,9 +1589,14 @@ def create_booking():
     if err:
         return jsonify({"error": err}), 400
     ofp = body.get("ofp")
+    zone = flight_zone(m, ofp)
+    if zone and not body.get("zone_ack"):   # restricted or caution airspace: the pilot confirms they understand first
+        return jsonify({"error": zone["text"], "zone": zone, "needs_zone_ack": True}), 409
     fn = site_flight_number(ofp, m["id"])
     booking = {"mission": m, "aircraft": ac, "ofp": ofp, "flight_number": fn, "requested_at": time.time(),
                "airframe": frame["reg"] if frame else None, "partner_reg": partner_tail(m, ac)}
+    if zone:
+        booking["conflict"] = zone
     # the preliminary load sheet the pilot reviewed: same units, positions and waybills on the release
     booking["manifest_seed"] = manifest_seed_ok(body.get("manifest_seed")) or prelim_seed(m, ac)
     booking["dispatch"] = dispatch.generate(booking, FLEET, dispatch_pilot())
@@ -1606,6 +1613,91 @@ def create_booking():
     save_booking(booking)
     start_ofp_watch(booking)
     return jsonify(booking)
+
+
+def flight_zone(m, ofp=None):
+    """Conflict-zone assessment of a planned flight: its airports, and the OFP route (or the great circle without one)."""
+    pts = (ofp or {}).get("route_points") or None
+    return conflict_zones.assess(m.get("origin"), m.get("destination"), pts, settings(), DATA)
+
+
+@app.get("/api/conflict-zones")
+def conflict_zones_api():
+    """The switch and the active zones, so the website can tag flights; ?dep=&arr= assesses one route."""
+    out = conflict_zones.public(settings())
+    if request.args.get("dep") and request.args.get("arr"):
+        a, b = airport_obj(request.args["dep"].upper()), airport_obj(request.args["arr"].upper())
+        if a and b:
+            out["assessment"] = conflict_zones.assess(a, b, None, settings(), DATA)
+    return jsonify(out)
+
+
+@app.get("/api/staff/conflict-zones")
+def staff_conflict_zones():
+    return jsonify({"enabled": conflict_zones.enabled(settings()), "zones": conflict_zones.zones(settings())})
+
+
+@app.post("/api/staff/conflict-zones")
+def staff_conflict_zones_save():
+    b = request.json or {}
+    s = settings()
+    if "enabled" in b:
+        s["conflict_zones_enabled"] = bool(b["enabled"])
+    if isinstance(b.get("zones"), dict):
+        over = {}
+        for zid, v in b["zones"].items():
+            if zid in conflict_zones.DEFAULT_ZONES and isinstance(v, dict):
+                lv = v.get("level") if v.get("level") in conflict_zones.LEVELS else None
+                try:
+                    pct = max(0, min(50, int(v.get("pct"))))
+                except (TypeError, ValueError):
+                    pct = None
+                d = conflict_zones.DEFAULT_ZONES[zid]
+                o = {k: x for k, x in (("level", lv), ("pct", pct)) if x is not None and x != {"level": d[2], "pct": d[3]}[k]}
+                if o:
+                    over[zid] = o
+        s["conflict_zone_overrides"] = over
+    save_json(SETTINGS_PATH, s)
+    return jsonify({"enabled": conflict_zones.enabled(s), "zones": conflict_zones.zones(s)})
+
+
+def apply_conflict_zones(p, booking, rec):
+    """At filing: restricted airports reject the flight, a track over restricted airspace goes to staff, caution earns
+    hazard pay. Training and demo flights are left alone."""
+    m_ = booking["mission"]
+    if p.get("demo") or m_.get("training"):
+        return p
+    track = [[x[0], x[1]] for x in (getattr(rec, "track", None) or []) if x and x[0] is not None]
+    dep = {"icao": p.get("dep") or m_["origin"]["icao"], "lat": m_["origin"].get("lat"), "lon": m_["origin"].get("lon")}
+    arr = {"icao": p.get("arr") or "", "lat": (rec.last.lat if rec.last else None), "lon": (rec.last.lon if rec.last else None)}
+    z = conflict_zones.assess(dep, arr, track or None, settings(), DATA)
+    planned = conflict_zones.airport_zone(p.get("planned_arr") or m_["destination"]["icao"], conflict_zones.zones(settings())) \
+        if conflict_zones.enabled(settings()) else None
+    if planned and planned["level"] == "restricted" and not (z and z.get("restricted_airport")):
+        z = {**(z or {}), "level": "restricted", "restricted_airport": True, "pct": 0,
+             "zones": (z or {}).get("zones", []) + [{"id": planned["id"], "name": planned["name"], "level": "restricted"}],
+             "text": f"Not authorized: {planned['name']} is restricted airspace for PAC."}
+    if not z:
+        return p
+    p["conflict"] = z
+    flags = list(p.get("flags") or [])
+    if z.get("restricted_airport"):
+        flags.append("Restricted airspace: not authorized")
+        p["review_status"] = "Rejected"
+        p["conflict_note"] = f"Automatically rejected. {z['text']} Restricted flights aren't credited (see Handbook › Conflict zones)."
+        p["pay"] = None
+    elif z.get("restricted_crossing"):
+        flags.append("Track crossed restricted airspace")
+        if p.get("review_status") != "Rejected":
+            p["review_status"] = "Pending"
+        if p.get("pay"):
+            p["pay"]["note"] = "Paid only if staff accept the flight."
+    elif z["level"] == "caution" and p.get("pay") and z.get("pct"):
+        hz = round((p["pay"].get("flight_pay") or 0) * z["pct"] / 100, 2)
+        p["pay"]["hazard_pay"], p["pay"]["hazard_pct"] = hz, z["pct"]
+        p["pay"]["total"] = round(p["pay"]["total"] + hz, 2)
+    p["flags"] = flags
+    return p
 
 
 RANK_ABBR = {"Captain": "Capt.", "First Officer": "F/O", "Senior First Officer": "SFO", "Second Officer": "S/O"}
@@ -1653,6 +1745,7 @@ def dispatch_current():
             d["paper"] = __import__("copy").deepcopy(frozen_paper)
     d["paper"]["atc_callsign"] = atc_callsign(booking)
     d["navlog"] = (booking.get("ofp") or {}).get("route_points") or []  # SimBrief waypoints, for the navigation log
+    d["conflict"] = flight_zone(booking["mission"], booking.get("ofp")) if booking.get("mission") else None
     d["dep_stand"], d["arr_stand"] = booking.get("dep_stand"), booking.get("arr_stand")
     d["simbrief_request_id"] = (booking.get("ofp") or {}).get("request_id") or ""      # for Navigraph Charts
     ac = FLEET.get(booking["aircraft"], {})
@@ -2985,7 +3078,7 @@ def file_pirep():
               "profile": getattr(rec, "profile", []), "landing_analysis": p.get("landing_analysis"), "dispatch": booking.get("dispatch"),
               "aircraft_name": p.get("aircraft_name"), "pilot_rank": va.career(va.current_pilot_id())["rank"],
               "takeoff_analysis": p.get("takeoff_analysis"), "economics": p.get("economics"), "integrity": p.get("integrity"),
-              "online": p.get("online"), "urgent": p.get("urgent"), "job": p.get("job")}
+              "online": p.get("online"), "urgent": p.get("urgent"), "job": p.get("job"), "conflict": p.get("conflict")}
     with db() as con:
         cur = con.execute("""INSERT INTO pireps (filed_at, mission_id, mission_title, category, flight_number, aircraft,
             registration, dep, arr, planned_arr, block_min, flight_min, distance_nm, fuel_used_lbs, payload_lbs,
@@ -3000,6 +3093,8 @@ def file_pirep():
                            va.current_pilot_id(), p["review_status"], json.dumps(p["flags"]), p["bonus_points"], p.get("airframe"),
                            p["economics"]["revenue"], p["economics"]["total_cost"], p["economics"]["profit"]))
         pid = cur.lastrowid
+        if p.get("conflict_note"):
+            con.execute("UPDATE pireps SET review_note=?, reviewed_at=? WHERE id=?", (p["conflict_note"], time.time(), pid))
     p["paid"] = va.after_file(p, booking, rec, pid)
     car = va.career(pid_)
     new_badges = [b for b in va.badges(pid_) if b["earned"] and b["id"] not in before_badges]

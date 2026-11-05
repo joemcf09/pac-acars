@@ -1474,3 +1474,13 @@ html[data-theme="dark"] .ce-feature .btn.ghost{color:#ffb0b0}
 .tr-staff{width:100%;border-collapse:collapse;margin-top:10px;font-size:13.5px}
 .tr-staff th,.tr-staff td{border-bottom:1px solid var(--line);padding:6px 8px;text-align:left;vertical-align:top}
 @media(max-width:600px){.tr-grid{grid-template-columns:1fr}}
+
+/* Conflict zones */
+.tag.zone-r{background:#2b0d0f;color:#ff6b6b;border:1px solid #c0262d;text-transform:uppercase;letter-spacing:.04em}
+.waybill.wb-restricted{position:relative}
+.waybill.wb-restricted::after{content:"NOT AUTHORIZED";position:absolute;left:50%;top:50%;transform:translate(-50%,-50%) rotate(-8deg);background:var(--white);border:3px solid rgba(204,0,0,.7);color:rgba(204,0,0,.75);font-weight:800;letter-spacing:.08em;padding:3px 10px;font-size:15px;border-radius:4px;pointer-events:none;font-family:var(--display, inherit)}
+.zone-box{display:flex;gap:14px;align-items:flex-start;border:1px solid var(--line);border-left:6px solid var(--amber);padding:12px 14px;margin:0 0 10px;background:var(--note-wash)}
+.zone-box.restricted{border-left-color:#c0262d;background:rgba(192,38,45,.07)}
+.zone-box p{margin:4px 0 0;font-size:14px}
+.zone-stamp{flex:none;border:3px solid currentColor;color:var(--amber);font-weight:800;text-transform:uppercase;letter-spacing:.06em;padding:4px 8px;transform:rotate(-6deg);font-size:13px;border-radius:3px;margin-top:2px}
+.zone-box.restricted .zone-stamp{color:#c0262d}
