@@ -2450,6 +2450,7 @@ async function loadBids() {
         <div><span>Booked</span><b>${b.requested_at ? new Date(b.requested_at * 1000).toLocaleDateString("en-US", { day: "numeric", month: "short" }) : "–"}</b><small>${b.ofp ? "SimBrief OFP attached" : S.ofpWatch ? "Watching SimBrief for the plan" : "No OFP yet"}</small></div>
       </div>
       <div class="bid-status"><i></i>${status[1]}</div>
+      ${!b.ofp && !st.complete && !st.tracking ? bookedPlanPanel(b) : ""}
       ${!b.ofp && !st.complete && !st.tracking ? `<p class="watch-note" style="margin:0">${S.ofpWatch ? `<i></i>PAC is watching SimBrief for this flight's plan until ${new Date(S.ofpWatch.until * 1000).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}. Generate it in SimBrief and it's attached automatically, with the dispatch paperwork updated. <a href="#" id="ofpWatchStop">Stop</a>`
         : `No SimBrief plan attached. <a href="#" id="ofpWatchStart">Watch SimBrief for it</a> (or fetch it in PAC ACARS).`}</p>` : ""}
       ${st.complete ? "" : preparationPanel(b, st, statusAvailable)}
@@ -2464,6 +2465,62 @@ async function loadBids() {
       </div>
     </article>`;
 }
+
+/* My bids: plan a booked flight in SimBrief (checkrides and flights requested without an OFP) */
+function bookedPlanPanel(b) {
+  const api1 = !!S.settings?.simbrief_api, gen = S.sbBooked;
+  return `<div class="notice" style="margin:0"><b>Plan this flight in SimBrief</b>
+    <p class="muted" style="margin:4px 0 10px;font-size:13px">Filled in for you: ${esc(S.fleet[b.aircraft]?.name || b.aircraft)}, route, callsign and ${b.mission.payload_lbs ? fmt(b.mission.payload_lbs) + " lb of " + (b.mission.training ? "ballast" : "cargo") : "an empty hold"}. The plan attaches to this flight and updates your dispatch release.</p>
+    <div class="row">${api1 ? `<button type="button" class="btn" id="bpGen" ${gen ? "disabled" : ""}>${gen ? "Generating in SimBrief…" : "Generate OFP"}</button>` : ""}
+      <a class="btn ${api1 ? "ghost" : ""}" id="bpOpen" href="${esc(bookedSimbriefUrl(b))}" target="_blank" rel="noopener">${api1 ? "Or open SimBrief yourself" : "Open SimBrief with this flight"}</a>
+      <button type="button" class="btn ghost" id="bpFetch">Fetch latest OFP</button></div>
+    <p class="muted" style="margin:6px 0 0;font-size:12px">${gen ? "Finish in the SimBrief window. It closes by itself and the plan attaches here." : api1 ? "A small SimBrief window builds the plan and closes by itself. Allow pop-ups for this site." : "In SimBrief, click Generate Flight, then come back and press Fetch latest OFP."}</p></div>`;
+}
+function bookedSimbriefUrl(b) {
+  const keep = S.airframe; S.airframe = b.airframe || b.mission.training?.reg || null;
+  try { return simbriefUrl(b.mission, b.aircraft); } finally { S.airframe = keep; }
+}
+async function attachBookedOfp(body, tries = 0) {
+  try {
+    await api("/api/acars/app/ofp", { method: "POST", body });
+    const r = await api("/api/acars/app/hello"); if (r.booking) S.booking = r.booking;
+    toast("SimBrief plan attached. Review and sign your dispatch release before starting PAC ACARS.");
+  } catch (e) {
+    if (tries < 3 && body.ofp_id && /finished|not found|no plan|yet/i.test(e.message)) { setTimeout(() => attachBookedOfp(body, tries + 1), 2500); return; }
+    toast(e.message, 8000);
+  }
+  S.sbBooked = null; if (!$("#view-bids").hidden) loadBids();
+}
+async function bookedSimbriefGenerate(b) {
+  const win = window.open("about:blank", "SBworker", "width=600,height=315");   // opened on the click, so pop-up blockers allow it
+  if (!win) { toast("Allow pop-ups for this site to generate the OFP, or use Open SimBrief yourself."); return; }
+  const q = new URL(bookedSimbriefUrl(b)).searchParams;
+  const ts = Math.round(Date.now() / 1000), out = (location.origin + "/").replace("http://", "");
+  let sig;
+  try { sig = await api("/api/simbrief/apicode", { method: "POST", body: { orig: q.get("orig"), dest: q.get("dest"), type: q.get("type"), timestamp: ts, outputpage: out } }); }
+  catch (e) { win.close(); toast(e.message); return; }
+  const f = document.createElement("form");
+  f.method = "get"; f.action = "https://www.simbrief.com/ofp/ofp.loader.api.php"; f.target = "SBworker"; f.style.display = "none";
+  const add = (k, v) => { const i = document.createElement("input"); i.type = "hidden"; i.name = k; i.value = v; f.append(i); };
+  q.forEach((v, k) => add(k, v));
+  add("apicode", sig.apicode); add("outputpage", out); add("timestamp", String(ts));
+  document.body.append(f); f.submit(); f.remove();
+  const g = S.sbBooked = { started: Date.now() };
+  loadBids();
+  const timer = setInterval(() => {
+    if (S.sbBooked !== g) return clearInterval(timer);
+    if (Date.now() - g.started > 15 * 60e3) { clearInterval(timer); S.sbBooked = null; if (!win.closed) win.close(); toast("SimBrief took too long. Try again, or use Open SimBrief yourself."); loadBids(); return; }
+    if (!win.closed) return;
+    clearInterval(timer);
+    attachBookedOfp({ ofp_id: sig.ofp_id });
+  }, 600);
+}
+document.addEventListener("click", e => {
+  const t = e.target.closest("#bpGen, #bpFetch"); if (!t || !S.booking) return;
+  e.preventDefault();
+  if (t.id === "bpGen") bookedSimbriefGenerate(S.booking);
+  else { t.disabled = true; t.textContent = "Fetching…"; attachBookedOfp({}); }
+});
 
 document.addEventListener("click", async e => {
   const t = e.target.closest("#ofpWatchStop, #ofpWatchStart"); if (!t) return;

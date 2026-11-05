@@ -2884,6 +2884,8 @@ def acars_app_ofp():
         if b.get("raw"):
             text = b["raw"].strip()
             raw = json.loads(text) if text.startswith("{") else xml_to_obj(ET.fromstring(text))
+        elif b.get("ofp_id"):      # generated from the My bids page through the SimBrief API
+            raw = fetch_simbrief_ofp_id(b["ofp_id"])
         else:
             raw = fetch_simbrief(simbrief_settings())
         ofp = parse_ofp(raw)
