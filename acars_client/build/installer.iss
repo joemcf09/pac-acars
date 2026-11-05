@@ -54,13 +54,14 @@ Filename: "{app}\PAC ACARS.exe"; Description: "Start PAC ACARS"; Flags: nowait p
 [Code]
 // In-app updates run this installer silently while PAC ACARS is closing. Make sure it has really
 // closed (its files can't be replaced while it runs), then give Windows a moment to release them.
+// No /T: the installer itself was started by PAC ACARS, and /T would close the installer too.
 function InitializeSetup(): Boolean;
 var
   Code: Integer;
 begin
   if WizardSilent() then
   begin
-    Exec(ExpandConstant('{sys}\taskkill.exe'), '/F /T /IM "PAC ACARS.exe"', '', SW_HIDE, ewWaitUntilTerminated, Code);
+    Exec(ExpandConstant('{sys}\taskkill.exe'), '/F /IM "PAC ACARS.exe"', '', SW_HIDE, ewWaitUntilTerminated, Code);
     Sleep(1500);
   end;
   Result := True;
