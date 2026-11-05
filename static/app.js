@@ -2299,6 +2299,10 @@ async function renderBotBox() {
        ["botDispPartners", "discord_dispatch_partners", "Partner crew requests", "When a partner airline needs a PAC captain (one every hour or two)."],
        ["botDispUrgent", "discord_dispatch_urgent", "Urgent requests", "Short-notice jobs with a deliver-by time (open for a few hours)."]]
       .map(([id, k, t, d]) => `<label class="switch-row"><input type="checkbox" id="${id}" ${st[k] !== false ? "checked" : ""}><span><b>${t}</b><br><span class="muted" style="font-size:13px">${d}</span></span></label>`).join("")}
+    <h4 style="margin:18px 0 4px">Butter board</h4>
+    <p class="muted" style="font-size:13px;margin:0 0 8px">Every accepted PIREP with a landing at or softer than the limit is also posted to the butter board: "🧈 Alex greased the 737-800 into MTPP at -48 fpm!" Leave the channel empty to switch it off.</p>
+    <div class="mail-grid">${fld("botChButter", "Butter board channel", st.discord_ch_butter, "butter-board")}
+      <div class="field"><label for="botButterFpm">Softer than (fpm)</label><input id="botButterFpm" type="number" min="10" max="300" step="10" value="${esc(st.discord_butter_fpm ?? 100)}"></div></div>
     <h4 style="margin:18px 0 4px">Weekly recap</h4>
     <p class="muted" style="font-size:13px;margin:0 0 8px">Every Monday at 14:00 UTC (9 AM in Cincinnati in winter), the bot posts last week at PAC: flights, hours and cargo, the smoothest landing, the top three for hours, promotions and new pilots. Linked pilots are tagged. A week with no flights, promotions or new pilots is skipped.</p>
     <label class="switch-row"><input type="checkbox" id="botRecap" ${st.discord_recap_enabled !== false ? "checked" : ""}><span><b>Post the weekly recap</b></span></label>
@@ -2328,7 +2332,7 @@ async function renderBotBox() {
   };
   $("#botSave").onclick = async () => {
     const body = { discord_bot_enabled: $("#botOn").checked, discord_guild: $("#botGuild").value.trim(), discord_ch_flights: $("#botChFlights").value.trim(),
-      discord_ch_news: $("#botChNews").value.trim(), discord_ch_welcome: $("#botChWelcome").value.trim(), discord_ch_notams: $("#botChNotams").value.trim(), discord_ch_honeypot: $("#botChTrap").value.trim(), discord_recap_enabled: $("#botRecap").checked, discord_ch_recap: $("#botChRecap").value.trim(), discord_ch_modlog: $("#botChModlog").value.trim(), discord_pilot_role: $("#botPilotRole").value.trim(),
+      discord_ch_news: $("#botChNews").value.trim(), discord_ch_welcome: $("#botChWelcome").value.trim(), discord_ch_notams: $("#botChNotams").value.trim(), discord_ch_honeypot: $("#botChTrap").value.trim(), discord_recap_enabled: $("#botRecap").checked, discord_ch_butter: $("#botChButter").value.trim(), discord_butter_fpm: Math.max(10, Math.min(300, parseInt($("#botButterFpm").value, 10) || 100)), discord_ch_recap: $("#botChRecap").value.trim(), discord_ch_modlog: $("#botChModlog").value.trim(), discord_pilot_role: $("#botPilotRole").value.trim(),
       discord_staff_role: $("#botStaffRole").value.trim(), discord_rank_roles: $("#botRanks").checked,
       discord_ch_dispatch: $("#botChDispatch").value.trim(), discord_dispatch_missions: $("#botDispMissions").checked,
       discord_dispatch_partners: $("#botDispPartners").checked, discord_dispatch_urgent: $("#botDispUrgent").checked,

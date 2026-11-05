@@ -129,6 +129,15 @@ def recap_due(now_utc, r, hour_utc=14):
     return bool(r.get("enabled", True)) and not r.get("posted") and now_utc.weekday() == 0 and now_utc.hour >= hour_utc
 
 
+def butter_text(ev, limit_fpm=100):
+    """A soft landing for the butter board, or None. Landing rates are negative (descending), e.g. -48 fpm."""
+    rate = ev.get("landing_rate")
+    if rate is None or rate >= 0 or rate < -abs(limit_fpm) or "fail" in (ev.get("status") or "").lower():
+        return None
+    ac = ev.get("aircraft_name") or ev.get("aircraft") or "PAC aircraft"
+    return f"🧈 {mention(ev)} greased the {ac} into **{ev['arr']}** at **{int(rate)} fpm**! ({ev['flight']})"
+
+
 def promotion_text(ev):
     return f"🎖️ Congratulations {mention(ev)}, promoted from {ev['from']} to **{ev['rank']}**!"
 
@@ -402,6 +411,9 @@ def run(cfg):
         kind, d = ev["kind"], ev["data"]
         if kind == "pirep":
             await post("flights", card=pirep_card(d, site))
+            bt = butter_text(d, cfg.get("butter_fpm", 100))
+            if bt and channel("butter"):                       # the butter board: soft landings, posted automatically
+                await post("butter", bt)
         elif kind == "promotion":
             await post("news", promotion_text(d))
             await sync_all()
@@ -471,7 +483,7 @@ def run(cfg):
                         await client.close()
                         return
                     if st == 200:
-                        cfg.update({k: c[k] for k in ("channels", "pilot_role", "staff_role", "rank_roles", "ranks", "site", "guild", "dispatch")
+                        cfg.update({k: c[k] for k in ("channels", "pilot_role", "staff_role", "rank_roles", "ranks", "site", "guild", "dispatch", "butter_fpm")
                                     if k in c})
             except Exception as e:
                 print(f"Discord bot loop: {e}")

@@ -197,5 +197,15 @@ check("not twice, not on other days, not when switched off", not DB.recap_due(mo
 r = bot.post("/api/bot/weekly/posted", headers=H, json={"week": w["week"]})
 check("the website remembers the week was posted", r.status_code == 200 and bot.get("/api/bot/weekly", headers=H).get_json()["posted"], (r.status_code, r.get_json(), A.settings().get("discord_recap_last"), w["week"]))
 
+print("Butter board")
+cfgb = bot.get("/api/bot/config", headers=H).get_json()
+check("the butter board channel and limit reach the bot", cfgb["channels"]["butter"] == "butter-board" and cfgb["butter_fpm"] == 100, cfgb)
+ev = {"pilot": "Alex B.", "discord_id": "42", "landing_rate": -48, "arr": "MTPP", "flight": "PAC2097", "aircraft_name": "Boeing 737-800BCF", "status": "Delivered"}
+t = DB.butter_text(ev)
+check("a -48 fpm landing goes on the butter board", t and "<@42>" in t and "-48 fpm" in t and "MTPP" in t, t)
+check("a -150 fpm landing doesn't", DB.butter_text({**ev, "landing_rate": -150}) is None)
+check("the limit is adjustable", DB.butter_text({**ev, "landing_rate": -150}, 200) is not None)
+check("failed flights and missing rates don't count", DB.butter_text({**ev, "status": "Failed"}) is None and DB.butter_text({**ev, "landing_rate": None}) is None)
+
 print("\n" + ("DISCORD BOT TEST PASSED" if not failures else f"{len(failures)} failed: {failures}"))
 sys.exit(1 if failures else 0)
