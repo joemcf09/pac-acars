@@ -170,6 +170,7 @@ check("staff are never caught", DB.trap_exempt(False, False, {}, ["PAC Staff"], 
 check("moderators and admins are never caught", DB.trap_exempt(False, False, {"manage_messages": True}, [], "PAC Staff")
       and DB.trap_exempt(False, False, {"administrator": True}, [], ""))
 check("the owner and the server's bots are never caught", DB.trap_exempt(False, True, {}, [], "") and DB.trap_exempt(True, False, {}, [], ""))
+check("channel names with emoji still match", DB._bare("📋flight-log") == DB._bare("flight-log") and DB._bare("🚨notams") == "notams")
 check("the staff report names the account", "spam#0001" in DB.trap_log("spam#0001", 42, "do-not-post", True))
 
 print("\n" + ("DISCORD BOT TEST PASSED" if not failures else f"{len(failures)} failed: {failures}"))

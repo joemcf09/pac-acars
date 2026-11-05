@@ -311,7 +311,9 @@ def run(cfg):
         g, name = guild(), (cfg["channels"].get(key) or "").lower()
         if not g or not name:
             return None
-        return discord.utils.find(lambda c: c.name.lower() == name or str(c.id) == name, g.text_channels)
+        # emoji and separators in the Discord name don't matter: "📋flight-log" and "📋・flight-log" both match "flight-log"
+        return (discord.utils.find(lambda c: c.name.lower() == name or str(c.id) == name, g.text_channels)
+                or discord.utils.find(lambda c: _bare(c.name) == _bare(name) and _bare(name), g.text_channels))
 
     async def role(g, name):
         r = discord.utils.get(g.roles, name=name)
