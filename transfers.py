@@ -96,6 +96,8 @@ def status_for(con, pid):
     why = None
     if any(r["status"] == "Pending" for r in rows):
         why = "Your request is with staff. You'll hear back by email and here."
+    elif current > CAP_HOURS:
+        why = "Your transfer hours were set by staff, above the 75-hour limit for requests, so there's nothing more to request."
     elif current >= CAP_HOURS:
         why = f"You already have the maximum {CAP_HOURS:g} transfer hours."
     elif len(rows) >= MAX_REQUESTS:

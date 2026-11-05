@@ -4254,7 +4254,7 @@ async function fillTransfers() {
   el.innerHTML = `<section class="panel tr-panel" aria-labelledby="trHead">
     <div class="tr-top"><div><span class="kicker">Experience from other airlines</span><h2 id="trHead">Transfer hours</h2>
       <p class="muted" style="margin:4px 0 0;max-width:72ch">Flown at another virtual airline or on VATSIM/IVAO? Send your verified hours and PAC credits <b>half of them, up to ${r.cap} hours</b>, towards rank. That can take you as far as Senior First Officer; Captain is earned at PAC. The checkride, your average score and type ratings still apply, and transfer hours never add pay, points or leaderboard hours.</p></div>
-      <div class="tr-now"><span>Credited now</span><b>${esch(d.transfer_hours)} h</b><small>of ${r.cap} max</small></div></div>
+      <div class="tr-now"><span>Credited now</span><b>${esch(d.transfer_hours)} h</b><small>${d.transfer_hours > r.cap ? "set by staff" : `of ${r.cap} max`}</small></div></div>
     ${d.can_request ? `<div class="row" style="align-items:center;gap:12px;margin-top:12px"><button class="btn" type="button" id="trOpen">${d.is_appeal ? "Appeal with new proof" : "Request transfer hours"}</button>
         <span class="muted small">${d.is_appeal ? "This is your one appeal. " : ""}Open until ${trDate(d.closes)}.</span></div>`
       : d.why_not ? `<p class="small muted" style="margin:12px 0 0">${esc(d.why_not)}</p>` : ""}
