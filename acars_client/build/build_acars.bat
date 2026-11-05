@@ -2,7 +2,7 @@
 title Build PAC ACARS
 cd /d "%~dp0"
 set "ROOT=%~dp0..\.."
-set "VERSION=1.1.2.2"
+set "VERSION=1.1.2.3"
 
 rem The airline's website, baked into the build so pilots don't have to type it.
 rem Change this to your own address before building (and after moving PAC to a server).

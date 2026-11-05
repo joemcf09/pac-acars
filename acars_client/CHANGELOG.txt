@@ -1,6 +1,18 @@
 PAC ACARS - CHANGELOG
 =====================
 
+1.1.2 hotfix 3 (November 2026)
+------------------------------
+Fixed
+- After an update, no leftover "Reconnecting" window: PAC ACARS closes its
+  window before the update installs, and opens a fresh one afterward.
+- Clearer download progress while updating: megabytes downloaded and about
+  how long is left.
+
+New
+- Restricted airspace and caution areas: when PAC's conflict-zone rules are
+  on, PAC ACARS shows a notice if your flight goes into or across one.
+
 1.1.2 hotfix 2 (November 2026)
 ------------------------------
 Fixed

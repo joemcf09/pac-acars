@@ -90,7 +90,7 @@ import acars_core  # noqa: E402
 from sim_sources import DemoSource, MSFSSource, XPlaneSource, gc_distance_nm  # noqa: E402
 from tracker import FlightRecorder, TrackerThread  # noqa: E402
 
-VERSION = "1.1.2.2"   # major.minor.patch, plus a fourth number for hotfixes (shown as "1.1.2 hotfix 1")
+VERSION = "1.1.2.3"   # major.minor.patch, plus a fourth number for hotfixes (shown as "1.1.2 hotfix 1")
 PORT = int(os.environ.get("PAC_ACARS_PORT", "5070"))  # not 5060: browsers block that port (SIP)
 CONFIG_PATH = USER_DIR / "config.json"
 STATE_PATH = USER_DIR / "flight_state.pkl"
@@ -599,7 +599,8 @@ def api_practice_stop():
 
 
 # ---------------------------------------------------------------- 1.1: built-in update
-UPDATE = {"state": "idle", "progress": 0, "error": None, "file": None, "version": None, "dismissed": False}
+UPDATE = {"state": "idle", "progress": 0, "error": None, "file": None, "version": None, "dismissed": False,
+          "mb_got": 0, "mb_total": 0, "eta_s": None}
 
 
 def _vt(v):
@@ -666,12 +667,13 @@ def update_info():
     newer = bool(latest) and _vt(latest) > _vt(VERSION)
     return {"current": VERSION, "latest": latest, "available": newer, "can_install": newer and installed_copy() and bool(inst.get("url")),
             "size_mb": inst.get("size_mb"), "state": UPDATE["state"], "progress": UPDATE["progress"], "error": UPDATE["error"],
-            "dismissed": UPDATE["dismissed"], "page": server_url() + "/#downloads"}
+            "dismissed": UPDATE["dismissed"], "page": server_url() + "/#downloads",
+            "mb_got": UPDATE.get("mb_got"), "mb_total": UPDATE.get("mb_total"), "eta_s": UPDATE.get("eta_s")}
 
 
 def _download_update(inst):
     try:
-        UPDATE.update(state="downloading", progress=0, error=None)
+        UPDATE.update(state="downloading", progress=0, error=None, mb_got=0, mb_total=0, eta_s=None)
         folder = USER_DIR / "updates"
         folder.mkdir(exist_ok=True)
         for old in folder.glob("PAC-ACARS-Setup-*.exe"):
@@ -689,15 +691,20 @@ def _download_update(inst):
         opener = _DIRECT.open if is_local_site(url) else urllib.request.urlopen
         with opener(req, timeout=30) as r, open(target, "wb") as f:
             total = int(r.headers.get("Content-Length") or 0) or int((inst.get("size_mb") or 0) * 1_048_576)
-            got = 0
+            got, t0 = 0, time.time()
+            UPDATE["mb_total"] = round(total / 1_048_576, 1) if total else 0
             while True:
                 chunk = r.read(256 * 1024)
                 if not chunk:
                     break
                 f.write(chunk)
                 got += len(chunk)
+                UPDATE["mb_got"] = round(got / 1_048_576, 1)
                 if total:
                     UPDATE["progress"] = min(99, int(got * 100 / total))
+                    took = time.time() - t0
+                    if took > 1 and got:          # time left, from the speed so far
+                        UPDATE["eta_s"] = max(0, int((total - got) / (got / took)))
         with open(target, "rb") as f:
             if f.read(2) != b"MZ":
                 raise ValueError("The download isn't a Windows installer. Try again, or download it from the website.")

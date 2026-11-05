@@ -2771,6 +2771,7 @@ def acars_app_hello():
                     "latest_app": (acars_downloads() or {}).get("version"), "latest_installer": acars_installer_info(),
                     "discord_app_id": str(va.site().get("discord_app_id") or "").strip() or None,
                     "checkpoint": checkpoint_meta(booking),
+                    "conflict": flight_zone(booking["mission"], booking.get("ofp")) if booking and booking.get("mission") else None,
                     "ofp_watch": ofp_watch_status()})
 
 
