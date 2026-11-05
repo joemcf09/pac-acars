@@ -287,6 +287,7 @@
     "name": "Boeing 747-200F",
     "icao": "B742",
     "simbrief_type": "B742",
+    "simbrief_airframe": "277074_1793915409207",
     "max_payload_lbs": 242000,
     "mtow_lbs": 833000,
     "range_nm": 4000,

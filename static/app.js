@@ -589,7 +589,7 @@ function simbriefUrl(m, ac) {
   const fl = S.fleet[ac];
   const num = m.id.replace(/\D/g, "");
   const al = m.operator?.code || filingIcao();      // PAC flights are filed as PGC on the networks: PAC is Polar Air Cargo's code
-  const p = new URLSearchParams({ airline: al, fltnum: num, orig: m.origin.icao, dest: m.destination.icao, type: fl.simbrief_type,
+  const p = new URLSearchParams({ airline: al, fltnum: num, orig: m.origin.icao, dest: m.destination.icao, type: fl.simbrief_airframe || fl.simbrief_type,   // PAC's custom airframe (real freighter weights) when set
     cargo: (Math.min(m.payload_lbs, fl.max_payload_lbs) / 1000).toFixed(1), pax: "0", units: "LBS", callsign: al + num,
     manualrmk: m.operator ? `PAC PILOT HIRED TO FILL IN FOR ${m.operator.name.toUpperCase()} CREW SHORTAGE. ${m.id} FLOWN BY ${(displayName(S.profile || {}) || "PAC CAPTAIN").toUpperCase()} ${S.profile?.pilot_id || ""}`.trim() : `CALLSIGN PAGANI. PAGANI AIR CARGO MISSION ${m.id} ${m.title.toUpperCase()}` });
   if (S.airframe && (S.airframes || []).some(a => a.reg === S.airframe && a.type === ac)) p.set("reg", S.airframe);
@@ -5052,7 +5052,7 @@ async function staffNews(edit) {
 }
 const TYPE_FIELDS = [
   ["code", "Type code", "text", "e.g. B744F"], ["name", "Name", "text", "Boeing 747-400F"], ["icao", "ICAO type", "text", "B744"],
-  ["simbrief_type", "SimBrief type", "text", "B744"], ["sim", "Simulator", "select", ["MSFS", "X-Plane", "MSFS and X-Plane"]],
+  ["simbrief_type", "SimBrief type", "text", "B744"], ["simbrief_airframe", "SimBrief airframe ID (optional)", "text", "277074_1793915409207"], ["sim", "Simulator", "select", ["MSFS", "X-Plane", "MSFS and X-Plane"]],
   ["sim_model", "Add-on aircraft", "text", ""], ["division", "Division", "text", "PAC"], ["role", "Role", "text", ""],
   ["unlock_rank", "Unlocked at rank", "rank", ""], ["max_payload_lbs", "Max payload (lb)", "number", ""], ["mtow_lbs", "MTOW (lb)", "number", ""],
   ["range_nm", "Typical range (nm)", "number", ""], ["min_rwy_ft", "Runway needed (ft)", "number", ""], ["cruise_ktas", "Cruise speed (kt TAS)", "number", ""],
@@ -5080,7 +5080,7 @@ async function staffTypes(editCode) {
   $("#staffBody").innerHTML = `${form || `<div class="row" style="margin-bottom:14px"><button class="btn" type="button" id="typeNew">Add an aircraft type</button>
       <span class="muted" style="font-size:13px">Retired types can't be booked but stay in logbooks. Types with airframes or logged flights can't be deleted.</span></div>`}
     <div class="table-wrap"><table class="staff-table"><thead><tr><th>Type</th><th>Name</th><th>Sim</th><th>Payload</th><th>Range</th><th>Unlocks at</th><th>Airframes</th><th>Flights</th><th>Status</th><th></th></tr></thead><tbody>
-    ${d.types.map(x => `<tr><td><b>${esc(x.code)}</b><br><small class="muted">${esc(x.icao)} · SimBrief ${esc(x.simbrief_type)}</small></td><td>${esc(x.name)}</td><td>${esc(x.sim || "MSFS")}</td>
+    ${d.types.map(x => `<tr><td><b>${esc(x.code)}</b><br><small class="muted">${esc(x.icao)} · SimBrief ${esc(x.simbrief_type)}${x.simbrief_airframe ? " · custom airframe" : ""}</small></td><td>${esc(x.name)}</td><td>${esc(x.sim || "MSFS")}</td>
       <td>${fmt(x.max_payload_lbs)} lb</td><td>${fmt(x.range_nm)} nm</td><td>${esc(x.unlock_rank_effective)}</td><td>${x.airframes}</td><td>${x.pireps}</td>
       <td>${x.retired ? '<span class="tag grey" style="margin:0">Retired</span>' : '<span class="tag green" style="margin:0">Active</span>'}${x.custom_type ? ' <span class="tag dark">Added</span>' : ""}</td>
       <td style="white-space:nowrap"><button class="btn small" type="button" data-tedit="${x.code}">Edit</button>

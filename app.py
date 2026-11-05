@@ -104,14 +104,15 @@ FLEET = json.loads((DATA / "fleet.json").read_text(encoding="utf-8"))
 FLEET_CUSTOM_PATH = DATA / "fleet_custom.json"   # your edits, kept apart so updates don't overwrite them
 FLEET_PHOTO_DIR = DATA / "fleet_photos"
 FLEET_TEXT = ("role", "division", "description", "engines", "crew", "main_deck", "sim", "sim_model", "name", "icao", "simbrief_type",
-              "unlock_rank")
+              "unlock_rank", "simbrief_airframe")
 FLEET_NUM = ("max_payload_lbs", "mtow_lbs", "range_nm", "min_rwy_ft", "cruise_ktas", "mach", "tailstrike_pitch", "fuel_burn_pph",
              "maint_per_bh", "ownership_per_bh", "entered_service")
 FLEET_EDITABLE = FLEET_TEXT + FLEET_NUM + ("registrations", "photo", "thumb", "retired")
 FLEET_BASE_CODES = set(FLEET)
 TYPE_DEFAULTS = {"sim": "MSFS", "sim_model": "", "role": "", "division": "PAC", "description": "", "engines": "", "crew": "2 (Captain, First Officer)",
                  "main_deck": "", "mach": 0.8, "entered_service": None, "registrations": [], "photo": "/static/pac-logo.png",
-                 "thumb": "/static/pac-logo.png", "tailstrike_pitch": 11.0, "retired": False}
+                 "thumb": "/static/pac-logo.png", "tailstrike_pitch": 11.0, "retired": False,
+                 "simbrief_airframe": ""}   # a shared SimBrief custom airframe ID (e.g. 277074_1793915409207): plans use its weights
 for _code, _edits in (json.loads(FLEET_CUSTOM_PATH.read_text(encoding="utf-8")) if FLEET_CUSTOM_PATH.exists() else {}).items():
     if _edits.get("deleted"):
         FLEET.pop(_code, None)
@@ -1527,7 +1528,7 @@ def simbrief_apicode():
         ts = int(b.get("timestamp"))
     except (TypeError, ValueError):
         return jsonify({"error": "Missing timestamp."}), 400
-    if not (re.fullmatch(r"[A-Z0-9]{3,4}", orig) and re.fullmatch(r"[A-Z0-9]{3,4}", dest) and re.fullmatch(r"[A-Z0-9]{2,8}", typ)):
+    if not (re.fullmatch(r"[A-Z0-9]{3,4}", orig) and re.fullmatch(r"[A-Z0-9]{3,4}", dest) and (re.fullmatch(r"[A-Z0-9]{2,8}", typ) or re.fullmatch(r"\d{1,12}_\d{6,16}", typ))):   # type code or custom airframe ID
         return jsonify({"error": "Check the departure, arrival and aircraft type."}), 400
     if abs(ts - time.time()) > 3600:
         return jsonify({"error": "Your computer's clock looks wrong. Fix the time and try again."}), 400

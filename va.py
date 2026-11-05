@@ -1073,7 +1073,7 @@ def simbrief_sheet(code):
     with C["db"]() as con:
         regs = [r["reg"] for r in con.execute("SELECT reg FROM airframes WHERE type=? AND status!='Retired' ORDER BY reg", (code,))]
     return {"code": code, "name": ac["name"], "icao": ac.get("icao"), "simbrief_type": ac.get("simbrief_type") or ac.get("icao"),
-            "sim": ac.get("sim"), "airline": _filing_icao(), "callsign": "PAGANI", "oew_lbs": oew, "mzfw_lbs": int(mzfw), "mtow_lbs": int(mtow),
+            "simbrief_airframe": ac.get("simbrief_airframe") or "", "sim": ac.get("sim"), "airline": _filing_icao(), "callsign": "PAGANI", "oew_lbs": oew, "mzfw_lbs": int(mzfw), "mtow_lbs": int(mtow),
             "mlw_lbs": int(mlw), "max_payload_lbs": int(max_pl), "fuel_burn_pph": ac.get("fuel_burn_pph"), "cruise_ktas": ac.get("cruise_ktas"),
             "range_nm": ac.get("range_nm"), "registrations": regs}
 
@@ -1107,7 +1107,9 @@ def downloads_simbrief(code):
         return jsonify({"error": "No such aircraft type."}), 404
     f = lambda v: f"{v:,} lb" if isinstance(v, int) else str(v)
     lines = ["PAGANI AIR CARGO - SIMBRIEF AIRFRAME SHEET", f"{sh['name']} ({sh['icao']})", "=" * 48,
-             f"SimBrief aircraft type   {sh['simbrief_type']}", f"Airline code             {sh['airline']}", f"Callsign                 {sh['callsign']}",
+             f"SimBrief aircraft type   {sh['simbrief_type']}",
+             f"SimBrief airframe ID     {sh['simbrief_airframe']}  (PAC's shared airframe: paste it as the aircraft type)" if sh.get("simbrief_airframe") else "",
+             f"Airline code             {sh['airline']}", f"Callsign                 {sh['callsign']}",
              f"Empty weight (OEW)       {f(sh['oew_lbs'])}", f"Max zero fuel weight     {f(sh['mzfw_lbs'])}", f"Max takeoff weight       {f(sh['mtow_lbs'])}",
              f"Max landing weight       {f(sh['mlw_lbs'])}", f"Max payload              {f(sh['max_payload_lbs'])}",
              f"Typical fuel burn        {sh['fuel_burn_pph']:,} lb/h" if sh.get("fuel_burn_pph") else "", f"Cruise speed (TAS)       {sh['cruise_ktas']} kt" if sh.get("cruise_ktas") else "",
