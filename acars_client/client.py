@@ -730,20 +730,14 @@ def api_update_install():
         return jsonify({"error": "A flight is being tracked. Update after it's filed, or close PAC ACARS to save it first."}), 409
     if UPDATE["state"] != "ready" or not UPDATE["file"] or not Path(UPDATE["file"]).exists():
         return jsonify({"error": "The update isn't downloaded yet."}), 400
-    import subprocess
-    log = USER_DIR / "updates" / "install.log"
-    # No helper script: the installer closes any PAC ACARS still running, installs, and starts the new version
-    # itself (installer.iss, silent installs only). This copy closes a second later.
-    flags = 0x00000008 | 0x00000200   # detached, new process group
-    subprocess.Popen([UPDATE["file"], "/VERYSILENT", "/SUPPRESSMSGBOXES", "/NORESTART", "/CLOSEAPPLICATIONS", f"/LOG={log}"],
-                     creationflags=flags, close_fds=True, cwd=str(USER_DIR / "updates"))
     UPDATE["state"] = "installing"
-    threading.Timer(1.0, quit_for_update).start()
+    threading.Timer(0.8, quit_for_update, args=(UPDATE["file"],)).start()
     return jsonify({"ok": True})
 
 
-def quit_for_update():
-    """Closes PAC ACARS quickly so the installer can replace its files (the tray icon can take seconds to stop)."""
+def quit_for_update(installer=None):
+    """Closes this window first (so no stale window is left showing an error), then starts the installer and exits
+    at once. The installer closes anything left, installs, and starts the new version itself (silent installs)."""
     try:
         stop_thread()
         end_window(state.get("win_proc"))
@@ -752,6 +746,12 @@ def quit_for_update():
             winctl.close(state.get("win_hwnd"))
     except Exception as e:
         print("Closing for the update:", e)
+    if installer:
+        import subprocess
+        log = USER_DIR / "updates" / "install.log"
+        flags = 0x00000008 | 0x00000200   # detached, new process group
+        subprocess.Popen([installer, "/VERYSILENT", "/SUPPRESSMSGBOXES", "/NORESTART", "/CLOSEAPPLICATIONS", f"/LOG={log}"],
+                         creationflags=flags, close_fds=True, cwd=str(USER_DIR / "updates"))
     PID_FILE.unlink(missing_ok=True)
     os._exit(0)
 
