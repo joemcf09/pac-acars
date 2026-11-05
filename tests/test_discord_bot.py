@@ -173,5 +173,29 @@ check("the owner and the server's bots are never caught", DB.trap_exempt(False, 
 check("channel names with emoji still match", DB._bare("📋flight-log") == DB._bare("flight-log") and DB._bare("🚨notams") == "notams")
 check("the staff report names the account", "spam#0001" in DB.trap_log("spam#0001", 42, "do-not-post", True))
 
+print("Weekly recap")
+import datetime as _dt  # noqa: E402
+w = founder.get("/api/staff/weekly-recap").get_json()
+check("staff can preview last week", "week" in w and "top_hours" in w, w)
+b = bot.get("/api/bot/weekly", headers=H).get_json()
+check("the bot gets the recap and the posting hour", b.get("hour_utc") == 14 and b.get("enabled") is True, b)
+sample = {"week": "2026-11-02", "start": _dt.datetime(2026, 11, 2, tzinfo=_dt.timezone.utc).timestamp(),
+          "end": _dt.datetime(2026, 11, 9, tzinfo=_dt.timezone.utc).timestamp(), "flights": 12, "hours": 30.5, "cargo_lbs": 412000, "pilots": 4,
+          "top_landing": {"pilot": "Alex B.", "discord_id": "42", "landing_rate": -48, "flight_number": "PAC2097", "arr": "MTPP"},
+          "top_hours": [{"pilot": "Nihat", "pilot_id": "PAC0011", "hours": 12.3, "flights": 4}],
+          "promotions": [{"pilot": "Bob", "pilot_id": "PAC0002", "rank": "First Officer"}],
+          "new_pilots": [{"pilot": "Fidel C.", "pilot_id": "PAC0012"}], "site": "https://pac-va.com"}
+card = DB.recap_card(sample)
+txt = json.dumps(card)
+check("the card has the week, the landing, hours, promotions and new pilots",
+      card["title"].endswith("Nov 2–8") and "-48 fpm" in txt and "<@42>" in txt and "First Officer" in txt and "PAC0012" in txt, card)
+check("an empty week is skipped", DB.recap_card({**sample, "flights": 0, "promotions": [], "new_pilots": []}) is None)
+mon = _dt.datetime(2026, 11, 9, 14, 5, tzinfo=_dt.timezone.utc)
+check("due on Monday from 14:00 UTC", DB.recap_due(mon, {"posted": False}) and not DB.recap_due(mon.replace(hour=13), {"posted": False}))
+check("not twice, not on other days, not when switched off", not DB.recap_due(mon, {"posted": True})
+      and not DB.recap_due(mon + _dt.timedelta(days=1), {"posted": False}) and not DB.recap_due(mon, {"posted": False, "enabled": False}))
+r = bot.post("/api/bot/weekly/posted", headers=H, json={"week": w["week"]})
+check("the website remembers the week was posted", r.status_code == 200 and bot.get("/api/bot/weekly", headers=H).get_json()["posted"], (r.status_code, r.get_json(), A.settings().get("discord_recap_last"), w["week"]))
+
 print("\n" + ("DISCORD BOT TEST PASSED" if not failures else f"{len(failures)} failed: {failures}"))
 sys.exit(1 if failures else 0)

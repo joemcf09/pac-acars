@@ -60,7 +60,7 @@ def emit(kind, data):
     try:
         with C["db"]() as con:
             con.execute("INSERT INTO bot_events (time, kind, data) VALUES (?,?,?)", (time.time(), kind, json.dumps(data)))
-            con.execute("DELETE FROM bot_events WHERE time < ?", (time.time() - 7 * 86400,))
+            con.execute("DELETE FROM bot_events WHERE time < ?", (time.time() - 14 * 86400,))   # kept two weeks for the weekly recap
     except Exception as e:
         print(f"Discord bot event not recorded: {e}")
 
@@ -171,7 +171,7 @@ def bot_config():
     ranks = [r["name"] for r in C["va"].ranks_effective()]
     return jsonify({"enabled": enabled(), "token": (st.get("discord_bot_token") or "").strip(),
                     "guild": (st.get("discord_guild") or "").strip(),
-                    "channels": {k: (st.get(f"discord_ch_{k}") or "").strip().lstrip("#") for k in ("flights", "news", "welcome", "dispatch", "notams", "honeypot", "modlog")},
+                    "channels": {k: (st.get(f"discord_ch_{k}") or "").strip().lstrip("#") for k in ("flights", "news", "welcome", "dispatch", "notams", "honeypot", "modlog", "recap")},
                     "dispatch": dispatch_settings(st),
                     "pilot_role": (st.get("discord_pilot_role") or "PAC Pilot").strip(),
                     "staff_role": (st.get("discord_staff_role") or "").strip(),
@@ -342,6 +342,68 @@ def bot_recent():
     for x in rows:
         x["aircraft"] = C["FLEET"].get(x["aircraft"], {}).get("icao") or x["aircraft"]
     return jsonify({"flights": rows})
+
+
+# ---------------------------------------------------------------- weekly recap (posted by the bot every Monday)
+RECAP_HOUR_UTC = 14            # Monday 14:00 UTC: 9 AM in Cincinnati in winter, 10 AM in summer
+
+
+def week_bounds(now=None):
+    """The last full week, Monday 00:00 UTC to Monday 00:00 UTC, and its key (the Monday it started)."""
+    import datetime as dt
+    t = dt.datetime.fromtimestamp(now or time.time(), dt.timezone.utc)
+    this_monday = (t - dt.timedelta(days=t.weekday())).replace(hour=0, minute=0, second=0, microsecond=0)
+    start = this_monday - dt.timedelta(days=7)
+    return start.timestamp(), this_monday.timestamp(), start.date().isoformat()
+
+
+def weekly_recap(now=None):
+    start, end, key = week_bounds(now)
+    base = ("FROM pireps p LEFT JOIN pilots r ON r.id=p.pilot_id WHERE p.demo=0 AND p.review_status='Accepted' "
+            "AND p.filed_at>=? AND p.filed_at<?")
+    with C["db"]() as con:
+        tot = con.execute(f"SELECT COUNT(*) n, COALESCE(SUM(p.block_min),0)/60.0 h, COALESCE(SUM(CASE WHEN p.status!='Failed' "
+                          f"THEN p.payload_lbs ELSE 0 END),0) lbs, COUNT(DISTINCT p.pilot_id) pilots {base}", (start, end)).fetchone()
+        landing = con.execute(f"SELECT p.pilot_id, r.name pilot, r.discord_id, p.landing_rate, p.flight_number, p.arr {base} "
+                              "AND p.landing_rate IS NOT NULL AND p.status!='Failed' AND COALESCE(p.bonus_points,0)>=0 "
+                              "ORDER BY p.landing_rate DESC LIMIT 1", (start, end)).fetchone()
+        hours = con.execute(f"SELECT p.pilot_id, r.name pilot, r.discord_id, SUM(p.block_min)/60.0 hours, COUNT(*) flights {base} "
+                            "GROUP BY p.pilot_id ORDER BY hours DESC LIMIT 3", (start, end)).fetchall()
+        newbies = con.execute("SELECT id pilot_id, name pilot, discord_id FROM pilots WHERE joined>=? AND joined<? ORDER BY joined",
+                              (start, end)).fetchall()
+        promos = []
+        for r in con.execute("SELECT data FROM bot_events WHERE kind='promotion' AND time>=? AND time<? ORDER BY id", (start, end)):
+            d = json.loads(r["data"])
+            promos = [x for x in promos if x["pilot_id"] != d["pilot_id"]] + [d]     # the latest rank, once per pilot
+    return {"week": key, "start": start, "end": end, "posted": C["settings"]().get("discord_recap_last") == key,
+            "flights": tot["n"], "hours": round(tot["h"], 1), "cargo_lbs": int(tot["lbs"] or 0), "pilots": tot["pilots"],
+            "top_landing": dict(landing) if landing else None, "top_hours": [dict(x) | {"hours": round(x["hours"], 1)} for x in hours],
+            "new_pilots": [dict(x) for x in newbies], "promotions": promos,
+            "site": (C["va"].site().get("public_url") or "https://pac-va.com").rstrip("/") or "https://pac-va.com"}
+
+
+@bp.get("/api/bot/weekly")
+def bot_weekly():
+    st = C["settings"]()
+    out = weekly_recap()
+    out["enabled"] = bool(st.get("discord_recap_enabled", True))
+    out["hour_utc"] = RECAP_HOUR_UTC
+    return jsonify(out)
+
+
+@bp.post("/api/bot/weekly/posted")
+def bot_weekly_posted():
+    week = str((request.json or {}).get("week") or "")
+    st = C["settings"]()
+    st["discord_recap_last"] = week
+    C["save_settings"](st)
+    return jsonify({"ok": True})
+
+
+@bp.get("/api/staff/weekly-recap")
+def staff_weekly_preview():
+    """Staff › Site and rules › Discord bot: what the bot will post (or posted) for last week."""
+    return jsonify(weekly_recap())
 
 
 @bp.get("/api/staff/discord-bot")

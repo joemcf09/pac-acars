@@ -92,6 +92,43 @@ def pirep_card(ev, site):
             "colour": GRADE_COLOURS.get(grade, PAC_RED), "fields": fields, "url": f"{site}/#logbook"}
 
 
+def recap_card(r):
+    """The Monday post: last week at PAC. Returns None for a week with nothing to say."""
+    if not (r.get("flights") or r.get("new_pilots") or r.get("promotions")):
+        return None
+    import datetime as dt
+    d0 = dt.datetime.fromtimestamp(r["start"], dt.timezone.utc)
+    d1 = dt.datetime.fromtimestamp(r["end"] - 1, dt.timezone.utc)
+    span = f"{d0:%b} {d0.day}–{d1.day}" if d0.month == d1.month else f"{d0:%b} {d0.day} – {d1:%b} {d1.day}"
+    fields = []
+    if r.get("flights"):
+        fields.append(("Flights", f"{r['flights']:,}"))
+        fields.append(("Block hours", f"{r['hours']:,.1f}"))
+        fields.append(("Cargo delivered", f"{r['cargo_lbs']:,} lb"))
+    tl = r.get("top_landing")
+    if tl:
+        fields.append(("🧈 Smoothest landing", f"{mention(tl)}\n{int(tl['landing_rate'])} fpm · {tl['flight_number']} into {tl['arr']}"))
+    th = r.get("top_hours") or []
+    if th:
+        medals = ["🥇", "🥈", "🥉"]
+        fields.append(("⏱️ Most hours", "\n".join(f"{medals[i]} {mention(x)} · {x['hours']:.1f} h ({x['flights']} flight{'s' if x['flights'] != 1 else ''})"
+                                                for i, x in enumerate(th))))
+    if r.get("promotions"):
+        fields.append(("🎖️ Promotions", "\n".join(f"{mention(x)} → **{x['rank']}**" for x in r["promotions"])))
+    if r.get("new_pilots"):
+        fields.append(("✈️ New pilots", "\n".join(f"{mention(x)} · {x['pilot_id']}" for x in r["new_pilots"])))
+    pilots = r.get("pilots") or 0
+    desc = (f"{pilots} pilot{'s' if pilots != 1 else ''} flew for PAC last week. Thanks for moving the impossible! 🛫"
+            if r.get("flights") else "A quiet week in the air, but the crew keeps growing.")
+    return {"title": f"PAC weekly recap · {span}", "description": desc, "colour": PAC_RED, "url": r.get("site"),
+            "fields": [(n, v) for n, v in fields], "inline": False}
+
+
+def recap_due(now_utc, r, hour_utc=14):
+    """Monday from the posting hour, once per week (the website remembers the last week posted)."""
+    return bool(r.get("enabled", True)) and not r.get("posted") and now_utc.weekday() == 0 and now_utc.hour >= hour_utc
+
+
 def promotion_text(ev):
     return f"🎖️ Congratulations {mention(ev)}, promoted from {ev['from']} to **{ev['rank']}**!"
 
@@ -296,7 +333,8 @@ def run(cfg):
     def embed(card):
         e = discord.Embed(title=card["title"], description=card.get("description"), colour=card["colour"], url=card.get("url"))
         for name, value in card.get("fields", []):
-            e.add_field(name=name, value=value, inline=True)
+            # short numbers sit side by side; longer lists (names) get the full width
+            e.add_field(name=name, value=value, inline=card.get("inline", True) or "\n" not in value and len(value) < 24)
         e.set_footer(text="Pagani Air Cargo · Move the Impossible!")
         return e
 
@@ -401,6 +439,16 @@ def run(cfg):
         if skipped:
             print(f"Dispatch channel: {len(skipped)} new item(s) not posted (hourly limit reached).")
 
+    async def recap_tick():
+        import datetime as dt
+        st, r = await apac("GET", "/api/bot/weekly")
+        if st != 200 or not recap_due(dt.datetime.now(dt.timezone.utc), r, r.get("hour_utc", 14)):
+            return
+        card = recap_card(r)
+        if card:
+            await post("recap" if channel("recap") else "news", card=card)
+        await apac("POST", "/api/bot/weekly/posted", {"week": r["week"]})    # also for an empty week, so it isn't retried
+
     async def events_loop():
         await client.wait_until_ready()
         n = 0
@@ -413,6 +461,8 @@ def run(cfg):
                     state["last"] = r.get("last", state["last"])
                 if n % 12 == 0:                  # every minute: new work for the dispatch channel
                     await dispatch_tick()
+                if n % 120 == 60:                # every ten minutes: is the Monday recap due?
+                    await recap_tick()
                 if n % 120 == 0:                 # every ten minutes: keep everyone's roles right
                     await sync_all()
                     st, c = await apac("GET", "/api/bot/config")

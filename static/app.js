@@ -2299,6 +2299,12 @@ async function renderBotBox() {
        ["botDispPartners", "discord_dispatch_partners", "Partner crew requests", "When a partner airline needs a PAC captain (one every hour or two)."],
        ["botDispUrgent", "discord_dispatch_urgent", "Urgent requests", "Short-notice jobs with a deliver-by time (open for a few hours)."]]
       .map(([id, k, t, d]) => `<label class="switch-row"><input type="checkbox" id="${id}" ${st[k] !== false ? "checked" : ""}><span><b>${t}</b><br><span class="muted" style="font-size:13px">${d}</span></span></label>`).join("")}
+    <h4 style="margin:18px 0 4px">Weekly recap</h4>
+    <p class="muted" style="font-size:13px;margin:0 0 8px">Every Monday at 14:00 UTC (9 AM in Cincinnati in winter), the bot posts last week at PAC: flights, hours and cargo, the smoothest landing, the top three for hours, promotions and new pilots. Linked pilots are tagged. A week with no flights, promotions or new pilots is skipped.</p>
+    <label class="switch-row"><input type="checkbox" id="botRecap" ${st.discord_recap_enabled !== false ? "checked" : ""}><span><b>Post the weekly recap</b></span></label>
+    <div class="mail-grid">${fld("botChRecap", "Channel for the recap <span class=\"muted\" style=\"font-weight:400\">(blank: the announcements channel)</span>", st.discord_ch_recap, st.discord_ch_news || "announcements")}</div>
+    <div class="row" style="margin:6px 0 4px"><button class="btn ghost small" type="button" id="botRecapPrev">Preview last week's recap</button></div>
+    <div id="botRecapOut"></div>
     <h4 style="margin:18px 0 4px">Bot trap</h4>
     <p class="muted" style="font-size:13px;margin:0 0 8px">A channel that tells people not to post. Spam bots post everywhere, so anyone who posts there (except staff, moderators and the server's own bots) is removed straight away and their messages from the last 24 hours are deleted. It's a soft ban, so a real person can rejoin. The bot's role needs <b>Ban Members</b> and <b>Manage Messages</b>, placed above ordinary members' roles. Leave the channel empty to switch the trap off.</p>
     <div class="mail-grid">
@@ -2306,9 +2312,23 @@ async function renderBotBox() {
       ${fld("botChModlog", "Staff channel for trap reports <span class=\"muted\" style=\"font-weight:400\">(optional)</span>", st.discord_ch_modlog, "staff-log")}
     </div>
     <div class="row" style="margin-top:8px"><button class="btn small" type="button" id="botSave">Save Discord bot settings</button></div>`;
+  $("#botRecapPrev").onclick = async () => {
+    const out = $("#botRecapOut"); out.innerHTML = `<span class="muted" style="font-size:13px">Loading…</span>`;
+    try {
+      const r = await api("/api/staff/weekly-recap"), who = x => esc(x.pilot || x.pilot_id);
+      const d0 = new Date(r.start * 1000), d1 = new Date((r.end - 1) * 1000), f = d => d.toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" });
+      out.innerHTML = `<div class="notice" style="font-size:14px"><b>PAC weekly recap · ${f(d0)} – ${f(d1)}</b> ${r.posted ? '<span class="tag green">Posted</span>' : '<span class="tag grey">Not posted yet</span>'}<br>
+        ${r.flights ? `${r.flights} flights · ${r.hours} block hours · ${fmt(r.cargo_lbs)} lb of cargo · ${r.pilots} pilot${r.pilots === 1 ? "" : "s"}` : "No flights last week."}<br>
+        ${r.top_landing ? `🧈 Smoothest landing: ${who(r.top_landing)}, ${r.top_landing.landing_rate} fpm (${esc(r.top_landing.flight_number)} into ${esc(r.top_landing.arr)})<br>` : ""}
+        ${r.top_hours.length ? `⏱️ Most hours: ${r.top_hours.map(x => `${who(x)} ${x.hours} h`).join(", ")}<br>` : ""}
+        ${r.promotions.length ? `🎖️ Promotions: ${r.promotions.map(x => `${who(x)} to ${esc(x.rank)}`).join(", ")}<br>` : ""}
+        ${r.new_pilots.length ? `✈️ New pilots: ${r.new_pilots.map(x => `${who(x)} (${esc(x.pilot_id)})`).join(", ")}` : ""}
+        ${!r.flights && !r.promotions.length && !r.new_pilots.length ? "<br><span class=\"muted\">Nothing to post, so this week would be skipped.</span>" : ""}</div>`;
+    } catch (e) { out.innerHTML = `<span class="muted">${esc(e.message)}</span>`; }
+  };
   $("#botSave").onclick = async () => {
     const body = { discord_bot_enabled: $("#botOn").checked, discord_guild: $("#botGuild").value.trim(), discord_ch_flights: $("#botChFlights").value.trim(),
-      discord_ch_news: $("#botChNews").value.trim(), discord_ch_welcome: $("#botChWelcome").value.trim(), discord_ch_notams: $("#botChNotams").value.trim(), discord_ch_honeypot: $("#botChTrap").value.trim(), discord_ch_modlog: $("#botChModlog").value.trim(), discord_pilot_role: $("#botPilotRole").value.trim(),
+      discord_ch_news: $("#botChNews").value.trim(), discord_ch_welcome: $("#botChWelcome").value.trim(), discord_ch_notams: $("#botChNotams").value.trim(), discord_ch_honeypot: $("#botChTrap").value.trim(), discord_recap_enabled: $("#botRecap").checked, discord_ch_recap: $("#botChRecap").value.trim(), discord_ch_modlog: $("#botChModlog").value.trim(), discord_pilot_role: $("#botPilotRole").value.trim(),
       discord_staff_role: $("#botStaffRole").value.trim(), discord_rank_roles: $("#botRanks").checked,
       discord_ch_dispatch: $("#botChDispatch").value.trim(), discord_dispatch_missions: $("#botDispMissions").checked,
       discord_dispatch_partners: $("#botDispPartners").checked, discord_dispatch_urgent: $("#botDispUrgent").checked,

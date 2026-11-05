@@ -167,6 +167,7 @@ DEFAULT_SETTINGS = {"pilot_name": "", "pilot_id": "PAC0001", "simbrief_username"
                     "vatsim_partner_section": False, "ivao_partner_section": False,   # the VATSIM logo on the home page: only once VATSIM has accepted PAC     # the ICAO code pilots file under on VATSIM and IVAO (PAC belongs to Polar Air Cargo)
                     "discord_ch_dispatch": "dispatch", "discord_ch_notams": "notams", "discord_ch_honeypot": "do-not-post", "discord_ch_modlog": "", "conflict_zones_enabled": False, "conflict_zone_overrides": {}, "discord_dispatch_missions": True, "discord_dispatch_partners": True,
                     "discord_dispatch_urgent": True, "discord_dispatch_per_hour": 4,
+                    "discord_recap_enabled": True, "discord_ch_recap": "", "discord_recap_last": "",
                     "discord_pilot_role": "PAC Pilot", "discord_staff_role": "PAC Staff", "discord_rank_roles": True,
                     "si_enabled": False, "si_va_key": "", "si_coupon": "", "si_dispatcher_freq": "118.94", "si_notes": ""}
 
@@ -3427,7 +3428,7 @@ import transfers  # noqa: E402  (pilots ask for verified hours from other VAs to
 transfers.init({"db": db, "settings": settings, "clean_text": clean_text, "DATA": DATA})
 app.register_blueprint(transfers.bp)
 import botlink  # noqa: E402
-botlink.init({"db": db, "settings": settings, "DATA": DATA, "va": va, "live_flights": lambda member=True: live_flights(member),
+botlink.init({"db": db, "settings": settings, "save_settings": lambda s_: save_json(SETTINGS_PATH, s_), "DATA": DATA, "va": va, "live_flights": lambda member=True: live_flights(member),
               "FLEET": FLEET, "AIRPORTS": AIRPORTS})
 app.register_blueprint(botlink.bp)
 va.C["on_pirep_accepted"] = botlink.pirep_accepted
