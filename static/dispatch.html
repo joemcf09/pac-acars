@@ -442,6 +442,78 @@ function shipmentLines(d) {
   return out;
 }
 
+/* ---------------- air waybill (contract of carriage), one per shipment ---------------- */
+const C2 = v => Number(v || 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const C1 = v => Number(v || 0).toLocaleString("en-US", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+const kv = (k, v, kw = 20) => wrap(v || "-", W - kw).map((l, j) => esc(L(j ? "" : k, kw) + l.trimStart()));
+function awbLines(d, s, n) {
+  const a = s.awb_doc; if (!a) return null;
+  const ia = i => (d.paper.iata || {})[i] || i.slice(-3), o = d.origin.icao, de = d.destination.icao;
+  const out = [];
+  out.push(`<b>${esc(L("AIR WAYBILL  /  CONTRACT OF CARRIAGE", 50) + R(`AWB ${s.awb}`, W - 50))}</b>`);
+  out.push(esc(L(`NOT NEGOTIABLE. ISSUED BY ${a.carrier} (${a.code})`, 60) + R(`SHIPMENT ${n} OF ${d.shipments.length}`, W - 60)));
+  out.push(rule("-"));
+  out.push(...kv("SHIPPER", U(s.shipper.name)), ...kv("SHIPPER ADDRESS", a.shipper_addr));
+  out.push(...kv("CONSIGNEE", U(s.consignee.name)), ...kv("CONSIGNEE ADDRESS", a.consignee_addr));
+  out.push(...kv("FREIGHT FORWARDER", U(s.agent || "DIRECT FROM SHIPPER")), ...kv("NOTIFY PARTY", U(s.notify || "CONSIGNEE")));
+  out.push(...kv("ACCOUNTING INFO", a.terms === "PP" ? "FREIGHT PREPAID. ALL CHARGES TO SHIPPER." : "FREIGHT COLLECT."));
+  out.push(rule("-"));
+  out.push(esc(L("DEPARTURE", 20) + L(`${o}/${ia(o)} ${U(d.origin.city || d.origin.name || "")}`, 30) + L("DESTINATION", 13) + `${de}/${ia(de)} ${U(d.destination.city || d.destination.name || "")}`.slice(0, W - 63)));
+  out.push(esc(L("ROUTING", 20) + L(`${ia(o)} TO ${ia(de)} BY ${a.code}`, 30) + L("FLIGHT/DATE", 13) + `${d.flight}/${d.date.slice(0, 6).replace(/ /g, "")}`));
+  out.push(esc(L("CURRENCY", 20) + L(`${a.currency}   CHARGES ${a.terms}`, 30) + L("INSURANCE", 13) + a.insurance));
+  out.push(esc(L("DECLARED VALUE", 20) + L(`CARRIAGE ${a.dv_carriage}`, 30) + `CUSTOMS ${a.dv_customs}`.slice(0, W - 50)));
+  out.push(...kv("ORIGIN HANDLER", a.origin_handler), ...kv("DESTINATION HANDLER", a.dest_handler));
+  out.push(rule("-"));
+  out.push("<b>RATING</b>");
+  out.push(`<b>${esc(R("PCS", 4) + R("GROSS KG", 12) + "  " + L("RC", 4) + R("CHARGEABLE KG", 14) + R("RATE/KG", 10) + R("TOTAL " + a.currency, 16))}</b>`);
+  out.push(esc(R(s.pieces, 4) + R(C1(a.kg), 12) + "  " + L(a.rate_class, 4) + R(C1(a.chg_kg), 14) + R(C2(a.rate), 10) + R(C2(a.freight), 16)));
+  out.push(esc(L("VOLUME", 20) + L(`${a.vol_m3.toFixed(3)} M3`, 18) + `VOLUMETRIC WEIGHT ${C1(a.vol_kg)} KG (6,000 CM3/KG)`));
+  a.dims.forEach((g, j) => out.push(esc(L(j ? "" : "DIMENSIONS", 20) + `${g.n} X ${g.l} X ${g.w} X ${g.h} CM`)));
+  out.push(rule("-"));
+  out.push("<b>NATURE AND QUANTITY OF GOODS</b>");
+  out.push(...kv("GOODS", s.contents), ...kv("CUSTOMS DESCRIPTION", a.hs_desc), ...kv("HARMONIZED CODE", a.hs || "NOT APPLICABLE (POSTAL)"));
+  out.push(...kv("PACKAGING", a.packaging));
+  out.push(esc(L("SPECIAL HANDLING", 20) + L((s.shc || []).join(" ") || "GEN", 18) + L("TEMPERATURE", 13) + a.temp));
+  out.push(esc(L("DANGEROUS GOODS", 20) + ([...new Set((d.dg || []).filter(g => g.awb === s.awb).map(g => `${g.un} CL ${g.cls}`))].join(", ") || "NOT RESTRICTED. NO SHIPPER'S DECLARATION.")));
+  out.push(...kv("HANDLING INFO", a.handling_info));
+  out.push(rule("-"));
+  out.push("<b>OTHER CHARGES</b>");
+  a.others.forEach(c => out.push(esc(L("", 2) + L(c.code, 5) + L(c.what, 30) + L(a.terms, 6) + R(C2(c.amt), 14))));
+  out.push(esc(L("", 2) + L("", 5) + L("WEIGHT CHARGE", 30) + L(a.terms, 6) + R(C2(a.freight), 14)));
+  out.push(`<b>${esc(L("", 37) + L("TOTAL " + (a.terms === "PP" ? "PREPAID" : "COLLECT"), 14) + R(`${a.currency} ${C2(a.total)}`, 18))}</b>`);
+  out.push(rule("-"));
+  wrap("THE SHIPPER CERTIFIES THAT THE PARTICULARS ON THE FACE OF THIS WAYBILL ARE CORRECT AND THAT ANY DANGEROUS GOODS ARE DESCRIBED AND PACKED FOR CARRIAGE BY AIR. GOODS ARE ACCEPTED IN APPARENT GOOD ORDER AND CONDITION, SUBJECT TO THE CONDITIONS OF CONTRACT.", W).forEach(l => out.push(esc(l)));
+  out.push(esc(L(`EXECUTED ${a.issued} AT ${U(a.issued_at)}`, 46) + R(`/S/ ${a.code} CARGO SALES, ISSUING CARRIER`, W - 46)));
+  out.push(esc("SIMULATION ONLY. FICTIONAL SHIPMENT, VALUES AND REFERENCES."));
+  // keep each waybill on one sheet: shorten the conditions, then drop section headings, if a long waybill would spill over
+  if (out.length > 48) { const k = out.findIndex(l => l.startsWith("THE SHIPPER CERTIFIES")); if (k > 0) out.splice(k, 4, esc("SHIPPER CERTIFIES THE PARTICULARS ARE CORRECT. SUBJECT TO THE CONDITIONS OF CONTRACT.")); }
+  for (const h of ["<b>OTHER CHARGES</b>", "<b>RATING</b>", "<b>NATURE AND QUANTITY OF GOODS</b>"]) { if (out.length <= 48) break; const k = out.indexOf(h); if (k > 0) out.splice(k, 1); }
+  return out;
+}
+
+/* ---------------- warehouse acceptance, security and tracking ---------------- */
+function acceptanceLines(d) {
+  const sh = (d.shipments || []).filter(s => s.awb_doc);
+  if (!sh.length) return null;
+  const out = [];
+  wrap(`EVERY AIR WAYBILL IS ACCEPTED, WEIGHED, SCREENED AND RELEASED BY THE WAREHOUSE BEFORE BUILD-UP. ${d.international ? "INTERNATIONAL FLIGHT: EXPORT DECLARATIONS FILED BEFORE RELEASE." : "DOMESTIC FLIGHT: NO EXPORT DECLARATION."}`, W).forEach(l => out.push(esc(l)));
+  out.push("");
+  sh.forEach((s, i) => {
+    const a = s.awb_doc;
+    out.push(`<b>${esc(L(`SHIPMENT ${s.no} OF ${d.shipments.length}`, 22) + L(`AWB ${s.awb}`, 24) + R(`${s.pieces} PCS  ${C1(a.kg)} KG`, W - 46))}</b>`);
+    out.push(esc(L("ORIGIN ACCEPTANCE", 22) + `HANDLED BY ${a.origin_handler}`.slice(0, W - 22)));
+    a.checks.forEach(c => wrap(c.note, W - 46).forEach((l, j) => out.push(esc(j ? L("", 46) + l.trimStart() : L(`[X] ${c.at}`, 16) + L(c.what, 30) + l.trimStart()))));
+    out.push(esc(L("SECURITY", 22) + `METHOD ${a.screen.method}  STATUS ${a.screen.status}  E-CSD ${a.screen.ecsd}  ${a.screen.at}`.slice(0, W - 22)));
+    if (a.export) out.push(esc(L("EXPORT", 22) + a.export));
+    out.push(esc(L("WAREHOUSE RELEASE", 22) + `${a.release_at}  ALL CHECKS SIGNED OFF. READY FOR BUILD-UP.`));
+    out.push(`<b>${esc(L("TRACKING (PLANNED)", 22) + L("CODE", 6) + L("TIME", 14) + L("STATION", 9) + "STATUS")}</b>`);
+    a.track.forEach(t => out.push(esc(L("", 22) + L(t.code, 6) + L(t.at, 14) + L(t.where, 9) + t.what)));
+    out.push(i < sh.length - 1 ? rule("-") : "");
+  });
+  out.push(...wrap("SIMULATED ACCEPTANCE RECORD. STATUS CODES FOLLOW IATA CARGO-IMP: BKD BOOKED, RCS RECEIVED FROM SHIPPER, MAN MANIFESTED, DEP DEPARTED, ARR ARRIVED, RCF RECEIVED FROM FLIGHT, NFD NOTIFIED, DLV DELIVERED. SCO = SECURE FOR CARGO AIRCRAFT ONLY.", W).map(esc));
+  return out;
+}
+
 /* ---------------- ground handling timeline ---------------- */
 function handlingLines(d) {
   const h = d.handling;
@@ -538,6 +610,10 @@ const pageBreaks = (lines, size) => {
     chunk(notocLines(d), ROWS).forEach((c, i) => sheet("NOTIFICATION TO CAPTAIN (NOTOC)" + (i ? " (CONT)" : ""), f.notoc, c));
     const gh = handlingLines(d);
     if (gh) chunk(gh, ROWS).forEach((c, i) => sheet("PLANNED GROUND HANDLING" + (i ? " (CONT)" : ""), f.loadsheet, c));
+    // cargo documents annex: one air waybill per shipment, then the warehouse acceptance and tracking record
+    (d.shipments || []).forEach((s, i) => { const a = awbLines(d, s, i + 1); if (a) chunk(a, ROWS).forEach((c, j) => sheet(`AIR WAYBILL ${s.awb}` + (j ? " (CONT)" : ""), f.awb || "CGO-AWB REV 11/26", c)); });
+    const acc = acceptanceLines(d);
+    if (acc) pageBreaks(acc, ROWS).forEach((c, i) => sheet("WAREHOUSE ACCEPTANCE AND TRACKING" + (i ? " (CONT)" : ""), f.awb || "CGO-AWB REV 11/26", c));
     addImportedBriefing(d);
     renderPages(d);
     $("#notamScope").onchange = () => { const cut=PAGES.findIndex(p=>p.form==='OCC-PERF / 01'||p.form==='OCC-BRF / 01'); if(cut>=0) PAGES.splice(cut); addImportedBriefing(d); renderPages(d); };

@@ -31,7 +31,7 @@ PUBLIC_GET = ("/api/group/", "/api/conflict-zones", "/api/bootstrap", "/api/va/h
               "/api/partner-photos", "/api/partner-photo/", "/api/public/roster", "/api/public/group-flight",
               "/api/group-flight.ics")   # credited Commons photos on landing cards
 PUBLIC_POST = ("/api/applications", "/api/auth/setup", "/api/auth/login", "/api/auth/accept", "/api/auth/token", "/api/auth/logout",
-               "/api/bot/link", "/api/bot/unlink", "/api/bot/weekly/posted")   # the bot API checks its own secret (botlink.py)
+               "/api/bot/link", "/api/bot/unlink", "/api/bot/weekly/posted", "/api/bot/activity/reminded")   # the bot API checks its own secret (botlink.py)
 STAFF_PREFIXES = ("/api/staff/",)
 STAFF_EXACT_POST = ("/api/fleet",)  # editing aircraft types and photos on the Fleet page
 

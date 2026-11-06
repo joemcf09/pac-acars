@@ -282,7 +282,7 @@ def paperwork(d, fleet, booking=None, notams=None, captain_rank=None, airports=N
         "briefing": __import__("copy").deepcopy(((booking or {}).get("ofp") or {}).get("briefing")),
         "notams": [{"title": n.get("title"), "body": n.get("body"), "id": n.get("id")} for n in (notams or [])],
         "form": {"release": "OCC-121-1 REV 07/26", "loadsheet": "LDS-517 REV 03/26", "manifest": "CGO-210 REV 05/26",
-                 "notoc": "DGR-1001 REV 01/26", "weather": "OCC-WX-4 REV 07/26"},
+                 "notoc": "DGR-1001 REV 01/26", "weather": "OCC-WX-4 REV 07/26", "awb": "CGO-AWB REV 11/26"},
         "reg_hash": reg,
         "iata": {k: (airports or {}).get(k, {}).get("iata") or k[-3:] for k in
                  [d["origin"]["icao"], d["destination"]["icao"]] + ([d["alternate"]["icao"]] if d.get("alternate") else [])},

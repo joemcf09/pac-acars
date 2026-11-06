@@ -2839,7 +2839,7 @@ def staff_overview():
         c = career(p["id"])
         p.update(rank=c["rank"], hours=c["hours"], flights=c["flights"], avg_score=c["avg_score"], balance=balance(p["id"]))
     s = C["settings"]()
-    return jsonify({"reviews": reviews, "applications": apps, "roster": roster, "airframes": airframes(), "transfer_pending": transfer_pending,
+    return jsonify({"reviews": reviews, "applications": apps, "roster": roster, "airframes": airframes(), "transfer_pending": transfer_pending, "activity_overdue": _overdue_count(),
                     "events": sorted(load_events(), key=lambda e: e["start"]), "site": site(),
                     "rules": {"enforce_ranks": bool(s.get("enforce_ranks")), "enforce_airframes": bool(s.get("enforce_airframes", True)),
                               "allow_ground_reposition": bool(s.get("allow_ground_reposition", True)),
@@ -3485,7 +3485,24 @@ def pilot_me():
     return jsonify({"location": C["airport_obj"](pilot_location(pid)), "balance": balance(pid), "transactions": tx,
                     "earned": round(earned, 2), "spent_travel": round(spent, 2), "spent_shop": round(shop_spent, 2), "rank": car["rank"],
                     "pay_rate": PAY_RATES.get(car["rank"], 55), "profit_share_pct": PROFIT_SHARE * 100,
-                    "enforce_location": bool(C["settings"]().get("enforce_pilot_location", True))})
+                    "enforce_location": bool(C["settings"]().get("enforce_pilot_location", True)),
+                    "activity": _activity(pid)})
+
+
+def _overdue_count():
+    try:
+        import activity
+        return sum(1 for x in activity.sweep() if x["state"] == "overdue")
+    except Exception:
+        return 0
+
+
+def _activity(pid):
+    try:
+        import activity
+        return activity.public(activity.state(pid))
+    except Exception:
+        return None
 
 
 @bp.get("/api/pilot/wallet-transactions")

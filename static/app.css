@@ -1513,3 +1513,59 @@ html[data-theme="dark"] .ce-feature .btn.ghost{color:#ffb0b0}
 .zone-tip{font-size:12.5px;max-width:280px;white-space:normal}
 .zone-tip small{color:#555}
 .maplibregl-popup.zone-tip .maplibregl-popup-content{padding:8px 10px;color:#15181d}
+
+/* Cargo folder: air waybill, special handling, warehouse screening and tracking per shipment */
+.cf .cf-bar { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; margin: 8px 0; }
+.cf .cf-pick { display: flex; gap: 8px; align-items: center; font-size: 13px; font-weight: 600; }
+.cf .cf-pick select { max-width: min(560px, 100%); }
+.cf .cf-sum { font-size: 13px; color: var(--steel); }
+.cf .cf-tabs { display: flex; flex-wrap: wrap; gap: 2px; border-bottom: 1px solid var(--line); }
+.cf .cf-tabs button { border: 1px solid var(--line); border-bottom: none; background: var(--paper); padding: 6px 12px; font: inherit; font-size: 13px; cursor: pointer; border-radius: 4px 4px 0 0; color: inherit; }
+.cf .cf-tabs button[aria-selected="true"] { background: var(--white); font-weight: 700; box-shadow: inset 0 3px 0 var(--red); }
+.cf .cf-doc { margin: 0; padding: 14px 16px; border: 1px solid var(--line); border-top: none; background: var(--white); font: 12.5px/1.45 var(--mono); white-space: pre; overflow: auto; max-height: 480px; color: #12305a; }
+html[data-theme="dark"] .cf .cf-doc { color: #bcd3f5; }
+
+/* Flight workflow strip and the single "do this next" box */
+.flow-strip{display:flex;list-style:none;margin:0;padding:0;border:1px solid var(--line);overflow-x:auto}
+.flow-strip li{flex:1 1 0;min-width:84px;display:flex;align-items:center;gap:8px;padding:8px 12px;font-size:13px;font-weight:600;color:var(--steel);border-right:1px solid var(--line);white-space:nowrap}
+.flow-strip li:last-child{border-right:none}
+.flow-strip li span{font:700 11px var(--mono);opacity:.8}
+.flow-strip li.done{color:#237b48;background:var(--ok-wash)}
+.flow-strip li.now{color:var(--on-accent,#fff);background:var(--red)}
+.do-next{border:2px solid var(--red);border-left-width:8px;background:var(--red-wash);padding:14px 18px;display:flex;flex-direction:column;gap:6px;align-items:flex-start}
+.do-next .kicker{color:var(--red)}
+.do-next b{font-size:18px}
+.do-next p{margin:0 0 4px;max-width:70ch}
+.do-next.compact b{font-size:16px}
+.home-next{max-width:1180px;margin:18px auto 0;padding:0 16px;display:flex;flex-direction:column;gap:10px}
+.home-next:empty{display:none}
+
+/* After-action review inside the flight debrief */
+.aar{margin-top:18px;display:flex;flex-direction:column;gap:12px}
+.aar h3{margin:0}.aar h4{margin:6px 0 0;font-size:15px}
+.aar-cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px}
+.aar-box{border:1px solid var(--line);border-left:6px solid var(--steel);background:var(--white);padding:12px 14px}
+.aar-box small{display:block;font-weight:700;text-transform:uppercase;letter-spacing:.04em;font-size:11px;color:var(--steel);margin-bottom:4px}
+.aar-box p{margin:0}.aar-box ul{margin:8px 0 0;padding-left:18px;font-size:14px}
+.aar-box.good{border-left-color:#237b48;background:var(--ok-wash)}.aar-box.mixed{border-left-color:#a76500;background:var(--warn-wash)}.aar-box.bad{border-left-color:var(--red);background:var(--red-wash)}
+.aar-wrap{overflow-x:auto}
+.aar-table{width:100%;border-collapse:collapse;font-size:14px}
+.aar-table th,.aar-table td{padding:6px 8px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+.aar-table th{font-size:12px;text-transform:uppercase;letter-spacing:.04em;color:var(--steel)}
+.aar-table .r{text-align:right}.aar-table tr.bad td{background:var(--red-wash)}
+.aar-ok{color:#237b48;font-weight:600}.aar-bad{color:var(--red);font-weight:600}
+html[data-theme="dark"] .aar-ok{color:#5fd08a}
+.aar-table td.mono,.aar-table td.r{white-space:nowrap}
+
+/* Stay active: next flight due and leave of absence */
+.act-card{border:1px solid var(--line);border-left:8px solid #237b48;background:var(--white);padding:12px 16px;display:flex;flex-direction:column;align-items:flex-start;gap:4px}
+.act-card b{font-size:17px}.act-card p{margin:0}
+.act-card.soon{border-left-color:#a76500;background:var(--warn-wash)}
+.act-card.overdue{border-left-color:var(--red);background:var(--red-wash)}
+.act-card.leave{border-left-color:#2b5fb4;background:var(--note-wash)}
+.act-card .row:empty{display:none}
+.act-leave summary{cursor:pointer;font-size:14px;color:var(--red);font-weight:600;margin-top:4px}
+.act-form{display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end;margin:8px 0 4px}
+.act-form label{display:flex;flex-direction:column;gap:3px;font-size:13px;font-weight:600}
+.act-form input{min-width:260px}
+.act-leave .muted{font-size:12.5px;margin:4px 0 0}

@@ -865,6 +865,7 @@ async function loadLoadsheet(m) {
     el.innerHTML = loadsheetHTML(ls, m);
     if (!S.lsSeen[key]) { S.lsSeen[key] = true; d_markTab("load"); }
     el.querySelectorAll("[data-pos]").forEach(c => c.onclick = () => lsFocus(el, c.dataset.pos));
+    wireCargoFolder(el, ls);
   } catch (e) { el.innerHTML = `<div class="notice">${esc(e.message)}</div>`; }
 }
 function d_markTab(k) { const b = $(`#dpt-${k}`); if (b && b.getAttribute("aria-selected") !== "true") { b.classList.add("done"); b.querySelector(".n").textContent = "✓"; } }
@@ -931,7 +932,112 @@ function loadsheetHTML(ls, m) {
   ${units ? `<details class="dp-more" open><summary>Cargo manifest · ${units} unit${units === 1 ? "" : "s"}</summary><div class="ls-table-wrap"><table class="ls-table"><thead><tr><th>Pos</th><th>Unit</th><th>AWB</th><th>Contents</th><th>SHC</th><th class="r">Pcs</th><th class="r">Weight</th></tr></thead><tbody>
     ${ls.positions.map(p => `<tr data-pos="${esc(p.pos)}"><td class="mono">${esc(p.pos)}</td><td class="mono">${esc(p.unit)}</td><td class="mono">${esc(p.awb)}</td><td>${esc(p.contents)}</td><td>${p.shc.map(c => `<span class="shc${c === p.dg ? " dg" : ""}">${esc(c)}</span>`).join(" ")}</td><td class="r">${fmt(p.pieces)}</td><td class="r">${fmt(p.weight_lbs)}</td></tr>`).join("")}
     </tbody><tfoot><tr><td colspan="5">Total</td><td class="r">${fmt(ls.totals.pieces)}</td><td class="r">${fmt(ls.totals.weight_lbs)}</td></tr></tfoot></table></div></details>` : ""}
+  ${cargoFolderHTML(ls)}
   <p class="muted ls-fine">Preliminary, for planning. Fuel is PAC's estimate; when you request the flight, the dispatch release keeps these units, positions and waybills and takes fuel and weights from your SimBrief OFP. Simulation paperwork, not an aircraft weight-and-balance approval.</p>`;
+}
+/* The cargo folder: the full air waybill, special handling, warehouse acceptance and tracking for each shipment */
+const CF_KEYW = 24;
+const cfLine = (k, v) => { const pad = " ".repeat(CF_KEYW); const parts = String(v ?? "-").split("\n"); return parts.map((x, i) => (i ? pad : (k + "").toUpperCase().padEnd(CF_KEYW)) + x).join("\n"); };
+const cf2 = v => Number(v || 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const cf1 = v => Number(v || 0).toLocaleString("en-US", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+const CF_SHC = { GEN: "General cargo", HUM: "Humanitarian relief", PER: "Perishable", PIL: "Pharmaceuticals", COL: "Cool goods", PES: "Fish and seafood", PEF: "Flowers",
+  ICE: "Dry ice", AVI: "Live animals", VAL: "Valuable cargo", AOG: "Aircraft on ground (parts)", HEA: "Heavy cargo (150 kg or more per piece)", BIG: "Outsize cargo",
+  RLI: "Lithium-ion batteries", RCM: "Corrosive", RNG: "Non-flammable gas", RFL: "Flammable liquid", RMD: "Miscellaneous dangerous goods", CAO: "Cargo aircraft only",
+  EAT: "Foodstuffs", CRT: "Controlled room temperature", MAL: "Mail", XPS: "Express", ELI: "Lithium-ion batteries in equipment", ELM: "Lithium metal batteries in equipment",
+  SPX: "Special handling", FRO: "Frozen goods", PEM: "Meat", HUM_: "" };
+const cfDims = a => a.dims.map(g => `${g.n} X ${g.l} X ${g.w} X ${g.h} CM`).join("\n");
+function cfAwb(ls, s) {
+  const a = s.awb_doc, o = ls.origin, de = ls.destination, sh = s.shc || [], dg = (ls.dg || []).filter(g => g.awb === s.awb);
+  return [
+    "AIR CARGO WAYBILL  /  CONTRACT OF CARRIAGE",
+    "=".repeat(78),
+    cfLine("Air waybill", s.awb), cfLine("Issuing carrier", `${a.carrier} (${a.code})`), cfLine("Issued", `${a.issued} AT ${a.issued_at}`),
+    cfLine("Shipper", s.shipper.name.toUpperCase()), cfLine("Shipper address", a.shipper_addr),
+    cfLine("Consignee", s.consignee.name.toUpperCase()), cfLine("Consignee address", a.consignee_addr),
+    cfLine("Freight forwarder", (s.agent || "Direct from shipper").toUpperCase()), cfLine("Notify party", (s.notify || "Consignee").toUpperCase()),
+    cfLine("Origin ground handler", a.origin_handler || "-"), cfLine("Destination handler", a.dest_handler || "-"),
+    "",
+    cfLine("Airport of departure", `${o.icao}  ${(o.city || o.name || "").toUpperCase()}`), cfLine("Airport of destination", `${de.icao}  ${(de.city || de.name || "").toUpperCase()}`),
+    cfLine("Requested flight", ls.mission_id ? `${ls.mission_id} (ON REQUEST)` : "UNASSIGNED"),
+    cfLine("Pieces / gross weight", `${s.pieces} / ${cf1(a.kg)} KG  (${fmt(s.weight_lbs)} LB)`), cfLine("Chargeable weight", `${cf1(a.chg_kg)} KG  (RATE CLASS ${a.rate_class})`),
+    cfLine("Dimensions / volume", cfDims(a) + `\n${a.vol_m3.toFixed(3)} CBM  (VOLUMETRIC ${cf1(a.vol_kg)} KG AT 6,000 CM3/KG)`),
+    cfLine("Rate / total", `USD ${cf2(a.rate)} PER KG / USD ${cf2(a.freight)}`),
+    cfLine("Other charges", a.others.map(c => `${c.code}  ${c.what.padEnd(24)} USD ${cf2(c.amt).padStart(10)}`).join("\n")),
+    cfLine("Total prepaid", `USD ${cf2(a.total)}`),
+    "",
+    cfLine("Nature and quantity", s.contents.toUpperCase()), cfLine("Customs description", a.hs_desc), cfLine("Harmonized code", a.hs || "NOT APPLICABLE (POSTAL)"),
+    cfLine("Packaging", a.packaging), cfLine("Special handling", sh.join(" ") || "GEN"), cfLine("Temperature range", a.temp),
+    cfLine("Dangerous goods", dg.length ? [...new Set(dg.map(g => `${g.un} ${g.name} CLASS ${g.cls}`.toUpperCase()))].join("\n") : "NOT DECLARED"),
+    cfLine("Declared value carriage", a.dv_carriage), cfLine("Declared value customs", a.dv_customs),
+    cfLine("Handling information", a.handling_info), cfLine("Units on board", (s.units || []).join(" ") || "-"),
+  ].join("\n");
+}
+function cfHandling(ls, s) {
+  const a = s.awb_doc, sh = s.shc || [];
+  return [
+    "CARGO ACCEPTANCE AND SPECIAL-HANDLING INSTRUCTIONS",
+    "=".repeat(78),
+    cfLine("Cargo material", s.contents.toUpperCase()), cfLine("Shipper", s.shipper.name.toUpperCase()), cfLine("Consignee", s.consignee.name.toUpperCase()),
+    cfLine("Freight forwarder", (s.agent || "Direct").toUpperCase()), cfLine("Service", s.service),
+    cfLine("Packaging", a.packaging), cfLine("Package dimensions", cfDims(a)),
+    cfLine("Total volume", `${a.vol_m3.toFixed(3)} CBM`), cfLine("Gross / chargeable", `${cf1(a.kg)} / ${cf1(a.chg_kg)} KG`),
+    cfLine("Commodity HS code", a.hs || "-"), cfLine("Temperature", a.temp),
+    "",
+    "SPECIAL HANDLING CODES",
+    ...(sh.length ? sh : ["GEN"]).map(c => "  " + c.padEnd(6) + (CF_SHC[c] || "See handling information").toUpperCase()),
+    "",
+    "HANDLING INSTRUCTIONS",
+    ...((s.handling || []).length ? s.handling : [a.handling_info]).map(h => "  - " + h.toUpperCase()),
+    "",
+    "WHY THIS SHIPMENT IS FLYING",
+    "  " + (s.story || "-").toUpperCase(),
+  ].join("\n");
+}
+function cfScreening(ls, s) {
+  const a = s.awb_doc;
+  return [
+    "ORIGIN WAREHOUSE ACCEPTANCE / SECURITY RECORD",
+    "=".repeat(78),
+    cfLine("Air waybill", s.awb), cfLine("Route", `${ls.origin.icao} TO ${ls.destination.icao}`), cfLine("Accepted by", a.origin_handler || "-"),
+    "",
+    ...a.checks.map(c => `[X] ${c.at}  ${c.what}\n                   ${c.note}`),
+    "",
+    cfLine("Security method", `${a.screen.method}  ${a.screen.why}`), cfLine("Security status", `${a.screen.status}  (SECURE FOR CARGO AIRCRAFT ONLY)`),
+    cfLine("E-CSD reference", a.screen.ecsd), cfLine("Screened", a.screen.at),
+    ...(a.export ? [cfLine("Export reference", a.export)] : []),
+    cfLine("Warehouse release", `${a.release_at}  ALL CHECKS SIGNED OFF`),
+  ].join("\n");
+}
+function cfTracking(ls, s) {
+  const a = s.awb_doc;
+  return [
+    `SHIPMENT TRACKING  /  AWB ${s.awb}  /  ${ls.origin.icao} TO ${ls.destination.icao}`,
+    "=".repeat(78),
+    "CODE  TIME          STATION  STATUS",
+    ...a.track.map(t => `${t.code.padEnd(6)}${t.at.padEnd(14)}${t.where.padEnd(9)}${t.what}`),
+    "",
+    "PLANNED AGAINST THE SCHEDULE. CODES FOLLOW IATA CARGO-IMP:",
+    "BKD BOOKED  RCS RECEIVED FROM SHIPPER  MAN MANIFESTED  DEP DEPARTED  ARR ARRIVED",
+    "RCF RECEIVED FROM FLIGHT  NFD CONSIGNEE NOTIFIED  DLV DELIVERED",
+  ].join("\n");
+}
+const CF_TABS = [["awb", "Air waybill", cfAwb], ["shc", "Special handling", cfHandling], ["scr", "Warehouse screening", cfScreening], ["trk", "Tracking", cfTracking]];
+function cargoFolderHTML(ls) {
+  const sh = (ls.shipments || []).filter(s => s.awb_doc);
+  if (ls.ferry || !sh.length) return "";
+  const i = Math.min(S.cfShip || 0, sh.length - 1), tab = S.cfTab || "awb", s = sh[i];
+  const body = (CF_TABS.find(t => t[0] === tab) || CF_TABS[0])[2](ls, s);
+  return `<details class="dp-more cf" open><summary>Cargo folder · ${sh.length} air waybill${sh.length === 1 ? "" : "s"}</summary>
+    <p class="muted ls-fine">The paperwork behind every shipment on this flight: the contract of carriage, how to handle it, what the warehouse checked before it reached your aircraft, and where it is now. Fictional shipments, values and references for flight simulation.</p>
+    <div class="cf-bar"><label class="cf-pick">Air waybill <select data-cf-ship>${sh.map((x, j) => `<option value="${j}" ${j === i ? "selected" : ""}>${esc(x.awb)} · ${esc(x.shipper.name)} → ${esc(x.consignee.name)}</option>`).join("")}</select></label>
+      <span class="cf-sum">${s.pieces} pcs · ${cf1(s.awb_doc.kg)} kg · ${esc((s.shc || []).join(" ") || "GEN")} · ${esc(s.service)}</span></div>
+    <div class="cf-tabs" role="tablist">${CF_TABS.map(([k, l]) => `<button type="button" role="tab" data-cf-tab="${k}" aria-selected="${k === tab}">${l}</button>`).join("")}</div>
+    <pre class="cf-doc" tabindex="0">${esc(body)}</pre></details>`;
+}
+function wireCargoFolder(el, ls) {
+  const redraw = () => { const old = el.querySelector(".cf"); if (!old) return; const t = document.createElement("div"); t.innerHTML = cargoFolderHTML(ls); old.replaceWith(t.firstElementChild); wireCargoFolder(el, ls); };
+  el.querySelectorAll("[data-cf-tab]").forEach(b => b.onclick = () => { S.cfTab = b.dataset.cfTab; redraw(); });
+  const sel = el.querySelector("[data-cf-ship]"); if (sel) sel.onchange = () => { S.cfShip = +sel.value; redraw(); };
 }
 /* After the OFP comes in: how SimBrief's plan compares with the preliminary load sheet */
 function planVsLoad(m) {
@@ -2697,7 +2803,8 @@ async function loadBids() {
         <div><span>Distance</span><b>${fmt(m.distance_nm || gcNm(m.origin, m.destination))} nm</b><small>${m.target_block_min ? `about ${Math.floor(m.target_block_min / 60)}h ${String(m.target_block_min % 60).padStart(2, "0")}m` : ""}</small></div>
         <div><span>Booked</span><b>${b.requested_at ? new Date(b.requested_at * 1000).toLocaleDateString("en-US", { day: "numeric", month: "short" }) : "–"}</b><small>${b.ofp ? "SimBrief OFP attached" : S.ofpWatch ? "Watching SimBrief for the plan" : "No OFP yet"}</small></div>
       </div>
-      <div class="bid-status"><i></i>${status[1]}</div>
+      ${flowHTML(b, st, cp)}
+      ${status[0] === "booked" ? "" : `<div class="bid-status"><i></i>${status[1]}</div>`}
       ${!b.ofp && !st.complete && !st.tracking ? bookedPlanPanel(b) : ""}
       ${!b.ofp && !st.complete && !st.tracking ? `<p class="watch-note" style="margin:0">${S.ofpWatch ? `<i></i>PAC is watching SimBrief for this flight's plan until ${new Date(S.ofpWatch.until * 1000).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}. Generate it in SimBrief and it's attached automatically, with the dispatch paperwork updated. <a href="#" id="ofpWatchStop">Stop</a>`
         : `No SimBrief plan attached. <a href="#" id="ofpWatchStart">Watch SimBrief for it</a> (or fetch it in PAC ACARS).`}</p>` : ""}
@@ -2713,6 +2820,79 @@ async function loadBids() {
       </div>
     </article>`;
 }
+
+/* The flight workflow: where this flight is (Book → Plan → Sign → Fly → File → Debrief) and the one thing to do next */
+function flightFlow(b, st = {}, cp = null) {
+  const m = b.mission, dep = m.origin.icao, here = S.me?.location?.icao;
+  const positioned = m.training?.mode === "dedicated" || here === dep || S.me?.enforce_location === false || !here;
+  const planned = !!b.ofp, signed = !needsSignature(b) && !b.release_amended, flying = !!(st.tracking && !st.complete) || !!cp, landed = !!st.complete;
+  const steps = [["Book", true], ["Plan", planned || flying || landed], ["Sign", (signed && planned) || flying || landed], ["Fly", landed], ["File", false], ["Debrief", false]];
+  const stand = b.dep_stand?.icao === dep && b.dep_stand?.stand ? `${standName(b.dep_stand)} at ${dep}` : `a stand at ${dep}`;
+  let next;
+  if (landed) next = { step: 4, title: "Review and file your PIREP", text: "You're on block. Check the flight summary, add any remarks and file it. Your debrief and grade come straight after.", btn: `<button class="btn" type="button" onclick="show('acars')">Review and file the PIREP →</button>` };
+  else if (st.tracking) next = { step: 3, title: "Fly the flight", text: `PAC ACARS is tracking ${esc(b.flight_number)}${st.phase_label ? ` (${esc(st.phase_label.toLowerCase())})` : ""}. Fly to ${esc(m.destination.icao)}, park and set the brake. ACARS stops by itself on block.`, btn: `<button class="btn" type="button" onclick="show('acars')">Follow the flight live →</button>` };
+  else if (cp) next = { step: 3, title: "Resume your flight", text: "This flight was saved part-way. Load the simulator where you left off, open PAC ACARS and press Resume flight.", btn: `<a class="btn" href="${appLink(b)}">Resume in PAC ACARS →</a>` };
+  else if (!positioned) next = { step: 0, title: `Get to ${esc(dep)} first`, text: `This flight leaves from ${esc(dep)}, but PAC has you at ${esc(here)}. Fly a leg there, or buy a jumpseat or company travel from your wallet.`, btn: `<button class="btn" type="button" onclick="show('career/wallet')">Travel to ${esc(dep)} →</button>` };
+  else if (!planned) next = { step: 1, title: "Plan the flight in SimBrief", text: `Generate the OFP for ${esc(S.fleet[b.aircraft]?.name || b.aircraft)}. The route, callsign and ${m.payload_lbs ? fmt(m.payload_lbs) + " lb of cargo are" : "load is"} filled in for you. The plan attaches here by itself.`, btn: `<button class="btn" type="button" onclick="document.querySelector('#bpGen, #bpOpen')?.scrollIntoView({ behavior: 'smooth', block: 'center' })">Plan in SimBrief ↓</button>` };
+  else if (!signed) next = { step: 2, title: b.release_amended ? "Your plan changed: sign the release again" : "Review and sign your dispatch release", text: "Read the release, load sheet, cargo folder and NOTOC, then sign. ACARS won't start this flight until the release is signed.", btn: `<a class="btn" href="/dispatch?sign=1" target="_blank" rel="noopener">Review and sign →</a>` };
+  else next = { step: 3, title: "Load up and open PAC ACARS", text: `Load the ${esc(S.fleet[b.aircraft]?.name || b.aircraft)} at <b>${stand}</b> with the parking brake set, then open the flight in PAC ACARS and start tracking.`, btn: `<a class="btn" href="${appLink(b)}" onclick="setTimeout(checkApp, 5000)">Open in PAC ACARS →</a>` };
+  return { steps, next };
+}
+function flowStripHTML(steps, cur) {
+  return `<ol class="flow-strip" aria-label="Flight workflow">${steps.map(([l, done], i) => `<li class="${done ? "done" : i === cur ? "now" : ""}" ${i === cur ? 'aria-current="step"' : ""}><span>${done ? "✓" : String(i + 1).padStart(2, "0")}</span>${l}</li>`).join("")}</ol>`;
+}
+function flowHTML(b, st, cp, compact = false) {
+  const { steps, next } = flightFlow(b, st, cp);
+  if (compact && next.step === 1) next.btn = `<button class="btn" type="button" onclick="show('bids')">Plan it on My bids →</button>`;
+  return `${flowStripHTML(steps, next.step)}
+    <div class="do-next${compact ? " compact" : ""}" role="status"><span class="kicker">Do this next${compact ? ` · ${esc(b.flight_number)}` : ""}</span><b>${next.title}</b><p>${next.text}</p>${next.btn}</div>`;
+}
+
+/* Home: the signed-in pilot's flight in progress (one next action) and their activity date */
+function homeNextHTML(st) {
+  const parts = [];
+  if (S.booking) parts.push(flowHTML(S.booking, st || S.status || {}, null, true));
+  if (typeof activityHTML === "function") parts.push(activityHTML(S.me));
+  return parts.filter(Boolean).join("");
+}
+
+/* Staying active: the date the next flight is due, and a leave of absence that pauses the clock */
+function activityHTML(me) {
+  const a = me?.activity;
+  if (!a || !a.enabled) return "";
+  const day = t => new Date(t * 1000).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
+  const left = a.days_left, rel = left < 0 ? `${-left} day${left === -1 ? "" : "s"} ago` : left === 0 ? "today" : left === 1 ? "tomorrow" : `in ${left} days`;
+  const opts = [7, 14, 21, 30, 45, 60, 90].filter(d => d <= Math.min(a.leave_max_days, a.leave_days_left_year));
+  const form = opts.length ? `<details class="act-leave"><summary>Away for a while? Take a leave of absence</summary>
+      <form id="leaveForm" class="act-form"><label>How long<select name="days">${opts.map(d => `<option value="${d}" ${d === 14 ? "selected" : ""}>${d} days</option>`).join("")}</select></label>
+        <label>Reason <small>(optional, staff only)</small><input name="reason" maxlength="200" placeholder="Vacation, new simulator setup, busy at work…"></label>
+        <button class="btn small" type="submit">Start my leave</button></form>
+      <p class="muted">The clock stops while you're away and the roster shows you as On leave. Filing a flight ends it early. Up to ${a.leave_max_days} days at a time, ${a.leave_days_left_year} days left this year.</p></details>` : "";
+  if (a.state === "leave") return `<div class="act-card leave" id="actCard"><span class="kicker">On leave of absence</span>
+      <b>Back by ${day(a.leave.until)}</b><p>Your next flight is due ${day(a.due)}, ${a.policy_days} days after your leave ends.${a.leave.reason ? ` Reason on file: “${esc(a.leave.reason)}”.` : ""}</p>
+      <button class="btn small ghost" type="button" id="leaveEnd">I'm back: end my leave</button></div>`;
+  const cls = a.state === "overdue" ? "overdue" : a.state === "soon" ? "soon" : "ok";
+  const head = a.state === "overdue" ? `Your next flight was due ${day(a.due)} (${rel})` : `Next flight due by ${day(a.due)} (${rel})`;
+  const text = a.state === "overdue" ? `Fly any PAC flight to stay on the active roster.${a.auto_inactive ? " Pilots past their date are marked Inactive until they fly again." : ""}`
+    : `PAC pilots fly at least once every ${a.policy_days} days. ${a.last_flight ? `Your last flight was ${day(a.last_flight)}.` : "Your first flight starts the clock."} Any flight counts.`;
+  return `<div class="act-card ${cls}" id="actCard"><span class="kicker">Stay active</span><b>${head}</b><p>${text}</p>
+    <div class="row">${a.state !== "ok" ? `<button class="btn small" type="button" onclick="show('missions')">Find a flight →</button>` : ""}</div>${form}</div>`;
+}
+async function refreshActivity() { await loadMe(); const h = $("#homeNext"); if (h) { h.innerHTML = homeNextHTML(S.status); } }
+document.addEventListener("submit", async e => {
+  if (e.target.id !== "leaveForm") return;
+  e.preventDefault();
+  const f = e.target, b = f.querySelector("button");
+  b.disabled = true;
+  try { await api("/api/pilot/leave", { method: "POST", body: { days: +f.days.value, reason: f.reason.value } }); toast("Leave of absence started. Enjoy the time off."); await refreshActivity(); }
+  catch (err) { toast(err.message); b.disabled = false; }
+});
+document.addEventListener("click", async e => {
+  if (e.target.id !== "leaveEnd") return;
+  e.target.disabled = true;
+  try { await api("/api/pilot/leave", { method: "DELETE" }); toast("Welcome back! Your leave has ended."); await refreshActivity(); }
+  catch (err) { toast(err.message); e.target.disabled = false; }
+});
 
 /* My bids: plan a booked flight in SimBrief (checkrides and flights requested without an OFP) */
 function bookedPlanPanel(b) {
@@ -4452,6 +4632,8 @@ async function renderHome(h, st) {
   gfHomeStrip();
   const notices = news.filter(n => n.kind === 'notam');
   if (hero && notices.length) hero.insertAdjacentHTML('afterend', `<section class="home-notices" aria-label="Latest company notices"><div class="home-notices-heading"><b>Latest notices</b><span>${notices.length} company notice${notices.length===1?'':'s'} · Select a title to read</span></div>${notices.map(n=>`<details${n.important?' class="notice-important"':''}><summary>${n.important?'<span class="notice-priority">Important</span>':''}${esc(n.title)}</summary><div class="home-notice-body">${esc(n.body || 'No further details.')}<small>${esc(n.author || 'PAC Operations')}${n.time?' · '+new Date(n.time*1000).toLocaleDateString('en-US'):''}</small></div></details>`).join('')}</section>`);
+  if (hero && S.me) hero.insertAdjacentHTML('afterend', `<section class="home-next" id="homeNext">${homeNextHTML(st)}</section>`);
+  if (hero && S.me && !S.me.activity) loadMe().then(() => { const hn = $("#homeNext"); if (hn) hn.innerHTML = homeNextHTML(st); }).catch(() => {});
   if ($("#heroApply")) $("#heroApply").onclick = e => { e.preventDefault(); $("#apply").scrollIntoView({ behavior: "smooth" }); };
   document.querySelectorAll("[data-photo]").forEach(b => b.onclick = () => { const a = S.fleet[b.dataset.photo]; openPhoto(a.photo, a.name); });
   $("#applyForm").onsubmit = async e => {
@@ -4781,6 +4963,13 @@ function renderHandbook(cfg) {
       <tr><th>Before you book</th><td>Flights are tagged on the board, and you confirm you understand before requesting one.</td></tr></table>
       <table><tr><th>Area</th><th>Status</th><th>Hazard pay</th></tr>${S.zones.zones.map(z => `<tr><td><b>${esc(z.name)}</b><br><small class="muted">${esc(z.note || "")}</small></td><td>${z.level === "restricted" ? "Restricted" : "Caution"}</td><td>${z.level === "caution" ? `+${z.pct}%` : "–"}</td></tr>`).join("")}</table>
       <p class="muted" style="font-size:13px">Based on the FAA's rules for US operators. Staff update the list when the real world changes.</p>`]] : []),
+    ["activity", "Staying active and leave", `<p>PAC pilots fly at least once every <b>${S.settings?.activity_days || 45} days</b>. Your home page shows the date your next flight is due. It counts from your last flight, the day you joined, or the end of your last leave, whichever is latest. Any accepted flight counts.</p>
+      <p><b>Reminder:</b> if your Discord account is linked, PAC Operations sends you a direct message about a week before the date.</p>
+      <p><b>Leave of absence:</b> going away, moving, busy at work or between simulators? Take a leave of absence from your home page (<b>Away for a while?</b>). Pick how long (up to ${S.settings?.leave_max_days || 60} days at a time, 120 days a year) and an optional reason that only staff see. The clock stops, the roster shows you as On leave, and your due date moves to ${S.settings?.activity_days || 45} days after you're back. Press <b>I'm back</b> or file a flight to end it early.</p>
+      <p>Past your date with no leave? Fly any flight to get back on track. Staff decide what happens to pilots who stay away.</p>`],
+    ["cargofolder", "Cargo folder and debrief", `<p><b>Cargo folder:</b> on the load sheet step, and in the printed release, every shipment on your flight comes with its full paperwork. <b>Air waybill</b>: the contract of carriage, with shipper, consignee and forwarder, pieces, gross and chargeable weight, dimensions, rates and charges, the harmonized (customs) code, packaging, special handling codes and temperature. <b>Special handling</b>: what each code means and how to treat the cargo. <b>Warehouse screening</b>: the checks the origin warehouse made before the cargo reached your aircraft (count, weight, packaging, security screening method, invoice and export customs). <b>Tracking</b>: the shipment's status codes, as real cargo systems show them (BKD booked, RCS received, MAN manifested, DEP departed, ARR arrived, DLV delivered).</p>
+      <p>Chargeable weight is the greater of the real weight and the volumetric weight (the volume in cubic centimeters divided by 6,000): light, bulky cargo is charged for the space it takes. The shipments, companies' roles, values and reference numbers are fictional and made for flight simulation.</p>
+      <p><b>After-action review:</b> every filed flight's debrief has a planned-versus-actual table (block time, trip fuel, payload, landing weight against the limit, fuel at touchdown against the final reserve), what the customer said about the delivery, the dispatcher's summary with takeaways for your next flight, and the delivery result of each air waybill. It explains your grade; it doesn't change it.</p>`],
     ["transfers", "Transfer hours", `<p>Hours you flew at another virtual airline or on VATSIM/IVAO can count towards your PAC rank. Send a request from <b>Career</b> within 60 days of joining (pilots who joined before the program opened have until January 4, 2027).</p>
       <table><tr><th>What counts</th><td>Hours in your logbook at another virtual airline, or your VATSIM/IVAO pilot hours. Up to 3 sources, each with the link to the logbook or profile page and a screenshot that shows <b>your name or pilot ID together with the hours</b>. Many VA systems need a login, so staff may go by the screenshot, and may ask for a quick Discord screen share if they can't confirm it's you.</td></tr>
       <tr><th>What doesn't</th><td>Personal or offline logbooks, single-player career modes (such as MSFS career), and hours that can't be traced to you.</td></tr>
@@ -4935,7 +5124,7 @@ function renderHandbook(cfg) {
     ["conduct", "Conduct", `<p>Fly honestly and help each other. Report problems with ACARS rather than working around them. Staff decisions on reviews are final, but you can always ask why.</p>`],
   ];
   // reading order: who we are and how to join first, then planning and flying, then the rules, then everything else; staff notes last, for staff only
-  const ORDER = ["welcome", "joining", "training-policy", "first-flight", "travel", "ranks", "transfers", "divisions", "ratings", "planning", "zones", "planhelper", "dispatchpaper", "acarsapp", "flying",
+  const ORDER = ["welcome", "joining", "training-policy", "first-flight", "travel", "ranks", "transfers", "activity", "divisions", "ratings", "planning", "zones", "planhelper", "dispatchpaper", "cargofolder", "acarsapp", "flying",
     "dispatchmsg", "integrity", "scoring", "review", "pay", "partners", "missionboard", "jobs", "urgent", "events", "online", "maintenance", "airframes", "economics",
     "stationguides", "approach", "stats", "crewbadge", "signin", "conduct", "staffletters"];
   const pos = id => { const i = ORDER.indexOf(id); return i < 0 ? 99 : i; };
@@ -4956,13 +5145,41 @@ function renderStaff() {
   const d = S.staff;
   const pendingReviews = d.reviews.filter(r => r.review_status === "Pending").length;
   const pendingApps = d.applications.filter(a => a.status === "Pending").length;
-  const tabs = [["reports", "Problem reports", 0], ["health", "Operations health", 0], ["campaigns", "Cargo campaigns", 0], ["reviews", "PIREP review", pendingReviews], ["applications", "Applications", pendingApps], ["transfers", "Transfer hours", d.transfer_pending || 0], ["roster", "Roster", 0],
+  const tabs = [["reports", "Problem reports", 0], ["health", "Operations health", 0], ["campaigns", "Cargo campaigns", 0], ["reviews", "PIREP review", pendingReviews], ["applications", "Applications", pendingApps], ["transfers", "Transfer hours", d.transfer_pending || 0], ["activity", "Activity", d.activity_overdue || 0], ["roster", "Roster", 0],
     ["news", "News", 0], ["mx", "Maintenance", d.airframes.reduce((n, a) => n + (a.open_items || []).length, 0)], ["types", "Fleet types", 0], ["pphotos", "Partner photos", 0], ["airframes", "Airframes", d.airframes.filter(a => ["Maintenance", "Inspection", "A-check due", "Damaged"].includes(a.status)).length], ["events", "Events", 0], ["site", "Site and rules", 0]];
   $("#staffRoot").innerHTML = `<div class="profile-bar"><h1>Staff</h1><span class="muted">Running the airline. Only staff accounts can see this area.</span></div>
     <div class="staff-tabs" role="tablist">${tabs.map(([k, t, n]) => `<button role="tab" data-st="${k}" aria-selected="${S.staffTab === k}">${t}${n ? `<span class="count">${n}</span>` : ""}</button>`).join("")}</div>
     <div id="staffBody"></div>`;
   document.querySelectorAll("[data-st]").forEach(b => b.onclick = () => { S.staffTab = b.dataset.st; renderStaff(); });
-  ({ reports: staffProblemReports, health: staffOperationsHealth, campaigns: staffCargoCampaigns, reviews: staffReviews, applications: staffApps, transfers: staffTransfers, roster: staffRoster, news: staffNews, mx: staffMx, types: staffTypes, pphotos: staffPartnerPhotos, airframes: staffAirframes, events: staffEvents, site: staffSite })[S.staffTab]();
+  ({ reports: staffProblemReports, health: staffOperationsHealth, campaigns: staffCargoCampaigns, reviews: staffReviews, applications: staffApps, transfers: staffTransfers, activity: staffActivity, roster: staffRoster, news: staffNews, mx: staffMx, types: staffTypes, pphotos: staffPartnerPhotos, airframes: staffAirframes, events: staffEvents, site: staffSite })[S.staffTab]();
+}
+/* Staff › Activity: every pilot's next-flight-due date, who is on leave and who is overdue */
+async function staffActivity() {
+  const body = $("#staffBody");
+  body.innerHTML = `<p class="muted">Loading activity…</p>`;
+  let d;
+  try { d = await api("/api/staff/activity"); } catch (e) { body.innerHTML = `<div class="notice err">${esc(e.message)}</div>`; return; }
+  const day = t => t ? new Date(t * 1000).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : "–";
+  const chip = { overdue: '<span class="tag">Overdue</span>', soon: '<span class="tag amber">Due soon</span>', leave: '<span class="tag dark">On leave</span>', ok: '<span class="tag green">Active</span>' };
+  const c = d.counts, P = d.policy;
+  body.innerHTML = `<p class="muted" style="max-width:85ch">Pilots fly at least once every <b>${P.days} days</b>. The date counts from their last flight, joining, or the end of their last leave, whichever is latest. Linked pilots get a Discord DM ${P.remind_days} days before. ${P.auto_inactive ? "<b>Overdue pilots are marked Inactive automatically</b> and become Active again when they fly." : "Nobody is marked Inactive automatically: use the roster when you decide to."}</p>
+    <div class="row" style="gap:18px;margin:8px 0 12px"><span>${chip.overdue} ${c.overdue}</span><span>${chip.soon} ${c.soon}</span><span>${chip.leave} ${c.leave}</span><span>${chip.ok} ${c.ok}</span></div>
+    <form id="actPolicy" class="row" style="gap:12px;align-items:flex-end;margin-bottom:14px">
+      <label>Fly at least every<br><input name="days" type="number" min="14" max="180" value="${P.days}" style="width:80px"> days</label>
+      <label>Remind<br><input name="remind" type="number" min="1" max="30" value="${P.remind_days}" style="width:70px"> days before</label>
+      <label>Longest leave<br><input name="leave" type="number" min="7" max="120" value="${P.leave_max_days}" style="width:70px"> days</label>
+      <label style="flex-direction:row;gap:6px;display:flex;align-items:center"><input name="auto" type="checkbox" ${P.auto_inactive ? "checked" : ""}> Mark overdue pilots Inactive automatically</label>
+      <button class="btn small" type="submit">Save</button></form>
+    <div class="aar-wrap"><table class="aar-table"><thead><tr><th>Pilot</th><th>State</th><th>Last flight</th><th>Next flight due</th><th>Roster status</th><th>Leave</th></tr></thead><tbody>
+    ${d.pilots.map(p => `<tr><td><b class="mono">${esc(p.pilot_id)}</b> ${esc(p.name)}</td><td>${chip[p.state]}</td><td>${day(p.last_flight)}</td>
+      <td>${day(p.due)} <small class="muted">${p.days_left < 0 ? `${-p.days_left} days over` : `${p.days_left} days left`}</small></td><td>${esc(p.status)}</td>
+      <td>${p.leave ? `Until ${day(p.leave.until)}${p.leave.reason ? `<br><small class="muted">${esc(p.leave.reason)}</small>` : ""}` : "–"}</td></tr>`).join("")}
+    </tbody></table></div>`;
+  $("#actPolicy").onsubmit = async e => {
+    e.preventDefault(); const f = e.target;
+    try { await api("/api/settings", { method: "POST", body: { activity_days: +f.days.value, activity_remind_days: +f.remind.value, leave_max_days: +f.leave.value, activity_auto_inactive: f.auto.checked } }); toast("Activity policy saved."); staffActivity(); }
+    catch (err) { toast(err.message); }
+  };
 }
 const statusCls = s => ({ Pending: "pending", Rejected: "rejected", Accepted: "accepted" })[s] || "";
 /* Staff › Partner photos: the Wikimedia Commons photo each partner flight's landing card uses, with its credit */
@@ -6930,9 +7147,28 @@ function pacDebrief(p, d = p) {
   return `<section class="pac-debrief" data-pd-section="Summary"><div class="pd-head"><div><small>PAC · FLIGHT DEBRIEF</small><h2>Your flight, explained.</h2><p>${e(p.dep)} → ${e(p.arr)} · ${e(p.flight_number)}</p></div><div class="pd-grade"><small>Flight grade</small><strong>${e(p.grade || 'Unscored')}</strong><span>${n(p.score) ? `${e(p.score)} / 100` : 'Score unavailable'}</span></div></div>
     <div class="pd-grid">${metric('Touchdown', la.rate_fpm, 'fpm', 'Recorded vertical speed')}${metric('Landing load', la.g, 'G', 'Around touchdown')}${metric('Touchdown speed', la.ias, 'kt', 'Indicated airspeed')}${metric('Takeoff roll', ta.roll_ft, 'ft', 'Recorded ground roll')}</div>
     <div class="pd-columns"><div><h3>What went well</h3>${list(good) || '<p>Not enough recorded evidence to identify strengths.</p>'}</div><div><h3>${focus.length ? 'Your next-flight focus' : 'Keep building consistency'}</h3>${list(focus) || '<p>No deductions were supplied in this report. Review the available flight traces; missing measurements are not a pass.</p>'}</div></div>
+    ${pacAfterAction(p.debrief || d.debrief)}
     ${pacShipmentDebrief(p, d)}
     <details><summary>The evidence behind the feedback</summary>${list(facts) || '<p>No detailed measurements available for this report.</p>'}<p class="pd-note">PAC’s approach check currently uses speed variation and descent rate. It does not verify aircraft-specific Vref, landing configuration or a complete stabilized-approach procedure. Missing data is not a pass.</p></details>
     <details><summary>How this relates to your score</summary><p>This explanation uses recorded measurements and existing analysis. It does not add penalties, change pay or create separate phase grades.</p>${(d.breakdown || []).map(x => `<p>${e(pacScoreLabel(x[0]))}: <b>${e(x[1])}</b></p>`).join('')}</details></section>`;
+}
+function pacAfterAction(db) {
+  if (!db) return "";
+  const e = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  const rows = db.planned_actual || [], cargo = db.cargo || [], cu = db.customer || {};
+  const mark = r => r.ok === true ? '<span class="aar-ok">Within plan</span>' : r.ok === false ? '<span class="aar-bad">Outside plan</span>' : '<span class="muted">Not compared</span>';
+  return `<section class="aar" data-pd-section="After-action review"><h3>After-action review</h3>
+    <div class="aar-cols">
+      <div class="aar-box ${e(cu.tone)}"><small>Customer feedback · ${e(cu.from)}</small><p>${e(cu.text)}</p></div>
+      <div class="aar-box"><small>Dispatcher debrief</small><p>${e(db.dispatcher)}</p>${(db.takeaways || []).length ? `<ul>${db.takeaways.map(t => `<li>${e(t)}</li>`).join("")}</ul>` : ""}</div>
+    </div>
+    ${rows.length ? `<h4>Planned versus actual</h4><div class="aar-wrap"><table class="aar-table"><thead><tr><th>Item</th><th class="r">Planned</th><th class="r">Actual</th><th class="r">Variance</th><th></th></tr></thead><tbody>
+      ${rows.map(r => `<tr class="${r.ok === false ? "bad" : ""}"><td>${e(r.what)}</td><td class="r mono">${r.planned == null ? "–" : e(r.planned) + (r.unit && r.unit !== "h:mm" ? ` ${e(r.unit)}` : "")}</td><td class="r mono">${r.actual == null ? "Not recorded" : e(r.actual) + (r.unit && r.unit !== "h:mm" ? ` ${e(r.unit)}` : "")}</td><td class="r mono">${r.variance == null ? "–" : e(r.variance)}${r.pct != null ? ` <small>(${r.pct > 0 ? "+" : ""}${e(r.pct)}%)</small>` : ""}</td><td>${mark(r)}</td></tr>`).join("")}
+    </tbody></table></div>` : ""}
+    ${cargo.length ? `<details class="aar-cargo"><summary>Customer cargo results · ${e(db.on_time)} delivered on time</summary><div class="aar-wrap"><table class="aar-table"><thead><tr><th>Air waybill</th><th>Customer journey</th><th>Commodity</th><th class="r">Weight</th><th>Delivery</th><th class="r">Charges</th></tr></thead><tbody>
+      ${cargo.map(c => `<tr><td class="mono">${e(c.awb)}</td><td>${e(c.shipper)} → ${e(c.consignee)}</td><td>${e(c.contents)}</td><td class="r mono">${c.weight_lbs != null ? Number(c.weight_lbs).toLocaleString() + " lb" : "–"}</td><td><b class="${/LATE|NOT|HELD/.test(c.status) ? "aar-bad" : "aar-ok"}">${e(c.status)}</b>${c.delivered ? `<br><small class="mono">${e(c.delivered)}</small>` : ""}</td><td class="r mono">${c.charges != null ? "$" + Number(c.charges).toLocaleString("en-US", { maximumFractionDigits: 0 }) : "–"}</td></tr>`).join("")}
+    </tbody></table></div></details>` : ""}
+  </section>`;
 }
 function pacShipmentDebrief(p, d) {
   if(d?.training || p.training)return `<section class="pd-shipment" data-pd-section="Shipment"><h3>Company-funded training</h3><p>Training ballast only. No commercial shipment, customer handover or campaign cargo credit.</p><p>${(d?.training||p.training).mode==='dedicated'?'Dedicated session: operational fleet and normal pilot station unchanged.':'Fleet checkride: normal aircraft and pilot position tracking applies.'}</p><p>No pay or bonuses. Successful, accepted checkrides earn qualification and career hours.</p></section>`;

@@ -26,6 +26,8 @@ from tracker import FlightRecorder, PHASES, zulu
 import va
 import analysis
 import dispatch
+import shipments  # noqa: E402  (air waybills, acceptance and tracking)
+import debrief  # noqa: E402  (after-action review: planned vs actual, customer and dispatcher comments)
 import paperwork_release as releases
 import discord_post  # noqa: E402  (flights to a Discord channel)
 import mailer  # noqa: E402  (letters by email)
@@ -166,7 +168,7 @@ DEFAULT_SETTINGS = {"pilot_name": "", "pilot_id": "PAC0001", "simbrief_username"
                     "discord_ch_flights": "flight-log", "discord_ch_news": "announcements", "discord_ch_welcome": "welcome",
                     "filing_icao": "PGC",
                     "vatsim_partner_section": False, "ivao_partner_section": False,   # the VATSIM logo on the home page: only once VATSIM has accepted PAC     # the ICAO code pilots file under on VATSIM and IVAO (PAC belongs to Polar Air Cargo)
-                    "discord_ch_dispatch": "dispatch", "discord_ch_notams": "notams", "discord_ch_honeypot": "do-not-post", "discord_ch_modlog": "", "conflict_zones_enabled": False, "conflict_zone_overrides": {}, "discord_dispatch_missions": True, "discord_dispatch_partners": True,
+                    "discord_ch_dispatch": "dispatch", "discord_ch_notams": "notams", "discord_ch_honeypot": "do-not-post", "discord_ch_modlog": "", "conflict_zones_enabled": False, "conflict_zone_overrides": {}, "activity_enabled": True, "activity_days": 45, "activity_remind_days": 7, "leave_max_days": 60, "activity_auto_inactive": False, "discord_dispatch_missions": True, "discord_dispatch_partners": True,
                     "discord_dispatch_urgent": True, "discord_dispatch_per_hour": 4,
                     "discord_recap_enabled": True, "discord_ch_recap": "", "discord_recap_last": "", "discord_ch_butter": "butter-board", "discord_butter_fpm": 100,
                     "discord_pilot_role": "PAC Pilot", "discord_staff_role": "PAC Staff", "discord_rank_roles": True,
@@ -650,6 +652,11 @@ def build_pirep(booking, rec: FlightRecorder):
         if m_['training']['mode'] == 'dedicated':
             p['registration'] = 'TRAINING'
     p = apply_conflict_zones(p, booking, rec)
+    try:
+        p["debrief"] = debrief.build(p, booking, rec, FLEET)   # planned vs actual, customer and dispatcher comments, cargo results
+    except Exception as e:  # the debrief explains the flight; it must never stop a PIREP
+        print("debrief failed:", e)
+        p["debrief"] = None
     return p
 
 
@@ -1817,6 +1824,7 @@ def dispatch_current():
     d["signed"] = booking.get("signed") if releases.valid_signature(booking) else None
     d["revision"] = releases.revision(booking)
     d["requested_at"] = booking.get("requested_at")
+    shipments.enrich(d)                      # full air waybill, acceptance record and tracking for each shipment
     d["release_amended"] = bool(booking.get("release_amended"))
     d["signature_required"] = signature_required(booking)
     return jsonify(d)
@@ -1906,6 +1914,8 @@ def dispatch_pirep(pid):
     frozen = out.get("signed_snapshot") or {}
     out["paper"] = frozen.get("paper") or dispatch.paperwork(out, FLEET, None, [], d.get("pilot_rank"), AIRPORTS)
     out["navlog"] = (d.get("ofp") or {}).get("route_points") or []
+    out.setdefault("requested_at", d.get("requested_at"))
+    shipments.enrich(out)
     ac = FLEET.get(out.get("aircraft"), {})
     out["perf"] = {"burn_pph": ac.get("fuel_burn_pph"), "ktas": ac.get("cruise_ktas")}
     return jsonify(out)
@@ -2552,6 +2562,10 @@ def plan_loadsheet():
                  "reserve_fuel_lbs": f["final_reserve"]}   # the minimum release fuel adds its own alternate allowance
     d["block_min"] = f["est_block_min"]
     learned = learned_dow(ac_code)
+    try:
+        shipments.enrich(d)                  # the cargo folder: air waybill, acceptance record and tracking per shipment
+    except Exception:
+        pass
     paper = dispatch.paperwork(d, FLEET, None, [], None, AIRPORTS, dow_override=(learned or {}).get("dow"))
     ls, lim = paper["loadsheet"], paper["limits"]
     checks = [
@@ -3143,7 +3157,8 @@ def file_pirep():
               "profile": getattr(rec, "profile", []), "landing_analysis": p.get("landing_analysis"), "dispatch": booking.get("dispatch"),
               "aircraft_name": p.get("aircraft_name"), "pilot_rank": va.career(va.current_pilot_id())["rank"],
               "takeoff_analysis": p.get("takeoff_analysis"), "economics": p.get("economics"), "integrity": p.get("integrity"),
-              "online": p.get("online"), "urgent": p.get("urgent"), "job": p.get("job"), "conflict": p.get("conflict")}
+              "online": p.get("online"), "urgent": p.get("urgent"), "job": p.get("job"), "conflict": p.get("conflict"),
+              "debrief": p.get("debrief")}
     with db() as con:
         cur = con.execute("""INSERT INTO pireps (filed_at, mission_id, mission_title, category, flight_number, aircraft,
             registration, dep, arr, planned_arr, block_min, flight_min, distance_nm, fuel_used_lbs, payload_lbs,
@@ -3490,6 +3505,9 @@ app.register_blueprint(liveries.bp)
 import transfers  # noqa: E402  (pilots ask for verified hours from other VAs to count towards rank)
 transfers.init({"db": db, "settings": settings, "clean_text": clean_text, "DATA": DATA})
 app.register_blueprint(transfers.bp)
+import activity  # noqa: E402  (next flight due, leave of absence, reminders)
+activity.init({"db": db, "settings": settings, "clean_text": clean_text, "va": va})
+app.register_blueprint(activity.bp)
 import botlink  # noqa: E402
 botlink.init({"db": db, "settings": settings, "save_settings": lambda s_: save_json(SETTINGS_PATH, s_), "DATA": DATA, "va": va, "live_flights": lambda member=True: live_flights(member),
               "FLEET": FLEET, "AIRPORTS": AIRPORTS})

@@ -124,6 +124,16 @@ def recap_card(r):
             "fields": [(n, v) for n, v in fields], "inline": False}
 
 
+def activity_dm(r, site):
+    """The DM a pilot gets a few days before their next flight is due."""
+    import datetime as dt
+    day = dt.datetime.fromtimestamp(r["due"], dt.timezone.utc).strftime("%A, %B %-d")
+    when = "today" if r["days_left"] <= 0 else "tomorrow" if r["days_left"] == 1 else f"in {r['days_left']} days"
+    return (f"Hi {r['name'].split(' ')[0]}, a quick heads-up from PAC Operations: your next flight is due {when} ({day}).\n"
+            f"Any flight counts. The board is here: {site}/#missions\n"
+            f"Away for a while? Take a leave of absence on your home page ({site}/#home) and the clock pauses until you're back.")
+
+
 def recap_due(now_utc, r, hour_utc=14):
     """Monday from the posting hour, once per week (the website remembers the last week posted)."""
     return bool(r.get("enabled", True)) and not r.get("posted") and now_utc.weekday() == 0 and now_utc.hour >= hour_utc
@@ -461,6 +471,22 @@ def run(cfg):
             await post("recap" if channel("recap") else "news", card=card)
         await apac("POST", "/api/bot/weekly/posted", {"week": r["week"]})    # also for an empty week, so it isn't retried
 
+    async def activity_tick():
+        """Every ten minutes: DM pilots whose next flight is due within the reminder window (once per due date)."""
+        st, r = await apac("GET", "/api/bot/activity")
+        if st != 200 or not r.get("enabled") or not r.get("reminders"):
+            return
+        done = []
+        for it in r["reminders"]:
+            try:
+                u = client.get_user(int(it["discord_id"])) or await client.fetch_user(int(it["discord_id"]))
+                await u.send(activity_dm(it, r.get("site") or site))
+                done.append(it)
+            except (discord.Forbidden, discord.HTTPException, discord.NotFound):
+                done.append(it)          # DMs closed: don't keep trying for this date
+        if done:
+            await apac("POST", "/api/bot/activity/reminded", {"items": done})
+
     async def events_loop():
         await client.wait_until_ready()
         n = 0
@@ -475,6 +501,8 @@ def run(cfg):
                     await dispatch_tick()
                 if n % 120 == 60:                # every ten minutes: is the Monday recap due?
                     await recap_tick()
+                if n % 120 == 90:                # every ten minutes: next-flight-due reminders by DM
+                    await activity_tick()
                 if n % 120 == 0:                 # every ten minutes: keep everyone's roles right
                     await sync_all()
                     st, c = await apac("GET", "/api/bot/config")

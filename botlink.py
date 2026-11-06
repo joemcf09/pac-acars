@@ -415,3 +415,20 @@ def staff_bot_status():
         linked = con.execute("SELECT COUNT(*) FROM pilots WHERE discord_id IS NOT NULL").fetchone()[0]
     return jsonify({"enabled": enabled(), "online": bool(last and time.time() - last < 30), "last_seen": last or None,
                     "linked": linked})
+
+
+# ---------------------------------------------------------------- reminders: next flight due
+@bp.get("/api/bot/activity")
+def bot_activity():
+    """Pilots to remind by DM that their next flight is due soon."""
+    import activity
+    st = C["settings"]()
+    return jsonify({"reminders": activity.reminders_due(), "site": (C["va"].site().get("public_url") or "https://pac-va.com").rstrip("/") or "https://pac-va.com",
+                    "enabled": bool(st.get("discord_activity_dm", True))})
+
+
+@bp.post("/api/bot/activity/reminded")
+def bot_activity_reminded():
+    import activity
+    activity.mark_reminded((request.json or {}).get("items") or [])
+    return jsonify({"ok": True})
