@@ -35,6 +35,19 @@ def set_joined(days_ago):
         con.execute("UPDATE pilots SET joined=?, status='Active', prefs='{}' WHERE id=?", (time.time() - days_ago * DAY, pid))
 
 
+print("Off until staff switch it on")
+set_joined(60)
+a = c.get("/api/pilot/activity").json
+check("off by default: pilots see nothing", a["enabled"] is False, a)
+check("no leave while it's off", c.post("/api/pilot/leave", json={"days": 14}).status_code == 400)
+with A.db() as con:
+    con.execute("UPDATE pilots SET discord_id='123456789' WHERE id=?", (pid,))
+check("no reminders while it's off", activity.reminders_due() == [])
+check("no overdue badge on the staff tab", c.get("/api/staff/overview").json.get("activity_overdue") == 0)
+with A.db() as con:
+    con.execute("UPDATE pilots SET discord_id=NULL WHERE id=?", (pid,))
+c.post("/api/settings", json={"activity_rule_on": True})
+
 print("Next flight due")
 set_joined(0)
 a = c.get("/api/pilot/activity").json

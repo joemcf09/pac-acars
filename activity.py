@@ -5,7 +5,8 @@ their last leave of absence, whichever is latest. Pilots can take a leave of abs
 `leave_max_days` at a time): the clock pauses and the roster shows them as On leave. Filing a flight ends the
 leave early. The Discord bot sends a reminder `activity_remind_days` before the date.
 
-Nothing here removes anyone. Marking overdue pilots Inactive happens only if staff switch
+The whole rule is off until staff switch `activity_rule_on` on (Staff › Activity): while it's off, pilots see no
+due date, no leave form and no reminders. Nothing here removes anyone. Marking overdue pilots Inactive happens only if staff switch
 `activity_auto_inactive` on, and Inactive pilots become Active again as soon as they file a flight.
 """
 from __future__ import annotations
@@ -39,7 +40,7 @@ def policy(st=None):
             return d
     return {"days": num("activity_days", 45, 14, 180), "remind_days": num("activity_remind_days", 7, 1, 30),
             "leave_max_days": num("leave_max_days", 60, 7, 120), "auto_inactive": st.get("activity_auto_inactive") is True,
-            "enabled": st.get("activity_enabled", True) is not False}
+            "enabled": st.get("activity_rule_on") is True}
 
 
 def _prefs(row):
@@ -127,6 +128,8 @@ def start_leave():
         days = int(b.get("days") or 0)
     except (TypeError, ValueError):
         days = 0
+    if not pol["enabled"]:
+        return jsonify({"error": "PAC has no activity requirement right now, so there's no leave to take. Fly whenever you like."}), 400
     if days < 3 or days > pol["leave_max_days"]:
         return jsonify({"error": f"Choose between 3 and {pol['leave_max_days']} days."}), 400
     reason = C["clean_text"](str(b.get("reason") or ""))[:200] if C.get("clean_text") else str(b.get("reason") or "")[:200]

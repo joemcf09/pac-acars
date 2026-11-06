@@ -3492,6 +3492,8 @@ def pilot_me():
 def _overdue_count():
     try:
         import activity
+        if not activity.policy()["enabled"]:
+            return 0
         return sum(1 for x in activity.sweep() if x["state"] == "overdue")
     except Exception:
         return 0

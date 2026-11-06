@@ -5130,6 +5130,7 @@ function renderHandbook(cfg) {
   const pos = id => { const i = ORDER.indexOf(id); return i < 0 ? 99 : i; };
   sections.sort((a, b) => pos(a[0]) - pos(b[0]));
   if (!S.me?.staff) { const i = sections.findIndex(x => x[0] === "staffletters"); if (i >= 0) sections.splice(i, 1); }
+  if (!S.settings?.activity_rule_on) { const i = sections.findIndex(x => x[0] === "activity"); if (i >= 0) sections.splice(i, 1); }
   $("#handbookRoot").innerHTML = `<div class="profile-bar"><h1>Pilot handbook</h1><span class="muted">Standards for every Pagani Air Cargo flight</span></div>
     <div class="handbook"><nav class="toc" aria-label="Handbook contents">${sections.map(([id, t]) => `<a href="#hb-${id}" data-hb="${id}">${t}</a>`).join("")}</nav>
     <div class="hb-body">${sections.map(([id, t, body]) => `<section id="hb-${id}"><h2>${t}</h2>${body}</section>`).join("")}</div></div>`;
@@ -5162,7 +5163,9 @@ async function staffActivity() {
   const day = t => t ? new Date(t * 1000).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : "–";
   const chip = { overdue: '<span class="tag">Overdue</span>', soon: '<span class="tag amber">Due soon</span>', leave: '<span class="tag dark">On leave</span>', ok: '<span class="tag green">Active</span>' };
   const c = d.counts, P = d.policy;
-  body.innerHTML = `<p class="muted" style="max-width:85ch">Pilots fly at least once every <b>${P.days} days</b>. The date counts from their last flight, joining, or the end of their last leave, whichever is latest. Linked pilots get a Discord DM ${P.remind_days} days before. ${P.auto_inactive ? "<b>Overdue pilots are marked Inactive automatically</b> and become Active again when they fly." : "Nobody is marked Inactive automatically: use the roster when you decide to."}</p>
+  const onoff = `<div class="notice" style="margin:0 0 12px;${P.enabled ? "" : "border-color:var(--line)"}"><label style="display:flex;gap:8px;align-items:center;font-weight:700"><input type="checkbox" id="actOn" ${P.enabled ? "checked" : ""}> Activity rule ${P.enabled ? "ON" : "OFF"}</label>
+    <p style="margin:6px 0 0;font-size:14px">${P.enabled ? "Pilots see their next-flight-due date and the leave form on Home, linked pilots get a Discord reminder, and the handbook explains the rule." : "Off: pilots see nothing about activity. No due date, no leave form, no reminders and nothing in the handbook. The list below is for your eyes only. Switch it on whenever PAC is big enough to need it."}</p></div>`;
+  body.innerHTML = onoff + `<p class="muted" style="max-width:85ch">${P.enabled ? "" : "<b>When switched on:</b> "}Pilots fly at least once every <b>${P.days} days</b>. The date counts from their last flight, joining, or the end of their last leave, whichever is latest. Linked pilots get a Discord DM ${P.remind_days} days before. ${P.auto_inactive ? "<b>Overdue pilots are marked Inactive automatically</b> and become Active again when they fly." : "Nobody is marked Inactive automatically: use the roster when you decide to."}</p>
     <div class="row" style="gap:18px;margin:8px 0 12px"><span>${chip.overdue} ${c.overdue}</span><span>${chip.soon} ${c.soon}</span><span>${chip.leave} ${c.leave}</span><span>${chip.ok} ${c.ok}</span></div>
     <form id="actPolicy" class="row" style="gap:12px;align-items:flex-end;margin-bottom:14px">
       <label>Fly at least every<br><input name="days" type="number" min="14" max="180" value="${P.days}" style="width:80px"> days</label>
@@ -5175,6 +5178,10 @@ async function staffActivity() {
       <td>${day(p.due)} <small class="muted">${p.days_left < 0 ? `${-p.days_left} days over` : `${p.days_left} days left`}</small></td><td>${esc(p.status)}</td>
       <td>${p.leave ? `Until ${day(p.leave.until)}${p.leave.reason ? `<br><small class="muted">${esc(p.leave.reason)}</small>` : ""}` : "–"}</td></tr>`).join("")}
     </tbody></table></div>`;
+  $("#actOn").onchange = async e => {
+    try { await api("/api/settings", { method: "POST", body: { activity_rule_on: e.target.checked } }); S.settings.activity_rule_on = e.target.checked; toast(e.target.checked ? "Activity rule switched on." : "Activity rule switched off."); staffActivity(); }
+    catch (err) { toast(err.message); e.target.checked = !e.target.checked; }
+  };
   $("#actPolicy").onsubmit = async e => {
     e.preventDefault(); const f = e.target;
     try { await api("/api/settings", { method: "POST", body: { activity_days: +f.days.value, activity_remind_days: +f.remind.value, leave_max_days: +f.leave.value, activity_auto_inactive: f.auto.checked } }); toast("Activity policy saved."); staffActivity(); }
