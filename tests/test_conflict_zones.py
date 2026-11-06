@@ -100,6 +100,11 @@ with A.db() as con:
 check("the pilot sees why", "restricted" in (row["review_note"] or "").lower(), row["review_note"])
 check("nothing was paid", paid == 0, paid)
 
+print("Flights booked before the switch")
+st_ = A.settings(); st_["conflict_zones_since"] = __import__("time").time() + 3600; A.save_json(A.SETTINGS_PATH, st_)
+need, b, p = fly_route("PAC5039", "HAAB", "HSSK")
+check("a restricted flight booked before the rules started isn't rejected", p.get("review_status") != "Rejected", (p.get("review_status"), p.get("flags")))
+
 print()
 print("All conflict zone checks passed." if not failures else f"{len(failures)} failed: {failures}")
 sys.exit(1 if failures else 0)

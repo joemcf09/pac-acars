@@ -1694,6 +1694,8 @@ def staff_conflict_zones_save():
     b = request.json or {}
     s = settings()
     if "enabled" in b:
+        if bool(b["enabled"]) and not s.get("conflict_zones_enabled"):
+            s["conflict_zones_since"] = time.time()      # flights booked before this keep counting as normal
         s["conflict_zones_enabled"] = bool(b["enabled"])
     if isinstance(b.get("zones"), dict):
         over = {}
@@ -1719,6 +1721,8 @@ def apply_conflict_zones(p, booking, rec):
     m_ = booking["mission"]
     if p.get("demo") or m_.get("training"):
         return p
+    if (booking.get("requested_at") or 0) < (settings().get("conflict_zones_since") or 0):
+        return p          # booked before the rules were switched on: it counts as it would have
     track = [[x[0], x[1]] for x in (getattr(rec, "track", None) or []) if x and x[0] is not None]
     dep = {"icao": p.get("dep") or m_["origin"]["icao"], "lat": m_["origin"].get("lat"), "lon": m_["origin"].get("lon")}
     arr = {"icao": p.get("arr") or "", "lat": (rec.last.lat if rec.last else None), "lon": (rec.last.lon if rec.last else None)}
