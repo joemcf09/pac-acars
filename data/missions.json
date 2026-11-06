@@ -243,7 +243,7 @@
     "payload_lbs": 190000,
     "target_block_min": 475,
     "reward": 750,
-    "briefing": "A production line is waiting on these wafers. Late arrival costs the customer a shift. Plan the most efficient track across the Pacific and keep your block time tight."
+    "briefing": "Anchorage is the first stop: the wafers connect there to a North American fab line that is waiting on them. Late arrival costs the customer a shift. Plan the most efficient track across the Pacific and keep your block time tight."
   },
   {
     "id": "PAC150",

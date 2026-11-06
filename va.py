@@ -1014,22 +1014,56 @@ URGENT_KINDS = [
     {"kind": "Pharma", "title": "Vaccine top-up to {city}", "cargo": "Vaccines in active cold-chain containers", "mult": 1.8,
      "load": (0.2, 0.4), "brief": "A vaccination campaign in {city} is days from running out. The containers have limited hold-over time."},
     {"kind": "Marine", "title": "Ship's engine part to {city}", "cargo": "Turbocharger and engine spares for a container ship", "mult": 1.9,
-     "load": (0.15, 0.35), "brief": "A container ship is stuck alongside near {city} with a failed turbocharger, and the port is charging by the hour. A marine engineer will meet the aircraft."},
+     "load": (0.15, 0.35), "brief": "A container ship is stuck alongside at the port near {city} with a failed turbocharger, and the port is charging by the hour. A marine engineer will meet the aircraft.", "where": "port"},
     {"kind": "Power", "title": "Blackout: grid parts to {city}", "cargo": "Transformer bushings, switchgear and cable", "mult": 1.7,
      "load": (0.4, 0.75), "brief": "A substation failure has left much of {city} without power. The utility needs these parts to bring the grid back tonight."},
     {"kind": "Wildfire", "title": "Firefighting foam to {city}", "cargo": "Fire retardant concentrate, pumps and hoses", "mult": 1.2,
-     "load": (0.5, 0.85), "brief": "Wildfires are threatening towns near {city} and the tankers are running out of retardant. Expect smoke and gusty winds on approach."},
+     "load": (0.5, 0.85), "brief": "Wildfires are threatening towns near {city} and the tankers are running out of retardant. Expect smoke and gusty winds on approach.", "where": "fire"},
     {"kind": "Antivenom", "title": "Antivenom to {city}", "cargo": "Antivenom and emergency medicines in cool boxes", "mult": 1.8,
-     "load": (0.05, 0.15), "brief": "Hospitals around {city} have run out of antivenom after a spike in snakebite cases. A small load with a very big job."},
+     "load": (0.05, 0.15), "brief": "Hospitals around {city} have run out of antivenom after a spike in snakebite cases. A small load with a very big job.", "where": "tropics"},
     {"kind": "Rescue", "title": "Rescue team equipment to {city}", "cargo": "Search and rescue team kit, rescue dogs' crates and medical stock", "mult": 1.3,
      "load": (0.35, 0.6), "brief": "A building collapse in {city} has trapped people. An international rescue team is ready to go the moment their equipment lands."},
     {"kind": "Data", "title": "Servers for a failed data center in {city}", "cargo": "Replacement servers and storage arrays", "mult": 1.7,
      "load": (0.25, 0.5), "brief": "A fire has taken a data center near {city} offline, and banks and hospitals are running on backups. The replacement hardware must be in the racks tonight."},
     {"kind": "Sports", "title": "Team equipment to {city}: game tomorrow", "cargo": "Pro team equipment, uniforms and medical kit", "mult": 1.6,
-     "load": (0.15, 0.35), "brief": "A pro team's equipment truck broke down on the way to the airport and the game in {city} is tomorrow. The equipment staff are waiting at the stadium."},
+     "load": (0.15, 0.35), "brief": "A pro team's equipment truck broke down on the way to the airport and the game in {city} is tomorrow. The equipment staff are waiting at the stadium.", "where": "team"},
     {"kind": "Racing", "title": "Race team spares to {city}", "cargo": "Spare chassis, gearboxes and pit equipment", "mult": 1.6,
-     "load": (0.2, 0.45), "brief": "A team crashed both cars in practice and the race is tomorrow at {city}. The spares were built overnight: the mechanics are waiting at the circuit."},
+     "load": (0.2, 0.45), "brief": "A team crashed both cars in practice and the race is tomorrow at {city}. The spares were built overnight: the mechanics are waiting at the circuit.", "where": "racing"},
 ]
+
+
+# Some urgent requests only make sense in certain places or seasons: a container ship needs a seaport, a wildfire
+# needs fire country in fire season, antivenom is a tropical need, a pro team plays in a big-league city.
+URGENT_PORTS = {"KLAX", "KJFK", "KEWR", "KMIA", "KIAH", "KSEA", "KOAK", "KSFO", "KBWI", "KPHL", "KBOS", "EHAM", "LEBL", "LIRF",
+                "LGAV", "LTFM", "OMDW", "OTHH", "OEJN", "OEDF", "OBBI", "OKKK", "WSSS", "WMKK", "VHHH", "ZSPD", "ZGSZ", "ZGGG",
+                "ZSQD", "RKPK", "RKSI", "RJAA", "RJBB", "RCKH", "RCTP", "VTBS", "VABB", "OPKC", "VCBI", "VOMM", "FACT", "HKMO",
+                "DNMM", "DGAA", "SBGL", "SBGR", "SAEZ", "SCEL", "SPJC", "MPTO", "YSSY", "YMML", "YBBN", "YPPH", "NZAA", "CYVR",
+                "CYHZ", "CYUL", "PANC", "LPPT", "EGLL", "EGSS", "EGPD", "ENBR", "ENGM", "EKCH", "EFHK", "EETN"}
+URGENT_FIRE = {"KLAX", "KSFO", "KBOI", "KDEN", "KPHX", "KSLC", "KSEA", "KPDX", "KOAK", "KSAN", "KABQ", "KLAS", "CYVR", "CYEG",
+               "CYYC", "LGAV", "LPPT", "LEMD", "LEBL", "LIRF", "LICC", "LCLK", "YSSY", "YMML", "YBBN", "YPPH", "SCEL"}
+URGENT_RACING = {"LIMC", "EBLG", "LHBP", "LOWW", "EHAM", "LEBL", "CYUL", "KMIA", "KLAS", "MMMX", "SBGR", "OBBI", "OEJN", "OTHH",
+                 "WSSS", "RJBB", "ZSPD", "YMML", "UBBB", "KIND", "KCLT", "EGLL", "WMKK"}
+
+
+def urgent_fits(kind, a, now=None):
+    """Whether an urgent request of this kind makes sense at airport a (now: for seasonal ones)."""
+    w = kind.get("where")
+    if not w:
+        return True
+    icao, lat = a.get("icao"), a.get("lat") or 0
+    if w == "port":
+        return icao in URGENT_PORTS
+    if w == "racing":
+        return icao in URGENT_RACING
+    if w == "tropics":
+        return abs(lat) <= 25
+    if w == "team":
+        import missiongen
+        return icao in missiongen.TEAM_CITY or icao in missiongen.VENUE_CITY
+    if w == "fire":
+        mo = dt.datetime.fromtimestamp(now or time.time(), dt.timezone.utc).month
+        return icao in URGENT_FIRE and (mo in (6, 7, 8, 9, 10) if lat > 0 else mo in (11, 12, 1, 2, 3))
+    return True
 
 
 def _stations():
@@ -1522,10 +1556,14 @@ def _make_urgent(con, rng, now):
                  and 250 <= C["gc_distance_nm"](o["lat"], o["lon"], a["lat"], a["lon"]) <= ac["range_nm"] * 0.85]
         if not cands:
             continue
-        d = C["airport_obj"](rng.choice(cands)["icao"])
+        k = rng.choice(URGENT_KINDS)
+        fit = [a for a in cands if urgent_fits(k, a, now)]
+        if not fit:                       # nowhere in range suits this kind: pick one that fits anywhere
+            k = rng.choice([x for x in URGENT_KINDS if not x.get("where")])
+            fit = cands
+        d = C["airport_obj"](rng.choice(fit)["icao"])
         if not d or (d.get("rwy_ft") and d["rwy_ft"] < ac["min_rwy_ft"]):
             continue
-        k = rng.choice(URGENT_KINDS)
         dist = C["gc_distance_nm"](o["lat"], o["lon"], d["lat"], d["lon"])
         block = round(45 + dist / ac["cruise_ktas"] * 60 * 1.05)
         payload = int(round(ac["max_payload_lbs"] * rng.uniform(*k["load"]) / 500) * 500)

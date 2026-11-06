@@ -34,13 +34,13 @@ SCENARIOS = [
      "briefs": ["A typhoon has hit near {dc}, flooding low-lying districts. {oc} has gathered {cargo} for the relief effort. "
                 "Expect gusty crosswinds and showers lingering on arrival."]},
     {"key": "monsoon", "category": "Humanitarian", "priority": "High", "months": [6, 7, 8, 9], "weight": 2, "size": "heavy",
-     "from": ["OMDW", "OTHH", "OMDB"], "to": ["VABB", "VECC", "VGHS", "OPKC", "OPLA", "VOMM"],
+     "from": ["OMDW", "OTHH", "OMDB"], "to": ["VABB", "VECC", "VGHS", "OPKC", "OPLA", "VEGT"],
      "cargo": ["Water purification units and oral rehydration salts", "Emergency food rations and shelter kits", "Boats, pumps and medical supplies"],
      "load": (0.55, 0.85), "titles": ["Monsoon flood relief for {dc}", "Flood response: {cargo_short} to {dc}"],
      "briefs": ["Monsoon flooding around {dc} has displaced thousands. Agencies in the Gulf have consolidated {cargo} at {oc}. "
                 "Expect heavy showers, low cloud and wet runways; check the TAF closely."]},
     {"key": "earthquake", "category": "Humanitarian", "priority": "Critical", "months": None, "weight": 1, "size": "heavy",
-     "from": ["LIMC", "OMDW", "KMIA", "LTFM"], "to": ["LTAC", "VNKT", "MGGT", "SEQM", "MMMX", "SCEL", "OAIX"],
+     "from": ["LIMC", "OMDW", "KMIA", "LTFM"], "to": ["LTAC", "VNKT", "MGGT", "SEQM", "MMMX", "SCEL", "SPJC"],
      "cargo": ["Search and rescue equipment and field hospital kits", "Tents, blankets and water", "Medical supplies and generators"],
      "load": (0.5, 0.85), "titles": ["Earthquake response: {dc}", "Search and rescue support to {dc}"],
      "briefs": ["A strong earthquake has struck near {dc}. Rescue teams need {cargo} within the first days. "
@@ -108,7 +108,7 @@ SCENARIOS = [
      "cargo": ["Fresh Norwegian salmon on ice"], "load": (0.7, 0.95),
      "titles": ["Fresh salmon: {oc} to {dc}", "Norwegian seafood to {dc}"],
      "briefs": ["Salmon harvested yesterday on the Norwegian coast is packed on ice at {oc} for markets around {dc}. It sells by the hour: don't hang about."]},
-    {"key": "beaujolais", "category": "Premium", "priority": "Standard", "months": [10, 11], "weight": 2, "size": "medium",
+    {"key": "beaujolais", "category": "Premium", "priority": "Standard", "months": [11], "weight": 2, "size": "medium",
      "from": ["LFLL", "LFPG"], "to": ["RJAA", "KJFK", "OMDW", "VHHH"],
      "cargo": ["Beaujolais Nouveau for release day"], "load": (0.5, 0.85),
      "titles": ["Beaujolais Nouveau to {dc}"],
@@ -120,7 +120,7 @@ SCENARIOS = [
      "titles": ["Live lobsters: {oc} to {dc}"],
      "briefs": ["Atlantic lobster season. Live animals in chilled boxes for restaurants and markets around {dc}: keep the hold cool and the transit short."]},
     {"key": "kenya_veg", "category": "Express", "priority": "Standard", "months": None, "weight": 1, "size": "heavy",
-     "from": ["HKJK"], "to": ["EGLL", "EHAM", "LIEO", "EDDF"],
+     "from": ["HKJK"], "to": ["EGLL", "EHAM", "EBLG", "EDDF"],
      "cargo": ["Fresh vegetables and avocados"], "load": (0.7, 0.95),
      "titles": ["Fresh produce: Nairobi to {dc}"],
      "briefs": ["Kenyan growers ship green beans, peas and avocados to European supermarkets overnight. The {dc} distribution centers are waiting."]},
@@ -154,7 +154,7 @@ SCENARIOS = [
      "briefs": ["A satellite is going to the launch site near {dc}. The container is temperature and humidity controlled and fitted with shock sensors: "
                 "the gentlest landing you can make."]},
     {"key": "oil_gas", "category": "Heavy lift", "priority": "High", "months": None, "weight": 1, "size": "heavy",
-     "from": ["KIAH", "EGPD", "OMAA"], "to": ["OMAA", "SBGL", "DNPO", "EGPD", "OTHH", "UAAA"],
+     "from": ["KIAH", "EGPD", "OMAA"], "to": ["OMAA", "SBGL", "DNPO", "EGPD", "OTHH", "UATG"],
      "cargo": ["Wellhead and drilling equipment", "Replacement pumps and spares for an offshore platform"], "load": (0.6, 0.9),
      "titles": ["Oilfield equipment to {dc}", "Heavy lift: {oc} to {dc}"],
      "briefs": ["A production platform supplied from {dc} is shut in until {cargo_low} arrives. Heavy, dense pieces: check the floor loading and the load sheet carefully."]},
@@ -326,7 +326,7 @@ SCENARIOS = [
      "briefs": ["The aircraft has just been repainted in PAC red at {oc}. Bring it home to {dc} for its first revenue flight. "
                 "Light and empty: watch the speed on the way down."]},
     {"key": "ferry_delivery", "ferry": True, "category": "Ferry", "priority": "High", "months": None, "weight": 1, "size": "heavy",
-     "types": ["B77F", "B748F", "B763F"],
+     "types": ["B77F", "B763F"],
      "from": ["KPAE", "KBFI"], "to": ["KCVG", "PANC", "LIMC", "KMIA", "VHHH", "OMDW"],
      "cargo": ["Delivery flight: spares kit and flyaway parts only"], "load": (0, 0),
      "titles": ["Delivery flight: new freighter to {dc}", "Factory fresh: {oc} to {dc}"],
@@ -405,10 +405,10 @@ SCENARIOS = [
     {"key": "mining_africa", "category": "Heavy lift", "priority": "High", "months": None, "weight": 1, "size": "heavy",
      "from": ["FAOR", "OMDW", "EHAM"], "to": ["FLKK", "FZQA", "FBSK", "FYWH", "HTKJ"],
      "cargo": ["Haul-truck tires and drive motors", "Crusher spares and drilling tools for a copper mine"], "load": (0.6, 0.9),
-     "titles": ["Mine spares to {dc}", "Copper belt heavy lift: {oc} to {dc}"],
+     "titles": ["Mine spares to {dc}", "Mining heavy lift: {oc} to {dc}"],
      "briefs": ["A mine supplied through {dc} has trucks parked for want of {cargo_low}. Dense, awkward pieces: check the floor loading. "
                 "Hot afternoons and some high airfields: watch the take-off performance."]},
-    {"key": "motorsport_flyaway", "max_lbs": 90000, "category": "Premium", "priority": "High", "months": [3, 4, 9, 10, 11], "weight": 1, "size": "heavy",
+    {"key": "motorsport_flyaway", "max_lbs": 90000, "category": "Premium", "priority": "High", "months": [3, 4, 9, 10, 11, 12], "weight": 1, "size": "heavy",
      "from": ["EGLL", "LIMC", "EDDP"], "to": ["OBBI", "OEJN", "YMML", "WSSS", "KAUS", "MMMX", "SBGR", "KLAS", "OMAA"],
      "cargo": ["Race cars, garage equipment and team spares", "Formula team freight: cars, tools and pit equipment"], "load": (0.55, 0.9),
      "titles": ["Race weekend: team freight to {dc}", "Flyaway race: {oc} to {dc}"],
@@ -419,10 +419,10 @@ SCENARIOS = [
      "from": ["FAOR", "HKJK", "OMDW"], "to": ["FMMI", "FIMP", "FQBR", "FMEE", "FWKI"],
      "cargo": ["Shelter kits, water treatment and food", "Medical supplies and generators", "Tarpaulins, jerrycans and hygiene kits"], "load": (0.6, 0.9),
      "titles": ["Cyclone relief for {dc}", "After the cyclone: supplies to {dc}"],
-     "briefs": ["A tropical cyclone has crossed the coast near {dc}, flooding towns and cutting roads. {Cargo} staged at {oc}. "
+     "briefs": ["A tropical cyclone has torn through the region around {dc}, flooding towns and cutting roads. {Cargo} staged at {oc}. "
                 "Expect showers, gusty winds and a crowded relief ramp on arrival."]},
     {"key": "volcano", "category": "Humanitarian", "priority": "High", "months": None, "weight": 1, "size": "medium",
-     "from": ["EHAM", "WSSS", "KMIA", "NZAA"], "to": ["BIKF", "WIII", "MGGT", "WAAA", "NWWW"],
+     "from": ["EHAM", "WSSS", "KMIA", "NZAA"], "to": ["BIKF", "WIII", "MGGT", "WADD", "NVVV"],
      "cargo": ["Respirators, eye protection and water", "Evacuation shelter kits and medical supplies"], "load": (0.45, 0.8),
      "titles": ["Eruption response: supplies to {dc}", "Volcanic ash relief for {dc}"],
      "briefs": ["A volcano near {dc} is erupting and nearby towns are being evacuated. {Cargo} for the response. "
@@ -445,7 +445,7 @@ SCENARIOS = [
      "briefs": ["{Cargo}, rebuilding a population in a protected reserve near {dc}. Rangers and a vet fly with the crates. "
                 "One of the most rewarding flights PAC flies: make it a gentle one."]},
     {"key": "honeybees", "max_lbs": 25000, "category": "Special cargo", "priority": "High", "months": [3, 4, 5], "weight": 1, "size": "medium",
-     "from": ["KSMF", "KSFO", "KLAX"], "to": ["CYYC", "CYEG", "CYWG", "CYXE"],
+     "from": ["NZAA", "NZCH", "SCEL"], "to": ["CYYC", "CYEG", "CYWG", "CYXE"],
      "cargo": ["Package honeybees for spring pollination", "Live queen bees and bee packages in ventilated cartons"], "load": (0.15, 0.35),
      "titles": ["Bees for spring: {oc} to {dc}", "Pollination season: honeybees to {dc}"],
      "handling": {"label": "Live animals · Bees",
@@ -453,7 +453,7 @@ SCENARIOS = [
                             "No long holds with the packs off on a hot ramp.",
                             "Loaders work in veils at both ends: allow extra time for offload."]},
      "briefs": ["Beekeepers near {dc} lost hives over the winter and need new colonies in time for spring pollination. "
-                "{Cargo}, raised through California's early spring near {oc}."]},
+                "{Cargo}, raised through the southern-hemisphere summer near {oc}, ready just as Canada's spring begins."]},
     {"key": "day_old_chicks", "category": "Special cargo", "priority": "High", "months": None, "weight": 1, "size": "medium",
      "from": ["EHAM", "LFPG", "EDDF"], "to": ["HECA", "OEJN", "OMDW", "HKJK", "DNMM", "OJAI"],
      "cargo": ["Day-old breeder chicks in ventilated boxes", "Hatching eggs and day-old chicks for poultry farms"], "load": (0.3, 0.6),
@@ -526,7 +526,7 @@ SCENARIOS = [
      "briefs": ["Stock car teams usually travel by road from the Charlotte shops, but this race is abroad, in {dc}, so the whole field flies. "
                 "{Cargo}, loaded the night after the last race."]},
     {"key": "motorbike_flyaway", "max_lbs": 110000, "category": "Sports & events", "priority": "High", "months": [2, 3, 4, 9, 10, 11], "weight": 1, "size": "heavy",
-     "from": ["LIMC", "LEBL", "LIRF"], "to": ["OBBI", "OTHH", "WMKK", "YMML", "RJAA", "VTUO", "SBGR"],
+     "from": ["LIMC", "LEBL", "LIRF"], "to": ["OTHH", "WMKK", "YMML", "RJAA", "VTUO", "SBGR", "LEVC"],
      "cargo": ["Grand prix motorcycles, spare engines and team garage equipment", "Motorcycle racing freight and hospitality kit"], "load": (0.5, 0.85),
      "titles": ["Bike racing flyaway: {oc} to {dc}", "Grand prix bikes to {dc}"],
      "handling": {"label": "Time-critical sports charter",
