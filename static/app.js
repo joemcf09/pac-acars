@@ -242,6 +242,54 @@ function zoneNotice(z) {
     <p>${esc(z.text || "")} ${z.restricted_airport === false ? "A flight whose track crosses restricted airspace goes to staff review, and is only credited if staff accept it." : "You can still fly it, but the PIREP is rejected automatically: no pay, points or hours. See Handbook › Conflict zones."}</p></div></div>`;
   return `<div class="zone-box caution"><span class="zone-stamp">Caution</span><div><b>Caution area${list ? `: ${esc(list)}` : ""}</b><p>Allowed, with <b>${z.pct}% hazard pay</b> on top of your flight pay. Stay alert and keep to your planned route.</p></div></div>`;
 }
+/* the Briefing step's conflict-zone section: why the area is restricted or a caution area, what happens to the
+   flight, and how to plan it. The website also checks the great-circle route for areas it crosses. */
+function zoneBriefing(m, a) {
+  const z0 = zoneFor(m);
+  if (!S.zones?.enabled) return "";
+  const info = id => (S.zones.zones || []).find(x => x.id === id) || {};
+  const list = a ? (a.zones || []).map(x => ({ ...info(x.id), ...x })) : [];
+  if (!a && !z0) return "";
+  const lvl = a ? a.level : z0.level;
+  const ends = a ? list.filter(x => (a.airports || []).includes(x.id)) : [];
+  const over = a ? list.filter(x => (a.crossings || []).includes(x.id)) : [];
+  const why = zs => zs.filter(x => x.note).map(x => `<li><b>${esc(x.name)}:</b> ${esc(x.note)}</li>`).join("");
+  const pct = a ? a.pct : z0.pct;
+  if (lvl === "restricted" && (a ? a.restricted_airport : true)) {
+    const r = a ? ends.filter(x => x.level === "restricted") : [];
+    return `<section class="zone-brief restricted"><span class="zone-stamp">Not authorized</span><div>
+      <span class="kicker">RESTRICTED AIRSPACE</span><h3>${esc((r.length ? r.map(x => x.name) : z0.names).join(", "))} is closed to PAC operations</h3>
+      <p>PAC follows the same airspace rules as a real US cargo carrier. This flight stays on the board, and you can still choose to fly it, but like a real airline it isn't authorized:</p>
+      <ul><li>The PIREP is <b>rejected automatically</b> when you file it.</li><li><b>No pay, points or hours</b>, and it doesn't count towards rank, tours or awards.</li><li>The aircraft and your location still move, so you'd need to get back out.</li></ul>
+      ${r.length && why(r) ? `<h4>Why it's restricted</h4><ul>${why(r)}</ul>` : ""}
+      <p class="muted" style="font-size:13px">Looking for credited work? Pick another flight from this station. Handbook › Conflict zones has the full list.</p></div></section>`;
+  }
+  if (lvl === "restricted") {
+    const r = over.filter(x => x.level === "restricted");
+    return `<section class="zone-brief restricted"><span class="zone-stamp">Route warning</span><div>
+      <span class="kicker">ROUTE CROSSES RESTRICTED AIRSPACE</span><h3>The direct route passes over ${esc(r.map(x => x.name).join(", "))}</h3>
+      <p>Both airports are open, but the shortest path between them crosses airspace PAC doesn't fly over. Plan your route around it, just like real crews do.</p>
+      <ul><li>In SimBrief, check the route map before you generate. If it crosses ${esc(r.map(x => x.name).join(" or "))}, pick another route or add waypoints to go around.</li>
+        <li>If your <b>flown track</b> crosses restricted airspace, the PIREP goes to <b>staff review</b> and is only credited if staff accept it.</li>
+        <li>Expect a longer flight and more fuel than the straight line.</li></ul>
+      ${why(r) ? `<h4>Why it's restricted</h4><ul>${why(r)}</ul>` : ""}
+      ${list.some(x => x.level === "caution") ? `<h4>Also a caution area</h4><ul>${why(list.filter(x => x.level === "caution"))}</ul><p class="muted" style="font-size:13px">Hazard pay applies to caution flights whose route stays clear of restricted airspace.</p>` : ""}</div></section>`;
+  }
+  const c = a ? list : [];
+  return `<section class="zone-brief caution"><span class="zone-stamp">Caution</span><div>
+    <span class="kicker">CAUTION AREA · +${pct}% HAZARD PAY</span><h3>This flight ${a && over.length && !ends.length ? "crosses" : "operates in"} ${esc((c.length ? c.map(x => x.name) : z0.names).join(", "))}</h3>
+    <p>Flights here are allowed, and PAC pays <b>${pct}% hazard pay</b> on top of your flight pay, like real crews get for higher-risk operations.</p>
+    <ul><li>Keep to your planned route and altitude. Don't shortcut over neighboring restricted countries.</li><li>Expect busier security procedures and possible short-notice changes.</li></ul>
+    ${why(c) ? `<h4>Why it's a caution area</h4><ul>${why(c)}</ul>` : ""}</div></section>`;
+}
+async function fillZoneBrief(m) {
+  if (!S.zones?.enabled || !m?.origin || !m?.destination) return;
+  try {
+    const r = await api(`/api/conflict-zones?dep=${encodeURIComponent(m.origin.icao)}&arr=${encodeURIComponent(m.destination.icao)}`);
+    const el = $("#zoneBrief"); if (!el || el.dataset.for !== m.id) return;
+    el.innerHTML = r.assessment ? zoneBriefing(m, r.assessment) : "";
+  } catch (e) { /* the airport check above still shows */ }
+}
 async function loadZones() { try { S.zones = await api("/api/conflict-zones"); } catch (e) { S.zones = null; } }
 
 function waybillHtml(m) {
@@ -692,7 +740,7 @@ function renderDossier() {
   <div class="dp-foot">${prev ? `<button type="button" class="btn ghost small" data-go="${prev[0]}">← ${prev[1]}</button>` : "<span></span>"}
     ${next && !(held && ix >= 0) ? `<button type="button" class="btn" data-go="${next[0]}">Next: ${next[1]} →</button>` : ""}</div>`;
   loadDossierEcon(m);
-  if (tab === "brief") loadDossierWx(m);
+  if (tab === "brief") { loadDossierWx(m); fillZoneBrief(m); }
   if (tab === "load" && !held) loadLoadsheet(m);
   if (tab === "plan" && !held) { loadPlanHelper(m); ensureLoadsheet(m).then(() => planVsLoad(m)).catch(() => {}); }
   const go = t => { S.dTab = t; renderDossier(); const top = $("#dossier").getBoundingClientRect().top; if (top < 0) $("#dossier").scrollIntoView({ behavior: "smooth", block: "start" }); $("#dpPane")?.focus({ preventScroll: true }); };
@@ -726,13 +774,14 @@ function renderDossier() {
 function paneBrief(m) {
   const ok = !dossierBlockers(m) && !S.booking;
   return `${missionCargoBrief(m)}
+    <div id="zoneBrief" data-for="${esc(m.id)}">${zoneBriefing(m, null)}</div>
     ${m.rotation ? rotationStrip(m) : ""}${specialBoxes(m)}
     ${m.contract && m.operator?.logo ? `<div class="dp-operator"><img src="${esc(m.operator.logo)}" alt=""><span><b>${esc(m.operator.name)}</b> is short of a qualified captain: ${esc(m.shortage_reason || "crew shortage")}. PAC pilot hired to fill in.</span></div>` : ""}
     ${m.charter ? (S.charterWarnings || []).map(w => `<div class="notice">${esc(w)}</div>`).join("") : ""}
     ${S.booking?.dep_stand?.icao === m.origin.icao ? `<p class="muted" style="font-size:13px">PAC has you parked at stand <b>${esc(S.booking.dep_stand.stand)}</b> at ${esc(m.origin.icao)} (any stand is fine).</p>` : ""}
     <div><h3 class="dp-h">Weather</h3><div class="wx-panel" id="wxPanel"><span class="muted" style="font-size:13px">Loading live weather…</span></div></div>
     <details class="dp-more"><summary>PAC's economics <span class="muted">· what the company earns on this flight</span></summary><div id="econPanel"><span class="muted" style="font-size:13px">Estimating…</span></div></details>
-    ${ok ? `<p class="dp-ready">No location, rating or rank blocker found. Pick your aircraft next; final checks run when you request the flight. <button type="button" class="linkish" onclick="openPilotGuide('${m.type_checkride || m.category === "Checkride" ? "checkride" : "cargo"}')">Step-by-step guide</button></p>` : ""}`;
+    ${ok && zoneFor(m)?.level === "restricted" ? `<p class="dp-ready" style="border-color:#c0262d;background:rgba(192,38,45,.07)"><b>You're qualified, but this flight isn't authorized.</b> You can still fly it, but it won't be credited (see the restricted airspace box above).</p>` : ok ? `<p class="dp-ready">No location, rating or rank blocker found. Pick your aircraft next; final checks run when you request the flight. <button type="button" class="linkish" onclick="openPilotGuide('${m.type_checkride || m.category === "Checkride" ? "checkride" : "cargo"}')">Step-by-step guide</button></p>` : ""}`;
 }
 function paneAircraft(m) {
   const types = m.charter ? `<p class="dp-lead">Charter aircraft: <b>${esc(S.fleet[m.aircraft[0]].name)}</b>. Change it in the charter form and rebuild.</p>` : `
@@ -924,7 +973,9 @@ async function loadDossierEcon(m) {
     const box = $("#econPanel");
     const zq = zoneFor(m);
     if (zq && zq.level === "caution" && total != null) payLine = payLine.replace("</div>", ` <b>+ ${zq.pct}% hazard pay</b> for the caution area.</div>`);
-    if (box) box.innerHTML = (zq ? zoneNotice({ ...zq, text: zq.level === "restricted" ? `${zq.names.join(", ")} is restricted airspace for PAC.` : "" }) : "") + payLine + econBox(e, `${S.fleet[ac]?.icao || ""} plan`, ofp ? "Based on your OFP" : "Based on typical fuel burn and the mission load");
+    if (zq?.level === "restricted") setChip("$0 · not credited", "Restricted airspace: this flight is rejected automatically when filed, so it pays nothing.");
+    else if (zq?.level === "caution" && total != null) setChip(money(total + hrs * (me?.pay_rate || 0) * zq.pct / 100, true), `Includes ${zq.pct}% hazard pay. Skill bonuses come on top.`);
+    if (box) box.innerHTML = payLine + econBox(e, `${S.fleet[ac]?.icao || ""} plan`, ofp ? "Based on your OFP" : "Based on typical fuel burn and the mission load");
   } catch (err) { if ($("#econPanel")) $("#econPanel").innerHTML = `<span class="muted" style="font-size:13px">${esc(err.message)}</span>`; setChip("–"); }
 }
 function defaultAirframe(m, ac) {

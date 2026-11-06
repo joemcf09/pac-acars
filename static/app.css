@@ -1494,3 +1494,13 @@ html[data-theme="dark"] .ce-feature .btn.ghost{color:#ffb0b0}
 .sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
 #view-missions .mb-card.wb-restricted::after{top:19%}
 #view-missions .mb-card.wb-restricted .mb-status{color:#c0262d;font-weight:700}
+.zone-brief{display:flex;gap:16px;align-items:flex-start;border:1px solid var(--line);border-top:4px solid var(--amber);padding:16px 18px;margin:12px 0;background:var(--note-wash)}
+.zone-brief.restricted{border-top-color:#c0262d;background:rgba(192,38,45,.06)}
+.zone-brief h3{margin:2px 0 6px;font-size:18px}
+.zone-brief h4{margin:10px 0 2px;font-size:14px}
+.zone-brief p{margin:4px 0;font-size:14px}
+.zone-brief ul{margin:4px 0;padding-left:18px;font-size:14px}
+.zone-brief .kicker{color:#c0262d}
+.zone-brief.caution .kicker{color:var(--amber)}
+.zone-brief.restricted .zone-stamp{color:#c0262d}
+@media(max-width:600px){.zone-brief{flex-direction:column}}
