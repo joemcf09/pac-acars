@@ -445,7 +445,7 @@ SCENARIOS = [
      "briefs": ["{Cargo}, rebuilding a population in a protected reserve near {dc}. Rangers and a vet fly with the crates. "
                 "One of the most rewarding flights PAC flies: make it a gentle one."]},
     {"key": "honeybees", "max_lbs": 25000, "category": "Special cargo", "priority": "High", "months": [3, 4, 5], "weight": 1, "size": "medium",
-     "from": ["NZAA", "NZCH", "SCEL"], "to": ["CYYC", "CYEG", "CYWG", "CYXE"],
+     "from": ["CYVR"], "to": ["CYYC", "CYEG", "CYWG", "CYXE", "CYQR"],
      "cargo": ["Package honeybees for spring pollination", "Live queen bees and bee packages in ventilated cartons"], "load": (0.15, 0.35),
      "titles": ["Bees for spring: {oc} to {dc}", "Pollination season: honeybees to {dc}"],
      "handling": {"label": "Live animals · Bees",
@@ -453,7 +453,8 @@ SCENARIOS = [
                             "No long holds with the packs off on a hot ramp.",
                             "Loaders work in veils at both ends: allow extra time for offload."]},
      "briefs": ["Beekeepers near {dc} lost hives over the winter and need new colonies in time for spring pollination. "
-                "{Cargo}, raised through the southern-hemisphere summer near {oc}, ready just as Canada's spring begins."]},
+                "{Cargo}, raised through the New Zealand summer, landed overnight at {oc} on the flight from Auckland. "
+                "PAC flies the last leg to the prairies before the colonies overheat or run short of feed."]},
     {"key": "day_old_chicks", "category": "Special cargo", "priority": "High", "months": None, "weight": 1, "size": "medium",
      "from": ["EHAM", "LFPG", "EDDF"], "to": ["HECA", "OEJN", "OMDW", "HKJK", "DNMM", "OJAI"],
      "cargo": ["Day-old breeder chicks in ventilated boxes", "Hatching eggs and day-old chicks for poultry farms"], "load": (0.3, 0.6),
