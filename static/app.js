@@ -585,11 +585,12 @@ function partnerTail(m, ac) {
   if (!regs.length) return null;
   return regs[[...`${m.id}|${ac}`].reduce((a, ch) => a + ch.charCodeAt(0), 0) % regs.length];
 }
+function myAirframe(ac) { return (S.settings?.simbrief_airframes || {})[ac] || ""; }
 function simbriefUrl(m, ac) {
   const fl = S.fleet[ac];
   const num = m.id.replace(/\D/g, "");
   const al = m.operator?.code || filingIcao();      // PAC flights are filed as PGC on the networks: PAC is Polar Air Cargo's code
-  const p = new URLSearchParams({ airline: al, fltnum: num, orig: m.origin.icao, dest: m.destination.icao, type: fl.simbrief_airframe || fl.simbrief_type,   // PAC's custom airframe (real freighter weights) when set
+  const p = new URLSearchParams({ airline: al, fltnum: num, orig: m.origin.icao, dest: m.destination.icao, type: myAirframe(ac) || fl.simbrief_airframe || fl.simbrief_type,   // the pilot's own airframe, then PAC's, then SimBrief's default
     cargo: (Math.min(m.payload_lbs, fl.max_payload_lbs) / 1000).toFixed(1), pax: "0", units: "LBS", callsign: al + num,
     manualrmk: m.operator ? `PAC PILOT HIRED TO FILL IN FOR ${m.operator.name.toUpperCase()} CREW SHORTAGE. ${m.id} FLOWN BY ${(displayName(S.profile || {}) || "PAC CAPTAIN").toUpperCase()} ${S.profile?.pilot_id || ""}`.trim() : `CALLSIGN PAGANI. PAGANI AIR CARGO MISSION ${m.id} ${m.title.toUpperCase()}` });
   if (S.airframe && (S.airframes || []).some(a => a.reg === S.airframe && a.type === ac)) p.set("reg", S.airframe);
@@ -2151,13 +2152,17 @@ async function loadDownloads() {
       ${c === "Document" ? `
         <div class="dl-row"><div><b>KCVG station guide</b><p>Cincinnati in detail: runways, frequencies, cargo ramps, procedures and PAC's stands.</p></div><div class="dl-actions"><button class="btn ghost small" type="button" data-station="KCVG">Open to print</button></div></div>` : ""}</section>`).join("")}
     <section class="dl-sec"><h2>SimBrief airframes</h2>
-      <p class="muted" style="margin:0 0 10px">Set up a SimBrief airframe for each PAC aircraft so your plans use PAC's weights. Where there's a ready-made PAC airframe, press <b>Add PAC's airframe to SimBrief</b>. Otherwise, in SimBrief: Account › Airframes › New airframe, choose the type and enter the values below. Plans made with PAC's Generate OFP button already use PAC's airframes.</p>
+      <p class="muted" style="margin:0 0 10px">Set up a SimBrief airframe for each PAC aircraft so your plans use PAC's weights. Prefer your own (different engines, weights or equipment)? Paste its Internal ID under <b>My SimBrief airframe</b> and PAC's Generate OFP button will plan with it, as long as it's the same aircraft type. Where there's a ready-made PAC airframe, press <b>Add PAC's airframe to SimBrief</b>. Otherwise, in SimBrief: Account › Airframes › New airframe, choose the type and enter the values below. Plans made with PAC's Generate OFP button already use PAC's airframes.</p>
       <div class="sb-grid">${d.simbrief.map(x => `<div class="sb-card"><div class="sb-top"><b>${esc(x.name)}</b><span class="tag dark">${esc(x.simbrief_type)}</span></div>
         <dl><dt>Empty (OEW)</dt><dd>${fmt(x.oew_lbs)} lb</dd><dt>Max zero fuel</dt><dd>${fmt(x.mzfw_lbs)} lb</dd><dt>Max takeoff</dt><dd>${fmt(x.mtow_lbs)} lb</dd>
           <dt>Max landing</dt><dd>${fmt(x.mlw_lbs)} lb</dd><dt>Max payload</dt><dd>${fmt(x.max_payload_lbs)} lb</dd><dt>Callsign</dt><dd>${esc(x.airline)} / ${esc(x.callsign)}</dd></dl>
         <small class="muted">${x.registrations.length ? `PAC tails: ${x.registrations.slice(0, 6).map(esc).join(", ")}${x.registrations.length > 6 ? "…" : ""}` : "No PAC tails yet"}</small>
         ${x.simbrief_airframe ? `<a class="btn small" href="https://dispatch.simbrief.com/airframes/share/${encodeURIComponent(x.simbrief_airframe)}" target="_blank" rel="noopener" title="Adds PAC's ready-made airframe to your SimBrief fleet">Add PAC's airframe to SimBrief ↗</a>` : ""}
-        <a class="btn ghost small" href="/api/downloads/simbrief/${encodeURIComponent(x.code)}.txt">Download sheet</a></div>`).join("")}</div></section>
+        <a class="btn ghost small" href="/api/downloads/simbrief/${encodeURIComponent(x.code)}.txt">Download sheet</a>
+        ${S.me ? `<div class="sb-mine" data-sb-type="${esc(x.code)}"><label>My SimBrief airframe <span class="muted" style="font-weight:400">(optional, must be a ${esc(x.icao)})</span>
+            <input data-sb-id value="${esc(myAirframe(x.code))}" placeholder="Internal ID, e.g. 277074_1793915409207" autocomplete="off"></label>
+          <div class="row"><button class="btn small" type="button" data-sb-save>Save</button>${myAirframe(x.code) ? `<button class="btn ghost small" type="button" data-sb-clear>Use PAC's</button>` : ""}</div>
+          <small class="muted">Plans use: <b>${myAirframe(x.code) ? "your airframe" : x.simbrief_airframe ? "PAC's airframe" : `SimBrief's standard ${esc(x.simbrief_type)}`}</b></small></div>` : ""}</div>`).join("")}</div></section>
     ${staff ? `<section class="dl-sec dl-upload"><h2>Upload a file <span class="tag grey">Staff</span></h2>
       <form id="dlForm" class="dl-form">
         <div class="field"><label for="dlFile">File (zip, pdf, image, text; up to 2 GB)</label><input id="dlFile" name="file" type="file" required></div>
@@ -2180,6 +2185,18 @@ async function loadDownloads() {
     xhr.onerror = () => { $("#acarsUpMsg").textContent = ""; toast("Upload failed."); };
     xhr.open("POST", "/api/staff/acars/build"); xhr.send(fd);
   };
+  document.querySelectorAll("[data-sb-type]").forEach(box => {
+    const save = async v => {
+      try {
+        const r = await api("/api/my/airframes", { method: "POST", body: { type: box.dataset.sbType, airframe: v } });
+        S.settings.simbrief_airframes = r.simbrief_airframes;
+        toast(v ? "Saved. PAC's Generate OFP button now plans with your airframe." : "Back to PAC's airframe.");
+        loadDownloads();
+      } catch (e) { toast(e.message); }
+    };
+    box.querySelector("[data-sb-save]").onclick = () => save(box.querySelector("[data-sb-id]").value.trim());
+    const clr = box.querySelector("[data-sb-clear]"); if (clr) clr.onclick = () => save("");
+  });
   document.querySelectorAll("[data-acars-del]").forEach(b => b.onclick = async () => {
     if (!confirm(`Remove ${b.dataset.acarsDel}? Pilots won't be able to download it.`)) return;
     try { await api(`/api/staff/acars/build/${encodeURIComponent(b.dataset.acarsDel)}`, { method: "DELETE" }); loadDownloads(); } catch (e) { toast(e.message); }

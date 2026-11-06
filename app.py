@@ -266,6 +266,7 @@ def pilot_settings(st=None, pid=None):
             st[k] = prefs[k]
     if simbrief:
         st["simbrief_username"], st["simbrief_userid"] = simbrief, ""
+    st["simbrief_airframes"] = prefs.get("simbrief_airframes") if isinstance(prefs.get("simbrief_airframes"), dict) else {}
     return st
 
 
@@ -455,7 +456,9 @@ def validate_ofp(ofp, mission, aircraft_code):
     ac = FLEET.get(aircraft_code)
     if ac:
         if ofp.get("aircraft_icao") and ofp["aircraft_icao"] not in (ac["icao"], ac["simbrief_type"]):
-            warnings.append(f"OFP aircraft is {ofp['aircraft_icao']}, you selected the {ac['name']}.")
+            # pilots may plan with their own SimBrief airframe, but it has to be the same aircraft type
+            errors.append(f"Your SimBrief plan is for a {ofp['aircraft_icao']}, but this flight is booked on the {ac['name']} ({ac['icao']}). "
+                          f"Plan it again with a {ac['icao']} airframe (your own SimBrief airframe is fine, as long as it's a {ac['icao']}).")
         if ofp.get("payload_lbs", 0) > ac["max_payload_lbs"]:
             errors.append(f"Your plan carries {ofp['payload_lbs']:,} lb, more than the {ac['name']}'s limit of {ac['max_payload_lbs']:,} lb. Check the aircraft picked in step 1, or lower the payload in SimBrief.")
     if ac and ac["max_payload_lbs"] < mission["payload_lbs"]:
@@ -1473,6 +1476,35 @@ def bootstrap():
 STAFF_ONLY_SETTINGS = ("discord_webhook", "discord_departures", "discord_arrivals",  # changed through their own staff pages only
                        "mail_from", "mail_from_name", "mail_reply_to", "smtp_host", "smtp_port", "smtp_security",
                        "smtp_user", "smtp_pass", "mail_auto_welcome", "mail_auto_decline")
+
+
+AIRFRAME_ID_RE = re.compile(r"(\d{1,12}_\d{6,16})")
+
+
+@app.post("/api/my/airframes")
+def save_my_airframe():
+    """A pilot's own SimBrief airframe for one PAC aircraft type (their favorite weights or engines). PAC's buttons
+    plan with it; the OFP still has to be for that aircraft type. An empty airframe goes back to PAC's default."""
+    b = request.json or {}
+    code = str(b.get("type") or "")
+    if code not in FLEET:
+        return jsonify({"error": "That isn't a PAC aircraft type."}), 400
+    raw = str(b.get("airframe") or "").strip()
+    m = AIRFRAME_ID_RE.search(raw)
+    if raw and not m:
+        return jsonify({"error": "Paste the airframe's Internal ID from SimBrief (two numbers joined by an underscore, like "
+                                 "277074_1793915409207), or its share link that ends in that ID."}), 400
+    pid = va.current_pilot_id()
+    with db() as con:
+        _, prefs = _pilot_prefs(pid, con)
+        mine = prefs.get("simbrief_airframes") if isinstance(prefs.get("simbrief_airframes"), dict) else {}
+        if m:
+            mine[code] = m.group(1)
+        else:
+            mine.pop(code, None)
+        prefs["simbrief_airframes"] = mine
+        con.execute("UPDATE pilots SET prefs=? WHERE id=?", (json.dumps(prefs), pid))
+    return jsonify({"ok": True, "simbrief_airframes": mine})
 
 
 @app.post("/api/settings")
