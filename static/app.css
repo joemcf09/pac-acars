@@ -1488,3 +1488,7 @@ html[data-theme="dark"] .ce-feature .btn.ghost{color:#ffb0b0}
 .sb-mine{border-top:1px solid var(--line);margin-top:8px;padding-top:8px;display:flex;flex-direction:column;gap:6px}
 .sb-mine label{display:flex;flex-direction:column;gap:4px;font-size:13px;font-weight:600}
 .sb-mine input{font:inherit;font-size:13px;border:1px solid var(--line);border-radius:3px;padding:6px 8px;background:var(--white);color:inherit}
+.sim-pick{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin:0 0 8px;font-size:13px}
+.sim-pick button{font:inherit;font-size:13px;font-weight:700;border:1px solid var(--line);background:var(--white);color:inherit;padding:4px 10px;border-radius:3px;cursor:pointer}
+.sim-pick button.on{background:var(--red);border-color:var(--red);color:#fff}
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}

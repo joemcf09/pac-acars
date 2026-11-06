@@ -266,7 +266,8 @@ def pilot_settings(st=None, pid=None):
             st[k] = prefs[k]
     if simbrief:
         st["simbrief_username"], st["simbrief_userid"] = simbrief, ""
-    st["simbrief_airframes"] = prefs.get("simbrief_airframes") if isinstance(prefs.get("simbrief_airframes"), dict) else {}
+    saved = prefs.get("simbrief_airframes") if isinstance(prefs.get("simbrief_airframes"), dict) else {}
+    st["simbrief_airframes"] = {k: _airframe_map(v) for k, v in saved.items()}      # {type: {"MSFS": id, "X-Plane": id}}
     return st
 
 
@@ -1481,25 +1482,42 @@ STAFF_ONLY_SETTINGS = ("discord_webhook", "discord_departures", "discord_arrival
 AIRFRAME_ID_RE = re.compile(r"(\d{1,12}_\d{6,16})")
 
 
+SIMS = ("MSFS", "X-Plane")
+
+
+def _airframe_map(v):
+    """A pilot's saved airframe for one type, per simulator. Older saves were one ID for both."""
+    if isinstance(v, str):
+        return {sim: v for sim in SIMS}
+    return {k: x for k, x in (v or {}).items() if k in SIMS and x} if isinstance(v, dict) else {}
+
+
 @app.post("/api/my/airframes")
 def save_my_airframe():
-    """A pilot's own SimBrief airframe for one PAC aircraft type (their favorite weights or engines). PAC's buttons
-    plan with it; the OFP still has to be for that aircraft type. An empty airframe goes back to PAC's default."""
+    """A pilot's own SimBrief airframes for one PAC aircraft type, one per simulator (e.g. the PMDG 777F in MSFS and
+    the FlightFactor 777F in X-Plane). PAC's buttons plan with the one for the sim they're planning for; the OFP still
+    has to be for that aircraft type. An empty box goes back to PAC's default for that sim."""
     b = request.json or {}
     code = str(b.get("type") or "")
     if code not in FLEET:
         return jsonify({"error": "That isn't a PAC aircraft type."}), 400
-    raw = str(b.get("airframe") or "").strip()
-    m = AIRFRAME_ID_RE.search(raw)
-    if raw and not m:
-        return jsonify({"error": "Paste the airframe's Internal ID from SimBrief (two numbers joined by an underscore, like "
-                                 "277074_1793915409207), or its share link that ends in that ID."}), 400
+    given = b.get("airframes") if isinstance(b.get("airframes"), dict) else {sim: b.get("airframe") for sim in SIMS}
+    clean = {}
+    for sim in SIMS:
+        raw = str(given.get(sim) or "").strip()
+        m = AIRFRAME_ID_RE.search(raw)
+        if raw and not m:
+            return jsonify({"error": f"{sim}: paste the airframe's Internal ID from SimBrief (two numbers joined by an underscore, like "
+                                     "277074_1793915409207), or its share link that ends in that ID."}), 400
+        if m:
+            clean[sim] = m.group(1)
     pid = va.current_pilot_id()
     with db() as con:
         _, prefs = _pilot_prefs(pid, con)
         mine = prefs.get("simbrief_airframes") if isinstance(prefs.get("simbrief_airframes"), dict) else {}
-        if m:
-            mine[code] = m.group(1)
+        mine = {k: _airframe_map(v) for k, v in mine.items()}
+        if clean:
+            mine[code] = clean
         else:
             mine.pop(code, None)
         prefs["simbrief_airframes"] = mine

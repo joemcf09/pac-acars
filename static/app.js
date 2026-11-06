@@ -585,7 +585,28 @@ function partnerTail(m, ac) {
   if (!regs.length) return null;
   return regs[[...`${m.id}|${ac}`].reduce((a, ch) => a + ch.charCodeAt(0), 0) % regs.length];
 }
-function myAirframe(ac) { return (S.settings?.simbrief_airframes || {})[ac] || ""; }
+/* SimBrief airframes: the pilot's own per simulator, then PAC's, then SimBrief's standard type */
+function dualSim(ac) { return fliesIn(ac, "MSFS") && fliesIn(ac, "X-Plane"); }
+function planSim(ac) {
+  if (!dualSim(ac)) return fliesIn(ac, "X-Plane") ? "X-Plane" : "MSFS";
+  if (!S.planSim) { try { S.planSim = localStorage.getItem("pac.planSim") || ""; } catch (e) { S.planSim = ""; } }
+  return S.planSim || "MSFS";
+}
+function myAirframes(ac) { return (S.settings?.simbrief_airframes || {})[ac] || {}; }
+function myAirframe(ac, sim) { return myAirframes(ac)[sim || planSim(ac)] || ""; }
+function simPicker(ac) {   // only for aircraft flown in both sims when the pilot has their own airframe saved
+  if (!dualSim(ac) || !Object.keys(myAirframes(ac)).length) return "";
+  const cur = planSim(ac);
+  return `<div class="sim-pick" role="group" aria-label="Simulator you're planning for"><span>Planning for</span>${["MSFS", "X-Plane"].map(x =>
+    `<button type="button" data-psim="${x}" class="${x === cur ? "on" : ""}" aria-pressed="${x === cur}">${x}</button>`).join("")}
+    <small class="muted">uses ${myAirframe(ac, cur) ? "your" : S.fleet[ac]?.simbrief_airframe ? "PAC's" : "SimBrief's standard"} ${esc(cur)} airframe</small></div>`;
+}
+document.addEventListener("click", e => {
+  const b = e.target.closest("[data-psim]"); if (!b) return;
+  S.planSim = b.dataset.psim; try { localStorage.setItem("pac.planSim", S.planSim); } catch (err) { /* private window */ }
+  if (S.selected && !$("#view-missions")?.hidden) renderDossier();
+  if (!$("#view-bids")?.hidden) loadBids();
+});
 function simbriefUrl(m, ac) {
   const fl = S.fleet[ac];
   const num = m.id.replace(/\D/g, "");
@@ -744,6 +765,7 @@ function panePlan(m) {
         <div class="sb-extra"><label for="sbExtra">Extra fuel <small>(lb, your call)</small></label>
           <input id="sbExtra" type="number" min="0" max="${Math.round((S.fleet[m.charter ? m.aircraft[0] : S.aircraft]?.mtow_lbs || 400000) * 0.2)}" step="500" inputmode="numeric" value="${S.extraFuel || ""}" placeholder="0">
           <small class="muted">On top of SimBrief's trip, contingency, alternate and reserve. Carrying extra is never penalized; PAC only pays for fuel you burn.</small></div>
+        ${simPicker(m.charter ? m.aircraft[0] : S.aircraft)}
         ${S.settings.simbrief_api ? `
         <div class="row"><button type="button" class="btn" id="sbGen" ${S.sbGen ? "disabled" : ""}>${S.sbGen ? "Generating in SimBrief…" : S.ofp ? "Generate a new OFP" : "Generate OFP"}</button>
           <a class="btn ghost small" id="sbPlan" href="${simbriefUrl(m, m.charter ? m.aircraft[0] : S.aircraft)}" target="_blank" rel="noopener">Or open SimBrief yourself</a></div>
@@ -2159,10 +2181,12 @@ async function loadDownloads() {
         <small class="muted">${x.registrations.length ? `PAC tails: ${x.registrations.slice(0, 6).map(esc).join(", ")}${x.registrations.length > 6 ? "…" : ""}` : "No PAC tails yet"}</small>
         ${x.simbrief_airframe ? `<a class="btn small" href="https://dispatch.simbrief.com/airframes/share/${encodeURIComponent(x.simbrief_airframe)}" target="_blank" rel="noopener" title="Adds PAC's ready-made airframe to your SimBrief fleet">Add PAC's airframe to SimBrief ↗</a>` : ""}
         <a class="btn ghost small" href="/api/downloads/simbrief/${encodeURIComponent(x.code)}.txt">Download sheet</a>
-        ${S.me ? `<div class="sb-mine" data-sb-type="${esc(x.code)}"><label>My SimBrief airframe <span class="muted" style="font-weight:400">(optional, must be a ${esc(x.icao)})</span>
-            <input data-sb-id value="${esc(myAirframe(x.code))}" placeholder="Internal ID, e.g. 277074_1793915409207" autocomplete="off"></label>
-          <div class="row"><button class="btn small" type="button" data-sb-save>Save</button>${myAirframe(x.code) ? `<button class="btn ghost small" type="button" data-sb-clear>Use PAC's</button>` : ""}</div>
-          <small class="muted">Plans use: <b>${myAirframe(x.code) ? "your airframe" : x.simbrief_airframe ? "PAC's airframe" : `SimBrief's standard ${esc(x.simbrief_type)}`}</b></small></div>` : ""}</div>`).join("")}</div></section>
+        ${S.me ? (() => { const sims = ["MSFS", "X-Plane"].filter(z => fliesIn(x.code, z)), mine = myAirframes(x.code);
+          return `<div class="sb-mine" data-sb-type="${esc(x.code)}"><b style="font-size:13px">My SimBrief airframe <span class="muted" style="font-weight:400">(optional, must be a ${esc(x.icao)})</span></b>
+            ${sims.map(z => `<label>${sims.length > 1 ? esc(z) : `<span class="sr-only">${esc(z)}</span>`}<input data-sb-sim="${z}" value="${esc(mine[z] || "")}" placeholder="Internal ID, e.g. 277074_1793915409207" autocomplete="off"></label>`).join("")}
+            <div class="row"><button class="btn small" type="button" data-sb-save>Save</button>${Object.keys(mine).length ? `<button class="btn ghost small" type="button" data-sb-clear>Use PAC's</button>` : ""}</div>
+            <small class="muted">Plans use: ${sims.map(z => `${sims.length > 1 ? esc(z) + " " : ""}<b>${mine[z] ? "your airframe" : x.simbrief_airframe ? "PAC's airframe" : `SimBrief's standard ${esc(x.simbrief_type)}`}</b>`).join(" · ")}</small>
+            ${sims.length > 1 ? `<small class="muted">Fly this type in both sims with different add-ons? Save one for each, then pick the sim when you generate the OFP.</small>` : ""}</div>`; })() : ""}</div>`).join("")}</div></section>
     ${staff ? `<section class="dl-sec dl-upload"><h2>Upload a file <span class="tag grey">Staff</span></h2>
       <form id="dlForm" class="dl-form">
         <div class="field"><label for="dlFile">File (zip, pdf, image, text; up to 2 GB)</label><input id="dlFile" name="file" type="file" required></div>
@@ -2188,14 +2212,14 @@ async function loadDownloads() {
   document.querySelectorAll("[data-sb-type]").forEach(box => {
     const save = async v => {
       try {
-        const r = await api("/api/my/airframes", { method: "POST", body: { type: box.dataset.sbType, airframe: v } });
+        const r = await api("/api/my/airframes", { method: "POST", body: { type: box.dataset.sbType, airframes: v } });
         S.settings.simbrief_airframes = r.simbrief_airframes;
-        toast(v ? "Saved. PAC's Generate OFP button now plans with your airframe." : "Back to PAC's airframe.");
+        toast(Object.values(v).some(Boolean) ? "Saved. PAC's Generate OFP button now plans with your airframe." : "Back to PAC's airframe.");
         loadDownloads();
       } catch (e) { toast(e.message); }
     };
-    box.querySelector("[data-sb-save]").onclick = () => save(box.querySelector("[data-sb-id]").value.trim());
-    const clr = box.querySelector("[data-sb-clear]"); if (clr) clr.onclick = () => save("");
+    box.querySelector("[data-sb-save]").onclick = () => { const v = {}; box.querySelectorAll("[data-sb-sim]").forEach(i => v[i.dataset.sbSim] = i.value.trim()); save(v); };
+    const clr = box.querySelector("[data-sb-clear]"); if (clr) clr.onclick = () => save({});
   });
   document.querySelectorAll("[data-acars-del]").forEach(b => b.onclick = async () => {
     if (!confirm(`Remove ${b.dataset.acarsDel}? Pilots won't be able to download it.`)) return;
@@ -2584,6 +2608,7 @@ function bookedPlanPanel(b) {
   const api1 = !!S.settings?.simbrief_api, gen = S.sbBooked;
   return `<div class="notice" style="margin:0"><b>Plan this flight in SimBrief</b>
     <p class="muted" style="margin:4px 0 10px;font-size:13px">Filled in for you: ${esc(S.fleet[b.aircraft]?.name || b.aircraft)}, route, callsign and ${b.mission.payload_lbs ? fmt(b.mission.payload_lbs) + " lb of " + (b.mission.training ? "ballast" : "cargo") : "an empty hold"}. The plan attaches to this flight and updates your dispatch release.</p>
+    ${simPicker(b.aircraft)}
     <div class="row">${api1 ? `<button type="button" class="btn" id="bpGen" ${gen ? "disabled" : ""}>${gen ? "Generating in SimBrief…" : "Generate OFP"}</button>` : ""}
       <a class="btn ${api1 ? "ghost" : ""}" id="bpOpen" href="${esc(bookedSimbriefUrl(b))}" target="_blank" rel="noopener">${api1 ? "Or open SimBrief yourself" : "Open SimBrief with this flight"}</a>
       <button type="button" class="btn ghost" id="bpFetch">Fetch latest OFP</button></div>
