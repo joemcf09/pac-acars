@@ -2151,11 +2151,12 @@ async function loadDownloads() {
       ${c === "Document" ? `
         <div class="dl-row"><div><b>KCVG station guide</b><p>Cincinnati in detail: runways, frequencies, cargo ramps, procedures and PAC's stands.</p></div><div class="dl-actions"><button class="btn ghost small" type="button" data-station="KCVG">Open to print</button></div></div>` : ""}</section>`).join("")}
     <section class="dl-sec"><h2>SimBrief airframes</h2>
-      <p class="muted" style="margin:0 0 10px">Set up a SimBrief airframe for each PAC aircraft so your plans use PAC's weights. In SimBrief: Account › Airframes › New airframe, choose the type, enter the values below. Download a sheet to keep the figures handy.</p>
+      <p class="muted" style="margin:0 0 10px">Set up a SimBrief airframe for each PAC aircraft so your plans use PAC's weights. Where there's a ready-made PAC airframe, press <b>Add PAC's airframe to SimBrief</b>. Otherwise, in SimBrief: Account › Airframes › New airframe, choose the type and enter the values below. Plans made with PAC's Generate OFP button already use PAC's airframes.</p>
       <div class="sb-grid">${d.simbrief.map(x => `<div class="sb-card"><div class="sb-top"><b>${esc(x.name)}</b><span class="tag dark">${esc(x.simbrief_type)}</span></div>
         <dl><dt>Empty (OEW)</dt><dd>${fmt(x.oew_lbs)} lb</dd><dt>Max zero fuel</dt><dd>${fmt(x.mzfw_lbs)} lb</dd><dt>Max takeoff</dt><dd>${fmt(x.mtow_lbs)} lb</dd>
           <dt>Max landing</dt><dd>${fmt(x.mlw_lbs)} lb</dd><dt>Max payload</dt><dd>${fmt(x.max_payload_lbs)} lb</dd><dt>Callsign</dt><dd>${esc(x.airline)} / ${esc(x.callsign)}</dd></dl>
         <small class="muted">${x.registrations.length ? `PAC tails: ${x.registrations.slice(0, 6).map(esc).join(", ")}${x.registrations.length > 6 ? "…" : ""}` : "No PAC tails yet"}</small>
+        ${x.simbrief_airframe ? `<a class="btn small" href="https://dispatch.simbrief.com/airframes/share/${encodeURIComponent(x.simbrief_airframe)}" target="_blank" rel="noopener" title="Adds PAC's ready-made airframe to your SimBrief fleet">Add PAC's airframe to SimBrief ↗</a>` : ""}
         <a class="btn ghost small" href="/api/downloads/simbrief/${encodeURIComponent(x.code)}.txt">Download sheet</a></div>`).join("")}</div></section>
     ${staff ? `<section class="dl-sec dl-upload"><h2>Upload a file <span class="tag grey">Staff</span></h2>
       <form id="dlForm" class="dl-form">
