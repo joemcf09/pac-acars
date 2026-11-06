@@ -1492,3 +1492,5 @@ html[data-theme="dark"] .ce-feature .btn.ghost{color:#ffb0b0}
 .sim-pick button{font:inherit;font-size:13px;font-weight:700;border:1px solid var(--line);background:var(--white);color:inherit;padding:4px 10px;border-radius:3px;cursor:pointer}
 .sim-pick button.on{background:var(--red);border-color:var(--red);color:#fff}
 .sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+#view-missions .mb-card.wb-restricted::after{top:19%}
+#view-missions .mb-card.wb-restricted .mb-status{color:#c0262d;font-weight:700}

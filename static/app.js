@@ -6499,6 +6499,8 @@ function boardSource(m) {
   return 'Mission';
 }
 function boardStatus(m) {
+  const zq = zoneFor(m);
+  if (zq?.level === "restricted") return `Not authorized · ${zq.names.join(", ")} is restricted airspace`;
   const types = boardTypes(m), qualified = types.filter(a => boardQualified(m,a));
   if (!S.me || !S.ratings) return 'Review qualifications before planning';
   if (!qualified.length) return 'Review rank or type-rating requirements';
@@ -6511,11 +6513,11 @@ function boardAccent(m) {
   return ({'Humanitarian':'relief','Express':'express','Heavy lift':'heavy','Medical':'medical','Medicine':'medical'})[m.category] || 'standard';
 }
 function boardCard(m) {
-  return `<button type="button" class="waybill mb-card mb-accent-${boardAccent(m)}" data-id="${esc(m.id)}" aria-pressed="${S.selected?.id === m.id}">
+  return `<button type="button" class="waybill mb-card mb-accent-${boardAccent(m)}${zoneFor(m)?.level === "restricted" ? " wb-restricted" : ""}" data-id="${esc(m.id)}" aria-pressed="${S.selected?.id === m.id}">
     <span class="mb-card-top"><span class="mb-work-label">${m.urgent ? '<span class="mb-urgent-label">! URGENT</span>' : ''}${esc(boardSource(m))} · ${esc(m.short_heavy ? "Short-haul heavies" : m.category || 'Cargo')}</span><span>${esc(m.id)}</span></span>
     <span class="mb-route"><span><b>${esc(m.origin.icao)}</b><small>${esc(m.origin.city || m.origin.name)}</small></span><span aria-hidden="true">→</span><span><b>${esc(m.destination.icao)}</b><small>${esc(m.destination.city || m.destination.name)}</small></span></span>
     <strong class="mb-title">${esc(m.title)}</strong><span class="mb-cargo">${esc(m.cargo)}</span>
-    <span class="mb-tags">${m.short_heavy ? `<span class="tag dark">${fmt(m.distance_nm)} NM · Routine delivery</span>` : ""}${boardCampaignLabels(m)}${bonusTags(m)}${freshTags(m)}${m.tour || m.rotation ? `<span class="tag dark">Leg ${esc(m.leg)}/${esc(m.legs)}</span>` : ''}${m.handling ? `<span class="tag grey">${esc(m.handling.label)}</span>` : ''}${m.challenge ? `<span class="tag amber">${esc(m.challenge.label)}</span>` : ''}${m.urgent ? `<span class="tag amber">URGENT ×1.5 · deliver by ${zulu(m.deliver_by)}</span><span>Offer: <span class="countdown" data-countdown="${Number(m.expires)}"></span></span>` : ''}</span>
+    <span class="mb-tags">${zoneTag(m)}${m.short_heavy ? `<span class="tag dark">${fmt(m.distance_nm)} NM · Routine delivery</span>` : ""}${boardCampaignLabels(m)}${bonusTags(m)}${freshTags(m)}${m.tour || m.rotation ? `<span class="tag dark">Leg ${esc(m.leg)}/${esc(m.legs)}</span>` : ''}${m.handling ? `<span class="tag grey">${esc(m.handling.label)}</span>` : ''}${m.challenge ? `<span class="tag amber">${esc(m.challenge.label)}</span>` : ''}${m.urgent ? `<span class="tag amber">URGENT ×1.5 · deliver by ${zulu(m.deliver_by)}</span><span>Offer: <span class="countdown" data-countdown="${Number(m.expires)}"></span></span>` : ''}</span>
     <span class="mb-facts"><span>Estimated block<b>${hm(m.target_block_min)}</b></span><span>Recommended types<b>${(m.aircraft || []).map(a=>esc(S.fleet[a]?.icao || a)).join(', ')}</b>${(() => { const ds = [...new Set((m.aircraft || []).map(divOf).filter(Boolean))]; return ds.length ? `<small class="mb-div">${ds.map(d => esc(divShort(d))).join(" · ")}</small>` : ""; })()}</span><span>Cargo load<b>${fmt(m.payload_lbs || 0)} lb</b></span><span>Reward<b>${fmt(m.reward || 0)} points${m.short_heavy ? ` · includes ${fmt(m.handling_points)} handling points` : ""}${m.contract_bonus ? ` · $${fmt(m.contract_bonus)} bonus` : m.ferry_bonus ? ` · $${fmt(m.ferry_bonus)} ferry bonus` : ''}</b></span></span>
     <span class="mb-status">${esc(boardStatus(m))}</span><span class="mb-card-bottom"><small>Check details before planning</small><b>Review flight →</b></span></button>`;
 }
