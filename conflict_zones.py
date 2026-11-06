@@ -34,9 +34,11 @@ DEFAULT_ZONES = {
     "north_korea": ("North Korea", ("ZK",), "restricted", 15, "FAA prohibition."),
     "sudan": ("Sudan", ("HS",), "restricted", 15, "Civil war. FAA prohibition."),
     "somalia": ("Somalia", ("HC",), "caution", 15, "FAA limits US operators at lower levels."),
-    "iraq": ("Iraq", ("OR",), "caution", 15, "FAA limits US operators at lower levels."),
+    "iraq": ("Iraq", ("OR",), "restricted", 15, "Conflict zone advisories (EASA/FAA)."),
     "israel": ("Israel and the Palestinian territories", ("LL", "LV"), "caution", 15, "Rocket and drone activity."),
-    "lebanon": ("Lebanon", ("OL",), "caution", 15, "Rocket and drone activity."),
+    "lebanon": ("Lebanon", ("OL",), "restricted", 15, "Conflict zone advisories (EASA/FAA)."),
+    "persian_gulf": ("Persian Gulf waters", (), "caution", 10, "Gulf and Strait of Hormuz. Our Dubai hub stays fully open."),
+    "saudi_south": ("Southern Saudi Arabia", (), "caution", 10, "Near the Yemen border (missile and drone activity)."),
     "mali": ("Mali", ("GA",), "caution", 10, "FAA limits US operators at lower levels."),
     "south_sudan": ("South Sudan", ("HJ",), "caution", 10, "Unrest; FAA limits US operators at lower levels."),
     "pakistan": ("Pakistan", ("OP",), "caution", 10, "FAA advisory."),
@@ -49,6 +51,18 @@ SAMPLE_NM = 25            # how often a planned great-circle route is checked
 _shapes = None
 
 
+# areas that aren't a whole country, drawn by hand as [lon, lat] rings
+CUSTOM_SHAPES = {
+    # the Persian Gulf and the Strait of Hormuz, over water (Dubai, Doha and Bahrain airports sit just outside)
+    "persian_gulf": [[[48.0, 30.0], [49.6, 30.1], [50.6, 29.4], [51.4, 27.9], [53.6, 26.8], [55.2, 26.6], [56.3, 27.2],
+                      [56.9, 26.6], [56.5, 26.1], [56.2, 25.7], [55.9, 25.6], [55.3, 25.3], [54.4, 24.6], [53.0, 24.3],
+                      [51.9, 25.0], [51.75, 26.2], [51.0, 26.35], [50.2, 26.45], [49.4, 27.3], [48.6, 28.2], [48.0, 30.0]]],
+    # southern Saudi Arabia along the Yemen border
+    "saudi_south": [[[41.6, 19.5], [52.0, 19.5], [55.0, 19.9], [55.6, 18.9], [52.0, 18.9], [47.0, 17.2], [44.0, 17.3],
+                     [42.8, 16.4], [41.6, 19.5]]],
+}
+
+
 def load_shapes(data_dir):
     global _shapes
     if _shapes is None:
@@ -57,6 +71,8 @@ def load_shapes(data_dir):
             _shapes = {k: [(_bbox(r), r) for r in rings] for k, rings in raw["shapes"].items()}
         except (OSError, ValueError, KeyError):
             _shapes = {}
+        for k, rings in CUSTOM_SHAPES.items():
+            _shapes[k] = [(_bbox(r), r) for r in rings]
     return _shapes
 
 
