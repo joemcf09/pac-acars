@@ -1293,6 +1293,65 @@ const MAP_STYLES = {
   satellite: { label: "Satellite", layers: [[ESRI + "World_Imagery/MapServer/tile/{z}/{y}/{x}", 18], [ESRI + "Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}", 18]], attr: "Imagery &copy; Esri, Maxar, Earthstar Geographics" },
   offline:   { label: "Offline outline", layers: [], attr: "Natural Earth" },
 };
+/* Conflict zones on the maps: restricted areas hatched red, caution areas hatched amber, with a legend and an
+   on/off switch (remembered on this computer). Only drawn while staff have the rules switched on. */
+let zoneMapData;
+function loadZoneMap() { return zoneMapData ||= fetch("/api/conflict-zones/map").then(r => r.ok ? r.json() : null).catch(() => null); }
+function zonesShown() { try { return localStorage.getItem("pac.zonesOnMap") !== "0"; } catch (e) { return true; } }
+function setZonesShown(on) { try { localStorage.setItem("pac.zonesOnMap", on ? "1" : "0"); } catch (e) { /* private window */ } }
+const ZONE_COL = { restricted: "#d4111e", caution: "#f0a000" };
+function zoneHatchDefs() {   // SVG hatch patterns the flat maps fill zones with
+  if (document.getElementById("zoneHatchDefs")) return;
+  document.body.insertAdjacentHTML("beforeend", `<svg id="zoneHatchDefs" width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+    ${Object.entries(ZONE_COL).map(([k, c]) => `<pattern id="zh-${k}" width="8" height="8" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+      <rect width="8" height="8" fill="${c}" fill-opacity="0.16"/><line x1="0" y1="0" x2="0" y2="8" stroke="${c}" stroke-width="2.4" stroke-opacity="0.55"/></pattern>`).join("")}</defs></svg>`);
+}
+function zoneTip(p) {
+  return `<b>${esc(p.name)}</b><br>${p.level === "restricted" ? "Restricted: not authorized for PAC" : `Caution area: +${p.pct}% hazard pay`}${p.note ? `<br><small>${esc(p.note)}</small>` : ""}`;
+}
+function zoneLegendHtml(on) {
+  return `<label class="zone-legend"><input type="checkbox" data-zone-toggle ${on ? "checked" : ""}><b>Conflict zones</b>
+    <span><i style="--c:${ZONE_COL.restricted}"></i>Restricted</span><span><i style="--c:${ZONE_COL.caution}"></i>Caution</span></label>`;
+}
+async function addZoneOverlay(map) {
+  const data = await loadZoneMap();
+  if (!data?.features?.length || !map._container?.isConnected) return;
+  zoneHatchDefs();
+  map.createPane("zones").style.zIndex = 350;
+  const layer = L.geoJSON(data, { pane: "zones", renderer: L.svg({ pane: "zones" }),
+    style: f => ({ color: ZONE_COL[f.properties.level], weight: 1.4, dashArray: f.properties.level === "caution" ? "5 4" : null, opacity: 0.9,
+                   fillColor: `url(#zh-${f.properties.level})`, fillOpacity: 1 }),
+    onEachFeature: (f, l) => l.bindTooltip(zoneTip(f.properties), { sticky: true, className: "zone-tip" }) });
+  if (zonesShown()) layer.addTo(map);
+  const ctl = L.control({ position: "bottomright" });
+  ctl.onAdd = () => { const d = L.DomUtil.create("div", "leaflet-bar zone-legend-wrap"); d.innerHTML = zoneLegendHtml(zonesShown());
+    L.DomEvent.disableClickPropagation(d);
+    d.querySelector("[data-zone-toggle]").onchange = e => { setZonesShown(e.target.checked); e.target.checked ? layer.addTo(map) : map.removeLayer(layer); };
+    return d; };
+  ctl.addTo(map);
+}
+async function addZoneOverlayGlobe(map, wrap) {
+  const data = await loadZoneMap();
+  if (!data?.features?.length) return;
+  for (const [k, c] of Object.entries(ZONE_COL)) {   // the same hatch as an image for MapLibre
+    const cv = document.createElement("canvas"); cv.width = cv.height = 16; const x = cv.getContext("2d");
+    x.fillStyle = c + "29"; x.fillRect(0, 0, 16, 16); x.strokeStyle = c + "8c"; x.lineWidth = 3;
+    x.beginPath(); x.moveTo(-4, 4); x.lineTo(4, -4); x.moveTo(-4, 20); x.lineTo(20, -4); x.moveTo(12, 20); x.lineTo(20, 12); x.stroke();
+    if (!map.hasImage(`zh-${k}`)) map.addImage(`zh-${k}`, x.getImageData(0, 0, 16, 16));
+  }
+  map.addSource("zones", { type: "geojson", data });
+  const before = map.getLayer("tracks") ? "tracks" : undefined;
+  map.addLayer({ id: "zones-fill", type: "fill", source: "zones", paint: { "fill-pattern": ["concat", "zh-", ["get", "level"]] } }, before);
+  map.addLayer({ id: "zones-line", type: "line", source: "zones", paint: { "line-color": ["match", ["get", "level"], "restricted", ZONE_COL.restricted, ZONE_COL.caution], "line-width": 1.4, "line-opacity": 0.9 } }, before);
+  const vis = on => ["zones-fill", "zones-line"].forEach(id => map.setLayoutProperty(id, "visibility", on ? "visible" : "none"));
+  vis(zonesShown());
+  const pop = new maplibregl.Popup({ closeButton: false, closeOnClick: false, className: "zone-tip" });
+  map.on("mousemove", "zones-fill", e => { map.getCanvas().style.cursor = "help"; pop.setLngLat(e.lngLat).setHTML(zoneTip(e.features[0].properties)).addTo(map); });
+  map.on("mouseleave", "zones-fill", () => { map.getCanvas().style.cursor = ""; pop.remove(); });
+  wrap.insertAdjacentHTML("beforeend", `<div class="zone-legend-wrap globe-legend">${zoneLegendHtml(zonesShown())}</div>`);
+  wrap.querySelector(".globe-legend [data-zone-toggle]").onchange = e => { setZonesShown(e.target.checked); vis(e.target.checked); };
+}
+
 let worldData;
 function loadWorld() { return worldData ||= fetch("/static/vendor/world.json").then(r => r.json()).catch(() => null); }
 
@@ -1335,6 +1394,7 @@ function makeBaseMap(el, { theme = "dark", style } = {}) {
     });
   };
   base.setStyle(style || (dark ? "dark" : "light"));
+  addZoneOverlay(map);
   return base;
 }
 
@@ -7345,6 +7405,7 @@ async function setLiveView(v) {
         map.addLayer({ id: "land", type: "fill", source: "land", paint: { "fill-color": dark ? "#262a31" : "#f4f5f7" } }, map.getLayer("tiles0") ? "tiles0" : undefined);
         map.addLayer({ id: "borders", type: "line", source: "borders", paint: { "line-color": dark ? "#3a4049" : "#c3c9d0", "line-width": 0.6 } }, map.getLayer("tiles0") ? "tiles0" : undefined);
       }
+      await addZoneOverlayGlobe(map, $("#liveGlobe")).catch(() => {});
       map.addSource("tracks", { type: "geojson", data: { type: "FeatureCollection", features: [] } });
       map.addLayer({ id: "tracks", type: "line", source: "tracks", paint: { "line-color": "#d4111e", "line-width": ["case", ["get", "sel"], 3, 2], "line-opacity": ["case", ["get", "sel"], 0.9, 0.55] } });
       map.addSource("toarr", { type: "geojson", data: { type: "FeatureCollection", features: [] } });

@@ -211,3 +211,27 @@ def public(settings):
     """What the website needs to tag flights: the switch and each active zone's prefixes."""
     return {"enabled": enabled(settings),
             "zones": [{k: z[k] for k in ("id", "name", "prefixes", "level", "pct", "note")} for z in zones(settings) if z["level"] != "off"]}
+
+
+def _unwrap(ring):
+    """A ring that crosses the date line (eastern Russia) is drawn as one piece east of 180 degrees, not as a band
+    across the whole map."""
+    xs = [p[0] for p in ring]
+    if max(xs) - min(xs) <= 180:
+        return ring
+    return [[x + 360 if x < 0 else x, y] for x, y in ring]
+
+
+def geojson(settings, data_dir):
+    """Active zones as GeoJSON for the maps (outlines approximate, rounded to 0.05 degrees)."""
+    if not enabled(settings):
+        return {"type": "FeatureCollection", "features": []}
+    shapes = load_shapes(data_dir)
+    feats = []
+    for z in zones(settings):
+        if z["level"] == "off" or not shapes.get(z["id"]):
+            continue
+        feats.append({"type": "Feature",
+                      "properties": {"id": z["id"], "name": z["name"], "level": z["level"], "pct": z["pct"], "note": z["note"]},
+                      "geometry": {"type": "MultiPolygon", "coordinates": [[_unwrap(ring)] for _, ring in shapes[z["id"]]]}})
+    return {"type": "FeatureCollection", "features": feats}

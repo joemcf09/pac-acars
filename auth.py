@@ -25,7 +25,7 @@ SESSION_DAYS = 30
 INVITE_DAYS = 7
 
 # Requests anyone may make (the public pages: Home, Fleet, Handbook, applying, downloading PAC ACARS)
-PUBLIC_GET = ("/api/group/", "/api/bootstrap", "/api/va/home", "/api/va/board", "/api/fleet", "/api/news", "/api/gallery",
+PUBLIC_GET = ("/api/group/", "/api/conflict-zones", "/api/bootstrap", "/api/va/home", "/api/va/board", "/api/fleet", "/api/news", "/api/gallery",
               "/api/profile/photo", "/api/acars/app/download", "/api/auth/", "/api/live",
               "/api/bot/",   # the Discord bot's own API checks its secret itself (botlink.py)
               "/api/partner-photos", "/api/partner-photo/", "/api/public/roster", "/api/public/group-flight",

@@ -1684,6 +1684,14 @@ def conflict_zones_api():
     return jsonify(out)
 
 
+@app.get("/api/conflict-zones/map")
+def conflict_zones_map():
+    """Restricted and caution areas as GeoJSON, drawn as a red and amber hatched overlay on PAC's maps."""
+    r = jsonify(conflict_zones.geojson(settings(), DATA))
+    r.headers["Cache-Control"] = "public, max-age=300"
+    return r
+
+
 @app.get("/api/staff/conflict-zones")
 def staff_conflict_zones():
     return jsonify({"enabled": conflict_zones.enabled(settings()), "zones": conflict_zones.zones(settings())})

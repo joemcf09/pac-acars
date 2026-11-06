@@ -1504,3 +1504,12 @@ html[data-theme="dark"] .ce-feature .btn.ghost{color:#ffb0b0}
 .zone-brief.caution .kicker{color:var(--amber)}
 .zone-brief.restricted .zone-stamp{color:#c0262d}
 @media(max-width:600px){.zone-brief{flex-direction:column}}
+.zone-legend-wrap{background:var(--white);color:var(--ink);padding:6px 10px;font-size:12px;border-radius:4px}
+.zone-legend{display:flex;align-items:center;gap:10px;cursor:pointer;margin:0}
+.zone-legend i{display:inline-block;width:14px;height:10px;margin-right:4px;vertical-align:-1px;border:1.5px solid var(--c);
+  background:repeating-linear-gradient(45deg,var(--c) 0 2px,transparent 2px 6px);opacity:.85}
+.zone-legend input{accent-color:var(--red);margin:0}
+.globe-legend{position:absolute;right:10px;bottom:34px;z-index:3;box-shadow:0 1px 4px rgba(0,0,0,.3)}
+.zone-tip{font-size:12.5px;max-width:280px;white-space:normal}
+.zone-tip small{color:#555}
+.maplibregl-popup.zone-tip .maplibregl-popup-content{padding:8px 10px;color:#15181d}
