@@ -1587,3 +1587,8 @@ html[data-theme="dark"] .aar-ok{color:#5fd08a}
 #boardCampaignPanel:not(:empty){padding:10px 16px}
 #boardCampaignPanel .mb-campaign-heading h2{font-size:19px;margin:2px 0}
 #boardCampaignPanel progress{margin:8px 0 2px}
+
+/* Pilot briefing cards must follow the selected theme instead of hardcoding light surfaces. */
+.brief-card{background:var(--white);color:var(--ink);border-color:var(--line)}
+.brief-route{background:var(--paper);color:var(--ink);border-color:var(--line)}
+.brief-route:hover{background:var(--red-wash);border-color:var(--red)}
