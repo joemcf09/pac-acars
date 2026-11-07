@@ -1569,3 +1569,5 @@ html[data-theme="dark"] .aar-ok{color:#5fd08a}
 .act-form label{display:flex;flex-direction:column;gap:3px;font-size:13px;font-weight:600}
 .act-form input{min-width:260px}
 .act-leave .muted{font-size:12.5px;margin:4px 0 0}
+.act-card.plain{border-left:1px solid var(--line);padding:6px 16px}
+.act-card.plain .act-leave summary{margin-top:0}

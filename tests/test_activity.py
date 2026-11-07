@@ -39,7 +39,9 @@ print("Off until staff switch it on")
 set_joined(60)
 a = c.get("/api/pilot/activity").json
 check("off by default: pilots see nothing", a["enabled"] is False, a)
-check("no leave while it's off", c.post("/api/pilot/leave", json={"days": 14}).status_code == 400)
+r = c.post("/api/pilot/leave", json={"days": 14, "reason": "Moving house"})
+check("leave of absence works with the rule off", r.status_code == 200 and r.json["status"] == "On leave", r.json)
+check("and ends when the pilot is back", c.delete("/api/pilot/leave").json["status"] == "Active")
 with A.db() as con:
     con.execute("UPDATE pilots SET discord_id='123456789' WHERE id=?", (pid,))
 check("no reminders while it's off", activity.reminders_due() == [])

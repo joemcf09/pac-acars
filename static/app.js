@@ -2859,7 +2859,7 @@ function homeNextHTML(st) {
 /* Staying active: the date the next flight is due, and a leave of absence that pauses the clock */
 function activityHTML(me) {
   const a = me?.activity;
-  if (!a || !a.enabled) return "";
+  if (!a) return "";
   const day = t => new Date(t * 1000).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
   const left = a.days_left, rel = left < 0 ? `${-left} day${left === -1 ? "" : "s"} ago` : left === 0 ? "today" : left === 1 ? "tomorrow" : `in ${left} days`;
   const opts = [7, 14, 21, 30, 45, 60, 90].filter(d => d <= Math.min(a.leave_max_days, a.leave_days_left_year));
@@ -2867,10 +2867,11 @@ function activityHTML(me) {
       <form id="leaveForm" class="act-form"><label>How long<select name="days">${opts.map(d => `<option value="${d}" ${d === 14 ? "selected" : ""}>${d} days</option>`).join("")}</select></label>
         <label>Reason <small>(optional, staff only)</small><input name="reason" maxlength="200" placeholder="Vacation, new simulator setup, busy at work…"></label>
         <button class="btn small" type="submit">Start my leave</button></form>
-      <p class="muted">The clock stops while you're away and the roster shows you as On leave. Filing a flight ends it early. Up to ${a.leave_max_days} days at a time, ${a.leave_days_left_year} days left this year.</p></details>` : "";
+      <p class="muted">${a.enabled ? "The clock stops while you're away and the" : "The"} roster shows you as On leave, so staff and other pilots know you're away. Filing a flight ends it early. Up to ${a.leave_max_days} days at a time, ${a.leave_days_left_year} days left this year.</p></details>` : "";
   if (a.state === "leave") return `<div class="act-card leave" id="actCard"><span class="kicker">On leave of absence</span>
-      <b>Back by ${day(a.leave.until)}</b><p>Your next flight is due ${day(a.due)}, ${a.policy_days} days after your leave ends.${a.leave.reason ? ` Reason on file: “${esc(a.leave.reason)}”.` : ""}</p>
+      <b>Back by ${day(a.leave.until)}</b><p>${a.enabled ? `Your next flight is due ${day(a.due)}, ${a.policy_days} days after your leave ends.` : "The roster shows you as On leave. Enjoy the time away; PAC will be here when you're back."}${a.leave.reason ? ` Reason on file: “${esc(a.leave.reason)}”.` : ""}</p>
       <button class="btn small ghost" type="button" id="leaveEnd">I'm back: end my leave</button></div>`;
+  if (!a.enabled) return form ? `<div class="act-card plain" id="actCard">${form}</div>` : "";
   const cls = a.state === "overdue" ? "overdue" : a.state === "soon" ? "soon" : "ok";
   const head = a.state === "overdue" ? `Your next flight was due ${day(a.due)} (${rel})` : `Next flight due by ${day(a.due)} (${rel})`;
   const text = a.state === "overdue" ? `Fly any PAC flight to stay on the active roster.${a.auto_inactive ? " Pilots past their date are marked Inactive until they fly again." : ""}`
@@ -4963,10 +4964,11 @@ function renderHandbook(cfg) {
       <tr><th>Before you book</th><td>Flights are tagged on the board, and you confirm you understand before requesting one.</td></tr></table>
       <table><tr><th>Area</th><th>Status</th><th>Hazard pay</th></tr>${S.zones.zones.map(z => `<tr><td><b>${esc(z.name)}</b><br><small class="muted">${esc(z.note || "")}</small></td><td>${z.level === "restricted" ? "Restricted" : "Caution"}</td><td>${z.level === "caution" ? `+${z.pct}%` : "–"}</td></tr>`).join("")}</table>
       <p class="muted" style="font-size:13px">Based on the FAA's rules for US operators. Staff update the list when the real world changes.</p>`]] : []),
-    ["activity", "Staying active and leave", `<p>PAC pilots fly at least once every <b>${S.settings?.activity_days || 45} days</b>. Your home page shows the date your next flight is due. It counts from your last flight, the day you joined, or the end of your last leave, whichever is latest. Any accepted flight counts.</p>
-      <p><b>Reminder:</b> if your Discord account is linked, PAC Operations sends you a direct message about a week before the date.</p>
-      <p><b>Leave of absence:</b> going away, moving, busy at work or between simulators? Take a leave of absence from your home page (<b>Away for a while?</b>). Pick how long (up to ${S.settings?.leave_max_days || 60} days at a time, 120 days a year) and an optional reason that only staff see. The clock stops, the roster shows you as On leave, and your due date moves to ${S.settings?.activity_days || 45} days after you're back. Press <b>I'm back</b> or file a flight to end it early.</p>
-      <p>Past your date with no leave? Fly any flight to get back on track. Staff decide what happens to pilots who stay away.</p>`],
+    ["activity", "Staying active", `<p>PAC pilots fly at least once every <b>${S.settings?.activity_days || 45} days</b>. Your home page shows the date your next flight is due. It counts from your last flight, the day you joined, or the end of your last leave, whichever is latest. Any accepted flight counts.</p>
+      <p><b>Reminder:</b> if your Discord account is linked, PAC Operations sends you a direct message about a week before the date. A leave of absence pauses the clock.</p>
+      <p>Past your date with no leave? Fly any flight to get back on track.</p>`],
+    ["leave", "Leave of absence", `<p>Life happens: vacations, moves, busy weeks at work, a new simulator to set up. Take a leave of absence from your home page (<b>Away for a while?</b>): choose how long, up to ${S.settings?.leave_max_days || 60} days at a time and 120 days a year, and add a reason if you like (only staff see it).</p>
+      <p>While you're away, the roster shows you as <b>On leave</b>. Your leave ends on its own on the date you chose, or earlier when you press <b>I'm back</b> or file a flight.</p>`],
     ["cargofolder", "Cargo folder and debrief", `<p><b>Cargo folder:</b> on the load sheet step, and in the printed release, every shipment on your flight comes with its full paperwork. <b>Air waybill</b>: the contract of carriage, with shipper, consignee and forwarder, pieces, gross and chargeable weight, dimensions, rates and charges, the harmonized (customs) code, packaging, special handling codes and temperature. <b>Special handling</b>: what each code means and how to treat the cargo. <b>Warehouse screening</b>: the checks the origin warehouse made before the cargo reached your aircraft (count, weight, packaging, security screening method, invoice and export customs). <b>Tracking</b>: the shipment's status codes, as real cargo systems show them (BKD booked, RCS received, MAN manifested, DEP departed, ARR arrived, DLV delivered).</p>
       <p>Chargeable weight is the greater of the real weight and the volumetric weight (the volume in cubic centimeters divided by 6,000): light, bulky cargo is charged for the space it takes. The shipments, companies' roles, values and reference numbers are fictional and made for flight simulation.</p>
       <p><b>After-action review:</b> every filed flight's debrief has a planned-versus-actual table (block time, trip fuel, payload, landing weight against the limit, fuel at touchdown against the final reserve), what the customer said about the delivery, the dispatcher's summary with takeaways for your next flight, and the delivery result of each air waybill. It explains your grade; it doesn't change it.</p>`],
@@ -5124,7 +5126,7 @@ function renderHandbook(cfg) {
     ["conduct", "Conduct", `<p>Fly honestly and help each other. Report problems with ACARS rather than working around them. Staff decisions on reviews are final, but you can always ask why.</p>`],
   ];
   // reading order: who we are and how to join first, then planning and flying, then the rules, then everything else; staff notes last, for staff only
-  const ORDER = ["welcome", "joining", "training-policy", "first-flight", "travel", "ranks", "transfers", "activity", "divisions", "ratings", "planning", "zones", "planhelper", "dispatchpaper", "cargofolder", "acarsapp", "flying",
+  const ORDER = ["welcome", "joining", "training-policy", "first-flight", "travel", "ranks", "transfers", "leave", "activity", "divisions", "ratings", "planning", "zones", "planhelper", "dispatchpaper", "cargofolder", "acarsapp", "flying",
     "dispatchmsg", "integrity", "scoring", "review", "pay", "partners", "missionboard", "jobs", "urgent", "events", "online", "maintenance", "airframes", "economics",
     "stationguides", "approach", "stats", "crewbadge", "signin", "conduct", "staffletters"];
   const pos = id => { const i = ORDER.indexOf(id); return i < 0 ? 99 : i; };
@@ -5164,7 +5166,7 @@ async function staffActivity() {
   const chip = { overdue: '<span class="tag">Overdue</span>', soon: '<span class="tag amber">Due soon</span>', leave: '<span class="tag dark">On leave</span>', ok: '<span class="tag green">Active</span>' };
   const c = d.counts, P = d.policy;
   const onoff = `<div class="notice" style="margin:0 0 12px;${P.enabled ? "" : "border-color:var(--line)"}"><label style="display:flex;gap:8px;align-items:center;font-weight:700"><input type="checkbox" id="actOn" ${P.enabled ? "checked" : ""}> Activity rule ${P.enabled ? "ON" : "OFF"}</label>
-    <p style="margin:6px 0 0;font-size:14px">${P.enabled ? "Pilots see their next-flight-due date and the leave form on Home, linked pilots get a Discord reminder, and the handbook explains the rule." : "Off: pilots see nothing about activity. No due date, no leave form, no reminders and nothing in the handbook. The list below is for your eyes only. Switch it on whenever PAC is big enough to need it."}</p></div>`;
+    <p style="margin:6px 0 0;font-size:14px">${P.enabled ? "Pilots see their next-flight-due date on Home, linked pilots get a Discord reminder, and the handbook explains the rule." : "Off: pilots see no due date, get no reminders and the handbook doesn't mention it. Leave of absence works either way, and pilots on leave show below. Switch the rule on whenever PAC is big enough to need it."}</p></div>`;
   body.innerHTML = onoff + `<p class="muted" style="max-width:85ch">${P.enabled ? "" : "<b>When switched on:</b> "}Pilots fly at least once every <b>${P.days} days</b>. The date counts from their last flight, joining, or the end of their last leave, whichever is latest. Linked pilots get a Discord DM ${P.remind_days} days before. ${P.auto_inactive ? "<b>Overdue pilots are marked Inactive automatically</b> and become Active again when they fly." : "Nobody is marked Inactive automatically: use the roster when you decide to."}</p>
     <div class="row" style="gap:18px;margin:8px 0 12px"><span>${chip.overdue} ${c.overdue}</span><span>${chip.soon} ${c.soon}</span><span>${chip.leave} ${c.leave}</span><span>${chip.ok} ${c.ok}</span></div>
     <form id="actPolicy" class="row" style="gap:12px;align-items:flex-end;margin-bottom:14px">
