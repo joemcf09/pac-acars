@@ -79,6 +79,14 @@ function show(view) {
   location.hash = view === "career" ? "career/" + (S.careerSection || "overview") : view === "pilots" && S.pilotOpen ? "pilots/" + S.pilotOpen : view;
 }
 document.querySelectorAll("nav button[data-view]").forEach(b => b.onclick = () => show(b.dataset.view));
+// the PAC logo always goes home and back to the top, even when the address already says #home
+document.querySelector("header .brand")?.addEventListener("click", e => {
+  if (e.ctrlKey || e.metaKey || e.shiftKey || e.button === 1) return;      // open in a new tab as usual
+  e.preventDefault();
+  if (location.hash !== "#home") history.pushState(null, "", "#home");
+  show("home");
+  scrollTo({ top: 0, behavior: "smooth" });
+});
 function closeNavigation() {
   document.querySelectorAll('.pac-nav-v2 .nav-disclosure').forEach(b => { b.setAttribute('aria-expanded','false'); document.getElementById(b.getAttribute('aria-controls')).hidden=true; });
   $('#navToggle').setAttribute('aria-expanded','false'); $('#mainNav').classList.remove('mobile-open');
