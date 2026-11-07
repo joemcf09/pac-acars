@@ -866,6 +866,7 @@ async function loadLoadsheet(m) {
     if (!S.lsSeen[key]) { S.lsSeen[key] = true; d_markTab("load"); }
     el.querySelectorAll("[data-pos]").forEach(c => c.onclick = () => lsFocus(el, c.dataset.pos));
     wireCargoFolder(el, ls);
+    wireLsTabs(el, ls);
   } catch (e) { el.innerHTML = `<div class="notice">${esc(e.message)}</div>`; }
 }
 function d_markTab(k) { const b = $(`#dpt-${k}`); if (b && b.getAttribute("aria-selected") !== "true") { b.classList.add("done"); b.querySelector(".n").textContent = "✓"; } }
@@ -883,6 +884,24 @@ function deckRow(list, byPos, cap, label) {
       : `<span class="ls-cell empty" title="${esc(pos)} · empty"><span>${esc(pos.replace(" BULK", ""))}</span></span>`;
   }).join("")}</div></div>`;
 }
+/* Load sheet step, in three tabs so the page stays short: load and limits, the manifest, the cargo folder */
+function lsTabsHTML(ls, units) {
+  if (ls.ferry || !units) return "";
+  const n = (ls.shipments || []).filter(x => x.awb_doc).length, tab = S.lsTab || "load";
+  const t = [["load", "Load & limits"], ["manifest", `Cargo manifest · ${units} unit${units === 1 ? "" : "s"}`], ...(n ? [["folder", `Cargo folder · ${n} air waybill${n === 1 ? "" : "s"}`]] : [])];
+  return `<div class="ls-tabs" role="tablist">${t.map(([k, l]) => `<button type="button" role="tab" data-lstab="${k}" aria-selected="${k === tab}">${l}</button>`).join("")}</div>`;
+}
+function wireLsTabs(el, ls) {
+  el.querySelectorAll("[data-lstab]").forEach(b => b.onclick = () => {
+    S.lsTab = b.dataset.lstab;
+    el.querySelectorAll("[data-lstab]").forEach(x => x.setAttribute("aria-selected", x === b));
+    el.querySelectorAll("[data-lspane]").forEach(p => p.hidden = p.dataset.lspane !== S.lsTab);
+  });
+  el.querySelectorAll(".ls-cell[data-pos]").forEach(c => c.addEventListener("click", () => {
+    const p = (ls.positions || []).find(x => x.pos === c.dataset.pos), sh = p && (ls.shipments || []).find(x => x.awb === p.awb), box = el.querySelector("#lsUnit");
+    if (p && box) box.innerHTML = `<b class="mono">${esc(p.pos)}</b> · <span class="mono">${esc(p.unit)}</span> · ${esc(p.contents)} · ${fmt(p.weight_lbs)} lb · ${p.pieces} pcs${sh ? ` · ${esc(sh.shipper.name)} → ${esc(sh.consignee.name)}` : ""} · AWB <span class="mono">${esc(p.awb)}</span>`;
+  }));
+}
 function loadsheetHTML(ls, m) {
   const L = ls.loadsheet, f = ls.fuel, byPos = Object.fromEntries((ls.positions || []).map(p => [p.pos, p]));
   const gauge = c => { const pct = Math.min(100, Math.round(c.value / Math.max(1, c.limit) * 100));
@@ -895,10 +914,13 @@ function loadsheetHTML(ls, m) {
     <span class="ls-status ${ls.ok ? "ok" : "bad"}">${ls.ok ? "Within limits" : "Over a limit"}</span></div>
   ${partial ? `<div class="notice">The ${esc(ls.aircraft_name)} carries up to ${fmt(ls.limits.max_payload)} lb, so you'll take ${fmt(ls.totals.weight_lbs)} lb of the ${fmt(ls.payload_requested)} lb consignment.</div>` : ""}
   ${!ls.ok ? `<div class="notice err">This load and fuel go over a structural limit${ls.checks.some(c => c.code === "MTOW" && !c.ok) ? ": SimBrief will cut the cargo to fit under the take-off weight limit" : ""}. Pick a larger type on the Aircraft step, or plan less fuel or cargo.</div>` : ""}
+  ${lsTabsHTML(ls, units)}
+  <div class="ls-pane" data-lspane="load" ${(S.lsTab || "load") === "load" || !units ? "" : "hidden"}>
   ${ls.ferry ? "" : `<div class="ls-deck" aria-label="Cargo positions, nose on the left">
     <div class="ls-nose" aria-hidden="true">NOSE</div>
     <div class="ls-decks">${deckRow(ls.deck.main, byPos, ls.deck.cap, `Main deck · ${esc(ls.deck.uld)}`)}${ls.deck.lower.length ? deckRow(ls.deck.lower, byPos, ls.deck.lcap, `Lower · ${esc(ls.deck.luld)}`) : ""}</div></div>
-    <div class="ls-legend"><span class="gen">General</span><span class="cool">Temperature / perishable</span><span class="val">Valuable</span><span class="heavy">Heavy / AOG / outsize</span><span class="avi">Live animals</span><span class="dg">Dangerous goods</span><span class="muted">Bar height = weight against the unit's ${fmt(ls.deck.cap)} lb limit. Click a unit.</span></div>`}
+    <div class="ls-legend"><span class="gen">General</span><span class="cool">Temperature / perishable</span><span class="val">Valuable</span><span class="heavy">Heavy / AOG / outsize</span><span class="avi">Live animals</span><span class="dg">Dangerous goods</span><span class="muted">Bar height = weight against the unit's ${fmt(ls.deck.cap)} lb limit. Click a unit.</span></div>
+    <div class="ls-unit muted" id="lsUnit">Click a unit on the deck to see what's in it.</div>`}
   <div class="ls-grid">
     <section><h4>Weights (lb)</h4>
       <table class="ls-calc"><tbody>
@@ -929,10 +951,15 @@ function loadsheetHTML(ls, m) {
     </section>
   </div>
   ${(ls.dg || []).length ? `<section class="ls-dg"><h4>Dangerous goods (NOTOC preview)</h4><ul>${ls.dg.map(g => `<li><b>${esc(g.un)}</b> ${esc(g.name)} · class ${esc(g.cls)}${g.sub ? ` (${esc(g.sub)})` : ""} · ${esc(g.net)} · <span class="mono">${esc(g.pos)}</span>${g.cao ? ' · <span class="tag">Cargo aircraft only</span>' : ""}${ls.erg?.[g.un] ? ` · ERG ${esc(ls.erg[g.un].erg)}` : ""}</li>`).join("")}</ul></section>` : ""}
-  ${units ? `<details class="dp-more" open><summary>Cargo manifest · ${units} unit${units === 1 ? "" : "s"}</summary><div class="ls-table-wrap"><table class="ls-table"><thead><tr><th>Pos</th><th>Unit</th><th>AWB</th><th>Contents</th><th>SHC</th><th class="r">Pcs</th><th class="r">Weight</th></tr></thead><tbody>
+  </div>
+  <div class="ls-pane" data-lspane="manifest" ${S.lsTab === "manifest" && units ? "" : "hidden"}>
+  ${units ? `<div class="ls-man"><div class="ls-table-wrap"><table class="ls-table"><thead><tr><th>Pos</th><th>Unit</th><th>AWB</th><th>Contents</th><th>SHC</th><th class="r">Pcs</th><th class="r">Weight</th></tr></thead><tbody>
     ${ls.positions.map(p => `<tr data-pos="${esc(p.pos)}"><td class="mono">${esc(p.pos)}</td><td class="mono">${esc(p.unit)}</td><td class="mono">${esc(p.awb)}</td><td>${esc(p.contents)}</td><td>${p.shc.map(c => `<span class="shc${c === p.dg ? " dg" : ""}">${esc(c)}</span>`).join(" ")}</td><td class="r">${fmt(p.pieces)}</td><td class="r">${fmt(p.weight_lbs)}</td></tr>`).join("")}
-    </tbody><tfoot><tr><td colspan="5">Total</td><td class="r">${fmt(ls.totals.pieces)}</td><td class="r">${fmt(ls.totals.weight_lbs)}</td></tr></tfoot></table></div></details>` : ""}
+    </tbody><tfoot><tr><td colspan="5">Total</td><td class="r">${fmt(ls.totals.pieces)}</td><td class="r">${fmt(ls.totals.weight_lbs)}</td></tr></tfoot></table></div></div>` : ""}
+  </div>
+  <div class="ls-pane" data-lspane="folder" ${S.lsTab === "folder" && units ? "" : "hidden"}>
   ${cargoFolderHTML(ls)}
+  </div>
   <p class="muted ls-fine">Preliminary, for planning. Fuel is PAC's estimate; when you request the flight, the dispatch release keeps these units, positions and waybills and takes fuel and weights from your SimBrief OFP. Simulation paperwork, not an aircraft weight-and-balance approval.</p>`;
 }
 /* The cargo folder: the full air waybill, special handling, warehouse acceptance and tracking for each shipment */
@@ -1027,12 +1054,12 @@ function cargoFolderHTML(ls) {
   if (ls.ferry || !sh.length) return "";
   const i = Math.min(S.cfShip || 0, sh.length - 1), tab = S.cfTab || "awb", s = sh[i];
   const body = (CF_TABS.find(t => t[0] === tab) || CF_TABS[0])[2](ls, s);
-  return `<details class="dp-more cf" open><summary>Cargo folder · ${sh.length} air waybill${sh.length === 1 ? "" : "s"}</summary>
-    <p class="muted ls-fine">The paperwork behind every shipment on this flight: the contract of carriage, how to handle it, what the warehouse checked before it reached your aircraft, and where it is now. Fictional shipments, values and references for flight simulation.</p>
+  return `<div class="cf">
+    <p class="muted ls-fine">The paperwork behind every shipment on this flight: the contract of carriage, how to handle it, what the warehouse checked before it reached your aircraft, and where it is now. Shippers and consignees are real companies that fit the cargo and the route; the shipments, values and references are fictional, for flight simulation, with no affiliation implied.</p>
     <div class="cf-bar"><label class="cf-pick">Air waybill <select data-cf-ship>${sh.map((x, j) => `<option value="${j}" ${j === i ? "selected" : ""}>${esc(x.awb)} · ${esc(x.shipper.name)} → ${esc(x.consignee.name)}</option>`).join("")}</select></label>
       <span class="cf-sum">${s.pieces} pcs · ${cf1(s.awb_doc.kg)} kg · ${esc((s.shc || []).join(" ") || "GEN")} · ${esc(s.service)}</span></div>
     <div class="cf-tabs" role="tablist">${CF_TABS.map(([k, l]) => `<button type="button" role="tab" data-cf-tab="${k}" aria-selected="${k === tab}">${l}</button>`).join("")}</div>
-    <pre class="cf-doc" tabindex="0">${esc(body)}</pre></details>`;
+    <pre class="cf-doc" tabindex="0">${esc(body)}</pre></div>`;
 }
 function wireCargoFolder(el, ls) {
   const redraw = () => { const old = el.querySelector(".cf"); if (!old) return; const t = document.createElement("div"); t.innerHTML = cargoFolderHTML(ls); old.replaceWith(t.firstElementChild); wireCargoFolder(el, ls); };
@@ -2983,7 +3010,11 @@ function loadNews() {
   return newsLoadPending;
 }
 function notamBars(list) {
-  return (list || []).filter(n => n.kind === "notam").slice(0, 3).map(n => `<div class="notam-bar ${n.important ? "important" : ""}"><b class="k">CO NOTAM</b><span><b>${esc(n.title)}</b>${n.body ? ` · ${esc(n.body.length > 260 ? n.body.slice(0, 257).replace(/\s+\S*$/, "") + "…" : n.body)}` : ""}</span></div>`).join("");
+  // one line on the board: the titles, opened for the full notices (keeps the flights near the top of the page)
+  const ns = (list || []).filter(n => n.kind === "notam").slice(0, 3);
+  if (!ns.length) return "";
+  const bar = n => `<div class="notam-bar ${n.important ? "important" : ""}"><b class="k">CO NOTAM</b><span><b>${esc(n.title)}</b>${n.body ? ` · ${esc(n.body.length > 260 ? n.body.slice(0, 257).replace(/\s+\S*$/, "") + "…" : n.body)}` : ""}</span></div>`;
+  return `<details class="notam-fold"><summary class="notam-bar ${ns.some(n => n.important) ? "important" : ""}"><b class="k">CO NOTAM${ns.length > 1 ? "S" : ""}</b><span><b>${ns.length} company notice${ns.length === 1 ? "" : "s"}:</b> ${ns.map(n => esc(n.title)).join(" · ")}</span><i class="nf-more">Read</i></summary>${ns.map(bar).join("")}</details>`;
 }
 function newsCards(list) {
   return `<div class="news-grid">${(list || []).slice(0, 6).map(n => `<article class="news-card ${n.kind} ${n.important ? "important" : ""}">
@@ -4970,7 +5001,7 @@ function renderHandbook(cfg) {
     ["leave", "Leave of absence", `<p>Life happens: vacations, moves, busy weeks at work, a new simulator to set up. Take a leave of absence from your home page (<b>Away for a while?</b>): choose how long, up to ${S.settings?.leave_max_days || 60} days at a time and 120 days a year, and add a reason if you like (only staff see it).</p>
       <p>While you're away, the roster shows you as <b>On leave</b>. Your leave ends on its own on the date you chose, or earlier when you press <b>I'm back</b> or file a flight.</p>`],
     ["cargofolder", "Cargo folder and debrief", `<p><b>Cargo folder:</b> on the load sheet step, and in the printed release, every shipment on your flight comes with its full paperwork. <b>Air waybill</b>: the contract of carriage, with shipper, consignee and forwarder, pieces, gross and chargeable weight, dimensions, rates and charges, the harmonized (customs) code, packaging, special handling codes and temperature. <b>Special handling</b>: what each code means and how to treat the cargo. <b>Warehouse screening</b>: the checks the origin warehouse made before the cargo reached your aircraft (count, weight, packaging, security screening method, invoice and export customs). <b>Tracking</b>: the shipment's status codes, as real cargo systems show them (BKD booked, RCS received, MAN manifested, DEP departed, ARR arrived, DLV delivered).</p>
-      <p>Chargeable weight is the greater of the real weight and the volumetric weight (the volume in cubic centimeters divided by 6,000): light, bulky cargo is charged for the space it takes. The shipments, companies' roles, values and reference numbers are fictional and made for flight simulation.</p>
+      <p>Chargeable weight is the greater of the real weight and the volumetric weight (the volume in cubic centimeters divided by 6,000): light, bulky cargo is charged for the space it takes. Shippers, consignees, forwarders and ground handlers are real companies that do this kind of business at both ends of the route. The shipments themselves, their values and reference numbers are fictional, made for flight simulation, and no business relationship with PAC is implied.</p>
       <p><b>After-action review:</b> every filed flight's debrief has a planned-versus-actual table (block time, trip fuel, payload, landing weight against the limit, fuel at touchdown against the final reserve), what the customer said about the delivery, the dispatcher's summary with takeaways for your next flight, and the delivery result of each air waybill. It explains your grade; it doesn't change it.</p>`],
     ["transfers", "Transfer hours", `<p>Hours you flew at another virtual airline or on VATSIM/IVAO can count towards your PAC rank. Send a request from <b>Career</b> within 60 days of joining (pilots who joined before the program opened have until January 4, 2027).</p>
       <table><tr><th>What counts</th><td>Hours in your logbook at another virtual airline, or your VATSIM/IVAO pilot hours. Up to 3 sources, each with the link to the logbook or profile page and a screenshot that shows <b>your name or pilot ID together with the hours</b>. Many VA systems need a login, so staff may go by the screenshot, and may ask for a quick Discord screen share if they can't confirm it's you.</td></tr>
@@ -6946,8 +6977,8 @@ function renderBoardCampaigns() {
   const campaign=list.find(c=>String(c.id)===String(S.boardCampaignId || S.boardFeaturedCampaign)) || list[0];
   const pct=Math.min(100,Math.max(0,Number(campaign.pct)||0));
   el.innerHTML=`<div class="mb-campaign-heading"><div><span class="kicker">Fly toward a shared goal</span>${list.length>1?`<label class="mb-note">Active campaign <select id="boardCampaignChoice">${list.map(c=>`<option value="${Number(c.id)}" ${c.id===campaign.id?'selected':''}>${esc(c.title)}</option>`).join('')}</select></label>`:`<h2>${esc(campaign.title)}</h2>`}<p>${(campaign.destinations || []).map(esc).join(' · ')} · ${fmt(campaign.cargo_lbs)} / ${fmt(campaign.target_lbs)} lb delivered · ${pct}%</p></div><div class="row"><button type="button" class="btn small" id="findCampaignFlights">Find campaign flights →</button><button type="button" class="btn ghost small" id="viewCampaignProgress">View progress</button></div></div>
-    <progress max="100" value="${pct}" aria-label="${esc(campaign.title)} progress">${pct}%</progress>
-    <p class="mb-note">Cargo arrivals at these destinations may contribute. File during the campaign dates; credit follows an accepted, qualifying report.${S.boardCampaignId?` <b>Campaign filter active: ${esc(list.find(c=>String(c.id)===String(S.boardCampaignId))?.title || 'previous campaign')}.</b> <button type="button" class="btn ghost small" id="clearCampaignFilter">Clear campaign filter</button>`:''}</p>`;
+    <progress max="100" value="${pct}" aria-label="${esc(campaign.title)} progress" title="Cargo arrivals at these destinations may contribute. File during the campaign dates; credit follows an accepted, qualifying report.">${pct}%</progress>
+    ${S.boardCampaignId?`<p class="mb-note">Cargo arrivals at these destinations may contribute. <b>Campaign filter active: ${esc(list.find(c=>String(c.id)===String(S.boardCampaignId))?.title || 'previous campaign')}.</b> <button type="button" class="btn ghost small" id="clearCampaignFilter">Clear campaign filter</button></p>`:''}`;
   const choice=$('#boardCampaignChoice');if(choice)choice.onchange=()=>{S.boardFeaturedCampaign=choice.value;S.boardCampaignId='';renderMissions();};
   $('#findCampaignFlights').onclick=()=>{
     S.board='all';resetMissionFilters();S.boardCampaignId=String(campaign.id);renderMissions();$('#manifest').scrollIntoView({block:'start'});$('#manifest').focus({preventScroll:true});

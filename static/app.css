@@ -1571,3 +1571,19 @@ html[data-theme="dark"] .aar-ok{color:#5fd08a}
 .act-leave .muted{font-size:12.5px;margin:4px 0 0}
 .act-card.plain{border-left:1px solid var(--line);padding:6px 16px}
 .act-card.plain .act-leave summary{margin-top:0}
+.notam-fold>summary{list-style:none;cursor:pointer}
+.notam-fold>summary::-webkit-details-marker{display:none}
+.notam-fold>summary span{flex:1}
+.notam-fold .nf-more{font-style:normal;color:#FFC845;font-size:12px;font-weight:700;white-space:nowrap;margin-top:2px}
+.notam-fold[open] .nf-more{visibility:hidden}
+.notam-fold[open]>summary{margin-bottom:6px}
+
+/* Load sheet step: tabs keep the page short */
+.ls-tabs{display:flex;flex-wrap:wrap;gap:2px;border-bottom:2px solid var(--line);margin:10px 0 14px}
+.ls-tabs button{border:1px solid var(--line);border-bottom:none;background:var(--paper);padding:8px 14px;font:inherit;font-size:14px;font-weight:600;cursor:pointer;border-radius:4px 4px 0 0;color:inherit}
+.ls-tabs button[aria-selected="true"]{background:var(--white);box-shadow:inset 0 3px 0 var(--red);color:var(--red)}
+.ls-unit{font-size:13px;margin:6px 0 4px;min-height:1.4em}
+.ls-pane[data-lspane="manifest"] .ls-table-wrap{max-height:520px}
+#boardCampaignPanel:not(:empty){padding:10px 16px}
+#boardCampaignPanel .mb-campaign-heading h2{font-size:19px;margin:2px 0}
+#boardCampaignPanel progress{margin:8px 0 2px}

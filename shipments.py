@@ -1,15 +1,14 @@
 """Who is shipping what, to whom, and how it moves through the airport.
 
 The cargo manifest says what sits in each position. This module groups those units into
-shipments (one air waybill each), using a small curated set of real business roles
-and explicitly fictional suppliers/receivers, a short note on why it
+shipments (one air waybill each), with a real shipper near the departure airport and a real
+consignee near the arrival airport that fit the cargo (companies.py), a short note on why it
 is flying, and how to handle it. It also builds the ground handling timeline around the
 flight: acceptance, build-up, weighing, loading, doors closed, and offload, customs and
 delivery at the other end.
 
-Business names are limited to curated roles in add(). The shipments themselves are
-invented for flight simulation: the paperwork says so, and nothing here claims a real
-business relationship.
+The shipments themselves are invented for flight simulation: the paperwork says so, and
+nothing here claims a real business relationship with PAC.
 
 Everything is seeded from the release number, so reprints of the same release match.
 """
@@ -19,6 +18,8 @@ import datetime as dt
 import json
 import random
 from pathlib import Path
+
+import companies
 
 DATA = Path(__file__).resolve().parent / "data"
 _AIRPORTS = None
@@ -145,7 +146,7 @@ def sector_for(text):
 
 
 def handler(icao, rng):
-    return "PAC Simulated Ground Services"
+    return companies.handler(icao, (airports().get(icao) or {}).get("name"))
 
 
 def add(d):
@@ -182,14 +183,29 @@ def add(d):
     shipments = []
     for n, (contents, units) in enumerate(chunks):
         sec = sector_for(contents)
-        # Only verified business roles are named; no invented local company facilities.
-        fwd = "Kuehne+Nagel" if sec in ("pharma", "plasma", "isotope") else "DHL Global Forwarding"
-        shipper = "Boeing Distribution" if sec == "aog" else f"PAC Scenario {sec.title()} Supplier"
-        consignee = f"PAC Scenario {dcity} Receiving Team"
-        story = (f"Fictional shipment of {contents.lower()} via {ocity} to {dcity}. "
-                 "Scheduled for the receiving team's next distribution window.")
+        if sec == "general" and ms in ("humanitarian", "pharma", "resupply", "polar", "energy", "mining"):
+            sec = ms                     # a plain description on a relief or supply flight still belongs to that customer
+        elif ms in ("humanitarian", "nutrition") and sec in ("electronics", "general", "energy", "resupply"):
+            sec = "humanitarian"         # satellite phones, generators and the like on a relief flight are relief stock
+        # Real companies that do this business where the flight starts and ends (companies.py); the shipment is fictional.
+        if sec in ONE_CUSTOMER and sec in customer:
+            shipper, consignee = customer[sec]
+        else:
+            shipper = companies.pick(companies.SHIPPERS, sec, octry, oreg, rng, used_shippers, ocity, o)
+            if sec == "express":         # an express network flies its own freight: the same company receives it
+                consignee = companies.express_consignee(shipper, dcity, bool(octry and dctry and octry != dctry))
+            else:
+                consignee = companies.pick(companies.CONSIGNEES, sec, dctry, dreg, rng, (), dcity, de)
+                if consignee == shipper and sec not in ("mail", "ecommerce", "automotive", "semis", "zoo", "valuables"):
+                    consignee = companies.pick(companies.CONSIGNEES, sec, dctry, dreg, rng, (shipper,), dcity, de)
+            customer[sec] = (shipper, consignee)
+        used_shippers.add(shipper)
+        fwd = companies.forwarder(sec, rng, (oreg, dreg))
+        story = f"{shipper} is shipping {contents[0].lower() + contents[1:]} from {ocity} to {consignee} in {dcity}."
         if sec == "aog":
-            story = f"Fictional aircraft-parts shipment via {ocity} to {dcity} to support a simulated aircraft-on-ground recovery."
+            story = f"{shipper} is rushing {contents[0].lower() + contents[1:]} to {consignee} in {dcity} to get a grounded aircraft back in service."
+        elif sec in ("humanitarian", "nutrition"):
+            story = f"{shipper} is moving {contents[0].lower() + contents[1:]} from {ocity} to {consignee} for distribution in and around {dcity}."
         service = SERVICE.get(sec, "GENERAL")
         if sec == "general" and d.get("priority") in ("Urgent", "High"):
             service = "PRIORITY"
@@ -203,7 +219,7 @@ def add(d):
             "no": n + 1, "awb": awb, "sector": sec, "service": service, "contents": contents,
             "shipper": {"name": shipper, "city": ocity, "country": octry},
             "consignee": {"name": consignee, "city": dcity, "country": dctry},
-            "agent": None if shipper.startswith(fwd) else fwd, "notify": rng.choice(FAKE_NAMES),
+            "agent": None if (not fwd or shipper.startswith(fwd)) else fwd, "notify": rng.choice(FAKE_NAMES),
             "units": [u["pos"] for u in units], "pieces": sum(u["pieces"] for u in units),
             "weight_lbs": sum(u["weight_lbs"] for u in units), "shc": shc, "handling": handling, "story": story,
             "deliver_h": DELIVER_H.get(service, 6),

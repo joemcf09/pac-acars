@@ -484,7 +484,7 @@ function awbLines(d, s, n) {
   out.push(rule("-"));
   wrap("THE SHIPPER CERTIFIES THAT THE PARTICULARS ON THE FACE OF THIS WAYBILL ARE CORRECT AND THAT ANY DANGEROUS GOODS ARE DESCRIBED AND PACKED FOR CARRIAGE BY AIR. GOODS ARE ACCEPTED IN APPARENT GOOD ORDER AND CONDITION, SUBJECT TO THE CONDITIONS OF CONTRACT.", W).forEach(l => out.push(esc(l)));
   out.push(esc(L(`EXECUTED ${a.issued} AT ${U(a.issued_at)}`, 46) + R(`/S/ ${a.code} CARGO SALES, ISSUING CARRIER`, W - 46)));
-  out.push(esc("SIMULATION ONLY. FICTIONAL SHIPMENT, VALUES AND REFERENCES."));
+  out.push(esc("SIMULATION ONLY. FICTIONAL SHIPMENT. NO AFFILIATION WITH NAMED COMPANIES."));
   // keep each waybill on one sheet: shorten the conditions, then drop section headings, if a long waybill would spill over
   if (out.length > 48) { const k = out.findIndex(l => l.startsWith("THE SHIPPER CERTIFIES")); if (k > 0) out.splice(k, 4, esc("SHIPPER CERTIFIES THE PARTICULARS ARE CORRECT. SUBJECT TO THE CONDITIONS OF CONTRACT.")); }
   for (const h of ["<b>OTHER CHARGES</b>", "<b>RATING</b>", "<b>NATURE AND QUANTITY OF GOODS</b>"]) { if (out.length <= 48) break; const k = out.indexOf(h); if (k > 0) out.splice(k, 1); }
