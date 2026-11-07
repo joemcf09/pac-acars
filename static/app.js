@@ -638,11 +638,12 @@ function simbriefRemarks(m) {
   return m.operator ? `PAC PILOT HIRED TO FILL IN FOR ${m.operator.name.toUpperCase()} CREW SHORTAGE. ${m.id} FLOWN BY ${(displayName(S.profile || {}) || "PAC CAPTAIN").toUpperCase()} ${S.profile?.pilot_id || ""}`.trim()
     : `CALLSIGN PAGANI. PAGANI AIR CARGO MISSION ${m.id} ${m.title.toUpperCase()}`;
 }
-function vatsimFilingDetails(b) {
-  const m = b.mission, ofp = b.ofp || {}, ac = S.fleet[b.aircraft] || {};
+function vatsimFilingDetails(m, aircraft, ofp) {
+  ofp = ofp || {};
+  const ac = S.fleet[aircraft] || {};
   const rows = [
     ["Network callsign", atcCallsign(m)],
-    ["Aircraft type", ofp.aircraft_icao || ac.icao || ac.simbrief_type || b.aircraft],
+    ["Aircraft type", ofp.aircraft_icao || ac.icao || ac.simbrief_type || aircraft],
     ["Departure", ofp.origin?.icao || m.origin.icao],
     ["Destination", ofp.destination?.icao || m.destination.icao],
     ["Alternate", ofp.alternate?.icao],
@@ -650,7 +651,26 @@ function vatsimFilingDetails(b) {
     ["Route", ofp.route],
     ["PAC remarks", simbriefRemarks(m)],
   ].filter(([, value]) => value);
-  return `${b.flight_number} · VATSIM flight plan\n${rows.map(([label, value]) => `${label}: ${value}`).join("\n")}`;
+  return `${atcCallsign(m)} · VATSIM flight plan\n${rows.map(([label, value]) => `${label}: ${value}`).join("\n")}`;
+}
+function vatsimFilingPanel(m, aircraft, ofp) {
+  return `<div class="notice vatsim-filing" style="margin:12px 0"><b>Prepare VATSIM filing</b>
+    <p class="muted" style="margin:4px 0 10px;font-size:13px">PAC cannot file directly through VATSIM's documented API. File in your approved pilot client; copy these details to keep the PAC callsign and remarks when SimBrief's network filing omits them.</p>
+    <button class="btn ghost small" type="button" data-vatsim-copy>Copy filing details</button>
+    <details style="margin-top:8px"><summary>View filing details</summary><textarea data-vatsim-details readonly rows="8">${esc(vatsimFilingDetails(m, aircraft, ofp))}</textarea></details></div>`;
+}
+function wireVatsimFiling(root, m, aircraft, ofp) {
+  const button = root.querySelector("[data-vatsim-copy]");
+  if (!button) return;
+  button.onclick = async () => {
+    const field = root.querySelector("[data-vatsim-details]");
+    try { await navigator.clipboard.writeText(vatsimFilingDetails(m, aircraft, ofp)); toast("VATSIM filing details copied."); }
+    catch (e) {
+      if (!field) { toast("Could not copy VATSIM filing details."); return; }
+      field.closest("details").open = true; field.focus(); field.select();
+      toast("Clipboard unavailable. Filing details are selected; press Ctrl+C.");
+    }
+  };
 }
 /* A partner airline's real tail for a contract flight: the same pick as the server's partner_tail() */
 function partnerTail(m, ac) {
@@ -796,6 +816,7 @@ function renderDossier() {
   $("#ofpFile").onchange = async e => { const f = e.target.files[0]; if (f) importOfp(await f.text()); };
   $("#request").onclick = () => requestMission(S.ofp);
   $("#requestNoOfp").onclick = () => { if (confirm("Fly without an OFP? Fuel and timing will be scored against the mission target only.")) requestMission(null); };
+  if (S.ofp && !S.ofpErrors.length) wireVatsimFiling(d, m, m.charter ? m.aircraft[0] : S.aircraft, S.ofp);
 }
 function paneBrief(m) {
   const ok = !dossierBlockers(m) && !S.booking;
@@ -858,6 +879,7 @@ function panePlan(m) {
           <div class="row" style="margin-top:6px"><input type="file" id="ofpFile" accept=".json,.xml"><button class="btn ghost small" id="ofpParse">Import pasted OFP</button></div>
         </details>
         ${ofpCard()}
+        ${ofpOk ? vatsimFilingPanel(m, m.charter ? m.aircraft[0] : S.aircraft, S.ofp) : ""}
         <div id="planVsLoad"></div>
       </li>
       <li data-n="3" class="${step === 3 ? "current" : ""}">
@@ -2859,10 +2881,7 @@ async function loadBids() {
       ${flowHTML(b, st, cp)}
       ${status[0] === "booked" ? "" : `<div class="bid-status"><i></i>${status[1]}</div>`}
       ${!b.ofp && !st.complete && !st.tracking ? bookedPlanPanel(b) : ""}
-      ${b.ofp && !st.complete && !st.tracking ? `<div class="notice" style="margin:12px 0"><b>Prepare VATSIM filing</b>
-        <p class="muted" style="margin:4px 0 10px;font-size:13px">PAC cannot file directly through VATSIM's documented API. File in your approved pilot client; copy these details to keep the PAC callsign and remarks when SimBrief's network filing omits them.</p>
-        <button class="btn ghost small" type="button" data-vatsim-copy>Copy filing details</button>
-        <details style="margin-top:8px"><summary>View filing details</summary><textarea data-vatsim-details readonly rows="8">${esc(vatsimFilingDetails(b))}</textarea></details></div>` : ""}
+      ${b.ofp && !st.complete && !st.tracking ? vatsimFilingPanel(m, b.aircraft, b.ofp) : ""}
       ${!b.ofp && !st.complete && !st.tracking ? `<p class="watch-note" style="margin:0">${S.ofpWatch ? `<i></i>PAC is watching SimBrief for this flight's plan until ${new Date(S.ofpWatch.until * 1000).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}. Generate it in SimBrief and it's attached automatically, with the dispatch paperwork updated. <a href="#" id="ofpWatchStop">Stop</a>`
         : `No SimBrief plan attached. <a href="#" id="ofpWatchStart">Watch SimBrief for it</a> (or fetch it in PAC ACARS).`}</p>` : ""}
       ${st.complete ? "" : preparationPanel(b, st, statusAvailable)}
@@ -2876,16 +2895,7 @@ async function loadBids() {
         ${st.complete ? "" : `<button class="btn ghost" onclick="cancelMission()">${st.tracking || cp ? "Abort flight" : "Cancel bid"}</button>`}
       </div>
     </article>`;
-  const vatsimCopy = root.querySelector("[data-vatsim-copy]");
-  if (vatsimCopy) vatsimCopy.onclick = async () => {
-    const field = root.querySelector("[data-vatsim-details]");
-    try { await navigator.clipboard.writeText(vatsimFilingDetails(b)); toast("VATSIM filing details copied."); }
-    catch (e) {
-      if (!field) { toast("Could not copy VATSIM filing details."); return; }
-      field.closest("details").open = true; field.focus(); field.select();
-      toast("Clipboard unavailable. Filing details are selected; press Ctrl+C.");
-    }
-  };
+  wireVatsimFiling(root, m, b.aircraft, b.ofp);
 }
 
 /* The flight workflow: where this flight is (Book → Plan → Sign → Fly → File → Debrief) and the one thing to do next */
