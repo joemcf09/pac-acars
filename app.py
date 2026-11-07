@@ -369,17 +369,21 @@ def parse_ofp(raw: dict) -> dict:
     route_pts = [[num(f.get("pos_lat")), num(f.get("pos_long")), f.get("ident", "")] for f in fixes if f.get("pos_lat")]
     times = raw.get("times", {})
     ac = raw.get("aircraft", {})
+    atc = raw.get("atc", {})
     return {
         "briefing": import_briefing(raw),
         "request_id": raw.get("params", {}).get("request_id", ""),
         "generated": raw.get("params", {}).get("time_generated", ""),
         "airline": gen.get("icao_airline", ""), "flight_number": gen.get("flight_number", ""),
-        "callsign": raw.get("atc", {}).get("callsign", ""),
+        "callsign": atc.get("callsign", ""), "flight_rules": atc.get("flight_rules", ""),
+        "flight_type": atc.get("flight_type", ""),
         "origin": apt(raw.get("origin")), "destination": apt(raw.get("destination")), "alternate": apt(raw.get("alternate")),
         "route": gen.get("route", ""), "cruise_ft": num(gen.get("initial_altitude")), "cost_index": gen.get("costindex", ""),
         "cruise_tas_kt": num(gen.get("cruise_tas")), "departure_time_utc": times.get("sched_out", ""),
         "distance_nm": num(gen.get("route_distance")) or num(gen.get("air_distance")),
         "aircraft_icao": ac.get("icaocode", ""), "aircraft_name": ac.get("name", ""), "registration": ac.get("reg", ""),
+        "equipment": ac.get("equip", ""), "equipment_category": ac.get("equip_category", ""),
+        "equipment_navigation": ac.get("equip_navigation", ""), "equipment_transponder": ac.get("equip_transponder", ""),
         "units": units,
         "block_fuel_lbs": round(num(fuel.get("plan_ramp")) * k), "trip_fuel_lbs": round(num(fuel.get("enroute_burn")) * k),
         "reserve_fuel_lbs": round(num(fuel.get("reserve")) * k), "taxi_fuel_lbs": round(num(fuel.get("taxi")) * k),

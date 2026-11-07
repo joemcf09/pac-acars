@@ -655,6 +655,13 @@ function vatsimFilingDetails(m, aircraft, ofp) {
 }
 function simbriefUtcParts(value) {
   const s = String(value || "").trim();
+  if (/^\d{10,13}$/.test(s)) {
+    const timestamp = Number(s) * (s.length === 13 ? 1 : 1000);
+    if (Number.isFinite(timestamp)) {
+      const date = new Date(timestamp);
+      if (!Number.isNaN(date.getTime())) return { date: date.toISOString().slice(0, 10), time: date.toISOString().slice(11, 16) };
+    }
+  }
   let match = s.match(/^(\d{4})-(\d{2})-(\d{2})[T ](\d{2}):(\d{2})/);
   if (match) return { date: `${match[1]}-${match[2]}-${match[3]}`, time: `${match[4]}:${match[5]}` };
   match = s.match(/^(\d{4})(\d{2})(\d{2})(\d{2})(\d{2})/);
@@ -673,7 +680,9 @@ function vatsimIcaoFpl(m, aircraft, ofp, values) {
   const ac = S.fleet[aircraft] || {}, origin = ofp.origin?.icao || m.origin.icao;
   const destination = ofp.destination?.icao || m.destination.icao;
   const type = String(ofp.aircraft_icao || ac.icao || ac.simbrief_type || "").toUpperCase();
-  const equipment = String(values.equipment || "").toUpperCase().replace(/\s/g, "");
+  const equipmentValue = values.equipment !== undefined ? values.equipment : ofp.equipment;
+  const equipment = String(equipmentValue || "").toUpperCase().replace(/\s/g, "");
+  const equipmentParts = equipment.match(/^([LMHJ])-?([A-Z0-9]{1,24})\/([A-Z0-9]{1,8})$/);
   const time = String(values.departureTime || "").replace(/\D/g, "");
   const date = String(values.flightDate || "");
   const speed = String(values.speed || ofp.cruise_tas_kt || "").replace(/\D/g, "");
@@ -683,7 +692,7 @@ function vatsimIcaoFpl(m, aircraft, ofp, values) {
   const missing = [];
   if (!/^[A-Z0-9]{2,8}$/.test(atcCallsign(m).toUpperCase())) missing.push("valid PAC callsign");
   if (!/^[A-Z0-9]{2,4}$/.test(type)) missing.push("aircraft type");
-  if (!/^[A-Z0-9]{1,24}\/[A-Z0-9]{1,4}$/.test(equipment)) missing.push("actual aircraft equipment and surveillance codes");
+  if (!equipmentParts && !/^[A-Z0-9]{1,24}\/[A-Z0-9]{1,8}$/.test(equipment)) missing.push("actual aircraft equipment and surveillance codes");
   if (!/^\d{4}$/.test(time) || Number(time.slice(0, 2)) > 23 || Number(time.slice(2)) > 59) missing.push("departure time in UTC");
   if (!validUtcDate(date)) missing.push("flight date in UTC");
   if (!/^\d{3,4}$/.test(speed) || Number(speed) < 1) missing.push("planned cruise speed in knots");
@@ -694,35 +703,38 @@ function vatsimIcaoFpl(m, aircraft, ofp, values) {
   if (missing.length) return { text: "", missing };
 
   const mtowKg = Number(ac.mtow_lbs) * 0.45359237;
-  const wake = mtowKg > 136000 ? "H" : mtowKg > 0 && mtowKg <= 7000 ? "L" : "M";
+  const wake = equipmentParts?.[1] || (mtowKg > 136000 ? "H" : mtowKg > 0 && mtowKg <= 7000 ? "L" : "M");
+  const equipmentCodes = equipmentParts ? `${equipmentParts[2]}/${equipmentParts[3]}` : equipment;
   const level = `${levelFt >= 18000 ? "F" : "A"}${String(Math.round(levelFt / 100)).padStart(3, "0")}`;
   const eet = `${String(Math.floor(eetMin / 60)).padStart(2, "0")}${String(eetMin % 60).padStart(2, "0")}`;
   const alternate = ofp.alternate?.icao ? ` ${ofp.alternate.icao.toUpperCase()}` : "";
   const dateOfFlight = date.slice(2, 4) + date.slice(5, 7) + date.slice(8, 10);
   const remarks = simbriefRemarks(m).toUpperCase().replace(/[^A-Z0-9 ]/g, " ").replace(/\s+/g, " ").trim().slice(0, 100);
-  const rules = values.rules === "V" ? "V" : "I";
-  const flightType = values.flightType === "S" ? "S" : "N";
+  const rules = (values.rules || ofp.flight_rules) === "V" ? "V" : "I";
+  const flightType = (values.flightType || ofp.flight_type) === "S" ? "S" : "N";
   const callsign = atcCallsign(m).toUpperCase();
   return {
-    text: `(FPL-${callsign}-${rules}${flightType}\n-${type}/${wake}-${equipment}\n-${origin.toUpperCase()}${time}\n-N${speed.padStart(4, "0")}${level} ${route}\n-${destination.toUpperCase()}${eet}${alternate}\n-DOF/${dateOfFlight} RMK/${remarks})`,
+    text: `(FPL-${callsign}-${rules}${flightType}\n-${type}/${wake}-${equipmentCodes}\n-${origin.toUpperCase()}${time}\n-N${speed.padStart(4, "0")}${level} ${route}\n-${destination.toUpperCase()}${eet}${alternate}\n-DOF/${dateOfFlight} RMK/${remarks})`,
     missing: [],
   };
 }
 function vatsimFilingPanel(m, aircraft, ofp) {
   const scheduled = simbriefUtcParts(ofp.departure_time_utc);
   const flightDate = scheduled.date || new Date().toISOString().slice(0, 10);
+  const equipment = ofp.equipment || [ofp.equipment_category, ofp.equipment_navigation].filter(Boolean).join("-")
+    + (ofp.equipment_transponder ? `/${ofp.equipment_transponder}` : "");
   return `<div class="notice vatsim-filing" style="margin:12px 0"><b>Prepare VATSIM filing</b>
     <p class="muted" style="margin:4px 0 10px;font-size:13px">PAC cannot file directly through VATSIM's documented API. File in your approved pilot client; copy these details to keep the PAC callsign and remarks when SimBrief's network filing omits them.</p>
     <button class="btn ghost small" type="button" data-vatsim-copy>Copy filing details</button>
     <details style="margin-top:8px"><summary>Build ICAO FPL for VATSIM import</summary>
-      <p class="muted" style="font-size:13px;margin:6px 0">Use your aircraft's actual equipment/surveillance codes from its VATSIM profile or documentation. Confirm the flight rules/type and UTC departure time/date, then review the message. Copy it into VATSIM's <b>Import ICAO FPL</b> box and click <b>Process</b>.</p>
+      <p class="muted" style="font-size:13px;margin:6px 0">PAC prefills the equipment and surveillance codes from your SimBrief OFP. Confirm they match your aircraft, check the UTC departure time/date and flight rules/type, then review the message. Copy it into VATSIM's <b>Import ICAO FPL</b> box and click <b>Process</b>.</p>
       <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:8px;margin:8px 0">
-        <label style="display:grid;gap:4px;font-size:13px;font-weight:600">Equipment/surveillance codes<input data-vatsim-equipment autocomplete="off" placeholder="e.g. SDE3FGIJ1/LB1"></label>
+        <label style="display:grid;gap:4px;font-size:13px;font-weight:600">Equipment/surveillance codes<input data-vatsim-equipment autocomplete="off" value="${esc(equipment)}" placeholder="Provided by SimBrief when available"></label>
         <label style="display:grid;gap:4px;font-size:13px;font-weight:600">Departure time (UTC)<input data-vatsim-time type="time" value="${esc(scheduled.time)}"></label>
         <label style="display:grid;gap:4px;font-size:13px;font-weight:600">Flight date (UTC)<input data-vatsim-date type="date" value="${esc(flightDate)}"></label>
         <label style="display:grid;gap:4px;font-size:13px;font-weight:600">Cruise speed (knots)<input data-vatsim-speed inputmode="numeric" value="${esc(ofp.cruise_tas_kt || "")}" placeholder="e.g. 441"></label>
-        <label style="display:grid;gap:4px;font-size:13px;font-weight:600">Flight rules<select data-vatsim-rules><option value="I">IFR</option><option value="V">VFR</option></select></label>
-        <label style="display:grid;gap:4px;font-size:13px;font-weight:600">Flight type<select data-vatsim-flight-type><option value="N">Non-scheduled</option><option value="S">Scheduled</option></select></label>
+        <label style="display:grid;gap:4px;font-size:13px;font-weight:600">Flight rules<select data-vatsim-rules><option value="I" ${ofp.flight_rules === "I" ? "selected" : ""}>IFR</option><option value="V" ${ofp.flight_rules === "V" ? "selected" : ""}>VFR</option></select></label>
+        <label style="display:grid;gap:4px;font-size:13px;font-weight:600">Flight type<select data-vatsim-flight-type><option value="N" ${ofp.flight_type !== "S" ? "selected" : ""}>Non-scheduled</option><option value="S" ${ofp.flight_type === "S" ? "selected" : ""}>Scheduled</option></select></label>
       </div>
       <textarea data-vatsim-icao-output readonly rows="6" aria-label="ICAO flight plan message"></textarea>
       <div class="row" style="margin-top:6px"><button class="btn ghost small" type="button" data-vatsim-icao-copy disabled>Copy ICAO FPL for VATSIM import</button><span class="muted" data-vatsim-icao-status role="status"></span></div>

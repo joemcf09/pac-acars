@@ -326,8 +326,9 @@ partner's own code, as before.
 
 After importing a valid SimBrief plan, the planning screen and **My bids** can prepare the VATSIM filing details,
 including PAC's network callsign and remarks, for copying into the pilot's VATSIM client. They can also build an
-ICAO FPL message for VATSIM's import dialog; pilots must supply their actual aircraft equipment/surveillance codes
-and confirm the UTC departure time and date before importing. PAC does not submit plans directly to VATSIM.
+ICAO FPL message for VATSIM's import dialog. Equipment/surveillance codes and flight rules/type are prefilled from
+SimBrief when available; pilots should confirm those values and the UTC departure time/date before importing. PAC
+does not submit plans directly to VATSIM.
 
 **VATSIM logo.** Once VATSIM accepts PAC as a Virtual Airline Associate or Partner, its policy asks for the VATSIM logo
 on the home page or in a clearly marked Partners section, linked to www.vatsim.net. PAC includes the official no-tagline
