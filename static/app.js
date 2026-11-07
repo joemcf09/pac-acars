@@ -634,6 +634,24 @@ function discordWidget(site) {   // the live Discord server widget on the home p
 }
 function filingIcao() { const c = String(S.settings?.filing_icao || "").toUpperCase(); return /^[A-Z]{3}$/.test(c) ? c : "PGC"; }
 function atcCallsign(m) { return (m.operator?.code || filingIcao()) + m.id.replace(/\D/g, ""); }
+function simbriefRemarks(m) {
+  return m.operator ? `PAC PILOT HIRED TO FILL IN FOR ${m.operator.name.toUpperCase()} CREW SHORTAGE. ${m.id} FLOWN BY ${(displayName(S.profile || {}) || "PAC CAPTAIN").toUpperCase()} ${S.profile?.pilot_id || ""}`.trim()
+    : `CALLSIGN PAGANI. PAGANI AIR CARGO MISSION ${m.id} ${m.title.toUpperCase()}`;
+}
+function vatsimFilingDetails(b) {
+  const m = b.mission, ofp = b.ofp || {}, ac = S.fleet[b.aircraft] || {};
+  const rows = [
+    ["Network callsign", atcCallsign(m)],
+    ["Aircraft type", ofp.aircraft_icao || ac.icao || ac.simbrief_type || b.aircraft],
+    ["Departure", ofp.origin?.icao || m.origin.icao],
+    ["Destination", ofp.destination?.icao || m.destination.icao],
+    ["Alternate", ofp.alternate?.icao],
+    ["Cruise altitude", ofp.cruise_ft ? `FL${Math.round(ofp.cruise_ft / 100)}` : ""],
+    ["Route", ofp.route],
+    ["PAC remarks", simbriefRemarks(m)],
+  ].filter(([, value]) => value);
+  return `${b.flight_number} · VATSIM flight plan\n${rows.map(([label, value]) => `${label}: ${value}`).join("\n")}`;
+}
 /* A partner airline's real tail for a contract flight: the same pick as the server's partner_tail() */
 function partnerTail(m, ac) {
   if (!m?.contract) return null;
@@ -669,7 +687,7 @@ function simbriefUrl(m, ac) {
   const al = m.operator?.code || filingIcao();      // PAC flights are filed as PGC on the networks: PAC is Polar Air Cargo's code
   const p = new URLSearchParams({ airline: al, fltnum: num, orig: m.origin.icao, dest: m.destination.icao, type: myAirframe(ac) || fl.simbrief_airframe || fl.simbrief_type,   // the pilot's own airframe, then PAC's, then SimBrief's default
     cargo: (Math.min(m.payload_lbs, fl.max_payload_lbs) / 1000).toFixed(1), pax: "0", units: "LBS", callsign: al + num,
-    manualrmk: m.operator ? `PAC PILOT HIRED TO FILL IN FOR ${m.operator.name.toUpperCase()} CREW SHORTAGE. ${m.id} FLOWN BY ${(displayName(S.profile || {}) || "PAC CAPTAIN").toUpperCase()} ${S.profile?.pilot_id || ""}`.trim() : `CALLSIGN PAGANI. PAGANI AIR CARGO MISSION ${m.id} ${m.title.toUpperCase()}` });
+    manualrmk: simbriefRemarks(m) });
   if (S.airframe && (S.airframes || []).some(a => a.reg === S.airframe && a.type === ac)) p.set("reg", S.airframe);
   else if (partnerTail(m, ac)) p.set("reg", partnerTail(m, ac));      // the partner's own aircraft, not SimBrief's default tail
   if (S.extraFuel > 0) p.set("addedfuel", (S.extraFuel / 1000).toFixed(1));   // the pilot's discretionary extra fuel, in thousands of lb
@@ -2841,6 +2859,10 @@ async function loadBids() {
       ${flowHTML(b, st, cp)}
       ${status[0] === "booked" ? "" : `<div class="bid-status"><i></i>${status[1]}</div>`}
       ${!b.ofp && !st.complete && !st.tracking ? bookedPlanPanel(b) : ""}
+      ${b.ofp && !st.complete && !st.tracking ? `<div class="notice" style="margin:12px 0"><b>Prepare VATSIM filing</b>
+        <p class="muted" style="margin:4px 0 10px;font-size:13px">PAC cannot file directly through VATSIM's documented API. File in your approved pilot client; copy these details to keep the PAC callsign and remarks when SimBrief's network filing omits them.</p>
+        <button class="btn ghost small" type="button" data-vatsim-copy>Copy filing details</button>
+        <details style="margin-top:8px"><summary>View filing details</summary><textarea data-vatsim-details readonly rows="8">${esc(vatsimFilingDetails(b))}</textarea></details></div>` : ""}
       ${!b.ofp && !st.complete && !st.tracking ? `<p class="watch-note" style="margin:0">${S.ofpWatch ? `<i></i>PAC is watching SimBrief for this flight's plan until ${new Date(S.ofpWatch.until * 1000).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}. Generate it in SimBrief and it's attached automatically, with the dispatch paperwork updated. <a href="#" id="ofpWatchStop">Stop</a>`
         : `No SimBrief plan attached. <a href="#" id="ofpWatchStart">Watch SimBrief for it</a> (or fetch it in PAC ACARS).`}</p>` : ""}
       ${st.complete ? "" : preparationPanel(b, st, statusAvailable)}
@@ -2854,6 +2876,16 @@ async function loadBids() {
         ${st.complete ? "" : `<button class="btn ghost" onclick="cancelMission()">${st.tracking || cp ? "Abort flight" : "Cancel bid"}</button>`}
       </div>
     </article>`;
+  const vatsimCopy = root.querySelector("[data-vatsim-copy]");
+  if (vatsimCopy) vatsimCopy.onclick = async () => {
+    const field = root.querySelector("[data-vatsim-details]");
+    try { await navigator.clipboard.writeText(vatsimFilingDetails(b)); toast("VATSIM filing details copied."); }
+    catch (e) {
+      if (!field) { toast("Could not copy VATSIM filing details."); return; }
+      field.closest("details").open = true; field.focus(); field.select();
+      toast("Clipboard unavailable. Filing details are selected; press Ctrl+C.");
+    }
+  };
 }
 
 /* The flight workflow: where this flight is (Book → Plan → Sign → Fly → File → Debrief) and the one thing to do next */

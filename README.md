@@ -324,6 +324,9 @@ by default (Staff › Site and rules › Flying online). The SimBrief link fills
 PAC number (PAC9613): a plan filed as PGC9613 is booked as PAC9613. Partner crew requests are filed under the
 partner's own code, as before.
 
+After importing a SimBrief plan, **My bids** can prepare the VATSIM filing details, including PAC's network callsign
+and remarks, for copying into the pilot's VATSIM client. PAC does not submit plans directly to VATSIM.
+
 **VATSIM logo.** Once VATSIM accepts PAC as a Virtual Airline Associate or Partner, its policy asks for the VATSIM logo
 on the home page or in a clearly marked Partners section, linked to www.vatsim.net. PAC includes the official no-tagline
 logo from VATSIM's public logo pack (`static/partners/vatsim-logo.svg`, unaltered; see `static/partners/CREDITS.md`),
