@@ -653,10 +653,80 @@ function vatsimFilingDetails(m, aircraft, ofp) {
   ].filter(([, value]) => value);
   return `${atcCallsign(m)} · VATSIM flight plan\n${rows.map(([label, value]) => `${label}: ${value}`).join("\n")}`;
 }
+function simbriefUtcParts(value) {
+  const s = String(value || "").trim();
+  let match = s.match(/^(\d{4})-(\d{2})-(\d{2})[T ](\d{2}):(\d{2})/);
+  if (match) return { date: `${match[1]}-${match[2]}-${match[3]}`, time: `${match[4]}:${match[5]}` };
+  match = s.match(/^(\d{4})(\d{2})(\d{2})(\d{2})(\d{2})/);
+  if (match) return { date: `${match[1]}-${match[2]}-${match[3]}`, time: `${match[4]}:${match[5]}` };
+  match = s.match(/^(\d{2}):(\d{2})$/);
+  if (match) return { date: "", time: `${match[1]}:${match[2]}` };
+  if (/^\d{4}$/.test(s)) return { date: "", time: `${s.slice(0, 2)}:${s.slice(2)}` };
+  return { date: "", time: "" };
+}
+function validUtcDate(value) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+  const date = new Date(`${value}T00:00:00Z`);
+  return !Number.isNaN(date.getTime()) && date.toISOString().slice(0, 10) === value;
+}
+function vatsimIcaoFpl(m, aircraft, ofp, values) {
+  const ac = S.fleet[aircraft] || {}, origin = ofp.origin?.icao || m.origin.icao;
+  const destination = ofp.destination?.icao || m.destination.icao;
+  const type = String(ofp.aircraft_icao || ac.icao || ac.simbrief_type || "").toUpperCase();
+  const equipment = String(values.equipment || "").toUpperCase().replace(/\s/g, "");
+  const time = String(values.departureTime || "").replace(/\D/g, "");
+  const date = String(values.flightDate || "");
+  const speed = String(values.speed || ofp.cruise_tas_kt || "").replace(/\D/g, "");
+  const route = String(ofp.route || "").trim().replace(/\s+/g, " ").toUpperCase();
+  const levelFt = Number(ofp.cruise_ft) || 0;
+  const eetMin = Math.round(Number(ofp.est_enroute_min) || 0);
+  const missing = [];
+  if (!/^[A-Z0-9]{2,8}$/.test(atcCallsign(m).toUpperCase())) missing.push("valid PAC callsign");
+  if (!/^[A-Z0-9]{2,4}$/.test(type)) missing.push("aircraft type");
+  if (!/^[A-Z0-9]{1,24}\/[A-Z0-9]{1,4}$/.test(equipment)) missing.push("actual aircraft equipment and surveillance codes");
+  if (!/^\d{4}$/.test(time) || Number(time.slice(0, 2)) > 23 || Number(time.slice(2)) > 59) missing.push("departure time in UTC");
+  if (!validUtcDate(date)) missing.push("flight date in UTC");
+  if (!/^\d{3,4}$/.test(speed) || Number(speed) < 1) missing.push("planned cruise speed in knots");
+  if (!/^[A-Z]{4}$/i.test(origin || "") || !/^[A-Z]{4}$/i.test(destination || "")) missing.push("departure and destination ICAO codes");
+  if (!route) missing.push("SimBrief route");
+  if (!(levelFt > 0)) missing.push("SimBrief cruise altitude");
+  if (!(eetMin > 0 && eetMin < 6000)) missing.push("SimBrief estimated enroute time");
+  if (missing.length) return { text: "", missing };
+
+  const mtowKg = Number(ac.mtow_lbs) * 0.45359237;
+  const wake = mtowKg > 136000 ? "H" : mtowKg > 0 && mtowKg <= 7000 ? "L" : "M";
+  const level = `${levelFt >= 18000 ? "F" : "A"}${String(Math.round(levelFt / 100)).padStart(3, "0")}`;
+  const eet = `${String(Math.floor(eetMin / 60)).padStart(2, "0")}${String(eetMin % 60).padStart(2, "0")}`;
+  const alternate = ofp.alternate?.icao ? ` ${ofp.alternate.icao.toUpperCase()}` : "";
+  const dateOfFlight = date.slice(2, 4) + date.slice(5, 7) + date.slice(8, 10);
+  const remarks = simbriefRemarks(m).toUpperCase().replace(/[^A-Z0-9 ]/g, " ").replace(/\s+/g, " ").trim().slice(0, 100);
+  const rules = values.rules === "V" ? "V" : "I";
+  const flightType = values.flightType === "S" ? "S" : "N";
+  const callsign = atcCallsign(m).toUpperCase();
+  return {
+    text: `(FPL-${callsign}-${rules}${flightType}\n-${type}/${wake}-${equipment}\n-${origin.toUpperCase()}${time}\n-N${speed.padStart(4, "0")}${level} ${route}\n-${destination.toUpperCase()}${eet}${alternate}\n-DOF/${dateOfFlight} RMK/${remarks})`,
+    missing: [],
+  };
+}
 function vatsimFilingPanel(m, aircraft, ofp) {
+  const scheduled = simbriefUtcParts(ofp.departure_time_utc);
+  const flightDate = scheduled.date || new Date().toISOString().slice(0, 10);
   return `<div class="notice vatsim-filing" style="margin:12px 0"><b>Prepare VATSIM filing</b>
     <p class="muted" style="margin:4px 0 10px;font-size:13px">PAC cannot file directly through VATSIM's documented API. File in your approved pilot client; copy these details to keep the PAC callsign and remarks when SimBrief's network filing omits them.</p>
     <button class="btn ghost small" type="button" data-vatsim-copy>Copy filing details</button>
+    <details style="margin-top:8px"><summary>Build ICAO FPL for VATSIM import</summary>
+      <p class="muted" style="font-size:13px;margin:6px 0">Use your aircraft's actual equipment/surveillance codes from its VATSIM profile or documentation. Confirm the flight rules/type and UTC departure time/date, then review the message. Copy it into VATSIM's <b>Import ICAO FPL</b> box and click <b>Process</b>.</p>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:8px;margin:8px 0">
+        <label style="display:grid;gap:4px;font-size:13px;font-weight:600">Equipment/surveillance codes<input data-vatsim-equipment autocomplete="off" placeholder="e.g. SDE3FGIJ1/LB1"></label>
+        <label style="display:grid;gap:4px;font-size:13px;font-weight:600">Departure time (UTC)<input data-vatsim-time type="time" value="${esc(scheduled.time)}"></label>
+        <label style="display:grid;gap:4px;font-size:13px;font-weight:600">Flight date (UTC)<input data-vatsim-date type="date" value="${esc(flightDate)}"></label>
+        <label style="display:grid;gap:4px;font-size:13px;font-weight:600">Cruise speed (knots)<input data-vatsim-speed inputmode="numeric" value="${esc(ofp.cruise_tas_kt || "")}" placeholder="e.g. 441"></label>
+        <label style="display:grid;gap:4px;font-size:13px;font-weight:600">Flight rules<select data-vatsim-rules><option value="I">IFR</option><option value="V">VFR</option></select></label>
+        <label style="display:grid;gap:4px;font-size:13px;font-weight:600">Flight type<select data-vatsim-flight-type><option value="N">Non-scheduled</option><option value="S">Scheduled</option></select></label>
+      </div>
+      <textarea data-vatsim-icao-output readonly rows="6" aria-label="ICAO flight plan message"></textarea>
+      <div class="row" style="margin-top:6px"><button class="btn ghost small" type="button" data-vatsim-icao-copy disabled>Copy ICAO FPL for VATSIM import</button><span class="muted" data-vatsim-icao-status role="status"></span></div>
+    </details>
     <details style="margin-top:8px"><summary>View filing details</summary><textarea data-vatsim-details readonly rows="8">${esc(vatsimFilingDetails(m, aircraft, ofp))}</textarea></details></div>`;
 }
 function wireVatsimFiling(root, m, aircraft, ofp) {
@@ -671,6 +741,33 @@ function wireVatsimFiling(root, m, aircraft, ofp) {
       toast("Clipboard unavailable. Filing details are selected; press Ctrl+C.");
     }
   };
+  const buildButton = root.querySelector("[data-vatsim-icao-copy]");
+  if (!buildButton) return;
+  const output = root.querySelector("[data-vatsim-icao-output]");
+  const status = root.querySelector("[data-vatsim-icao-status]");
+  const values = () => ({
+    equipment: root.querySelector("[data-vatsim-equipment]").value,
+    departureTime: root.querySelector("[data-vatsim-time]").value,
+    flightDate: root.querySelector("[data-vatsim-date]").value,
+    speed: root.querySelector("[data-vatsim-speed]").value,
+    rules: root.querySelector("[data-vatsim-rules]").value,
+    flightType: root.querySelector("[data-vatsim-flight-type]").value,
+  });
+  const refresh = () => {
+    const result = vatsimIcaoFpl(m, aircraft, ofp, values());
+    output.value = result.text || "Complete the required fields above to generate an ICAO flight plan.";
+    buildButton.disabled = !!result.missing.length;
+    status.textContent = result.missing.length ? `Still needed: ${result.missing.join(", ")}.` : "Ready to import. Review all values before filing.";
+  };
+  root.querySelectorAll("[data-vatsim-equipment], [data-vatsim-time], [data-vatsim-date], [data-vatsim-speed], [data-vatsim-rules], [data-vatsim-flight-type]").forEach(el => {
+    el.addEventListener("input", refresh); el.addEventListener("change", refresh);
+  });
+  buildButton.onclick = async () => {
+    const field = root.querySelector("[data-vatsim-icao-output]");
+    try { await navigator.clipboard.writeText(field.value); toast("ICAO flight plan copied. Paste it into VATSIM's Import ICAO FPL dialog."); }
+    catch (e) { field.focus(); field.select(); toast("Clipboard unavailable. The ICAO flight plan is selected; press Ctrl+C."); }
+  };
+  refresh();
 }
 /* A partner airline's real tail for a contract flight: the same pick as the server's partner_tail() */
 function partnerTail(m, ac) {

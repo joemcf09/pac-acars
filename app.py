@@ -377,6 +377,7 @@ def parse_ofp(raw: dict) -> dict:
         "callsign": raw.get("atc", {}).get("callsign", ""),
         "origin": apt(raw.get("origin")), "destination": apt(raw.get("destination")), "alternate": apt(raw.get("alternate")),
         "route": gen.get("route", ""), "cruise_ft": num(gen.get("initial_altitude")), "cost_index": gen.get("costindex", ""),
+        "cruise_tas_kt": num(gen.get("cruise_tas")), "departure_time_utc": times.get("sched_out", ""),
         "distance_nm": num(gen.get("route_distance")) or num(gen.get("air_distance")),
         "aircraft_icao": ac.get("icaocode", ""), "aircraft_name": ac.get("name", ""), "registration": ac.get("reg", ""),
         "units": units,
