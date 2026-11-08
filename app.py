@@ -3277,6 +3277,8 @@ def file_pirep():
             raise RuntimeError("PIREP filing did not create or find its booking record.")
         pid = filed["id"]
         cargo_network.record_flight(con, booking, p, pid, pid_)
+        if p.get("review_status") == "Rejected":      # e.g. a restricted conflict-zone flight: its cargo stays put
+            cargo_network.set_flight_outcome(con, pid, accepted=False)
         if p.get("conflict_note") and con.execute("SELECT review_note FROM pireps WHERE id=?", (pid,)).fetchone()[0] is None:
             con.execute("UPDATE pireps SET review_note=?, reviewed_at=? WHERE id=?", (p["conflict_note"], time.time(), pid))
     p["paid"] = va.after_file(p, booking, rec, pid)

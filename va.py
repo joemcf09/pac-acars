@@ -2870,6 +2870,11 @@ def staff_review(pid):
     with C["db"]() as con:
         con.execute("UPDATE pireps SET review_status=?, review_note=?, reviewed_at=? WHERE id=?",
                     ("Accepted" if action == "accept" else "Rejected", C["clean_text"](b.get("note"), 500), time.time(), pid))
+        try:
+            import cargo_network
+            cargo_network.set_flight_outcome(con, pid, accepted=(action == "accept"))
+        except Exception as e:      # cargo bookkeeping must never block a review
+            print("cargo outcome:", e)
     if action == "accept":
         with C["db"]() as con:
             record_accepted_type_pass(con, pid)

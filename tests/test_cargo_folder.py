@@ -253,6 +253,27 @@ if transfer_row:
                                                (transfer_row["id"],)).fetchone()[0]
                 check("replaying the onward PIREP does not duplicate its movement", replay_count == 2, replay_count)
 
+                print("A rejected flight doesn't carry its cargo")
+                state = lambda: A.db().execute("SELECT current_station, status FROM cargo_shipments WHERE id=?",
+                                               (transfer_row["id"],)).fetchone()
+                r = c.post(f"/api/staff/reviews/{second_pirep['id']}", json={"action": "reject", "note": "test"})
+                after = state()
+                check("staff rejecting the onward flight returns the cargo to where it was loaded",
+                      r.status_code == 200 and after["current_station"] == p["arr"] and after["status"] == "AT_STATION", dict(after))
+                c.post(f"/api/staff/reviews/{second_pirep['id']}", json={"action": "reject", "note": "again"})
+                with A.db() as con:
+                    n_rej = con.execute("SELECT COUNT(*) FROM cargo_movements WHERE shipment_id=? AND event_type='FLIGHT_REJECTED'",
+                                        (transfer_row["id"],)).fetchone()[0]
+                check("rejecting twice moves it only once", n_rej == 1, n_rej)
+                c.post(f"/api/staff/reviews/{second_pirep['id']}", json={"action": "accept", "note": "ok after all"})
+                back = state()
+                check("accepting it later restores the delivery",
+                      back["current_station"] == route["destination"]["icao"] and back["status"] in ("DELIVERED", "DELIVERED_LATE"), dict(back))
+                with A.db() as con:
+                    first_leg = con.execute("SELECT status FROM cargo_shipments WHERE current_station=? AND status='DELIVERED' LIMIT 1",
+                                            (p["arr"],)).fetchone()
+                check("cargo from other flights is untouched", first_leg is not None)
+
 print()
 print("All cargo folder checks passed." if not failures else f"{len(failures)} failed: {failures}")
 sys.exit(1 if failures else 0)
