@@ -27,6 +27,7 @@ import va
 import analysis
 import dispatch
 import shipments  # noqa: E402  (air waybills, acceptance and tracking)
+import cargo_network
 import debrief  # noqa: E402  (after-action review: planned vs actual, customer and dispatcher comments)
 import paperwork_release as releases
 import discord_post  # noqa: E402  (flights to a Discord channel)
@@ -315,6 +316,7 @@ def db():
         rotation_planner.migrate(con)
         import cargo_programs
         cargo_programs.migrate(con)
+        cargo_network.migrate(con)
         con.commit()
     return con
 
@@ -1963,12 +1965,18 @@ def load_booking(pid=None):
         return None
 
 
-def save_booking(booking, pid=None):
+def save_booking(booking, pid=None, notify=True):
     pid = _booking_pid(pid)
+    if not booking.get("requested_at"):
+        booking["requested_at"] = time.time()
+    if booking.get("dispatch") and (booking.get("dispatch") or {}).get("shipments"):
+        shipments.enrich(booking["dispatch"])
     with db() as con:
+        if booking.get("dispatch") and (booking.get("dispatch") or {}).get("shipments"):
+            cargo_network.register_booking(con, booking, pid)
         con.execute("INSERT OR REPLACE INTO bookings (pilot_id, data, requested_at) VALUES (?,?,?)",
                     (pid, json.dumps(booking), booking.get("requested_at") or time.time()))
-    if "SI" in globals():
+    if notify and "SI" in globals():
         SI.notify(pid, "flight booked or changed")   # the pilot's SayIntentions crew learn about it
 
 
@@ -3144,6 +3152,9 @@ def file_pirep():
         return jsonify({"error": "No tracked flight to report."}), 400
     if not rec.complete and not ((request.json or {}).get("force") and rec.oooi["on"]):
         return jsonify({"error": "The flight is not on block yet."}), 400
+    dispatch_data = booking.get("dispatch") or {}
+    if dispatch_data.get("shipments") and not all(s.get("shipment_id") for s in dispatch_data["shipments"]):
+        save_booking(booking, notify=False)
     stop_tracking()
     p = build_pirep(booking, rec)
     booking_key = str(booking.get("requested_at") or "")
@@ -3187,6 +3198,7 @@ def file_pirep():
         if not filed:
             raise RuntimeError("PIREP filing did not create or find its booking record.")
         pid = filed["id"]
+        cargo_network.record_flight(con, booking, p, pid, pid_)
         if p.get("conflict_note") and con.execute("SELECT review_note FROM pireps WHERE id=?", (pid,)).fetchone()[0] is None:
             con.execute("UPDATE pireps SET review_note=?, reviewed_at=? WHERE id=?", (p["conflict_note"], time.time(), pid))
     p["paid"] = va.after_file(p, booking, rec, pid)

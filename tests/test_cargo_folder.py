@@ -3,6 +3,7 @@
 Run from the PAC folder:   python tests/test_cargo_folder.py
 """
 import os
+import copy
 import shutil
 import subprocess
 import sys
@@ -73,6 +74,19 @@ print("The release keeps them")
 b = c.post("/api/booking", json={"mission_id": "PAC712", "aircraft": "B77F", "airframe": None, "seed": ls["seed"], "zone_ack": True}).json
 d = c.get("/api/dispatch").json
 check("dispatch carries a waybill per shipment", all(s.get("awb_doc") for s in d.get("shipments") or []) and d.get("shipments"))
+with A.db() as con:
+    cargo_rows = con.execute("SELECT id, awb, status, current_station FROM cargo_shipments ORDER BY awb").fetchall()
+check("booking creates one persistent record per shipment", len(cargo_rows) == len(d["shipments"]),
+      (len(cargo_rows), len(d["shipments"])))
+check("persistent AWBs match the dispatch paperwork",
+      {row["awb"] for row in cargo_rows} == {s["awb"] for s in d["shipments"]})
+check("booked cargo starts at the departure station",
+      all(row["status"] == "BOOKED" and row["current_station"] == "EBLG" for row in cargo_rows))
+original_ids = {row["id"] for row in cargo_rows}
+with A.db() as con:
+    A.cargo_network.register_booking(con, b, "PAC0001")
+    reloaded_ids = {row["id"] for row in con.execute("SELECT id FROM cargo_shipments")}
+check("re-saving a booking preserves shipment identity", original_ids == reloaded_ids)
 
 print("After-action debrief")
 rw = analysis.runways(A.DATA)
@@ -90,6 +104,30 @@ row = next((r for r in db["planned_actual"] if r["what"].startswith("Payload")),
 check("payload is compared with what the type can carry", row and row.get("ok") is True, row)
 lb = c.get(f"/api/logbook/{p['id']}").json
 check("the debrief is kept in the logbook", (lb.get("detail") or {}).get("debrief", {}).get("dispatcher") == db["dispatcher"])
+with A.db() as con:
+    cargo_rows = con.execute("SELECT id, awb, status, current_station FROM cargo_shipments ORDER BY awb").fetchall()
+    movement_rows = con.execute("SELECT shipment_id, event_type, pirep_id FROM cargo_movements ORDER BY id").fetchall()
+check("PIREP filing records completed cargo movement",
+      all(row["status"] == "DELIVERED" and row["current_station"] == p["arr"] for row in cargo_rows))
+check("each shipment has one booking and one flight movement",
+      len(movement_rows) == len(cargo_rows) * 2
+      and sum(row["event_type"] == "FLIGHT_ARRIVAL" and row["pirep_id"] == p["id"] for row in movement_rows) == len(cargo_rows))
+with A.db() as con:
+    A.cargo_network.record_flight(con, b, p, p["id"], "PAC0001")
+    repeated_movements = con.execute("SELECT COUNT(*) FROM cargo_movements WHERE event_type='FLIGHT_ARRIVAL' AND pirep_id=?",
+                                     (p["id"],)).fetchone()[0]
+check("replaying the same PIREP does not duplicate cargo movement", repeated_movements == len(cargo_rows))
+duplicate = copy.deepcopy(b)
+duplicate["requested_at"] += 1
+for shipment in duplicate["dispatch"]["shipments"]:
+    shipment.pop("shipment_id", None)
+    shipment.pop("cargo_source_awb", None)
+with A.db() as con:
+    A.cargo_network.register_booking(con, duplicate, "PAC0002")
+    duplicate_awbs = {row["awb"] for row in con.execute(
+        "SELECT awb FROM cargo_shipments WHERE booking_key LIKE 'PAC0002:%'")}
+check("a separate booking receives globally unique permanent AWBs",
+      len(duplicate_awbs) == len(d["shipments"]) and not duplicate_awbs.intersection({s["awb"] for s in d["shipments"]}))
 
 print()
 print("All cargo folder checks passed." if not failures else f"{len(failures)} failed: {failures}")

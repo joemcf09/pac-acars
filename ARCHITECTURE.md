@@ -16,6 +16,7 @@ browser is the interface. Everything the airline knows lives in `data/`.
 | `analysis.py` | Landing analysis (runway match, touchdown point, centerline, float, stability, rollout) and takeoff analysis (rotation, liftoff, tail-strike margin, runway used). |
 | `economics.py` | Contract pricing and flight costs. PAC's revenue, costs and profit per flight and estimates. |
 | `dispatch.py` | Dispatch release, cargo manifest, loading plan and NOTOC, generated once at booking. |
+| `cargo_network.py` | Persistent shipment records and idempotent custody movements linked to bookings and filed PIREPs. |
 | `weather.py` | METAR/TAF fetch (aviationweather.gov), cache and decoder; wind components. |
 | `online.py` | VATSIM/IVAO presence from the networks' public feeds. |
 
@@ -76,6 +77,7 @@ After `complete`, filing goes through the normal `POST /api/pirep`.
 2. **Track** in the PAC ACARS app: its `TrackerThread` feeds telemetry to `FlightRecorder`; dispatch messages, weather uplinks and online checks run alongside (`acars_core.py`). The app sends live status to the website and hands over the finished record.
 3. **Talk to dispatch** (the app's Dispatch panel, `acars_core.handle_message`): delays, diversions, fuel checks, ETA, fault write-ups and free text; OCC replies are queued a few seconds later. Reported delays and declared diversions feed into scoring; write-ups are opened on the tail at filing.
 4. **File** (`POST /api/pirep`): `build_pirep` scores the flight, runs landing and takeoff analysis, economics and pay; `va.after_file` moves the airframe and pilot, opens maintenance items, pays the wallet and awards badges. A unique pilot-and-booking key reuses the same PIREP on retries, and a transactionally recorded marker prevents database side effects such as airframe hours and cycles from being applied twice.
+5. **Record cargo**: booking persists each generated shipment and its AWB in `cargo_shipments`; PIREP filing adds an idempotent `FLIGHT_ARRIVAL` custody event in `cargo_movements` in the same transaction as the PIREP. This is the persistence foundation only; selecting freight from a station warehouse for an onward flight is a later milestone.
 
 ## Data, backups and updates
 
@@ -93,7 +95,7 @@ Run these before shipping a change:
 
 ```
 python tests/test_flights.py      # scripted flights through the real tracker, scoring, analysis, economics and pay
-python tests/test_cargo_folder.py # cargo paperwork and debrief checks in an isolated data directory
+python tests/test_cargo_folder.py # cargo paperwork, persistent AWBs and custody history in an isolated data directory
 python tests/test_pirep_retry.py  # PIREP filing resumes safely after interruptions, without duplicate effects
 python tools/check_frontend.py    # JavaScript syntax check (needs Node.js)
 python tests/test_acars_window.py # the ACARS app's window supervision: frozen window replaced, closing mid-flight keeps tracking
