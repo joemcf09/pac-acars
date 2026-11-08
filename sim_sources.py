@@ -152,6 +152,10 @@ class MSFSSource:
         self.req = {}
         self.cache = {}
         self._clock = None  # (wall, sim absolute time) to detect pause
+        self._last_touchdown_value = None
+        self._has_read_touchdown_value = False
+        self._fresh_touchdown_value = None
+        self._fresh_touchdown_time = None
 
     def connect(self):
         try:
@@ -195,6 +199,21 @@ class MSFSSource:
             return None  # no fresh data for a core value; the tracker skips it
         num = lambda k, d=0.0: d if v[k] is None else float(v[k])
         td = v["td"]
+        on_ground = bool(v["on_ground"])
+        touchdown_value = -abs(float(td)) if td else None
+        if (self._has_read_touchdown_value and on_ground and touchdown_value is not None
+                and (self._last_touchdown_value is None
+                     or abs(touchdown_value - self._last_touchdown_value) >= 1.0)):
+            self._fresh_touchdown_value = touchdown_value
+            self._fresh_touchdown_time = time.time()
+        if not on_ground:
+            self._fresh_touchdown_value = None
+            self._fresh_touchdown_time = None
+        self._last_touchdown_value = touchdown_value
+        self._has_read_touchdown_value = True
+        touchdown_fpm = (self._fresh_touchdown_value
+                         if on_ground and self._fresh_touchdown_time is not None
+                         and time.time() - self._fresh_touchdown_time <= 2.0 else None)
         # pause: the simulator clock stops while the wall clock keeps going
         now = time.time()
         paused = False
@@ -211,12 +230,12 @@ class MSFSSource:
             lat=num("lat"), lon=num("lon"), agl_ft=num("agl", num("alt")),
             alt_ft=altimeter_alt(None if v["ind_alt"] is None else float(v["ind_alt"]), num("alt")), true_alt_ft=num("alt"),
             ias=max(0.0, num("ias")), gs=max(0.0, num("gs")), vs_fpm=num("vs"), hdg=num("hdg") % 360,
-            on_ground=bool(v["on_ground"]),
+            on_ground=on_ground,
             engines_running=any(bool(v[f"eng{i}"]) for i in range(1, 5)),
             parking_brake=bool(v["pbrake"]), fuel_lbs=num("fuel"), weight_lbs=num("weight"),
             gear_down=bool(v["gear"]) if v["gear"] is not None else True,
             flaps=num("flaps"), g=num("g", 1.0),
-            touchdown_fpm=-abs(float(td)) if td else None,
+            touchdown_fpm=touchdown_fpm,
             slew=bool(v["slew"]),
             pitch=-num("pitch") if v["pitch"] is not None else None,
             sim_rate=num("rate", 1.0) or 1.0, paused=paused,

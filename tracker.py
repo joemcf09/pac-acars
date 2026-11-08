@@ -394,7 +394,11 @@ class FlightRecorder:
             if s.on_ground and not pc:
                 last = self.recent_vs[-1][0] if self.recent_vs else t
                 vs_c = [v for tt, v in self.recent_vs if last - tt <= 0.6] or [s.vs_fpm]
-                self.pending_contact = {"t": t, "rate": -abs(min(vs_c)), "ias": s.ias, "lat": s.lat, "lon": s.lon, "air_again": False}
+                self.pending_contact = {"t": t, "rate": -abs(min(vs_c)), "vs_rate": min(vs_c),
+                                        "touchdown_fpm": s.touchdown_fpm, "ias": s.ias, "lat": s.lat,
+                                        "lon": s.lon, "air_again": False}
+            elif pc and s.on_ground and s.touchdown_fpm is not None:
+                pc["touchdown_fpm"] = s.touchdown_fpm
             elif pc and not s.on_ground and s.agl_ft > 2:
                 if t - pc["t"] < 3:
                     pc["air_again"] = True
@@ -646,14 +650,17 @@ class FlightRecorder:
         last = self.recent_vs[-1][0] if self.recent_vs else t
         vs_candidates = [v for tt, v in self.recent_vs if last - tt <= 0.6] or [s.vs_fpm]
         vs_rate = min(vs_candidates)
-        rate = vs_rate
-        # the sim's own touchdown value is best, unless it looks stale
-        if s.touchdown_fpm and abs(-abs(s.touchdown_fpm) - vs_rate) < 400:
-            rate = s.touchdown_fpm
+        touchdown_fpm = s.touchdown_fpm
+        rate = -abs(touchdown_fpm) if touchdown_fpm is not None else vs_rate
+        rate_source = "sim_touchdown" if touchdown_fpm is not None else "vertical_speed"
         rate = -abs(rate)
         lat, lon, ias = s.lat, s.lon, s.ias
         if forced:  # a bounce: the first contact counts
-            rate, lat, lon, ias = forced["rate"], forced["lat"], forced["lon"], forced["ias"]
+            lat, lon, ias = forced["lat"], forced["lon"], forced["ias"]
+            vs_rate = forced.get("vs_rate", forced["rate"])
+            touchdown_fpm = forced.get("touchdown_fpm")
+            rate = -abs(touchdown_fpm) if touchdown_fpm is not None else forced["rate"]
+            rate_source = "sim_touchdown" if touchdown_fpm is not None else "first_contact"
         if self.oooi["on"] and t - self.oooi["on"] < 15:
             self.bounces += 1
             self.event(t, "bounce", f"BOUNCED LANDING  #{self.bounces}", penalty=5)
@@ -662,7 +669,9 @@ class FlightRecorder:
             self.fuel["on"] = s.fuel_lbs
             self.weights["landing"] = s.weight_lbs
             dist_dest = gc_distance_nm(lat, lon, self.dest["lat"], self.dest["lon"])
-            self.landing = {"rate_fpm": round(rate), "g": round(s.g, 2),
+            self.landing = {"rate_fpm": round(rate), "vs_rate_fpm": round(vs_rate),
+                            "touchdown_fpm": round(touchdown_fpm) if touchdown_fpm is not None else None,
+                            "rate_source": rate_source, "g": round(s.g, 2),
                             "ias": round(ias), "lat": lat, "lon": lon, "dist_dest_nm": round(dist_dest, 1)}
             if not hasattr(self, "touchdowns"):
                 self.touchdowns = []
