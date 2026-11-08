@@ -87,7 +87,7 @@
     "id": "ceva",
     "name": "CEVA Logistics",
     "role": "Automotive and aerospace",
-    "logo": "",
+    "logo": "/static/charter-customers/ceva.png",
     "source": "https://www.cevalogistics.com/en/news-and-media/newsroom/ceva-welcomes-bollore-logistics",
     "shipments": [
       {

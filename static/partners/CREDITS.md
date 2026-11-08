@@ -23,6 +23,7 @@ owners; their use does not imply sponsorship or endorsement.
 
 | File | Source | Use |
 |---|---|---|
+| ceva.png | https://commons.wikimedia.org/wiki/File:Logo_of_CEVA_Logistics_(2023).svg | Public-domain text logo; trademarked. PNG rendition for display as a fictional simulation customer. |
 | geodis.svg | https://geodis.com/themes/custom/geodis_ss/assets/svg/geodis_blue.svg | GEODIS trademark, shown only to identify a fictional simulation customer. |
 | expeditors.gif | https://www.expeditors.com/images/prototype/Expeditors-logo-sm.gif | Official Expeditors wordmark; trademark, shown only to identify a fictional simulation customer. |
 | nx.svg | https://www.nipponexpress.com/themes/custom/nx_olivero/assets/img/logo_nittsu_we_find_the_way.svg | NX Group trademark, shown only to identify a fictional simulation customer. |
