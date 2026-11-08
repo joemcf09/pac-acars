@@ -75,7 +75,7 @@ html[data-theme="dark"] .linkish { color: #ff8f8f; }
 
 .ls-deck { display: flex; align-items: stretch; border: 1px solid var(--line); background: var(--paper); overflow-x: auto; }
 @media (max-width: 760px) { .ls-decks { min-width: max-content; } }
-.ls-nose { flex: 0 0 auto; writing-mode: vertical-rl; transform: rotate(180deg); font-size: 10px; letter-spacing: .25em; color: var(--steel); padding: 8px 6px; border-right: 1px dashed var(--line); background: var(--white); border-radius: 0 40px 40px 0; }
+.ls-nose { flex: 0 0 auto; writing-mode: vertical-rl; font-size: 10px; letter-spacing: .25em; color: var(--steel); padding: 8px 6px; border-right: 1px dashed var(--line); background: var(--white); border-radius: 0 40px 40px 0; }
 .ls-decks { flex: 1 1 auto; padding: 10px 12px; display: flex; flex-direction: column; gap: 10px; min-width: 0; }
 .ls-deck-row { display: flex; flex-direction: column; gap: 4px; }
 .ls-deck-label { font-size: 11px; text-transform: uppercase; letter-spacing: .07em; color: var(--steel); }
