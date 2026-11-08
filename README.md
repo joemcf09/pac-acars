@@ -48,7 +48,10 @@ a time-compressed flight along the great circle (compression set in Settings).
   a cargo type, weight and priority. ACARS warns you if the sector is beyond
   the aircraft's typical range or a runway is shorter than it normally needs,
   but lets you fly it anyway. Charters get PAC8xxx flight numbers unless you
-  set your own.
+  set your own. The Charter Desk also offers fictional shipment briefs from
+  DHL Global Forwarding, DACHSER, DSV, Kuehne+Nagel, CEVA Logistics, Maersk,
+  Noatum Logistics, GEODIS, Expeditors and NX Group. These do not imply
+  affiliation, sponsorship or endorsement.
 
 All three use the same SimBrief, ACARS, PIREP and logbook flow.
 

@@ -145,5 +145,68 @@
         "brief": "Move replacement parts and workshop supplies between regional distribution points."
       }
     ]
+  },
+  {
+    "id": "geodis",
+    "name": "GEODIS",
+    "role": "Global freight forwarding",
+    "logo": "",
+    "source": "https://geodis.com/",
+    "shipments": [
+      {
+        "id": "industrial-spares",
+        "title": "Industrial spares",
+        "cargo": "Crated industrial replacement parts",
+        "brief": "Carry a consolidated shipment of replacement parts to a regional distribution center for onward delivery."
+      },
+      {
+        "id": "retail-stock",
+        "title": "Retail replenishment",
+        "cargo": "Packaged retail merchandise",
+        "brief": "Move packaged retail goods between logistics facilities ahead of a scheduled distribution cycle."
+      }
+    ]
+  },
+  {
+    "id": "expeditors",
+    "name": "Expeditors",
+    "role": "Air freight and time-critical logistics",
+    "logo": "",
+    "source": "https://www.expeditors.com/",
+    "shipments": [
+      {
+        "id": "production-spares",
+        "title": "Time-critical production spares",
+        "cargo": "Crated production-line replacement parts",
+        "brief": "A production facility needs replacement components for an upcoming maintenance window. Deliver the consolidated shipment to its regional logistics hub."
+      },
+      {
+        "id": "electronics",
+        "title": "Electronics distribution",
+        "cargo": "Packaged electronic equipment",
+        "brief": "Transport packaged electronics to a distribution facility for onward delivery to business customers."
+      }
+    ]
+  },
+  {
+    "id": "nx",
+    "name": "NX Group",
+    "role": "Nippon Express air freight and supply chains",
+    "logo": "",
+    "source": "https://www.nipponexpress.com/",
+    "shipments": [
+      {
+        "id": "automotive",
+        "title": "Automotive components",
+        "cargo": "Crated automotive components",
+        "brief": "Move production components between regional logistics centers supporting an automotive supply chain."
+      },
+      {
+        "id": "industrial-parts",
+        "title": "Industrial parts delivery",
+        "cargo": "Packaged industrial machinery parts",
+        "brief": "Deliver a consolidated shipment of machinery parts to a receiving distribution center."
+      }
+    ]
   }
 ]
