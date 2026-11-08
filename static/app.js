@@ -725,6 +725,7 @@ function vatsimFilingPanel(m, aircraft, ofp) {
     + (ofp.equipment_transponder ? `/${ofp.equipment_transponder}` : "");
   return `<div class="notice vatsim-filing" style="margin:12px 0"><b>Prepare VATSIM filing</b>
     <p class="muted" style="margin:4px 0 10px;font-size:13px">PAC cannot file directly through VATSIM's documented API. File in your approved pilot client; copy these details to keep the PAC callsign and remarks when SimBrief's network filing omits them.</p>
+    <p style="margin:0 0 10px;font-size:13px"><a href="https://my.vatsim.net/pilots/flightplan" target="_blank" rel="noopener">Open VATSIM flight planning</a></p>
     <button class="btn ghost small" type="button" data-vatsim-copy>Copy filing details</button>
     <details style="margin-top:8px"><summary>Build ICAO FPL for VATSIM import</summary>
       <p class="muted" style="font-size:13px;margin:6px 0">PAC prefills the equipment and surveillance codes from your SimBrief OFP. Confirm they match your aircraft, check the UTC departure time/date and flight rules/type, then review the message. Copy it into VATSIM's <b>Import ICAO FPL</b> box and click <b>Process</b>.</p>
