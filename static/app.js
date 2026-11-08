@@ -12,7 +12,7 @@ const zulu = t => t ? new Date(t*1000).toISOString().substr(11,5).replace(":",""
 let initialCoreNavigation = false;
 const S = { missions: [], fleet: {}, settings: {}, phases: [], booking: null,
   filter: "All", acFilter: "", selected: null, aircraft: null, ofp: null, ofpErrors: [], ofpWarnings: [], planned: false,
-  status: null, pollTimer: null, map: null, layers: {}, pirep: null };
+  status: null, pollTimer: null, map: null, layers: {}, pirep: null, cargoTransferIds: {} };
 
 async function api(path, opts = {}) {
   const res = await fetch(path, { headers: { "Content-Type": "application/json" }, ...opts,
@@ -840,7 +840,10 @@ function dossierAcReady(m) {
   const a = (S.airframes || []).find(x => x.reg === S.airframe);
   return !!(a && a.type === ac && a.status === "Available" && a.location === m.origin.icao);
 }
-function lsKey(m) { return `${m.id}|${m.charter ? m.aircraft[0] : S.aircraft}|${m.charter ? "" : S.airframe || ""}`; }
+function lsKey(m) {
+  const transfers = (S.cargoTransferIds?.[m.id] || []).slice().sort().join(",");
+  return `${m.id}|${m.charter ? m.aircraft[0] : S.aircraft}|${m.charter ? "" : S.airframe || ""}|${transfers}`;
+}
 function dossierTabDone(m, t) {
   if (t === "brief") return S.dTab !== "brief";
   if (t === "aircraft") return dossierAcReady(m);
@@ -1011,7 +1014,7 @@ async function ensureLoadsheet(m) {
   if (S.lsCache[key]) return S.lsCache[key];
   // same mission and type with another tail: keep the same units (the seed), just a new tail on the sheet
   const prior = Object.entries(S.lsCache).find(([k]) => k.startsWith(`${m.id}|${m.charter ? m.aircraft[0] : S.aircraft}|`))?.[1];
-  const ls = await api("/api/plan/loadsheet", { method: "POST", body: { mission_id: m.id, charter: m.charter, aircraft: m.charter ? m.aircraft[0] : S.aircraft, airframe: m.contract ? null : S.airframe, seed: prior?.seed } });
+  const ls = await api("/api/plan/loadsheet", { method: "POST", body: { mission_id: m.id, charter: m.charter, aircraft: m.charter ? m.aircraft[0] : S.aircraft, airframe: m.contract ? null : S.airframe, seed: prior?.seed, cargo_transfer_ids: S.cargoTransferIds?.[m.id] || [] } });
   return (S.lsCache[key] = ls);
 }
 async function loadLoadsheet(m) {
@@ -1020,13 +1023,20 @@ async function loadLoadsheet(m) {
   S.lsSeen ||= {};
   try {
     const ls = await ensureLoadsheet(m);
-    if ($("#lsPanel") !== el) return;
+    if ($("#lsPanel") !== el || lsKey(m) !== key) return;
     el.innerHTML = loadsheetHTML(ls, m);
     if (!S.lsSeen[key]) { S.lsSeen[key] = true; d_markTab("load"); }
     el.querySelectorAll("[data-pos]").forEach(c => c.onclick = () => lsFocus(el, c.dataset.pos));
+    wireTransferCargo(el, ls, m);
     wireCargoFolder(el, ls);
     wireLsTabs(el, ls);
-  } catch (e) { el.innerHTML = `<div class="notice">${esc(e.message)}</div>`; }
+  } catch (e) {
+    el.innerHTML = `<div class="notice">${esc(e.message)}${(S.cargoTransferIds?.[m.id] || []).length ? ' <button type="button" class="linkish" data-clear-transfers>Clear selected transfer cargo</button>' : ""}</div>`;
+    el.querySelector("[data-clear-transfers]")?.addEventListener("click", () => {
+      S.cargoTransferIds[m.id] = [];
+      loadLoadsheet(m);
+    });
+  }
 }
 function d_markTab(k) { const b = $(`#dpt-${k}`); if (b && b.getAttribute("aria-selected") !== "true") { b.classList.add("done"); b.querySelector(".n").textContent = "✓"; } }
 function lsFocus(root, pos) {
@@ -1067,10 +1077,14 @@ function loadsheetHTML(ls, m) {
     return `<div class="ls-gauge ${c.ok ? (pct > 97 ? "tight" : "") : "over"}"><div class="ls-g-top"><span>${esc(c.name)}</span><b>${fmt(c.value)}</b><small>${esc(c.code)} ${fmt(c.limit)}</small></div><div class="ls-bar"><i style="width:${pct}%"></i></div><small class="ls-margin">${c.ok ? `${fmt(c.margin)} lb margin` : `${fmt(-c.margin)} lb OVER the limit`}</small></div>`; };
   const partial = !ls.ferry && ls.payload_requested > ls.totals.weight_lbs + 50;
   const units = (ls.positions || []).length, tail = ls.tail && ls.tail !== "—" ? ls.tail : "";
+  const transferIds = new Set(ls.cargo_transfer_ids || []);
+  const transferOptions = ls.transfer_options || [];
   return `
   <div class="ls-title"><div><span class="kicker">Preliminary load sheet</span><h3>${esc(ls.aircraft_name)}${tail ? ` · <span class="mono">${esc(tail)}</span>` : ""} · ${esc(ls.origin.icao)} → ${esc(ls.destination.icao)}</h3>
     <p class="muted">${ls.ferry ? "Ferry flight: the hold is empty." : `${units} unit${units === 1 ? "" : "s"} · ${fmt(ls.totals.pieces)} pieces · ${fmt(ls.totals.weight_lbs)} lb · ${(ls.shipments || []).length} shipment${(ls.shipments || []).length === 1 ? "" : "s"}`}</p></div>
     <span class="ls-status ${ls.ok ? "ok" : "bad"}">${ls.ok ? "Within limits" : "Over a limit"}</span></div>
+  ${transferOptions.length ? `<section class="ls-transfer"><h4>Transfer cargo at ${esc(ls.origin.icao)}</h4><p class="muted">Select freight already at this station and routed through ${esc(ls.destination.icao)}. It keeps its original AWB and is delivered only when it reaches its final destination. ${fmt(ls.cargo_transfer_weight_lbs || 0)} lb selected.</p>
+    <div class="ls-transfer-list">${transferOptions.map(x => `<label><input type="checkbox" data-transfer-id="${esc(x.id)}" ${transferIds.has(x.id) ? "checked" : ""}><span><b>${esc(x.awb)}</b> · ${esc(x.commodity || "Cargo")} · ${fmt(x.gross_weight_lbs)} lb · ${fmt(x.pieces)} pcs · final ${esc(x.destination)}</span><small>${esc(x.shipper || "—")} → ${esc(x.consignee || "—")}</small></label>`).join("")}</div></section>` : ""}
   ${partial ? `<div class="notice">The ${esc(ls.aircraft_name)} carries up to ${fmt(ls.limits.max_payload)} lb, so you'll take ${fmt(ls.totals.weight_lbs)} lb of the ${fmt(ls.payload_requested)} lb consignment.</div>` : ""}
   ${!ls.ok ? `<div class="notice err">This load and fuel go over a structural limit${ls.checks.some(c => c.code === "MTOW" && !c.ok) ? ": SimBrief will cut the cargo to fit under the take-off weight limit" : ""}. Pick a larger type on the Aircraft step, or plan less fuel or cargo.</div>` : ""}
   ${lsTabsHTML(ls, units)}
@@ -1120,6 +1134,21 @@ function loadsheetHTML(ls, m) {
   ${cargoFolderHTML(ls)}
   </div>
   <p class="muted ls-fine">Preliminary, for planning. Fuel is PAC's estimate; when you request the flight, the dispatch release keeps these units, positions and waybills and takes fuel and weights from your SimBrief OFP. Simulation paperwork, not an aircraft weight-and-balance approval.</p>`;
+}
+function wireTransferCargo(el, ls, m) {
+  el.querySelectorAll("[data-transfer-id]").forEach(input => input.onchange = () => {
+    const ids = [...el.querySelectorAll("[data-transfer-id]:checked")].map(x => x.dataset.transferId);
+    const weight = ids.reduce((sum, id) => sum + Number(ls.transfer_options.find(x => x.id === id)?.gross_weight_lbs || 0), 0);
+    const limit = Math.min(Number(ls.payload_requested || 0), Number(ls.limits.max_payload || 0));
+    if (weight > limit) {
+      input.checked = false;
+      toast(`Transfer cargo cannot exceed this flight's ${fmt(limit)} lb payload plan.`);
+      return;
+    }
+    S.cargoTransferIds[m.id] = ids;
+    delete S.lsCache?.[lsKey(m)];
+    loadLoadsheet(m);
+  });
 }
 /* The cargo folder: the full air waybill, special handling, warehouse acceptance and tracking for each shipment */
 const CF_KEYW = 24;
@@ -1205,7 +1234,7 @@ function cfTracking(ls, s) {
     "",
     "PLANNED AGAINST THE SCHEDULE. CODES FOLLOW IATA CARGO-IMP:",
     "BKD BOOKED  RCS RECEIVED FROM SHIPPER  MAN MANIFESTED  DEP DEPARTED  ARR ARRIVED",
-    "RCF RECEIVED FROM FLIGHT  NFD CONSIGNEE NOTIFIED  DLV DELIVERED",
+    "RCF RECEIVED FROM FLIGHT  TRS TRANSFERRED  NFD CONSIGNEE NOTIFIED  DLV DELIVERED",
   ].join("\n");
 }
 const CF_TABS = [["awb", "Air waybill", cfAwb], ["shc", "Special handling", cfHandling], ["scr", "Warehouse screening", cfScreening], ["trk", "Tracking", cfTracking]];
@@ -1481,7 +1510,7 @@ async function requestMission(ofp, zoneAck = false) {
   try {
     const seed = (S.lsCache || {})[lsKey(S.selected)]?.seed;   // the preliminary load sheet becomes the release's load
     try {
-      S.booking = await api("/api/booking", { method: "POST", body: { mission_id: S.selected.id, charter: S.selected.charter, aircraft: S.selected.charter ? S.selected.aircraft[0] : S.aircraft, ofp, airframe: S.airframe, manifest_seed: seed, zone_ack: zoneAck } });
+      S.booking = await api("/api/booking", { method: "POST", body: { mission_id: S.selected.id, charter: S.selected.charter, aircraft: S.selected.charter ? S.selected.aircraft[0] : S.aircraft, ofp, airframe: S.airframe, manifest_seed: seed, zone_ack: zoneAck, cargo_transfer_ids: S.cargoTransferIds?.[S.selected.id] || [] } });
     } catch (e) {
       if (e.data?.needs_zone_ack) return confirmZone(e.data.zone, () => requestMission(ofp, true));
       throw e;
@@ -2356,7 +2385,7 @@ async function loadCargo() {
     <div class="cargo-filters">
       <label>Station<select id="cargoStation"><option value="ALL">All stations</option></select></label>
       <label>Status<select id="cargoStatus">
-        <option value="ALL">All statuses</option><option value="BOOKED">Booked</option><option value="DELIVERED">Delivered</option>
+        <option value="ALL">All statuses</option><option value="BOOKED">Booked</option><option value="AT_STATION">At station / transfer ready</option><option value="DELIVERED">Delivered</option>
         <option value="DELIVERED_LATE">Delivered late</option><option value="HELD_AT_STATION">Held at station</option><option value="EXCEPTION">Exception</option>
       </select></label>
       <label class="cargo-search">Search<input id="cargoSearch" type="search" maxlength="80" placeholder="AWB, shipper, consignee or commodity"></label>

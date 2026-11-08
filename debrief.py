@@ -96,7 +96,10 @@ def build(p, booking, rec=None, fleet=None):
     cargo = []
     for s in ships:
         a = s.get("awb_doc") or {}
-        if delivered and in_t:
+        final = (s.get("destination") or {}).get("icao") or (d.get("destination") or {}).get("icao")
+        if delivered and final and final != p.get("arr"):
+            state, when = "TRANSFERRED AT STATION", None
+        elif delivered and in_t:
             dlv = dt.datetime.fromtimestamp(in_t, dt.timezone.utc) + dt.timedelta(minutes=60 if len((d.get("deck") or {}).get("main") or []) >= 20 else 40)
             state, when = ("DELIVERED LATE" if late else "DELIVERED"), dlv.strftime("%d%b %H%MZ").upper()
         elif status == "Diverted":

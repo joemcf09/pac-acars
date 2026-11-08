@@ -1529,6 +1529,7 @@ html[data-theme="dark"] .ce-feature .btn.ghost{color:#ffb0b0}
 .cargo-card-title>b{font:700 14px var(--mono);color:var(--red)}
 .cargo-status{display:inline-flex;padding:2px 8px;border-radius:20px;background:var(--paper);font-size:11px;font-weight:700;text-transform:capitalize}
 .cargo-status.delivered{background:var(--ok-wash);color:var(--ok-ink)}
+.cargo-status.at_station{background:var(--ok-wash);color:var(--ok-ink)}
 .cargo-status.exception,.cargo-status.held_at_station{background:var(--warn-wash);color:var(--warn-ink)}
 .cargo-card-route{margin-top:7px;font:600 13px var(--mono)}
 .cargo-card-route>span:last-child{margin-left:auto;font:400 12px var(--font);color:var(--steel)}
@@ -1546,6 +1547,7 @@ html[data-theme="dark"] .ce-feature .btn.ghost{color:#ffb0b0}
 html[data-theme="dark"] .cargo-card{background:var(--scope-2);border-color:var(--scope-line)}
 html[data-theme="dark"] .cargo-filters select,html[data-theme="dark"] .cargo-filters input{background:var(--scope-2);color:var(--scope-text);border-color:var(--scope-line)}
 html[data-theme="dark"] .cargo-status.delivered{color:#8ce4ab}
+html[data-theme="dark"] .cargo-status.at_station{color:#8ce4ab}
 @media(max-width:700px){.cargo-events li{grid-template-columns:1fr 1fr}.cargo-events small{grid-column:1/-1}.cargo-card-route>span:last-child{margin-left:0;width:100%}}
 .cf .cf-bar { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; margin: 8px 0; }
 .cf .cf-pick { display: flex; gap: 8px; align-items: center; font-size: 13px; font-weight: 600; }

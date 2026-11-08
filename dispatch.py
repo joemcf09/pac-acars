@@ -113,7 +113,10 @@ def generate(booking, fleet, pilot, now=None):
     seed = booking.get("manifest_seed") or f"{booking['flight_number']}|{booking.get('requested_at')}"
     rng = random.Random(seed)
     ferry = m.get("category") == "Ferry" or str(m.get("cargo", "")).startswith("Ferry")
-    payload = 0 if ferry else int(ofp.get("payload_lbs") or min(m["payload_lbs"], ac.get("max_payload_lbs", m["payload_lbs"])))
+    payload_target = int(ofp.get("payload_lbs") or min(m["payload_lbs"], ac.get("max_payload_lbs", m["payload_lbs"])))
+    if booking.get("cargo_transfer_ids"):
+        payload_target = min(payload_target, int(m.get("payload_lbs") or 0), int(ac.get("max_payload_lbs") or 0))
+    payload = 0 if ferry else max(0, payload_target - int(booking.get("cargo_transfer_weight_lbs") or 0))
 
     # positions
     main = [f"M{i + 1:02d}" for i in range(deck["main"])]
@@ -208,6 +211,122 @@ def generate(booking, fleet, pilot, now=None):
     shipments.add(d)
     import group  # village freight for Pagani Remote Aviation on flights into Anchorage
     return group.add_onward(d, booking)
+
+
+def attach_transfers(d, shipments, booking):
+    """Put previously manifested warehouse shipments into free positions on this flight."""
+    if not shipments:
+        return d
+    occupied = {p["pos"] for p in d.get("positions") or []}
+    deck = d["deck"]
+    slots = []
+    for pos in deck["main"]:
+        if pos not in occupied:
+            slots.append((pos, deck["uld"], int(deck["cap"])))
+    for pos in deck["lower"]:
+        if pos not in occupied:
+            cap = int(deck["lcap"])
+            slots.append((pos, deck["luld"], cap))
+
+    for item in shipments:
+        shipment = dict(item["data"])
+        shipment["shipment_id"] = item["id"]
+        shipment["transfer"] = True
+        shipment["cargo_source_awb"] = shipment.get("cargo_source_awb") or item["awb"]
+        shipment["awb"] = item["awb"]
+        shipment.setdefault("destination", {"icao": item["destination"]})
+        source_units = shipment.get("unit_details") or []
+        if not source_units:
+            raise ValueError(f"Transfer shipment {item['awb']} has no stored unit manifest and cannot be loaded.")
+        loaded_units = []
+        for source in source_units:
+            weight = int(source.get("weight_lbs") or 0)
+            pieces = int(source.get("pieces") or 0)
+            if weight <= 0 or pieces <= 0:
+                raise ValueError(f"Transfer shipment {item['awb']} has an invalid unit manifest.")
+            chunks = []
+            while weight:
+                cap = max((slot[2] for slot in slots), default=0)
+                if cap <= 0:
+                    raise ValueError(f"The {d['aircraft_name']} has no free positions for all selected transfer cargo.")
+                chunk = min(weight, cap)
+                chunks.append(chunk)
+                weight -= chunk
+            if len(chunks) > pieces:
+                raise ValueError(f"AWB {item['awb']} has a unit too heavy for this aircraft's ULD limits.")
+            remaining_pieces = pieces
+            remaining_weight = sum(chunks)
+            for index, chunk in enumerate(chunks):
+                compatible = next((i for i, slot in enumerate(slots) if slot[2] >= chunk), None)
+                if compatible is None:
+                    raise ValueError(f"The {d['aircraft_name']} has no compatible free ULD position for AWB {item['awb']}.")
+                pos, uld, _ = slots.pop(compatible)
+                unit_pieces = (remaining_pieces if index == len(chunks) - 1 else
+                               max(1, min(remaining_pieces - len(chunks[index + 1:]),
+                                          round(pieces * chunk / remaining_weight))))
+                remaining_pieces -= unit_pieces
+                remaining_weight -= chunk
+                unit_rng = random.Random("{}|{}|{}".format(booking.get("manifest_seed"), item["awb"], pos))
+                unit_id = "BULK" if uld == "BULK" else f"{uld}{unit_rng.randrange(10000, 99999)}PC"
+                position = {
+                    "pos": pos, "uld": uld, "unit": unit_id, "awb": item["awb"],
+                    "contents": source.get("contents") or shipment.get("contents") or "Transfer cargo",
+                    "shc": list(source.get("shc") or shipment.get("shc") or ["GEN"]),
+                    "pieces": unit_pieces, "weight_lbs": chunk, "dg": source.get("dg"),
+                }
+                d["positions"].append(position)
+                dg_entry = source.get("dg_entry")
+                if dg_entry and index == 0:
+                    entry = dict(dg_entry)
+                    entry.update({"pos": pos, "awb": item["awb"]})
+                    d["dg"].append(entry)
+                loaded_units.append(position)
+        shipment["units"] = [p["pos"] for p in loaded_units]
+        shipment["unit_details"] = loaded_units
+        shipment["pieces"] = sum(p["pieces"] for p in loaded_units)
+        shipment["weight_lbs"] = sum(p["weight_lbs"] for p in loaded_units)
+        shipment["no"] = len(d["shipments"]) + 1
+        awb_doc = shipment.get("awb_doc") or {}
+        track = awb_doc.get("track") or []
+        manifest_event = f"MANIFESTED ON {d.get('flight', '')}"
+        if not any(event.get("what") == manifest_event for event in track):
+            try:
+                day = dt.datetime.strptime(d["date"], "%d %b %Y").replace(tzinfo=dt.timezone.utc)
+                std = day.replace(hour=int(d["std"][:2]), minute=int(d["std"][2:4]))
+            except (KeyError, TypeError, ValueError):
+                raise ValueError(f"Transfer shipment {item['awb']} has invalid dispatch times.")
+            sta = std + dt.timedelta(minutes=d.get("block_min") or 60)
+            stamp = lambda value: value.strftime("%d%b %H%MZ").upper()
+            track.extend([
+                {"code": "MAN", "what": manifest_event, "at": stamp(std - dt.timedelta(minutes=20)), "where": d["origin"]["icao"]},
+                {"code": "DEP", "what": "DEPARTED", "at": stamp(std), "where": d["origin"]["icao"]},
+                {"code": "ARR", "what": "ARRIVED", "at": stamp(sta), "where": d["destination"]["icao"]},
+                {"code": "RCF", "what": "RECEIVED FROM FLIGHT", "at": stamp(sta + dt.timedelta(minutes=35)),
+                 "where": d["destination"]["icao"]},
+            ])
+            final = (shipment.get("destination") or {}).get("icao") or item["destination"]
+            if final == d["destination"]["icao"]:
+                track.append({"code": "DLV", "what": "DELIVERED TO CONSIGNEE", "at": stamp(sta + dt.timedelta(hours=6)),
+                              "where": d["destination"]["icao"]})
+            else:
+                track.append({"code": "TRS", "what": f"TRANSFER TO {final}", "at": stamp(sta + dt.timedelta(minutes=50)),
+                              "where": d["destination"]["icao"]})
+            awb_doc["track"] = track
+            shipment["awb_doc"] = awb_doc
+        d["shipments"].append(shipment)
+
+    positions = d["positions"]
+    d["weights"]["payload_lbs"] = sum(p["weight_lbs"] for p in positions)
+    d["totals"] = {
+        "units": len(positions),
+        "pieces": sum(p["pieces"] for p in positions),
+        "weight_lbs": sum(p["weight_lbs"] for p in positions),
+        "main_lbs": sum(p["weight_lbs"] for p in positions if p["pos"].startswith("M")),
+        "lower_lbs": sum(p["weight_lbs"] for p in positions if not p["pos"].startswith("M")),
+    }
+    used = sorted({code for p in positions for code in p.get("shc") or []})
+    d["shc"] = [{"code": code, "name": SHC_NAMES.get(code, code)} for code in used]
+    return d
 
 
 # ---------------------------------------------------------------- the paperwork around the release (authentic figures)

@@ -25,6 +25,8 @@ def migrate(con):
         priority TEXT,
         handling TEXT NOT NULL,
         security_status TEXT,
+        reserved_booking_key TEXT,
+        reserved_previous_status TEXT,
         data TEXT NOT NULL,
         created_at REAL NOT NULL,
         updated_at REAL NOT NULL,
@@ -46,6 +48,74 @@ def migrate(con):
     )""")
     con.execute("CREATE INDEX IF NOT EXISTS idx_cargo_shipments_station ON cargo_shipments(current_station, status)")
     con.execute("CREATE INDEX IF NOT EXISTS idx_cargo_movements_shipment ON cargo_movements(shipment_id, event_time)")
+    columns = {row["name"] for row in con.execute("PRAGMA table_info(cargo_shipments)")}
+    if "reserved_booking_key" not in columns:
+        con.execute("ALTER TABLE cargo_shipments ADD COLUMN reserved_booking_key TEXT")
+    if "reserved_previous_status" not in columns:
+        con.execute("ALTER TABLE cargo_shipments ADD COLUMN reserved_previous_status TEXT")
+
+
+def has_route(routes, origin, destination):
+    return any((r.get("origin") or {}).get("icao") == origin
+               and (r.get("destination") or {}).get("icao") == destination
+               and r.get("category") == "Scheduled" for r in routes)
+
+
+def transfer_options(con, origin, destination, routes):
+    origin, destination = str(origin or "").upper(), str(destination or "").upper()
+    rows = con.execute("""SELECT id, awb, origin, destination, current_station, status, shipper, consignee,
+        commodity, pieces, gross_weight_lbs, data
+        FROM cargo_shipments
+        WHERE current_station=? AND status IN ('AT_STATION','HELD_AT_STATION') AND reserved_booking_key IS NULL
+        ORDER BY updated_at, awb""", (origin,)).fetchall()
+    available = []
+    for row in rows:
+        if row["destination"] != destination and not has_route(routes, destination, row["destination"]):
+            continue
+        item = dict(row)
+        try:
+            item["data"] = json.loads(item["data"])
+        except (TypeError, ValueError, json.JSONDecodeError) as exc:
+            raise RuntimeError(f"Persistent cargo {item['awb']} has invalid shipment data.") from exc
+        available.append(item)
+    return available
+
+
+def selected_transfers(con, shipment_ids, origin, destination, routes, booking_key=None):
+    if not isinstance(shipment_ids, list) or len(shipment_ids) > 100:
+        raise ValueError("Choose no more than 100 transfer shipments.")
+    if any(not isinstance(shipment_id, str) or len(shipment_id) != 32
+           or any(char not in "0123456789abcdef" for char in shipment_id) for shipment_id in shipment_ids):
+        raise ValueError("A selected transfer shipment is invalid.")
+    if len(set(shipment_ids)) != len(shipment_ids):
+        raise ValueError("A transfer shipment was selected more than once.")
+    if booking_key:
+        allowed = {}
+        for shipment_id in shipment_ids:
+            row = con.execute("""SELECT id, awb, origin, destination, current_station, status, shipper, consignee,
+                commodity, pieces, gross_weight_lbs, reserved_booking_key, data
+                FROM cargo_shipments WHERE id=?""", (shipment_id,)).fetchone()
+            if (not row or row["current_station"] != str(origin or "").upper() or row["status"] != "BOOKED"
+                    or row["reserved_booking_key"] != booking_key):
+                raise ValueError(f"Transfer shipment {shipment_id} is no longer reserved on this flight.")
+            if row["destination"] != str(destination or "").upper() and not has_route(
+                    routes, str(destination or "").upper(), row["destination"]):
+                raise ValueError(f"Transfer shipment {row['awb']} is not routed through {destination}.")
+            item = dict(row)
+            try:
+                item["data"] = json.loads(item["data"])
+            except (TypeError, ValueError, json.JSONDecodeError) as exc:
+                raise RuntimeError(f"Persistent cargo {item['awb']} has invalid shipment data.") from exc
+            allowed[shipment_id] = item
+    else:
+        allowed = {item["id"]: item for item in transfer_options(con, origin, destination, routes)}
+    selected = []
+    for shipment_id in shipment_ids:
+        item = allowed.get(shipment_id)
+        if not item:
+            raise ValueError("A selected shipment is no longer available for this route. Refresh the load sheet.")
+        selected.append(item)
+    return selected
 
 
 def _next_awb(con, reserved):
@@ -91,7 +161,12 @@ def register_booking(con, booking, pilot_id):
     origin = (dispatch.get("origin") or {}).get("icao") or (booking.get("mission", {}).get("origin") or {}).get("icao") or ""
     destination = (dispatch.get("destination") or {}).get("icao") or (booking.get("mission", {}).get("destination") or {}).get("icao") or ""
     now = time.time()
+    selected_ids = set(booking.get("cargo_transfer_ids") or [])
+    listed_transfer_ids = {shipment.get("shipment_id") for shipment in listed if shipment.get("transfer")}
+    if selected_ids != listed_transfer_ids:
+        raise ValueError("The selected transfer cargo does not match the dispatch manifest.")
     registered = []
+    completed_transfers = set()
     replacements = {}
     source_awbs = set()
     reserved_awbs = set()
@@ -105,16 +180,41 @@ def register_booking(con, booking, pilot_id):
         source_awbs.add(source_awb)
 
         row = None
+        reserved_previous_status = None
+        existing_status = None
         shipment_id = shipment.get("shipment_id")
         if shipment_id:
-            row = con.execute("SELECT id, awb FROM cargo_shipments WHERE id=?", (shipment_id,)).fetchone()
+            row = con.execute("""SELECT id, awb, current_station, status, reserved_booking_key,
+                reserved_previous_status FROM cargo_shipments WHERE id=?""",
+                              (shipment_id,)).fetchone()
         if row is None:
-            row = con.execute("SELECT id, awb FROM cargo_shipments WHERE booking_key=? AND source_awb=?",
+            row = con.execute("""SELECT id, awb, current_station, status, reserved_booking_key,
+                reserved_previous_status FROM cargo_shipments WHERE booking_key=? AND source_awb=?""",
                               (booking_key, source_awb)).fetchone()
 
         if row:
             shipment_id, permanent_awb = row["id"], row["awb"]
+            existing_status = row["status"]
+            if shipment_id in selected_ids:
+                transfer_event = con.execute("""SELECT 1 FROM cargo_movements WHERE shipment_id=? AND event_key=?""",
+                                             (shipment_id, f"transfer-booking:{booking_key}:{shipment_id}")).fetchone()
+                completed = bool(transfer_event and row["reserved_booking_key"] is None
+                                 and row["current_station"] != origin)
+                if completed:
+                    completed_transfers.add(shipment_id)
+                else:
+                    already_reserved = (row["status"] == "BOOKED" and row["reserved_booking_key"] == booking_key)
+                    if row["current_station"] != origin or (
+                            row["status"] not in ("AT_STATION", "HELD_AT_STATION") and not already_reserved):
+                        raise ValueError(f"Transfer shipment {permanent_awb} is no longer at {origin}.")
+                    if row["reserved_booking_key"] not in (None, booking_key):
+                        raise ValueError(f"Transfer shipment {permanent_awb} is already booked on another flight.")
+                    reserved_previous_status = row["reserved_previous_status"] or row["status"]
+            elif row["reserved_booking_key"] == booking_key:
+                raise ValueError(f"Reserved transfer shipment {permanent_awb} is missing from this dispatch.")
         else:
+            if shipment_id in selected_ids:
+                raise ValueError(f"Transfer shipment {source_awb} no longer exists.")
             shipment_id = uuid.uuid4().hex
             candidate = str(shipment["awb"])
             collision = con.execute("SELECT 1 FROM cargo_shipments WHERE awb=?", (candidate,)).fetchone()
@@ -124,13 +224,18 @@ def register_booking(con, booking, pilot_id):
             raise ValueError(f"Air waybill {permanent_awb} was assigned more than once in a booking.")
         reserved_awbs.add(permanent_awb)
         replacements[source_awb] = permanent_awb
-        registered.append((shipment, shipment_id, source_awb, permanent_awb))
+        registered.append((shipment, shipment_id, source_awb, permanent_awb, existing_status, reserved_previous_status))
 
     _rewrite_awbs(dispatch, replacements)
-    for shipment, shipment_id, source_awb, permanent_awb in registered:
+    for shipment, shipment_id, source_awb, permanent_awb, existing_status, reserved_previous_status in registered:
         shipment["shipment_id"] = shipment_id
         shipment["cargo_source_awb"] = source_awb
         shipment["awb"] = permanent_awb
+        shipment["unit_details"] = [
+            {**p, "dg_entry": next((g for g in dispatch.get("dg") or []
+                                    if g.get("pos") == p.get("pos") and g.get("awb") == permanent_awb), None)}
+            for p in dispatch.get("positions") or [] if p.get("awb") == permanent_awb
+        ]
         payload = json.dumps(shipment, separators=(",", ":"), ensure_ascii=False)
         details = json.dumps({
             "service": shipment.get("service"),
@@ -142,31 +247,43 @@ def register_booking(con, booking, pilot_id):
         }, separators=(",", ":"))
         row = con.execute("SELECT id FROM cargo_shipments WHERE id=?", (shipment_id,)).fetchone()
         if row:
-            con.execute("""UPDATE cargo_shipments SET data=?, updated_at=? WHERE id=?""",
-                        (payload, now, shipment_id))
+            con.execute("""UPDATE cargo_shipments SET data=?, status=?, reserved_booking_key=?, reserved_previous_status=?,
+                updated_at=? WHERE id=?""",
+                (payload, "BOOKED" if shipment_id in selected_ids and shipment_id not in completed_transfers else existing_status,
+                 booking_key if shipment_id in selected_ids and shipment_id not in completed_transfers else None,
+                 reserved_previous_status if shipment_id in selected_ids and shipment_id not in completed_transfers else None,
+                 now, shipment_id))
         else:
             awb_doc = shipment.get("awb_doc") or {}
             screening = awb_doc.get("screen") or {}
+            final_destination = (shipment.get("destination") or {}).get("icao") or destination
             con.execute("""INSERT INTO cargo_shipments
                 (id, awb, booking_key, source_awb, origin, destination, current_station, status, shipper, consignee,
-                 commodity, pieces, gross_weight_lbs, chargeable_weight_kg, priority, handling, security_status, data,
-                 created_at, updated_at)
-                VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
-                (shipment_id, permanent_awb, booking_key, source_awb, origin, destination, origin, "BOOKED",
+                 commodity, pieces, gross_weight_lbs, chargeable_weight_kg, priority, handling, security_status,
+                 reserved_booking_key, reserved_previous_status, data, created_at, updated_at)
+                VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                (shipment_id, permanent_awb, booking_key, source_awb, origin, final_destination, origin, "BOOKED",
                  (shipment.get("shipper") or {}).get("name") or "",
                  (shipment.get("consignee") or {}).get("name") or "",
                  shipment.get("contents") or "", int(shipment.get("pieces") or 0),
                  float(shipment.get("weight_lbs") or 0), awb_doc.get("chg_kg"),
                  dispatch.get("priority") or shipment.get("service"),
-                 json.dumps(shipment.get("handling") or []), screening.get("status"), payload, now, now))
+                 json.dumps(shipment.get("handling") or []), screening.get("status"), None, None, payload, now, now))
             con.execute("""INSERT OR IGNORE INTO cargo_movements
                 (shipment_id, event_key, event_type, event_time, from_station, to_station, pilot_id, flight_number,
                  status, details)
                 VALUES (?,?,?,?,?,?,?,?,?,?)""",
                 (shipment_id, f"booking:{booking_key}:{source_awb}", "BOOKED", now, None, origin, pilot_id,
                  dispatch.get("flight"), "BOOKED", details))
+        if shipment_id in selected_ids:
+            con.execute("""INSERT OR IGNORE INTO cargo_movements
+                (shipment_id, event_key, event_type, event_time, from_station, to_station, pilot_id, flight_number,
+                 status, details)
+                VALUES (?,?,?,?,?,?,?,?,?,?)""",
+                (shipment_id, f"transfer-booking:{booking_key}:{shipment_id}", "TRANSFER_BOOKED", now, origin, destination,
+                 pilot_id, dispatch.get("flight"), "BOOKED", details))
 
-    return [shipment_id for _, shipment_id, _, _ in registered]
+    return [shipment_id for _, shipment_id, _, _, _, _ in registered]
 
 
 def record_flight(con, booking, pirep, pirep_id, pilot_id):
@@ -177,22 +294,25 @@ def record_flight(con, booking, pirep, pirep_id, pilot_id):
         raise RuntimeError("Not every dispatch shipment has a persistent cargo record.")
     actual_station = str(pirep.get("arr") or "").upper()
     flight_status = str(pirep.get("status") or "")
-    if flight_status in ("Delivered", "Delivered late"):
-        status = "DELIVERED"
-    elif flight_status == "Diverted":
-        status = "HELD_AT_STATION"
-    else:
-        status = "EXCEPTION"
 
     now = time.time()
     for shipment, shipment_id in zip(shipments, registered):
-        row = con.execute("SELECT current_station FROM cargo_shipments WHERE id=?", (shipment_id,)).fetchone()
+        row = con.execute("SELECT current_station, destination FROM cargo_shipments WHERE id=?", (shipment_id,)).fetchone()
         if not row:
             raise RuntimeError(f"Persistent shipment {shipment_id} was not created.")
         previous_station = row["current_station"]
+        if flight_status in ("Delivered", "Delivered late"):
+            if actual_station == row["destination"]:
+                status = "DELIVERED_LATE" if flight_status == "Delivered late" else "DELIVERED"
+            else:
+                status = "AT_STATION"
+        elif flight_status == "Diverted":
+            status = "HELD_AT_STATION"
+        else:
+            status = "EXCEPTION"
         event_key = f"pirep:{pirep_id}:{shipment_id}"
         details = json.dumps({"flight_status": flight_status, "planned_destination": dispatch.get("destination", {}).get("icao"),
-                              "cargo_status": status}, separators=(",", ":"))
+                              "final_destination": row["destination"], "cargo_status": status}, separators=(",", ":"))
         inserted = con.execute("""INSERT OR IGNORE INTO cargo_movements
             (shipment_id, event_key, event_type, event_time, from_station, to_station, pilot_id, flight_number,
              pirep_id, status, details)
@@ -200,5 +320,26 @@ def record_flight(con, booking, pirep, pirep_id, pilot_id):
             (shipment_id, event_key, "FLIGHT_ARRIVAL", now, previous_station, actual_station, pilot_id,
              dispatch.get("flight"), pirep_id, status, details)).rowcount
         if inserted:
-            con.execute("""UPDATE cargo_shipments SET current_station=?, status=?, updated_at=? WHERE id=?""",
-                        (actual_station or previous_station, status, now, shipment_id))
+            con.execute("""UPDATE cargo_shipments SET current_station=?, status=?, reserved_booking_key=NULL,
+                reserved_previous_status=NULL, updated_at=? WHERE id=?""", (actual_station or previous_station, status, now, shipment_id))
+
+
+def release_booking(con, booking, pilot_id):
+    requested_at = booking.get("requested_at")
+    if requested_at is None:
+        return
+    booking_key = f"{pilot_id}:{requested_at}"
+    now = time.time()
+    rows = con.execute("""SELECT id, current_station, reserved_previous_status FROM cargo_shipments
+        WHERE reserved_booking_key=?""", (booking_key,)).fetchall()
+    for row in rows:
+        status = row["reserved_previous_status"] or "AT_STATION"
+        con.execute("""UPDATE cargo_shipments SET status=?, reserved_booking_key=NULL, reserved_previous_status=NULL,
+            updated_at=? WHERE id=?""", (status, now, row["id"]))
+        con.execute("""INSERT OR IGNORE INTO cargo_movements
+            (shipment_id, event_key, event_type, event_time, from_station, to_station, pilot_id, flight_number,
+             status, details)
+            VALUES (?,?,?,?,?,?,?,?,?,?)""",
+            (row["id"], f"transfer-cancelled:{booking_key}:{row['id']}", "TRANSFER_CANCELLED", now,
+             row["current_station"], row["current_station"], pilot_id,
+             (booking.get("dispatch") or {}).get("flight"), status, "{}"))

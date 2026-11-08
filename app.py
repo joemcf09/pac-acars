@@ -1656,6 +1656,10 @@ def create_booking():
     if err:
         return jsonify({"error": err}), 400
     ofp = body.get("ofp")
+    try:
+        transfer_rows, _ = cargo_transfer_selection(body, m, ac, ofp)
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 409
     zone = flight_zone(m, ofp)
     if zone and not body.get("zone_ack"):   # restricted or caution airspace: the pilot confirms they understand first
         return jsonify({"error": zone["text"], "zone": zone, "needs_zone_ack": True}), 409
@@ -1666,7 +1670,10 @@ def create_booking():
         booking["conflict"] = zone
     # the preliminary load sheet the pilot reviewed: same units, positions and waybills on the release
     booking["manifest_seed"] = manifest_seed_ok(body.get("manifest_seed")) or prelim_seed(m, ac)
-    booking["dispatch"] = dispatch.generate(booking, FLEET, dispatch_pilot())
+    try:
+        booking["dispatch"] = build_dispatch_with_transfers(booking, transfer_rows)
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 409
     # PAC stands at PAC's hubs: where to start, and where to expect to park on arrival
     _reg = booking.get("airframe")
     booking["dep_stand"] = va.assign_stand(m["origin"]["icao"], ac, fn, "dep", _reg)
@@ -1677,7 +1684,10 @@ def create_booking():
         va.set_job_status(m["id"], "booked")
     if m.get("live"):
         va.set_live_status(m["id"], "booked")
-    save_booking(booking)
+    try:
+        save_booking(booking)
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 409
     start_ofp_watch(booking)
     return jsonify(booking)
 
@@ -1812,7 +1822,13 @@ def dispatch_current():
         return jsonify({"error": "No flight is booked. Request a flight from the mission board first."}), 404
     if not booking.get("dispatch"):
         booking["legacy_release"] = True
-        booking["dispatch"] = dispatch.generate(booking, FLEET, dispatch_pilot())
+        try:
+            transfer_rows, _ = cargo_transfer_selection(
+                booking, booking["mission"], booking["aircraft"], booking.get("ofp"),
+                f"{va.current_pilot_id()}:{booking.get('requested_at')}")
+            booking["dispatch"] = build_dispatch_with_transfers(booking, transfer_rows)
+        except ValueError as e:
+            return jsonify({"error": str(e)}), 409
         save_booking(booking)
     d = dict(booking["dispatch"])
     d["defects"] = va.open_items(booking["airframe"]) if booking.get("airframe") else []
@@ -1983,6 +1999,9 @@ def save_booking(booking, pid=None, notify=True):
 def clear_booking(pid=None):
     pid = _booking_pid(pid)
     with db() as con:
+        row = con.execute("SELECT data FROM bookings WHERE pilot_id=?", (pid,)).fetchone()
+        if row:
+            cargo_network.release_booking(con, json.loads(row["data"]), pid)
         con.execute("DELETE FROM bookings WHERE pilot_id=?", (pid,))
     if "SI" in globals():
         SI.notify(pid, "flight finished or canceled")
@@ -2548,6 +2567,35 @@ def manifest_seed_ok(seed):
     return seed if seed.startswith("PRE|") and len(seed) <= 120 and seed.isprintable() else None
 
 
+def cargo_transfer_selection(body, mission, aircraft, ofp=None, booking_key=None):
+    ids = body.get("cargo_transfer_ids") or []
+    if not ids:
+        return [], 0
+    if mission.get("training") or mission.get("category") in ("Ferry", "Checkride"):
+        raise ValueError("Transfer cargo cannot be added to training or ferry flights.")
+    origin = (mission.get("origin") or {}).get("icao")
+    destination = (mission.get("destination") or {}).get("icao")
+    with db() as con:
+        selected = cargo_network.selected_transfers(con, ids, origin, destination, ROUTES.values(), booking_key)
+    weight = sum(float(item.get("gross_weight_lbs") or 0) for item in selected)
+    mission_payload = int(mission.get("payload_lbs") or 0)
+    target = min(int((ofp or {}).get("payload_lbs") or mission_payload or 0), mission_payload,
+                 int(FLEET.get(aircraft, {}).get("max_payload_lbs") or 0))
+    if weight > target:
+        raise ValueError(f"Selected transfer cargo weighs {round(weight):,} lb, over this flight's {target:,} lb payload plan.")
+    return selected, round(weight)
+
+
+def build_dispatch_with_transfers(booking, selected):
+    booking["cargo_transfer_ids"] = [item["id"] for item in selected]
+    booking["cargo_transfer_weight_lbs"] = sum(float(item.get("gross_weight_lbs") or 0) for item in selected)
+    manifest = dispatch.generate(booking, FLEET, dispatch_pilot())
+    shipments.route_through(manifest, ROUTES.values(), booking.get("manifest_seed") or booking["flight_number"])
+    dispatch.attach_transfers(manifest, selected, booking)
+    manifest["handling"] = shipments.timeline(manifest, None)
+    return manifest
+
+
 @app.post("/api/plan/loadsheet")
 def plan_loadsheet():
     """The preliminary load sheet, before SimBrief: units and positions, weights against the limits, fuel, balance and DG.
@@ -2565,10 +2613,22 @@ def plan_loadsheet():
     f = est["fuel"]
     seed = manifest_seed_ok(b.get("seed")) or prelim_seed(m, ac_code)
     airframe = (b.get("airframe") or "").upper() or None
+    try:
+        transfer_rows, transfer_weight = cargo_transfer_selection(b, m, ac_code)
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 409
+    with db() as con:
+        transfer_options = cargo_network.transfer_options(con, m["origin"]["icao"], m["destination"]["icao"], ROUTES.values())
     fake = {"mission": m, "aircraft": ac_code, "ofp": None, "flight_number": m["id"], "requested_at": time.time(),
-            "airframe": airframe, "manifest_seed": seed}
+            "airframe": airframe, "manifest_seed": seed, "cargo_transfer_ids": [item["id"] for item in transfer_rows],
+            "cargo_transfer_weight_lbs": transfer_weight}
     try:
         d = dispatch.generate(fake, FLEET, dispatch_pilot())
+        shipments.route_through(d, ROUTES.values(), seed)
+        dispatch.attach_transfers(d, transfer_rows, fake)
+        d["handling"] = shipments.timeline(d, None)
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 409
     except Exception as e:  # never break the flight page over the paperwork
         return jsonify({"error": f"The load sheet could not be built: {e}"}), 500
     # fuel from the planning estimate (the release takes SimBrief's figures later)
@@ -2597,6 +2657,12 @@ def plan_loadsheet():
     out.update({"seed": seed, "mission_id": m["id"], "loadsheet": ls, "limits": lim, "checks": checks,
                 "min_release_fuel": paper["min_release_fuel"], "fuel": f, "cruise_fl": est["cruise_fl"],
                 "alternate": est["alternate"], "payload_requested": m.get("payload_lbs") or 0,
+                "transfer_options": [{"id": item["id"], "awb": item["awb"], "destination": item["destination"],
+                                      "shipper": item["shipper"], "consignee": item["consignee"],
+                                      "commodity": item["commodity"], "pieces": item["pieces"],
+                                      "gross_weight_lbs": item["gross_weight_lbs"]} for item in transfer_options],
+                "cargo_transfer_ids": [item["id"] for item in transfer_rows],
+                "cargo_transfer_weight_lbs": transfer_weight,
                 "erg": paper["erg"], "ok": all(c["ok"] for c in checks),
                 "dow_source": {"kind": "learned", "flights": learned["flights"]} if learned else {"kind": "estimate"}})
     return jsonify(out)
@@ -2690,7 +2756,13 @@ def check_ofp_watch(pid=None):
         return None
     booking["ofp"] = ofp
     booking["legacy_release"] = booking.get("legacy_release", (booking.get("dispatch") or {}).get("version", 1) < 2)
-    booking["dispatch"] = dispatch.generate(booking, FLEET, dispatch_pilot())  # fuel and weights from the plan
+    try:
+        transfer_rows, _ = cargo_transfer_selection(
+            booking, booking["mission"], booking["aircraft"], ofp, f"{pid}:{booking.get('requested_at')}")
+        booking["dispatch"] = build_dispatch_with_transfers(booking, transfer_rows)
+    except ValueError as e:
+        w["last_error"] = str(e)
+        return None
     void_signature(booking)
     save_booking(booking, pid)
     sess["ofp_watch"] = None
@@ -3084,7 +3156,13 @@ def acars_app_ofp():
         return jsonify({"error": "This flight has started. Finish or cancel it before replacing its flight plan."}), 409
     booking["ofp"] = ofp
     booking["legacy_release"] = booking.get("legacy_release", (booking.get("dispatch") or {}).get("version", 1) < 2)
-    booking["dispatch"] = dispatch.generate(booking, FLEET, dispatch_pilot())  # fuel and weights from the new plan
+    try:
+        transfer_rows, _ = cargo_transfer_selection(
+            booking, booking["mission"], booking["aircraft"], ofp,
+            f"{va.current_pilot_id()}:{booking.get('requested_at')}")
+        booking["dispatch"] = build_dispatch_with_transfers(booking, transfer_rows)
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 409
     void_signature(booking)
     save_booking(booking)
     return jsonify({"ok": True, "ofp": ofp, "warnings": warnings})
@@ -3498,7 +3576,7 @@ def cargo_shipments_api():
     query = " ".join((request.args.get("q") or "").split())[:80]
     if station and station != "ALL" and not re.fullmatch(r"[A-Z0-9]{3,4}", station):
         return jsonify({"error": "Enter a valid ICAO station code."}), 400
-    valid_statuses = {"BOOKED", "DELIVERED", "DELIVERED_LATE", "HELD_AT_STATION", "EXCEPTION"}
+    valid_statuses = {"BOOKED", "AT_STATION", "DELIVERED", "DELIVERED_LATE", "HELD_AT_STATION", "EXCEPTION"}
     if status and status != "ALL" and status not in valid_statuses:
         return jsonify({"error": "Choose a valid cargo status."}), 400
 

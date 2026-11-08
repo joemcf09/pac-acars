@@ -236,6 +236,47 @@ def add(d):
     return d
 
 
+def route_through(d, routes, seed):
+    """Give some consignments a scheduled onward destination through this flight's arrival station."""
+    if d.get("ferry") or not d.get("shipments"):
+        return d
+    arrival = (d.get("destination") or {}).get("icao")
+    onward = sorted({
+        route["destination"]["icao"]: route["destination"]
+        for route in routes
+        if route.get("category") == "Scheduled"
+        and (route.get("origin") or {}).get("icao") == arrival
+        and (route.get("destination") or {}).get("icao") != arrival
+    }.values(), key=lambda a: a["icao"])
+    if not onward:
+        return d
+    rng = random.Random(f"{seed}|through")
+    used = set()
+    through = [shipment for shipment in d["shipments"] if rng.random() < 0.3]
+    if not through:
+        through = [rng.choice(d["shipments"])]
+    for shipment in through:
+        dest = rng.choice(onward)
+        dcity, dctry = place(dest["icao"])
+        shipment["destination"] = {"icao": dest["icao"], "city": dcity, "country": dctry}
+        sector = shipment.get("sector") or "general"
+        if sector == "express":
+            consignee = companies.express_consignee(
+                shipment["shipper"]["name"], dcity,
+                bool(shipment["shipper"].get("country") and dctry
+                     and shipment["shipper"]["country"] != dctry))
+        else:
+            avoid = used | {shipment["shipper"]["name"]}
+            consignee = companies.pick(companies.CONSIGNEES, sector, dctry,
+                                       region(dest["icao"]), rng, avoid, dcity, dest["icao"])
+        shipment["consignee"] = {"name": consignee, "city": dcity, "country": dctry}
+        used.add(consignee)
+        shipment["story"] = (f"{shipment['shipper']['name']} is shipping {shipment['contents'][0].lower()}"
+                             f"{shipment['contents'][1:]} from {shipment['shipper']['city']} to {consignee} in {dcity}, "
+                             f"via {arrival}.")
+    return d
+
+
 def _t(base, minutes):
     return (base + dt.timedelta(minutes=minutes)).strftime("%d%b %H%MZ").upper()
 
@@ -279,7 +320,11 @@ def timeline(d, rng):
         if d.get("international"):
             arr.append((60, "CUSTOMS", "PLANNED CUSTOMS PROCESSING; RELEASE SUBJECT TO CLEARANCE"))
         for s in sorted(d["shipments"], key=lambda s: s["deliver_h"])[:6]:
-            arr.append((round(s["deliver_h"] * 60), "PLANNED RELEASE " + s["awb"], f"TO {s['consignee']['name']}".upper()))
+            final = (s.get("destination") or {}).get("icao") or de
+            if final != de:
+                arr.append((45 if wide else 30, "TRANSFER " + s["awb"], f"SECURE FOR ONWARD FLIGHT TO {final}"))
+            else:
+                arr.append((round(s["deliver_h"] * 60), "PLANNED RELEASE " + s["awb"], f"TO {s['consignee']['name']}".upper()))
     arr.sort(key=lambda x: x[0])
     return {"dep": [{"t": a, "what": b, "note": c} for a, b, c in dep], "arr": [{"t": _t(sta, a), "what": b, "note": c} for a, b, c in arr],
             "dep_station": o, "arr_station": de}
@@ -426,8 +471,6 @@ def enrich(d):
     wide = len((d.get("deck") or {}).get("main") or []) >= 20
     o, de = d["origin"]["icao"], d["destination"]["icao"]
     ocity, octry = place(o)
-    dcity, dctry = place(de)
-    intl = bool(octry and dctry and octry != dctry)
     hd = d.get("handlers") or {}
     op = d.get("operator") or {}
     carrier = (op.get("name") or "Pagani Air Cargo").upper()
@@ -436,6 +479,9 @@ def enrich(d):
     for s in sh:
         if s.get("awb_doc"):
             continue
+        final = (s.get("destination") or {}).get("icao") or de
+        dcity, dctry = place(final)
+        intl = bool(octry and dctry and octry != dctry)
         rng = random.Random(f"{d.get('shipment_seed', d.get('release_no', ''))}|awb|{s['awb']}")
         hs, desc, pack, dens = _goods(s["contents"])
         kg = round(s["weight_lbs"] * 0.45359237, 1)
@@ -472,7 +518,7 @@ def enrich(d):
         accept_t = std - dt.timedelta(minutes=(240 if wide else 180) + rng.randint(15, 140))
         # the warehouse acceptance checks, in the order a cargo agent does them
         checks = [
-            ("AIR WAYBILL AND PARTIES", f"AWB {s['awb']} MATCHES SHIPPER, CONSIGNEE AND ROUTING {o}-{de}."),
+            ("AIR WAYBILL AND PARTIES", f"AWB {s['awb']} MATCHES SHIPPER, CONSIGNEE AND ROUTING {o}-{final}."),
             ("PIECE COUNT", f"{s['pieces']} PIECES COUNTED AGAINST THE AIR WAYBILL AND DELIVERY RECEIPT."),
             ("SCALE WEIGHT", f"GROSS {kg:,.1f} KG ON CERTIFIED SCALE. CHARGEABLE {chg:,.1f} KG."),
             ("PACKAGING AND DIMENSIONS", f"{pack}. NO DAMAGE OR LEAKS."),
@@ -489,6 +535,21 @@ def enrich(d):
             checks.append(("LIVE ANIMAL CHECK", "ANIMALS HEALTHY, WATER AVAILABLE, VETERINARY CERTIFICATE ATTACHED."))
         step = max(4, (std - dt.timedelta(minutes=95 if wide else 70) - accept_t).seconds // 60 // (len(checks) + 1))
         deliver = sta + dt.timedelta(hours=s.get("deliver_h") or 6)
+        track = [
+            {"code": "BKD", "what": "BOOKED", "at": stamp(booked), "where": o},
+            {"code": "RCS", "what": "RECEIVED FROM SHIPPER", "at": stamp(accept_t), "where": o},
+            {"code": "MAN", "what": f"MANIFESTED ON {d.get('flight', '')}", "at": stamp(std - dt.timedelta(minutes=20)), "where": o},
+            {"code": "DEP", "what": "DEPARTED", "at": stamp(std), "where": o},
+            {"code": "ARR", "what": "ARRIVED", "at": stamp(sta), "where": de},
+            {"code": "RCF", "what": "RECEIVED FROM FLIGHT", "at": stamp(sta + dt.timedelta(minutes=55 if wide else 35)), "where": de},
+        ]
+        if final != de:
+            track.append({"code": "TRS", "what": f"TRANSFER TO {final}", "at": stamp(sta + dt.timedelta(minutes=70 if wide else 50)), "where": de})
+        else:
+            track.extend([
+                {"code": "NFD", "what": "CONSIGNEE NOTIFIED", "at": stamp(sta + dt.timedelta(minutes=70 if wide else 50)), "where": de},
+                {"code": "DLV", "what": "DELIVERED TO CONSIGNEE", "at": stamp(deliver), "where": de},
+            ])
         s["awb_doc"] = {
             "carrier": carrier, "code": code, "issued": stamp(booked), "issued_at": _plain(ocity),
             "charter_customer": _plain(d.get("charter_customer")),
@@ -506,16 +567,6 @@ def enrich(d):
             "checks": [{"what": a, "note": b, "at": stamp(accept_t + dt.timedelta(minutes=step * i))} for i, (a, b) in enumerate(checks)],
             "release_at": stamp(accept_t + dt.timedelta(minutes=step * len(checks))),
             # IATA Cargo-IMP status codes, planned against the schedule; the debrief shows what happened
-            "track": [
-                {"code": "BKD", "what": "BOOKED", "at": stamp(booked), "where": o},
-                {"code": "RCS", "what": "RECEIVED FROM SHIPPER", "at": stamp(accept_t), "where": o},
-                {"code": "MAN", "what": f"MANIFESTED ON {d.get('flight', '')}", "at": stamp(std - dt.timedelta(minutes=20)), "where": o},
-                {"code": "DEP", "what": "DEPARTED", "at": stamp(std), "where": o},
-                {"code": "ARR", "what": "ARRIVED", "at": stamp(sta), "where": de},
-                {"code": "RCF", "what": "RECEIVED FROM FLIGHT", "at": stamp(sta + dt.timedelta(minutes=55 if wide else 35)), "where": de},
-                {"code": "NFD", "what": "CONSIGNEE NOTIFIED", "at": stamp(sta + dt.timedelta(minutes=70 if wide else 50)), "where": de},
-                {"code": "DLV", "what": "DELIVERED TO CONSIGNEE", "at": stamp(deliver), "where": de},
-            ],
+            "track": track,
         }
-    d["international"] = intl
     return d
