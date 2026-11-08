@@ -18,9 +18,10 @@ os.chdir(ROOT)
 _tmp = tempfile.mkdtemp()
 import app as A  # noqa: E402
 
-A.DB_PATH = Path(_tmp) / "test.db"
+A.DB_PATH = Path(_tmp) / "logbook.db"
 A.db().close()
 import va  # noqa: E402
+va.C["DATA"] = Path(_tmp)
 from tracker import FlightRecorder  # noqa: E402
 from flightgen import fly  # noqa: E402
 
@@ -240,7 +241,12 @@ rec, p, booking = checkride("Good checkride flight")
 check("a good flight passes the checkride", (p.get("type_checkride") or {}).get("passed") is True, p.get("type_checkride"))
 with A.db() as con:
     con.execute("DELETE FROM type_ratings WHERE pilot_id='PAC0001'")
-va.after_file(p, booking, rec, 999)
+    type_report = con.execute(
+        "INSERT INTO pireps (filed_at, mission_id, aircraft, status, score, demo, review_status, pilot_id, detail) "
+        "VALUES (?,?,?,?,?,0,'Accepted','PAC0001',?)",
+        (1_789_990_000, "TR-B737", booking["aircraft"], p["status"], p["score"],
+         __import__("json").dumps({"type_checkride": p["type_checkride"]}))).lastrowid
+va.after_file(p, booking, rec, type_report)
 with A.db() as con:
     row = con.execute("SELECT source, score FROM type_ratings WHERE pilot_id='PAC0001' AND family='B737'").fetchone()
 check("passing records the rating", row is not None and row["source"] == "checkride", dict(row) if row else None)
@@ -286,6 +292,7 @@ _t.time = lambda: _T[0]
 try:
     _seen, _keys, _repeats, _sizes, _short = set(), {}, 0, set(), 0
     for _ in range(80):  # every 6 hours
+        va.refresh_mission_board(here=va.pilot_location())
         _board = [m for m in va.mission_board() if m.get("live")]
         _sizes.add(len(_board))
         _short += sum(1 for m in _board if m["origin"]["icao"] == va.pilot_location()) < va.LIVE_HERE_MIN
@@ -303,6 +310,7 @@ try:
     check("no route repeats within ten days", _repeats == 0, _repeats)
     _req = set()
     for _ in range(96):  # 24 hours, every 15 minutes
+        va.refresh_jobs_today(here=va.pilot_location())
         _req |= {j["id"] for j in va.jobs_today() if j.get("contract")}
         _T[0] += 900
     check("partner requests trickle in through the day", 6 <= len(_req) <= 20, len(_req))
