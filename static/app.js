@@ -2400,7 +2400,7 @@ async function loadCargo() {
           <div class="cargo-card-grid">
             <span><small>Shipper</small>${esc(x.shipper || "—")}</span><span><small>Consignee</small>${esc(x.consignee || "—")}</span>
             <span><small>Commodity</small>${esc(x.commodity || "—")}</span><span><small>Pieces / gross</small>${fmt(x.pieces)} · ${fmt(x.gross_weight_lbs)} lb</span>
-            <span><small>Priority / service</small>${esc(x.priority || "Standard")}</span><span><small>Last recorded event</small>${esc(x.last_event || "—")}${x.last_flight ? ` · ${esc(x.last_flight)}` : ""}${x.last_event_time ? ` · ${cargoDate(x.last_event_time)}` : ""}</span>
+            <span><small>Priority / service</small>${esc(x.priority || "Standard")}</span><span><small>Last recorded event</small>${esc(x.last_event || "—")}${x.last_flight ? ` · ${esc(x.last_flight)}` : ""}${x.last_event_time ? ` · ${cargoInventoryDate(x.last_event_time)}` : ""}</span>
           </div>
         </div>
         <details class="cargo-history" data-cargo-id="${esc(x.id)}"><summary>Movement history</summary><div class="cargo-history-body"><p class="muted">Open to load the recorded history.</p></div></details>
@@ -2422,7 +2422,7 @@ async function loadCargo() {
   await refresh();
 }
 
-function cargoDate(timestamp) {
+function cargoInventoryDate(timestamp) {
   return timestamp ? new Date(timestamp * 1000).toISOString().replace("T", " ").slice(0, 16) + " UTC" : "—";
 }
 
@@ -2434,7 +2434,7 @@ async function loadCargoHistory(details) {
     const result = await api(`/api/cargo/shipments/${encodeURIComponent(details.dataset.cargoId)}`);
     const events = result.movements || [];
     body.innerHTML = events.length ? `<ol class="cargo-events">${events.map(e => `<li>
-      <span class="cargo-event-time">${cargoDate(e.event_time)}</span><b>${esc((e.event_type || "").replaceAll("_", " "))}</b>
+      <span class="cargo-event-time">${cargoInventoryDate(e.event_time)}</span><b>${esc((e.event_type || "").replaceAll("_", " "))}</b>
       <span>${esc(e.from_station || "—")} → ${esc(e.to_station || "—")}</span>
       <span>${esc((e.status || "").replaceAll("_", " "))}${e.flight_number ? ` · ${esc(e.flight_number)}` : ""}${e.pirep_id ? ` · PIREP ${fmt(e.pirep_id)}` : ""}</span>
       ${e.details?.flight_status ? `<small>Flight result: ${esc(e.details.flight_status)}</small>` : ""}
