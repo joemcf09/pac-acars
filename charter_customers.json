@@ -150,7 +150,7 @@
     "id": "geodis",
     "name": "GEODIS",
     "role": "Global freight forwarding",
-    "logo": "",
+    "logo": "/static/charter-customers/geodis.svg",
     "source": "https://geodis.com/",
     "shipments": [
       {
@@ -171,7 +171,7 @@
     "id": "expeditors",
     "name": "Expeditors",
     "role": "Air freight and time-critical logistics",
-    "logo": "",
+    "logo": "/static/charter-customers/expeditors.gif",
     "source": "https://www.expeditors.com/",
     "shipments": [
       {
@@ -192,7 +192,7 @@
     "id": "nx",
     "name": "NX Group",
     "role": "Nippon Express air freight and supply chains",
-    "logo": "",
+    "logo": "/static/charter-customers/nx.svg",
     "source": "https://www.nipponexpress.com/",
     "shipments": [
       {
