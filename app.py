@@ -3136,6 +3136,7 @@ def pirep_draft():
 
 
 @app.post("/api/pirep")
+@releases.serialized
 def file_pirep():
     rec, booking = state.get("recorder"), load_booking()
     if not rec or not booking or not rec.last:
@@ -3144,6 +3145,9 @@ def file_pirep():
         return jsonify({"error": "The flight is not on block yet."}), 400
     stop_tracking()
     p = build_pirep(booking, rec)
+    booking_key = str(booking.get("requested_at") or "")
+    if not booking_key:
+        return jsonify({"error": "This booking is missing its filing identifier. Contact PAC staff before retrying."}), 409
     if not rec.complete:   # "File anyway": the aircraft landed but never went on block. Staff check it.
         p["flags"] = list(p.get("flags") or []) + ["Filed without going on block (File anyway)"]
         p["review_status"] = "Pending"
@@ -3165,20 +3169,24 @@ def file_pirep():
               "online": p.get("online"), "urgent": p.get("urgent"), "job": p.get("job"), "conflict": p.get("conflict"),
               "debrief": p.get("debrief")}
     with db() as con:
-        cur = con.execute("""INSERT INTO pireps (filed_at, mission_id, mission_title, category, flight_number, aircraft,
+        con.execute("""INSERT OR IGNORE INTO pireps (filed_at, mission_id, mission_title, category, flight_number, aircraft,
             registration, dep, arr, planned_arr, block_min, flight_min, distance_nm, fuel_used_lbs, payload_lbs,
             landing_rate, landing_g, score, grade, status, points, demo, source, remarks, detail,
-            pilot_id, review_status, flags, bonus_points, airframe, revenue, cost, profit)
-            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+            pilot_id, review_status, flags, bonus_points, airframe, revenue, cost, profit, booking_key)
+            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
                           (time.time(), p["mission_id"], p["mission_title"], p["category"], p["flight_number"],
                            p["aircraft"], p["registration"], p["dep"], p["arr"], p["planned_arr"], p["block_min"],
                            p["flight_min"], p["distance_nm"], p["fuel_used_lbs"], p["payload_lbs"], p["landing_rate"],
                            p["landing_g"], p["score"], p["grade"], p["status"], p["points"], int(p["demo"]),
                            p["source"], remarks, json.dumps(detail),
                            va.current_pilot_id(), p["review_status"], json.dumps(p["flags"]), p["bonus_points"], p.get("airframe"),
-                           p["economics"]["revenue"], p["economics"]["total_cost"], p["economics"]["profit"]))
-        pid = cur.lastrowid
-        if p.get("conflict_note"):
+                           p["economics"]["revenue"], p["economics"]["total_cost"], p["economics"]["profit"], booking_key))
+        filed = con.execute("SELECT id FROM pireps WHERE pilot_id=? AND booking_key=?",
+                            (va.current_pilot_id(), booking_key)).fetchone()
+        if not filed:
+            raise RuntimeError("PIREP filing did not create or find its booking record.")
+        pid = filed["id"]
+        if p.get("conflict_note") and con.execute("SELECT review_note FROM pireps WHERE id=?", (pid,)).fetchone()[0] is None:
             con.execute("UPDATE pireps SET review_note=?, reviewed_at=? WHERE id=?", (p["conflict_note"], time.time(), pid))
     p["paid"] = va.after_file(p, booking, rec, pid)
     car = va.career(pid_)

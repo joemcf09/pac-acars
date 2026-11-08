@@ -235,9 +235,11 @@ def migrate(con):
     cols = {r[1] for r in con.execute("PRAGMA table_info(pireps)")}
     for col, decl in [("pilot_id", "TEXT"), ("review_status", "TEXT DEFAULT 'Accepted'"), ("review_note", "TEXT"),
                       ("reviewed_at", "REAL"), ("flags", "TEXT"), ("bonus_points", "INTEGER DEFAULT 0"), ("airframe", "TEXT"),
-                      ("revenue", "REAL"), ("cost", "REAL"), ("profit", "REAL")]:
+                      ("revenue", "REAL"), ("cost", "REAL"), ("profit", "REAL"), ("booking_key", "TEXT")]:
         if col not in cols:
             con.execute(f"ALTER TABLE pireps ADD COLUMN {col} {decl}")
+    con.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_pireps_booking_key ON pireps(pilot_id, booking_key) WHERE booking_key IS NOT NULL")
+    con.execute("CREATE TABLE IF NOT EXISTS pirep_effects (pirep_id INTEGER PRIMARY KEY, applied REAL NOT NULL)")
     con.execute("""CREATE TABLE IF NOT EXISTS pilots (id TEXT PRIMARY KEY, name TEXT, email TEXT, country TEXT, discord TEXT,
         simulator TEXT, hub TEXT, joined REAL, status TEXT, checkride TEXT, transfer_hours REAL DEFAULT 0, staff INTEGER DEFAULT 0,
         rank_override TEXT)""")
@@ -1942,52 +1944,55 @@ def after_file(p, booking, rec, pirep_id):
     reg = booking.get("airframe")
     pid = current_pilot_id()
     tc = p.get("type_checkride") or {}
-    if tc.get("passed") and not p.get("demo") and p.get("review_status") == "Accepted" and p.get("status") in ("Delivered", "Delivered late"):
-        with C["db"]() as con:
-            record_accepted_type_pass(con, pirep_id)
-        note_rating_on_licence(pid, tc["family"], time.time())
     with C["db"]() as con:
-        if reg and not p.get("demo"):
-            loc = p["arr"] if p["arr"] in C["AIRPORTS"] else (nearest_airport(rec.last.lat, rec.last.lon) or booking["mission"]["origin"]["icao"])
-            row = con.execute("SELECT * FROM airframes WHERE reg=?", (reg,)).fetchone()
-            if row:
-                hrs = (p.get("flight_min") or 0) / 60
-                since = (row["hours_since_check"] or 0) + hrs
-                status, note = "Available", None
-                if p.get("landing_rate") is not None and p["landing_rate"] < -1000:
-                    status, note = "Damaged", f"Structural damage after a {p['landing_rate']} fpm landing on {p['flight_number']}"
-                elif p.get("landing_rate") is not None and p["landing_rate"] < REVIEW["hard_landing_fpm"]:
-                    status, note = "Inspection", f"Hard landing inspection after {p['flight_number']} ({p['landing_rate']} fpm)"
-                elif (p.get("takeoff_analysis") or {}).get("tail_strike"):
-                    status, note = "Inspection", f"Tail strike inspection after {p['flight_number']}"
-                elif since >= A_CHECK_HOURS:
-                    status, note = "A-check due", f"A-check due at {since:.0f} hours since last check"
-                arr_st = (booking.get("arr_stand") or {})
-                parked = arr_st.get("stand") if arr_st.get("icao") == loc else None
-                con.execute("""UPDATE airframes SET location=?, status=?, hours=hours+?, cycles=cycles+1, hours_since_check=?,
-                    last_flight=?, last_pilot=?, updated=?, note=?, stand=? WHERE reg=?""",
-                            (loc, status, hrs, since, p["flight_number"], pid, time.time(), note, parked, reg))
-                # automatic write-ups for what grounded it, so staff clear them in the maintenance queue
-                auto = {"Damaged": (5, note), "Inspection": (53 if "Tail strike" in (note or "") else 5, note), "A-check due": (5, note)}
-                if status in auto:
-                    create_item(con, reg, auto[status][0], auto[status][1], "grounding", source="acars", flight=p["flight_number"], pirep_id=pirep_id)
-                for f in getattr(rec, "faults", []) or []:
-                    create_item(con, reg, f["ata"], f["description"], f["severity"], f.get("category", "C"), "pilot", p["flight_number"], pirep_id, f.get("t"))
-                if status == "Available" and con.execute("SELECT 1 FROM maint WHERE reg=? AND status='open' AND severity='grounding'", (reg,)).fetchone():
-                    con.execute("UPDATE airframes SET status='Maintenance', note='Open grounding write-up', updated=? WHERE reg=?", (time.time(), reg))
-        elif reg:
-            con.execute("UPDATE airframes SET status='Available', updated=? WHERE reg=? AND status='Booked'", (time.time(), reg))
-        if not p.get("demo") and p["arr"] != "UNKNOWN" and (m_training := booking["mission"].get("training", {})).get("mode") != "dedicated":
-            con.execute("UPDATE pilots SET location=? WHERE id=?", (p["arr"] if p["arr"] in C["AIRPORTS"] else
-                        (nearest_airport(rec.last.lat, rec.last.lon) or booking["mission"]["destination"]["icao"]), pid))
-        if booking["mission"].get("job"):
-            con.execute("UPDATE jobs SET status=? WHERE id=?", ("completed" if not p.get("demo") else "open", booking["mission"]["id"]))
-        if booking["mission"].get("urgent"):
-            con.execute("UPDATE urgent SET status=? WHERE id=?", ("completed" if not p.get("demo") else "open", booking["mission"]["id"]))
-        if booking["mission"].get("live"):
-            con.execute("UPDATE live_missions SET status=? WHERE id=?", ("completed" if not p.get("demo") else "open", booking["mission"]["id"]))
-        if p.get("checkride", {}).get("passed") and not p.get("demo") and p.get("review_status") == "Accepted":
-            mark_line_checkride_passed(con, pid)
+        # Commit the marker with these database effects so a retry cannot apply them twice.
+        applied = con.execute("INSERT OR IGNORE INTO pirep_effects (pirep_id, applied) VALUES (?,?)",
+                              (pirep_id, time.time())).rowcount == 1
+        if applied:
+            if tc.get("passed") and not p.get("demo") and p.get("review_status") == "Accepted" and p.get("status") in ("Delivered", "Delivered late"):
+                record_accepted_type_pass(con, pirep_id)
+            if reg and not p.get("demo"):
+                loc = p["arr"] if p["arr"] in C["AIRPORTS"] else (nearest_airport(rec.last.lat, rec.last.lon) or booking["mission"]["origin"]["icao"])
+                row = con.execute("SELECT * FROM airframes WHERE reg=?", (reg,)).fetchone()
+                if row:
+                    hrs = (p.get("flight_min") or 0) / 60
+                    since = (row["hours_since_check"] or 0) + hrs
+                    status, note = "Available", None
+                    if p.get("landing_rate") is not None and p["landing_rate"] < -1000:
+                        status, note = "Damaged", f"Structural damage after a {p['landing_rate']} fpm landing on {p['flight_number']}"
+                    elif p.get("landing_rate") is not None and p["landing_rate"] < REVIEW["hard_landing_fpm"]:
+                        status, note = "Inspection", f"Hard landing inspection after {p['flight_number']} ({p['landing_rate']} fpm)"
+                    elif (p.get("takeoff_analysis") or {}).get("tail_strike"):
+                        status, note = "Inspection", f"Tail strike inspection after {p['flight_number']}"
+                    elif since >= A_CHECK_HOURS:
+                        status, note = "A-check due", f"A-check due at {since:.0f} hours since last check"
+                    arr_st = (booking.get("arr_stand") or {})
+                    parked = arr_st.get("stand") if arr_st.get("icao") == loc else None
+                    con.execute("""UPDATE airframes SET location=?, status=?, hours=hours+?, cycles=cycles+1, hours_since_check=?,
+                        last_flight=?, last_pilot=?, updated=?, note=?, stand=? WHERE reg=?""",
+                                (loc, status, hrs, since, p["flight_number"], pid, time.time(), note, parked, reg))
+                    auto = {"Damaged": (5, note), "Inspection": (53 if "Tail strike" in (note or "") else 5, note), "A-check due": (5, note)}
+                    if status in auto:
+                        create_item(con, reg, auto[status][0], auto[status][1], "grounding", source="acars", flight=p["flight_number"], pirep_id=pirep_id)
+                    for f in getattr(rec, "faults", []) or []:
+                        create_item(con, reg, f["ata"], f["description"], f["severity"], f.get("category", "C"), "pilot", p["flight_number"], pirep_id, f.get("t"))
+                    if status == "Available" and con.execute("SELECT 1 FROM maint WHERE reg=? AND status='open' AND severity='grounding'", (reg,)).fetchone():
+                        con.execute("UPDATE airframes SET status='Maintenance', note='Open grounding write-up', updated=? WHERE reg=?", (time.time(), reg))
+            elif reg:
+                con.execute("UPDATE airframes SET status='Available', updated=? WHERE reg=? AND status='Booked'", (time.time(), reg))
+            if not p.get("demo") and p["arr"] != "UNKNOWN" and (m_training := booking["mission"].get("training", {})).get("mode") != "dedicated":
+                con.execute("UPDATE pilots SET location=? WHERE id=?", (p["arr"] if p["arr"] in C["AIRPORTS"] else
+                            (nearest_airport(rec.last.lat, rec.last.lon) or booking["mission"]["destination"]["icao"]), pid))
+            if booking["mission"].get("job"):
+                con.execute("UPDATE jobs SET status=? WHERE id=?", ("completed" if not p.get("demo") else "open", booking["mission"]["id"]))
+            if booking["mission"].get("urgent"):
+                con.execute("UPDATE urgent SET status=? WHERE id=?", ("completed" if not p.get("demo") else "open", booking["mission"]["id"]))
+            if booking["mission"].get("live"):
+                con.execute("UPDATE live_missions SET status=? WHERE id=?", ("completed" if not p.get("demo") else "open", booking["mission"]["id"]))
+            if p.get("checkride", {}).get("passed") and not p.get("demo") and p.get("review_status") == "Accepted":
+                mark_line_checkride_passed(con, pid)
+    if tc.get("passed") and not p.get("demo") and p.get("review_status") == "Accepted" and p.get("status") in ("Delivered", "Delivered late"):
+        note_rating_on_licence(pid, tc["family"], time.time())
     return pay_pirep(pirep_id)
 
 

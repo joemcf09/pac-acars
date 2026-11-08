@@ -75,7 +75,7 @@ After `complete`, filing goes through the normal `POST /api/pirep`.
 1. **Book** (`POST /api/booking`): checks rank, location, aircraft and airframe; reserves the airframe; generates dispatch paperwork.
 2. **Track** in the PAC ACARS app: its `TrackerThread` feeds telemetry to `FlightRecorder`; dispatch messages, weather uplinks and online checks run alongside (`acars_core.py`). The app sends live status to the website and hands over the finished record.
 3. **Talk to dispatch** (the app's Dispatch panel, `acars_core.handle_message`): delays, diversions, fuel checks, ETA, fault write-ups and free text; OCC replies are queued a few seconds later. Reported delays and declared diversions feed into scoring; write-ups are opened on the tail at filing.
-4. **File** (`POST /api/pirep`): `build_pirep` scores the flight, runs landing and takeoff analysis, economics and pay; `va.after_file` moves the airframe and pilot, opens maintenance items, pays the wallet and awards badges.
+4. **File** (`POST /api/pirep`): `build_pirep` scores the flight, runs landing and takeoff analysis, economics and pay; `va.after_file` moves the airframe and pilot, opens maintenance items, pays the wallet and awards badges. A unique pilot-and-booking key reuses the same PIREP on retries, and a transactionally recorded marker prevents database side effects such as airframe hours and cycles from being applied twice.
 
 ## Data, backups and updates
 
@@ -91,6 +91,7 @@ Run these before shipping a change:
 
 ```
 python tests/test_flights.py      # scripted flights through the real tracker, scoring, analysis, economics and pay
+python tests/test_pirep_retry.py  # PIREP filing resumes safely after interruptions, without duplicate effects
 python tools/check_frontend.py    # JavaScript syntax check (needs Node.js)
 python tests/test_acars_window.py # the ACARS app's window supervision: frozen window replaced, closing mid-flight keeps tracking
 python tests/test_liveries.py      # liveries: file and link, painter credit, sign-in for files, editing, Discord announcement
