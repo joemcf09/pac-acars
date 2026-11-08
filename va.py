@@ -578,7 +578,7 @@ def _pay_pirep(pirep_id):
         if con.execute("SELECT 1 FROM wallet WHERE pirep_id=? AND kind IN ('flight_pay','profit_share')", (pirep_id,)).fetchone():
             return None
         d = json.loads(r["detail"] or "{}")
-        if d.get("training"):
+        if d.get("training") and r["category"] not in ("Checkride", "Type checkride"):
             return None
         rank = d.get("pilot_rank") or career(r["pilot_id"], con)["rank"]
         job = d.get("job") or {}
@@ -1646,14 +1646,8 @@ def career(pilot_id, con=None):
     own = con is None
     con = con or C["db"]()
     p = pilot_record(pilot_id, con)
-    # Only the few small fields career needs are read out of each flight's detail (inside SQLite), never the whole recorded
-    # track: unpacking every flight's full detail made each signed-in page slow once a pilot had a few dozen flights.
     rows = [dict(r) for r in con.execute(
-        "SELECT block_min, score, filed_at, "
-        # only checkride flights can be training flights, so only their detail is opened at all
-        "CASE WHEN category IN ('Checkride', 'Type checkride') THEN json_extract(detail, '$.training') IS NOT NULL ELSE 0 END AS is_training, "
-        "CASE WHEN category IN ('Checkride', 'Type checkride') THEN COALESCE(json_extract(detail, '$.type_checkride.passed'), "
-        "json_extract(detail, '$.checkride.passed'), 0) ELSE 0 END AS ck_passed "
+        "SELECT block_min, score, filed_at "
         "FROM pireps WHERE pilot_id=? AND demo=0 AND review_status='Accepted' ORDER BY filed_at DESC", (pilot_id,))]
     last_ck = con.execute("SELECT filed_at, json_extract(detail, '$.checkride') AS ck FROM pireps WHERE pilot_id=? AND demo=0 AND mission_id=? "
                           "AND review_status!='Rejected' ORDER BY filed_at DESC LIMIT 1", (pilot_id, CHECKRIDE_ID)).fetchone()
@@ -1663,7 +1657,6 @@ def career(pilot_id, con=None):
     if last_ck:
         _ck = json.loads(last_ck["ck"] or "{}") or {}
         last_attempt = {"when": last_ck["filed_at"], "passed": bool(_ck.get("passed")), "reasons": _ck.get("reasons") or []}
-    rows = [r for r in rows if not r["is_training"] or r["ck_passed"]]
     pac_hours = sum(r["block_min"] or 0 for r in rows) / 60
     hours = pac_hours + (p.get("transfer_hours") or 0)
     recent = [r for r in rows if r["score"] is not None][:AVG_WINDOW]

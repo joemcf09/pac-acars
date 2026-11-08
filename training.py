@@ -44,7 +44,7 @@ def resolve(va, spec):
     m.update(id=course,category='Checkride' if line else 'Type checkride',priority='Standard',reward=0,
              aircraft=[ac],types_only=True,cargo='Training ballast — no commercial shipment',region='Company training',
              title=('Line checkride' if line else va.rating_family(ac)+' type checkride')+f': {origin} to {route["destination"]["icao"]}',
-             training=policy,briefing='Company-funded training. Same checkride standards in both modes. No flight pay, bonuses, profit share or campaign cargo credit. Successful, accepted checkride hours count toward your career. Retakes are free.')
+             training=policy,briefing='Company-funded training. Same checkride standards in both modes. Accepted checkride flights, including unsuccessful attempts, count toward career hours and receive standard flight pay and applicable skill or gear bonuses. Checkrides earn no profit share, commercial cargo credit or reward points. Retakes are free.')
     if not line:m['type_checkride']=va.rating_family(ac)
     return m
 

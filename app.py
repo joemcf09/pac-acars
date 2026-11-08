@@ -639,7 +639,11 @@ def build_pirep(booking, rec: FlightRecorder):
     p["economics"] = economics.flight_economics(p, booking, FLEET, settings(), dist)
     m_ = booking["mission"]
     rank_ = va.career(va.current_pilot_id())["rank"]
-    if p.get("demo") or m_.get("training"):
+    if p.get("demo"):
+        p["pay"] = None
+    elif m_.get("training") and m_.get("category") in ("Checkride", "Type checkride"):
+        p["pay"] = va.flight_pay(p.get("block_min"), rank_, 0)
+    elif m_.get("training"):
         p["pay"] = None
     elif m_.get("contract"):
         p["pay"] = va.contract_pay(p.get("block_min"), rank_, m_.get("contract_bonus"), m_.get("contract_rate_mult") or va.CONTRACT_RATE_MULT)
@@ -655,7 +659,7 @@ def build_pirep(booking, rec: FlightRecorder):
         if m_.get("operator"):
             p["job"]["operator_name"] = m_["operator"]["name"]
     if m_.get("training"):
-        p['economics'] = economics._result(0, {}, ['Company-funded training: no commercial revenue or pilot pay.'], 0)
+        p['economics'] = economics._result(0, {}, ['Company-funded training: no commercial revenue or profit share.'], 0)
         p['payload_lbs'] = 0
         if m_['training']['mode'] == 'dedicated':
             p['registration'] = 'TRAINING'
@@ -1191,14 +1195,10 @@ def profile_stats(pid=None, recent_n=5):
     with db() as con:
         rows = [dict(r) for r in con.execute(
             "SELECT id, aircraft, block_min, flight_min, landing_rate, score, status, filed_at, payload_lbs, points, distance_nm, "
-            "flight_number, mission_title, dep, arr, grade, "
-            "CASE WHEN category IN ('Checkride', 'Type checkride') THEN COALESCE(json_extract(detail, '$.type_checkride.passed'), "
-            "json_extract(detail, '$.checkride.passed'), 1) ELSE 1 END AS ck_ok "
+            "flight_number, mission_title, dep, arr, grade "
             "FROM pireps WHERE demo=0 AND review_status='Accepted' AND pilot_id=? ORDER BY filed_at DESC", (pid or va.current_pilot_id(),))]
     by_ac = {}
     for r in rows:
-        if not r.pop("ck_ok", 1):      # a checkride that didn't pass: no hours or landings on the rating (as for rank and pay)
-            continue
         a = by_ac.setdefault(r["aircraft"], {"flights": 0, "block_hours": 0.0, "landings_90d": 0, "last_flown": None})
         a["flights"] += 1
         a["block_hours"] += (r["block_min"] or 0) / 60
@@ -3556,7 +3556,7 @@ def logbook():
         "avg_landing": round(sum(r["landing_rate"] for r in live if r["landing_rate"] is not None) / sum(r["landing_rate"] is not None for r in live)) if any(r["landing_rate"] is not None for r in live) else None,
         "avg_score": round(sum(r["score"] for r in live if r["score"] is not None) / sum(r["score"] is not None for r in live)) if any(r["score"] is not None for r in live) else None,
     }
-    car = va.career(pid)       # what counts for rank and pay: failed checkrides are left out
+    car = va.career(pid)
     totals.update(career_hours=car["pac_hours"], career_flights=car["flights"])
     return jsonify({"pireps": rows, "totals": totals, "pilot": pid})
 

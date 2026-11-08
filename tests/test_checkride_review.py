@@ -4,8 +4,10 @@ Run from the PAC folder:   python tests/test_checkride_review.py
 """
 import sys
 import os
+import json
 import shutil
 import tempfile
+import time
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
@@ -62,11 +64,42 @@ check("it files", bool(p.get("id")), p)
 car = c.get("/api/va/career").json["career"]
 check("a minor overspeed does not fail the checkride", car["checkride"] == "Passed", car["checkride"])
 check("Career records the checkride as passed", car["checkride_last"] and car["checkride_last"]["passed"], car.get("checkride_last"))
+check("an accepted checkride earns flight pay", p.get("pay") and p["pay"]["flight_pay"] > 0, p.get("pay"))
+with A.db() as con:
+    checkride_payment = con.execute("SELECT amount FROM wallet WHERE pirep_id=? AND kind='flight_pay'", (p["id"],)).fetchone()
+check("accepted checkride flight pay reaches the wallet", checkride_payment and checkride_payment["amount"] > 0, checkride_payment)
 book = c.post("/api/booking", json={"mission_id": "PAC1022", "aircraft": "B738F", "airframe": None}).json
 check("passing unlocks line aircraft", "error" not in book, book)
 c.delete("/api/booking")
 rv = [r for r in staff.get("/api/staff/overview").json["reviews"] if r["id"] == p["id"]][0]
 check("staff see that the checkride passed", rv["checkride"] and rv["checkride"]["passed"], rv.get("checkride"))
+
+print("An accepted but unsuccessful type checkride")
+before = A.va.career(PID)
+failed_detail = json.dumps({
+    "training": {"mode": "dedicated"},
+    "type_checkride": {"family": "A300", "passed": False, "reasons": ["landing too firm"]},
+    "pilot_rank": before["rank"],
+})
+with A.db() as con:
+    failed_id = con.execute(
+        """INSERT INTO pireps (filed_at, mission_id, mission_title, category, flight_number, aircraft, dep, arr,
+                               block_min, score, grade, status, points, demo, detail, pilot_id, review_status, profit, flags)
+           VALUES (?, 'TR-A300', 'A300 type checkride', 'Type checkride', 'TR-A300', 'A306F', 'PANC', 'PAJN',
+                   120, 85, 'B', 'Delivered', 0, 0, ?, ?, 'Accepted', 0, '[]')""",
+        (time.time(), failed_detail, PID),
+    ).lastrowid
+failed_pay = A.va.pay_pirep(failed_id)
+after = A.va.career(PID)
+stats = A.profile_stats(PID)
+check("failed accepted attempts count toward career flights and hours",
+      after["flights"] == before["flights"] + 1 and after["pac_hours"] == round(before["pac_hours"] + 2, 1),
+      (before["flights"], before["pac_hours"], after["flights"], after["pac_hours"]))
+check("failed attempts count in aircraft flight and hour totals",
+      stats["by_aircraft"]["A306F"]["flights"] == 1 and stats["by_aircraft"]["A306F"]["block_hours"] == 2.0,
+      stats["by_aircraft"].get("A306F"))
+check("failed accepted attempts receive standard flight pay", failed_pay and failed_pay["flight_pay"] > 0, failed_pay)
+check("checkride pay is not duplicated", A.va.pay_pirep(failed_id) is None)
 
 print("What a new Second Officer can fly")
 staff.post("/api/settings", json={"require_type_ratings": True})

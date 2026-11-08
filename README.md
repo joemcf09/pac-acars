@@ -504,6 +504,9 @@ update. Always install the newest zip: an update makes the program match the zip
   than one bounce. An overspeed penalty reduces the score but is not an automatic failure; a position jump still is.
 * The result is recorded when the PIREP is filed. Accepting the PIREP pays it but doesn't change the result.
   Staff see "Line checkride not passed" and the reasons on the PIREP in review, and the pilot sees them on Career.
+* Every accepted checkride attempt counts toward career flight count and hours and receives standard flight pay,
+  plus any applicable skill or gear bonuses. A failed attempt does not grant a rating. Checkrides earn no profit
+  share, reward points or commercial cargo credit.
 * If a failing penalty was ACARS misreading something, waive it in review: the checkride is checked again and,
   if it now passes, the pilot is promoted at once. Staff can also set the checkride to Passed or Waived in the roster.
 
