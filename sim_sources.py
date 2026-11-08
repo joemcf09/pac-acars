@@ -145,6 +145,9 @@ class MSFSSource:
         "n_eng": ("NUMBER OF ENGINES", "number"),
     }
     OPTIONAL = ("bank", "beacon", "landing_lt", "strobe", "nav_lt", "taxi_lt", "n_eng")
+    # Near the ground (landing) only these are re-read each sample; the rest reuse their last value. Each
+    # SimConnect request costs ~20 ms, so reading all ~37 took ~0.8 s and the touchdown fell between samples.
+    FAST = ("lat", "lon", "agl", "ias", "gs", "vs", "on_ground", "g", "td", "hdg", "pitch")
     CORE = ("lat", "lon", "alt", "ias", "gs", "vs", "on_ground")
 
     def __init__(self):
@@ -156,6 +159,8 @@ class MSFSSource:
         self._has_read_touchdown_value = False
         self._fresh_touchdown_value = None
         self._fresh_touchdown_time = None
+        self.fast = False          # set by the tracker while landing
+        self._missing = {}
 
     def connect(self):
         try:
@@ -173,15 +178,23 @@ class MSFSSource:
         self.req = {}
         for k, (n, u) in self.VARS.items():
             try:
-                self.req[k] = Request((n.encode(), u.encode()), self.sm, _time=150 if k not in self.OPTIONAL else 1000)
+                self.req[k] = Request((n.encode(), u.encode()), self.sm,
+                                      _time=40 if k in self.FAST else (150 if k not in self.OPTIONAL else 1000))
             except Exception:
                 if k not in self.OPTIONAL:
                     raise
 
-    def _v(self, k):
-        """Latest value, or the last good one if this read failed (up to 2 s old)."""
+    def _v(self, k, refresh=True):
+        """Latest value, or the last good one if this read failed (up to 2 s old). With refresh=False
+        (fast landing reads) a value that isn't landing-critical reuses its last reading for up to 30 s."""
         if k not in self.req:
             return None
+        if not refresh:
+            old = self.cache.get(k)
+            if old and time.time() - old[1] < 30:
+                return old[0]
+            if time.time() - self._missing.get(k, -1e9) < 30:
+                return None                 # this aircraft doesn't report it: don't spend a request finding out again
         try:
             val = self.req[k].value
         except Exception:
@@ -189,12 +202,15 @@ class MSFSSource:
         now = time.time()
         if val is not None:
             self.cache[k] = (val, now)
+            self._missing.pop(k, None)
             return val
+        self._missing[k] = now
         old = self.cache.get(k)
         return old[0] if old and now - old[1] < 2.0 else None
 
     def read(self):
-        v = {k: self._v(k) for k in self.VARS}
+        fast = bool(self.fast)
+        v = {k: self._v(k, refresh=(not fast) or k in self.FAST) for k in self.VARS}
         if any(v[k] is None for k in self.CORE):
             return None  # no fresh data for a core value; the tracker skips it
         num = lambda k, d=0.0: d if v[k] is None else float(v[k])

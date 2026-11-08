@@ -1,6 +1,22 @@
 PAC ACARS - CHANGELOG
 =====================
 
+1.1.3 (November 2026)
+---------------------
+Fixed: landing rates
+- Touchdown is now measured at the moment the wheels touch. Near the ground
+  PAC ACARS reads the simulator about five times a second instead of once,
+  so the flare is no longer missed. Before, the rate could come from a reading
+  taken up to a second (and several feet) before contact, which made soft
+  landings look firm.
+- Uses MSFS's own touchdown measurement when it is fresh, and never an old one
+  left over from a previous landing.
+- The landing G is the peak at contact, not a reading taken afterward.
+- A bounce is only counted when the aircraft really climbs back off the runway.
+  Large aircraft (like the MD-11) whose height reading never reaches zero no
+  longer get false bounces from a moment of strut rebound.
+- The PIREP records how the landing rate was measured, for staff to review.
+
 1.1.2 hotfix 3 (November 2026)
 ------------------------------
 Fixed

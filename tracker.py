@@ -392,16 +392,22 @@ class FlightRecorder:
         if not just_off and p in ("APPROACH", "DESCENT", "GO_AROUND"):
             pc = getattr(self, "pending_contact", None)
             if s.on_ground and not pc:
-                last = self.recent_vs[-1][0] if self.recent_vs else t
-                vs_c = [v for tt, v in self.recent_vs if last - tt <= 0.6] or [s.vs_fpm]
-                self.pending_contact = {"t": t, "rate": -abs(min(vs_c)), "vs_rate": min(vs_c),
+                vs_at = self._contact_vs(s)
+                self.pending_contact = {"t": t, "rate": -abs(vs_at), "vs_rate": vs_at, "gap": self._contact_gap,
                                         "touchdown_fpm": s.touchdown_fpm, "ias": s.ias, "lat": s.lat,
-                                        "lon": s.lon, "air_again": False}
-            elif pc and s.on_ground and s.touchdown_fpm is not None:
-                pc["touchdown_fpm"] = s.touchdown_fpm
-            elif pc and not s.on_ground and s.agl_ft > 2:
+                                        "lon": s.lon, "air_again": False, "agl0": s.agl_ft, "g": s.g, "air_since": None}
+            elif pc and s.on_ground:
+                pc["air_since"] = None
+                pc["g"] = max(pc.get("g", 1.0), s.g)
+                if s.touchdown_fpm is not None:
+                    pc["touchdown_fpm"] = s.touchdown_fpm
+            elif pc and not s.on_ground:
+                # a bounce is a real lift-off: off the ground for 0.4 s and at least 3 ft above the contact height
+                # (height above ground is measured at the aircraft's reference point, ~17 ft on an MD-11)
+                pc["air_since"] = pc.get("air_since") or t
                 if t - pc["t"] < 3:
-                    pc["air_again"] = True
+                    if t - pc["air_since"] >= 0.4 and s.agl_ft >= pc.get("agl0", 0) + 3:
+                        pc["air_again"] = True
                 else:
                     self.pending_contact = None
         if contact and just_off and not getattr(self, "takeoff_touchback", False):
@@ -633,24 +639,36 @@ class FlightRecorder:
         self.weights["takeoff"] = s.weight_lbs
         self.msg(t, f"OFF {zulu(t)}  TOW {s.weight_lbs:,.0f}LB", "oooi")
 
+    def _contact_vs(self, s):
+        """Vertical speed at wheel contact: the last airborne sample (the nearest one to contact). Records how far
+        before contact it was, so a slow sample rate shows in the PIREP instead of hiding in the number."""
+        if self.recent_vs:
+            tt, vs = self.recent_vs[-1]
+            self._contact_gap = round(max(0.0, s.t - tt), 2)
+            return vs
+        self._contact_gap = None
+        return s.vs_fpm
+
     def _touchdown(self, t, s):
         pc = getattr(self, "pending_contact", None)
         self.pending_contact = None
+        self._contact_g = pc.get("g") if pc else None
         if pc and pc.get("air_again") and not self.oooi["on"]:
             # bounced: the landing counts from the first contact, then this is bounce #1
             self._touchdown_at(pc["t"], s, forced=pc)
             self.bounces += 1
             self.event(t, "bounce", f"BOUNCED LANDING  #{self.bounces}", penalty=5)
             return
-        self._touchdown_at(t, s)
+        self._touchdown_at(t, s, first=pc)
 
-    def _touchdown_at(self, t, s, forced=None):
+    def _touchdown_at(self, t, s, forced=None, first=None):
         # Use the vertical speed in the last ~0.6 s before contact. A longer window reaches back
         # before the flare and reports the approach descent rate (~700 fpm) instead of the touchdown.
-        last = self.recent_vs[-1][0] if self.recent_vs else t
-        vs_candidates = [v for tt, v in self.recent_vs if last - tt <= 0.6] or [s.vs_fpm]
-        vs_rate = min(vs_candidates)
-        touchdown_fpm = s.touchdown_fpm
+        vs_rate = self._contact_vs(s)
+        if first:   # the rate belongs to the first wheel contact, not to whatever came before confirmation
+            vs_rate, self._contact_gap = first["vs_rate"], first.get("gap")
+        touchdown_fpm = s.touchdown_fpm if s.touchdown_fpm is not None else (first or {}).get("touchdown_fpm")
+        g_peak = max(s.g, getattr(self, "_contact_g", None) or 0)   # peak from first contact to confirmation
         rate = -abs(touchdown_fpm) if touchdown_fpm is not None else vs_rate
         rate_source = "sim_touchdown" if touchdown_fpm is not None else "vertical_speed"
         rate = -abs(rate)
@@ -658,9 +676,11 @@ class FlightRecorder:
         if forced:  # a bounce: the first contact counts
             lat, lon, ias = forced["lat"], forced["lon"], forced["ias"]
             vs_rate = forced.get("vs_rate", forced["rate"])
+            self._contact_gap = forced.get("gap")
             touchdown_fpm = forced.get("touchdown_fpm")
             rate = -abs(touchdown_fpm) if touchdown_fpm is not None else forced["rate"]
             rate_source = "sim_touchdown" if touchdown_fpm is not None else "first_contact"
+            g_peak = max(g_peak, forced.get("g", 1.0))
         if self.oooi["on"] and t - self.oooi["on"] < 15:
             self.bounces += 1
             self.event(t, "bounce", f"BOUNCED LANDING  #{self.bounces}", penalty=5)
@@ -671,11 +691,11 @@ class FlightRecorder:
             dist_dest = gc_distance_nm(lat, lon, self.dest["lat"], self.dest["lon"])
             self.landing = {"rate_fpm": round(rate), "vs_rate_fpm": round(vs_rate),
                             "touchdown_fpm": round(touchdown_fpm) if touchdown_fpm is not None else None,
-                            "rate_source": rate_source, "g": round(s.g, 2),
+                            "rate_source": rate_source, "g": round(g_peak, 2), "contact_gap_s": getattr(self, "_contact_gap", None),
                             "ias": round(ias), "lat": lat, "lon": lon, "dist_dest_nm": round(dist_dest, 1)}
             if not hasattr(self, "touchdowns"):
                 self.touchdowns = []
-            self.touchdowns.append({"t": t, "rate_fpm": round(rate), "ias": round(ias), "g": round(s.g, 2), "lat": lat, "lon": lon,
+            self.touchdowns.append({"t": t, "rate_fpm": round(rate), "ias": round(ias), "g": round(g_peak, 2), "lat": lat, "lon": lon,
                                     "hdg": round(s.hdg, 1), "n": len(self.touchdowns) + 1})
             self.msg(t, f"ON {zulu(t)}  TOUCHDOWN {rate:.0f}FPM  IAS {ias:.0f}KT  FOB {s.fuel_lbs:,.0f}LB", "oooi")
             buf = [x for x in getattr(self, "approach_buf", []) if x[0] < t]
@@ -809,6 +829,12 @@ class TrackerThread(threading.Thread):
         misses, last_save, last_online = 0, time.time(), 0.0
         while not self.stop_flag.is_set():
             try:
+                last = self.rec.last
+                td_t = getattr(self.rec, "landing_touchdown_t", None)
+                # landing window: fast reads below 300 ft and for 10 s after touchdown (bounces, peak G)
+                self.source.fast = bool(last and ((not last.on_ground and last.agl_ft < 300)
+                                                  or (td_t and time.time() - td_t < 10)
+                                                  or getattr(self.rec, "pending_contact", None)))
                 s = self.source.read()
                 if s is None or (abs(s.lat) < 1e-6 and abs(s.lon) < 1e-6):
                     raise ValueError("incomplete sample")
@@ -852,8 +878,7 @@ class TrackerThread(threading.Thread):
                     self.on_save(self.rec)
             if self.rec.complete:
                 break
-            low = self.rec.last and not self.rec.last.on_ground and self.rec.last.agl_ft < 300
-            time.sleep(0.1 if low else self.interval)
+            time.sleep(0.05 if getattr(self.source, "fast", False) else self.interval)
         if self.on_save and self.rec.start_t:
             with self.lock:
                 self.on_save(self.rec)
