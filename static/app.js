@@ -2378,98 +2378,128 @@ async function loadStations() {
 async function loadCargo() {
   const root = $("#cargoRoot");
   if (!root) return;
-  root.innerHTML = `<div class="profile-bar"><h1>Cargo inventory</h1><span class="muted">Persistent PAC shipments and their recorded station movements.</span></div>
-    <p class="muted cargo-note">Shipment movements update when a PIREP is filed. Planned tracking milestones on a dispatch release are estimates, not live scans.</p>
+  S.cargoView = S.cargoView || "waiting";
+  root.innerHTML = `<div class="profile-bar"><h1>Cargo inventory</h1><span class="muted">Every PAC shipment keeps its air waybill from first pickup to final delivery, across pilots and flights.</span></div>
+    <div class="cgo-strip" id="cgoStrip" role="tablist" aria-label="Cargo views"></div>
+    <section id="cgoWaiting" class="cgo-waiting" aria-label="Freight waiting at stations"></section>
     <div class="cargo-filters">
       <label>Station<select id="cargoStation"><option value="ALL">All stations</option></select></label>
-      <label>Status<select id="cargoStatus">
-        <option value="ALL">All statuses</option><option value="BOOKED">Booked</option><option value="AT_STATION">At station / transfer ready</option><option value="DELIVERED">Delivered</option>
-        <option value="DELIVERED_LATE">Delivered late</option><option value="HELD_AT_STATION">Held at station</option><option value="EXCEPTION">Exception</option>
-      </select></label>
       <label class="cargo-search">Search<input id="cargoSearch" type="search" maxlength="80" placeholder="AWB, shipper, consignee or commodity"></label>
-      <button class="btn ghost small" id="cargoRefresh" type="button">Refresh</button>
+      <label class="cgo-all" id="cgoAllWrap" hidden><input type="checkbox" id="cgoAll"> Older deliveries too</label>
     </div>
     <p class="muted cargo-results" id="cargoResults" role="status">Loading cargo…</p>
-    <div id="cargoList" class="cargo-list" aria-live="polite"></div>`;
-  const station = $("#cargoStation"), status = $("#cargoStatus"), search = $("#cargoSearch");
+    <div class="cgo-table-wrap"><table class="cgo-table"><thead><tr><th>Air waybill</th><th>Journey</th><th>Commodity</th><th class="r">Pieces · weight</th><th>Status</th><th>Since</th></tr></thead>
+      <tbody id="cargoList"></tbody></table></div>
+    <p class="muted cargo-note">Movements are recorded when a PIREP is filed. Shippers and consignees are real companies chosen to fit the route; the shipments are fictional.</p>`;
+  const station = $("#cargoStation"), search = $("#cargoSearch");
+  let overview;
   try {
-    const stations = await api("/api/cargo/stations");
-    station.innerHTML = `<option value="ALL">All stations</option>` + stations.map(x =>
-      `<option value="${esc(x.icao)}">${esc(x.icao)} · ${fmt(x.shipments)}</option>`).join("");
+    const [stations, ov] = await Promise.all([api("/api/cargo/stations"), api("/api/cargo/overview")]);
+    overview = ov;
+    station.innerHTML = `<option value="ALL">All stations</option>` + stations.map(x => `<option value="${esc(x.icao)}">${esc(x.icao)} · ${fmt(x.shipments)}</option>`).join("");
     if (stations.some(x => x.icao === S.cargoStation)) station.value = S.cargoStation;
-  } catch (e) {
-    $("#cargoResults").textContent = e.message;
-    return;
-  }
-  if (S.cargoStatus) status.value = S.cargoStatus;
+  } catch (e) { $("#cargoResults").textContent = e.message; return; }
   if (S.cargoSearch) search.value = S.cargoSearch;
-
+  const c = overview.counts;
+  const views = [["waiting", "Waiting for onward flight", c.waiting, c.overdue ? `${c.overdue} over ${overview.overdue_hours} h` : "at PAC stations"],
+    ["transit", "On a booked flight", c.transit, "in the air or about to be"], ["delivered", "Delivered", c.delivered, "last 7 days"],
+    ...(c.exceptions ? [["exceptions", "Exceptions", c.exceptions, "need a look"]] : [])];
+  const drawStrip = () => { $("#cgoStrip").innerHTML = views.map(([k, l, n, sub]) => `<button type="button" role="tab" data-cgo-view="${k}" aria-selected="${S.cargoView === k}" class="${k === "waiting" && c.overdue ? "warn" : ""}"><small>${l}</small><b>${fmt(n)}</b><span>${esc(sub)}</span></button>`).join(""); };
+  drawStrip();
+  const ago = h => h < 1 ? "under an hour" : h < 48 ? `${Math.round(h)} h` : `${Math.round(h / 24)} days`;
+  $("#cgoWaiting").innerHTML = overview.waiting.length ? `<h2>Freight waiting</h2><p class="muted">Cargo sitting at a station for its next leg. Fly it there and it's yours to deliver.</p>
+    <div class="cgo-wait-grid">${overview.waiting.slice(0, 12).map(w => `<article class="cgo-wait ${w.overdue ? "overdue" : ""}">
+      <div class="cgo-wait-route"><b>${esc(w.station)}</b><span aria-hidden="true">→</span><b>${esc(w.destination)}</b></div>
+      <p>${fmt(w.shipments)} shipment${w.shipments === 1 ? "" : "s"} · ${fmt(w.weight_lbs)} lb</p>
+      <p class="muted">Waiting ${ago(w.waiting_h)}${w.overdue ? " · <b>overdue</b>" : ""}</p>
+      ${w.direct_route ? `<button type="button" class="btn small" data-cgo-fly="${esc(w.station)}|${esc(w.destination)}">Find a flight →</button>` : `<span class="muted cgo-nodirect">No scheduled ${esc(w.station)}–${esc(w.destination)} route yet</span>`}
+      <button type="button" class="linkish" data-cgo-show="${esc(w.station)}|${esc(w.destination)}">See the shipments</button></article>`).join("")}</div>` : "";
+  $("#cgoWaiting").querySelectorAll("[data-cgo-fly]").forEach(b => b.onclick = () => {
+    const [from, to] = b.dataset.cgoFly.split("|");
+    resetMissionFilters(); Object.assign(S, { board: "all", parkedOrigin: from, shipmentDestinations: [to], shipmentFilterTitle: `Freight waiting at ${from} for ${to}` });
+    show("missions");
+  });
+  let dest = "";
+  $("#cgoWaiting").querySelectorAll("[data-cgo-show]").forEach(b => b.onclick = () => {
+    const [from, to] = b.dataset.cgoShow.split("|"); S.cargoView = "waiting"; station.value = from; dest = to; drawStrip(); refresh(); $(".cgo-table-wrap").scrollIntoView({ behavior: "smooth", block: "start" });
+  });
   let requestNo = 0, searchTimer;
+  const statusWord = { AT_STATION: "Waiting", HELD_AT_STATION: "Held (diversion)", BOOKED: "On a booked flight", DELIVERED: "Delivered", DELIVERED_LATE: "Delivered late", EXCEPTION: "Exception" };
   const refresh = async () => {
     const request = ++requestNo;
-    S.cargoStation = station.value;
-    S.cargoStatus = status.value;
-    S.cargoSearch = search.value.trim();
-    const params = new URLSearchParams({ station: S.cargoStation, status: S.cargoStatus, q: S.cargoSearch });
+    S.cargoStation = station.value; S.cargoSearch = search.value.trim();
+    $("#cgoAllWrap").hidden = S.cargoView !== "delivered";
+    const params = new URLSearchParams({ view: S.cargoView, station: S.cargoStation, q: S.cargoSearch, ...(dest ? { destination: dest } : {}), ...($("#cgoAll").checked ? { all: "1" } : {}) });
     $("#cargoResults").textContent = "Loading cargo…";
-    $("#cargoList").innerHTML = "";
     try {
       const result = await api(`/api/cargo/shipments?${params}`);
       if (request !== requestNo || $("#view-cargo").hidden) return;
       const shown = result.shipments || [];
-      $("#cargoResults").textContent = result.total
-        ? `Showing ${shown.length} of ${fmt(result.total)} shipment${result.total === 1 ? "" : "s"}${result.total > result.limit ? " (first 300; narrow the filters to see more)." : "."}`
-        : "No shipments match these filters.";
-      $("#cargoList").innerHTML = shown.map(x => `<article class="cargo-card">
-        <div class="cargo-card-main">
-          <div class="cargo-card-title"><b>${esc(x.awb)}</b><span class="cargo-status ${esc((x.status || "").toLowerCase())}">${esc((x.status || "").replaceAll("_", " "))}</span></div>
-          <div class="cargo-card-route"><b>${esc(x.origin)}</b><span aria-hidden="true">→</span><b>${esc(x.destination)}</b><span>Current station: <b>${esc(x.current_station)}</b></span></div>
-          <div class="cargo-card-grid">
-            <span><small>Shipper</small>${esc(x.shipper || "—")}</span><span><small>Consignee</small>${esc(x.consignee || "—")}</span>
-            <span><small>Commodity</small>${esc(x.commodity || "—")}</span><span><small>Pieces / gross</small>${fmt(x.pieces)} · ${fmt(x.gross_weight_lbs)} lb</span>
-            <span><small>Priority / service</small>${esc(x.priority || "Standard")}</span><span><small>Last recorded event</small>${esc(x.last_event || "—")}${x.last_flight ? ` · ${esc(x.last_flight)}` : ""}${x.last_event_time ? ` · ${cargoInventoryDate(x.last_event_time)}` : ""}</span>
-          </div>
-        </div>
-        <details class="cargo-history" data-cargo-id="${esc(x.id)}"><summary>Movement history</summary><div class="cargo-history-body"><p class="muted">Open to load the recorded history.</p></div></details>
-      </article>`).join("");
-      $("#cargoList").querySelectorAll(".cargo-history").forEach(details => {
-        details.addEventListener("toggle", () => { if (details.open && !details.dataset.loaded) loadCargoHistory(details); });
+      $("#cargoResults").innerHTML = (result.total ? `${fmt(result.total)} shipment${result.total === 1 ? "" : "s"}${result.total > result.limit ? ` (showing the first ${result.limit})` : ""}` : "No shipments here right now.")
+        + (dest ? ` going to <b>${esc(dest)}</b> · <button type="button" class="linkish" id="cgoClearDest">show all destinations</button>` : "");
+      $("#cgoClearDest")?.addEventListener("click", () => { dest = ""; refresh(); });
+      $("#cargoList").innerHTML = shown.map(x => {
+        const via = x.current_station !== x.origin && x.current_station !== x.destination;
+        const journey = `<b>${esc(x.origin)}</b> → ${via || x.status === "AT_STATION" || x.status === "HELD_AT_STATION" ? `<b class="cgo-now" title="Where it is now">${esc(x.current_station)}</b> → ` : ""}<b>${esc(x.destination)}</b>`;
+        return `<tr class="cgo-row" data-cargo-id="${esc(x.id)}" tabindex="0" aria-expanded="false">
+          <td class="mono cgo-awb">${esc(x.awb)}</td><td class="mono">${journey}</td>
+          <td><span class="cgo-com">${esc(x.commodity || "—")}</span><small class="muted">${esc(x.shipper || "")} → ${esc(x.consignee || "")}</small></td>
+          <td class="r mono">${fmt(x.pieces)} · ${fmt(x.gross_weight_lbs)} lb</td>
+          <td><span class="cargo-status ${esc((x.status || "").toLowerCase())}">${esc(statusWord[x.status] || x.status)}</span></td>
+          <td class="cgo-when">${cargoInventoryDate(x.updated_at)}${x.last_flight ? `<small class="muted">${esc(x.last_flight)}</small>` : ""}</td></tr>`;
+      }).join("") || "";
+      $("#cargoList").querySelectorAll(".cgo-row").forEach(tr => {
+        const toggle = () => toggleCargoHistory(tr);
+        tr.onclick = toggle; tr.onkeydown = e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); toggle(); } };
       });
     } catch (e) {
-      if (request === requestNo) {
-        $("#cargoResults").textContent = "Cargo inventory could not be loaded.";
-        $("#cargoList").innerHTML = `<p class="notice err">${esc(e.message)}</p>`;
-      }
+      if (request === requestNo) { $("#cargoResults").textContent = "Cargo inventory could not be loaded."; $("#cargoList").innerHTML = `<tr><td colspan="6"><p class="notice err">${esc(e.message)}</p></td></tr>`; }
     }
   };
-  station.onchange = refresh;
-  status.onchange = refresh;
+  $("#cgoStrip").onclick = e => { const b = e.target.closest("[data-cgo-view]"); if (!b) return; S.cargoView = b.dataset.cgoView; dest = ""; drawStrip(); refresh(); };
+  station.onchange = () => { dest = ""; refresh(); };
+  $("#cgoAll").onchange = refresh;
   search.oninput = () => { clearTimeout(searchTimer); searchTimer = setTimeout(refresh, 250); };
-  $("#cargoRefresh").onclick = refresh;
   await refresh();
 }
 
 function cargoInventoryDate(timestamp) {
-  return timestamp ? new Date(timestamp * 1000).toISOString().replace("T", " ").slice(0, 16) + " UTC" : "—";
+  if (!timestamp) return "—";
+  const d = new Date(timestamp * 1000);
+  return `${String(d.getUTCDate()).padStart(2, "0")} ${d.toLocaleString("en-US", { month: "short", timeZone: "UTC" }).toUpperCase()} ${String(d.getUTCHours()).padStart(2, "0")}${String(d.getUTCMinutes()).padStart(2, "0")}Z`;
 }
 
-async function loadCargoHistory(details) {
-  details.dataset.loaded = "1";
-  const body = details.querySelector(".cargo-history-body");
-  body.innerHTML = `<p class="muted">Loading movement history…</p>`;
+const CARGO_EVENT = {
+  BOOKED: e => `Booked on ${e.flight_number || "a PAC flight"}`,
+  TRANSFER_BOOKED: e => `Booked for its next leg on ${e.flight_number || "a PAC flight"}`,
+  TRANSFER_CANCELLED: e => `Booking cancelled, waiting at ${e.to_station || "the station"} again`,
+  FLIGHT_ARRIVAL: e => ({ DELIVERED: `Arrived ${e.to_station}, delivered`, DELIVERED_LATE: `Arrived ${e.to_station}, delivered late`, AT_STATION: `Arrived ${e.to_station}, waiting for its next leg`,
+    HELD_AT_STATION: `Diverted to ${e.to_station}, held there`, EXCEPTION: `Arrived ${e.to_station}: exception` }[e.status] || `Arrived ${e.to_station}`),
+  FLIGHT_REJECTED: e => `Flight rejected, back at ${e.to_station}`,
+  FLIGHT_REINSTATED: e => `Flight accepted after review, at ${e.to_station}`,
+};
+
+async function toggleCargoHistory(tr) {
+  const open = tr.nextElementSibling?.classList.contains("cgo-hist");
+  if (open) { tr.nextElementSibling.remove(); tr.setAttribute("aria-expanded", "false"); return; }
+  tr.setAttribute("aria-expanded", "true");
+  const row = document.createElement("tr"); row.className = "cgo-hist";
+  row.innerHTML = `<td colspan="6"><p class="muted">Loading history…</p></td>`;
+  tr.after(row);
   try {
-    const result = await api(`/api/cargo/shipments/${encodeURIComponent(details.dataset.cargoId)}`);
-    const events = result.movements || [];
-    body.innerHTML = events.length ? `<ol class="cargo-events">${events.map(e => `<li>
-      <span class="cargo-event-time">${cargoInventoryDate(e.event_time)}</span><b>${esc((e.event_type || "").replaceAll("_", " "))}</b>
-      <span>${esc(e.from_station || "—")} → ${esc(e.to_station || "—")}</span>
-      <span>${esc((e.status || "").replaceAll("_", " "))}${e.flight_number ? ` · ${esc(e.flight_number)}` : ""}${e.pirep_id ? ` · PIREP ${fmt(e.pirep_id)}` : ""}</span>
-      ${e.details?.flight_status ? `<small>Flight result: ${esc(e.details.flight_status)}</small>` : ""}
-    </li>`).join("")}</ol>` : `<p class="muted">No movement events recorded yet.</p>`;
-  } catch (e) {
-    details.dataset.loaded = "";
-    body.innerHTML = `<p class="notice err">${esc(e.message)}</p>`;
-  }
+    const { shipment, movements } = await api(`/api/cargo/shipments/${encodeURIComponent(tr.dataset.cargoId)}`);
+    const d = shipment.data || {}, a = d.awb_doc || {};
+    row.firstElementChild.innerHTML = `<div class="cgo-hist-grid">
+      <ol class="cgo-events">${(movements || []).map(e => `<li><span class="cargo-event-time">${cargoInventoryDate(e.event_time)}</span>
+        <span><b>${esc((CARGO_EVENT[e.event_type] || (x => (x.event_type || "").replaceAll("_", " ").toLowerCase()))(e))}</b>
+        ${e.pilot_id ? `<small class="muted">${esc(e.pilot_name || "")} ${esc(e.pilot_id)}</small>` : ""}
+        ${e.pirep_id ? `<button type="button" class="linkish" data-pirep="${e.pirep_id}">PIREP</button>` : ""}</span></li>`).join("") || "<li class='muted'>No movements yet.</li>"}</ol>
+      <dl class="cgo-facts"><dt>Shipper</dt><dd>${esc(shipment.shipper)}</dd><dt>Consignee</dt><dd>${esc(shipment.consignee)}</dd>
+        ${d.agent ? `<dt>Forwarder</dt><dd>${esc(d.agent)}</dd>` : ""}<dt>Handling</dt><dd>${esc((shipment.handling || []).join(" · ") || (d.shc || []).join(" ") || "General")}</dd>
+        ${a.chg_kg ? `<dt>Chargeable</dt><dd>${cf1(a.chg_kg)} kg</dd>` : ""}${a.temp ? `<dt>Temperature</dt><dd>${esc(a.temp)}</dd>` : ""}
+        ${shipment.security_status ? `<dt>Security</dt><dd>${esc(shipment.security_status)}</dd>` : ""}</dl></div>`;
+    row.querySelectorAll("[data-pirep]").forEach(b => b.onclick = ev => { ev.stopPropagation(); openDetail(+b.dataset.pirep); });
+  } catch (e) { row.firstElementChild.innerHTML = `<p class="notice err">${esc(e.message)}</p>`; }
 }
 
 /* PAC's stands on the station map: emblems with the stand number; staff can drag them into place */

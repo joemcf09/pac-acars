@@ -3571,6 +3571,35 @@ def cargo_stations():
     return jsonify([dict(row) for row in rows])
 
 
+@app.get("/api/cargo/overview")
+def cargo_overview():
+    """The cargo operation at a glance: what's waiting where (and for which onward flight), what's in the air,
+    what was delivered this week, and what has waited too long."""
+    now = time.time()
+    week = now - 7 * 86400
+    overdue_s = 72 * 3600              # freight waiting at a station more than three days
+    with db() as con:
+        waiting = con.execute("""SELECT current_station AS station, destination, COUNT(*) AS shipments,
+            SUM(gross_weight_lbs) AS weight_lbs, MIN(updated_at) AS oldest
+            FROM cargo_shipments WHERE status IN ('AT_STATION','HELD_AT_STATION')
+            GROUP BY current_station, destination ORDER BY MIN(updated_at)""").fetchall()
+        counts = {
+            "waiting": con.execute("SELECT COUNT(*) FROM cargo_shipments WHERE status IN ('AT_STATION','HELD_AT_STATION')").fetchone()[0],
+            "transit": con.execute("SELECT COUNT(*) FROM cargo_shipments WHERE status='BOOKED'").fetchone()[0],
+            "delivered": con.execute("SELECT COUNT(*) FROM cargo_shipments WHERE status IN ('DELIVERED','DELIVERED_LATE') AND updated_at>=?",
+                                     (week,)).fetchone()[0],
+            "overdue": con.execute("SELECT COUNT(*) FROM cargo_shipments WHERE status IN ('AT_STATION','HELD_AT_STATION') AND updated_at<?",
+                                   (now - overdue_s,)).fetchone()[0],
+            "exceptions": con.execute("SELECT COUNT(*) FROM cargo_shipments WHERE status='EXCEPTION'").fetchone()[0],
+        }
+    groups = []
+    for w in waiting:
+        direct = cargo_network.has_route(ROUTES.values(), w["station"], w["destination"])
+        groups.append({**dict(w), "weight_lbs": round(w["weight_lbs"] or 0), "waiting_h": round((now - w["oldest"]) / 3600, 1),
+                       "overdue": now - w["oldest"] > overdue_s, "direct_route": bool(direct)})
+    return jsonify({"counts": counts, "waiting": groups, "overdue_hours": overdue_s // 3600})
+
+
 @app.get("/api/cargo/shipments")
 def cargo_shipments_api():
     station = (request.args.get("station") or "").strip().upper()
@@ -3583,6 +3612,22 @@ def cargo_shipments_api():
         return jsonify({"error": "Choose a valid cargo status."}), 400
 
     where, params = [], []
+    view = (request.args.get("view") or "").strip().lower()
+    if view == "waiting":
+        where.append("s.status IN ('AT_STATION','HELD_AT_STATION')")
+    elif view == "transit":
+        where.append("s.status='BOOKED'")
+    elif view == "delivered":
+        where.append("s.status IN ('DELIVERED','DELIVERED_LATE')")
+        if request.args.get("all") != "1":
+            where.append("s.updated_at>=?")
+            params.append(time.time() - 7 * 86400)
+    elif view == "exceptions":
+        where.append("s.status='EXCEPTION'")
+    dest = (request.args.get("destination") or "").strip().upper()
+    if dest and re.fullmatch(r"[A-Z0-9]{3,4}", dest):
+        where.append("s.destination=?")
+        params.append(dest)
     if station and station != "ALL":
         where.append("s.current_station=?")
         params.append(station)
@@ -3599,7 +3644,8 @@ def cargo_shipments_api():
         rows = con.execute("""SELECT s.id, s.awb, s.origin, s.destination, s.current_station, s.status,
             s.shipper, s.consignee, s.commodity, s.pieces, s.gross_weight_lbs, s.chargeable_weight_kg,
             s.priority, s.handling, s.security_status, s.created_at, s.updated_at,
-            m.event_type AS last_event, m.event_time AS last_event_time, m.flight_number AS last_flight
+            m.event_type AS last_event, m.event_time AS last_event_time, m.flight_number AS last_flight,
+            m.pirep_id AS last_pirep, m.pilot_id AS last_pilot
             FROM cargo_shipments s
             LEFT JOIN cargo_movements m ON m.id=(
                 SELECT m2.id FROM cargo_movements m2 WHERE m2.shipment_id=s.id ORDER BY m2.event_time DESC,m2.id DESC LIMIT 1
@@ -3615,9 +3661,10 @@ def cargo_shipment_detail(shipment_id):
         row = con.execute("SELECT * FROM cargo_shipments WHERE id=?", (shipment_id,)).fetchone()
         if not row:
             return jsonify({"error": "Shipment not found."}), 404
-        movements = con.execute("""SELECT event_type, event_time, from_station, to_station, pilot_id,
-            flight_number, pirep_id, status, details FROM cargo_movements
-            WHERE shipment_id=? ORDER BY event_time,id""", (shipment_id,)).fetchall()
+        movements = con.execute("""SELECT m.event_type, m.event_time, m.from_station, m.to_station, m.pilot_id,
+            p.name AS pilot_name, m.flight_number, m.pirep_id, m.status, m.details FROM cargo_movements m
+            LEFT JOIN pilots p ON p.id=m.pilot_id
+            WHERE m.shipment_id=? ORDER BY m.event_time,m.id""", (shipment_id,)).fetchall()
     try:
         shipment = dict(row)
         shipment["data"] = json.loads(shipment["data"])

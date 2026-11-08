@@ -1629,3 +1629,53 @@ html[data-theme="dark"] .aar-ok{color:#5fd08a}
 html[data-theme="dark"] .journey-intro,html[data-theme="dark"] .journey-welcome{background:var(--white);color:var(--ink);border-color:var(--line);border-top-color:var(--red)}
 html[data-theme="dark"] .journey-welcome{background:var(--red-wash)}
 html[data-theme="dark"] .journey-text-button{color:var(--steel)}
+
+/* Cargo inventory: summary strip, freight waiting board, compact table */
+.cgo-strip{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));border:1px solid var(--line);background:var(--white);margin:14px 0 20px}
+.cgo-strip button{border:0;border-right:1px solid var(--line);background:none;text-align:left;padding:14px 16px;cursor:pointer;color:inherit;font:inherit;display:flex;flex-direction:column;gap:2px}
+.cgo-strip button:last-child{border-right:0}
+.cgo-strip small{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--steel)}
+.cgo-strip b{font-size:28px;line-height:1.1}
+.cgo-strip span{font-size:12.5px;color:var(--steel)}
+.cgo-strip button[aria-selected="true"]{box-shadow:inset 0 -4px 0 var(--red);background:var(--paper)}
+.cgo-strip button.warn span{color:var(--warn-ink,#a76500);font-weight:600}
+.cgo-waiting h2{margin:0 0 2px;font-size:20px}.cgo-waiting>p{margin:0 0 10px}
+.cgo-wait-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px;margin-bottom:22px}
+.cgo-wait{border:1px solid var(--line);border-left:5px solid #237b48;background:var(--white);padding:12px 14px;display:flex;flex-direction:column;align-items:flex-start;gap:4px}
+.cgo-wait.overdue{border-left-color:#a76500}
+.cgo-wait-route{font:700 18px var(--mono);display:flex;gap:8px}
+.cgo-wait p{margin:0;font-size:14px}
+.cgo-wait .btn{margin-top:6px}
+.cgo-nodirect{font-size:12.5px;margin-top:6px}
+.cgo-all{display:flex!important;flex-direction:row!important;align-items:center;gap:6px;font-weight:600!important}
+.cgo-all input{min-width:0!important;min-height:0!important}
+.cgo-table-wrap{border:1px solid var(--line);background:var(--white);overflow-x:auto}
+.cgo-table{width:100%;border-collapse:collapse;font-size:14px}
+.cgo-table th{text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:var(--steel);padding:9px 12px;border-bottom:2px solid var(--line);white-space:nowrap}
+.cgo-table td{padding:9px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+.cgo-table .r{text-align:right;white-space:nowrap}
+.cgo-row{cursor:pointer}.cgo-row:hover,.cgo-row:focus{background:var(--paper);outline:none}
+.cgo-row[aria-expanded="true"]{background:var(--paper)}
+.cgo-awb{color:var(--red);font-weight:700;white-space:nowrap}
+.cgo-now{color:var(--red)}
+.cgo-com{display:block}.cgo-table small{display:block;font-size:12px}
+.cgo-when{white-space:nowrap;font:12.5px var(--mono)}
+.cgo-hist>td{background:var(--paper);padding:12px 16px 16px}
+.cgo-hist-grid{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(220px,1fr);gap:20px}
+.cgo-events{list-style:none;margin:0;padding:0;border-left:2px solid var(--line)}
+.cgo-events li{display:grid;grid-template-columns:110px 1fr;gap:10px;padding:6px 0 6px 12px;position:relative}
+.cgo-events li::before{content:"";position:absolute;left:-6px;top:11px;width:10px;height:10px;border-radius:50%;background:var(--red)}
+.cgo-events small{display:inline;margin-left:6px}
+.cgo-facts{display:grid;grid-template-columns:auto 1fr;gap:4px 12px;margin:0;font-size:13.5px}
+.cgo-facts dt{color:var(--steel);font-weight:600}.cgo-facts dd{margin:0}
+@media(max-width:760px){
+  .cgo-table thead{display:none}
+  .cgo-table tr.cgo-row{display:grid;grid-template-columns:1fr auto;gap:2px 10px;padding:10px 12px;border-bottom:1px solid var(--line)}
+  .cgo-table tr.cgo-row td{border:0;padding:0}
+  .cgo-table tr.cgo-row td:nth-child(3){grid-column:1/-1}
+  .cgo-hist-grid{grid-template-columns:1fr}
+  .cgo-strip{grid-template-columns:repeat(auto-fit,minmax(90px,1fr))}
+  .cgo-strip button{padding:10px;border-bottom:1px solid var(--line)}
+  .cgo-strip b{font-size:22px}
+  .cgo-strip span{display:none}
+}
