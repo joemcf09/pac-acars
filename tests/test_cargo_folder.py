@@ -2,14 +2,37 @@
 
 Run from the PAC folder:   python tests/test_cargo_folder.py
 """
+import os
+import shutil
+import subprocess
 import sys
+import tempfile
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
-sys.path.insert(0, str(Path(__file__).resolve().parent))
-DATA = Path(__file__).resolve().parent.parent / "data"
-for _f in ("logbook.db", "settings.json", "secret_key", "site.json"):
-    (DATA / _f).unlink(missing_ok=True)
+ROOT = Path(__file__).resolve().parent.parent
+if len(sys.argv) == 1:
+    with tempfile.TemporaryDirectory(prefix="pac-cargo-folder-") as temp:
+        data = Path(temp) / "data"
+        data.mkdir()
+        shutil.copy2(ROOT / "data" / "runways.json", data / "runways.json")
+        env = os.environ.copy()
+        env["PAC_DATA_DIR"] = str(data)
+        result = subprocess.run([sys.executable, str(Path(__file__).resolve()), "--isolated"],
+                                cwd=ROOT, env=env, check=False)
+        sys.exit(result.returncode)
+
+if len(sys.argv) != 2 or sys.argv[1] != "--isolated" or not os.environ.get("PAC_DATA_DIR"):
+    raise SystemExit("Run this test without arguments; it creates and removes an isolated data directory.")
+
+isolated_data = Path(os.environ["PAC_DATA_DIR"]).resolve()
+temp_root = Path(tempfile.gettempdir()).resolve()
+if (isolated_data.name != "data"
+        or not isolated_data.parent.name.startswith("pac-cargo-folder-")
+        or isolated_data.parent.parent != temp_root):
+    raise SystemExit("Refusing to run outside the temporary cargo-test data directory.")
+
+sys.path.insert(0, str(ROOT))
+sys.path.insert(0, str(ROOT / "tests"))
 
 import analysis  # noqa: E402
 import app as A  # noqa: E402

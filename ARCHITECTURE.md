@@ -79,9 +79,11 @@ After `complete`, filing goes through the normal `POST /api/pirep`.
 
 ## Data, backups and updates
 
-User data lives in `data/` (`logbook.db`, `settings.json`, `profile.json`, `site.json`, `fleet_custom.json`,
-`booking.json`, `secret_key`, `pilot_photo.*`, `fleet_photos/`, `gallery/`, `backups/`). Packages never contain
-these. `tools/update.py` (via `update.bat`) backs up, then copies program files only, skipping a protected list.
+User data lives in `data/` by default (`logbook.db`, `settings.json`, `profile.json`, `site.json`, `fleet_custom.json`,
+`booking.json`, `secret_key`, `pilot_photo.*`, `fleet_photos/`, `gallery/`, `backups/`). Set `PAC_DATA_DIR` to use
+a separate writable data directory; built-in routes, airports, missions and fleet definitions continue to load from
+the packaged `data/` directory. Packages never contain user data. `tools/update.py` (via `update.bat`) backs up,
+then copies program files only, skipping a protected list.
 `/api/staff/backup/download` and `/restore` move everything as one zip (restore validates the logbook and takes a
 safety backup first). The database is prepared (`va.migrate`, `auth.migrate`) the first time each file is opened.
 
@@ -91,6 +93,7 @@ Run these before shipping a change:
 
 ```
 python tests/test_flights.py      # scripted flights through the real tracker, scoring, analysis, economics and pay
+python tests/test_cargo_folder.py # cargo paperwork and debrief checks in an isolated data directory
 python tests/test_pirep_retry.py  # PIREP filing resumes safely after interruptions, without duplicate effects
 python tools/check_frontend.py    # JavaScript syntax check (needs Node.js)
 python tests/test_acars_window.py # the ACARS app's window supervision: frozen window replaced, closing mid-flight keeps tracking

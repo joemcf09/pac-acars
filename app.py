@@ -39,7 +39,8 @@ import acars_core
 import conflict_zones  # noqa: E402  (restricted and caution airspace)
 
 BASE = Path(__file__).parent
-DATA = BASE / "data"
+RESOURCE_DATA = BASE / "data"
+DATA = Path(os.environ.get("PAC_DATA_DIR") or RESOURCE_DATA).expanduser().resolve()
 DB_PATH = DATA / "logbook.db"
 SETTINGS_PATH = DATA / "settings.json"
 BOOKING_PATH = DATA / "booking.json"
@@ -91,18 +92,18 @@ def load_json_file(path, default):
 
 app = Flask(__name__, static_folder=str(BASE / "static"), static_url_path="/static")
 
-MISSIONS = {m["id"]: m for m in json.loads((DATA / "missions.json").read_text(encoding="utf-8"))}
-_partners_file = json.loads((DATA / "partners.json").read_text(encoding="utf-8")) if (DATA / "partners.json").exists() else {"partners": {}}
+MISSIONS = {m["id"]: m for m in json.loads((RESOURCE_DATA / "missions.json").read_text(encoding="utf-8"))}
+_partners_file = json.loads((RESOURCE_DATA / "partners.json").read_text(encoding="utf-8")) if (RESOURCE_DATA / "partners.json").exists() else {"partners": {}}
 PARTNERS = _partners_file["partners"]
-ROUTES = {r["id"]: r for r in load_json_file(DATA / "routes.json", [])} if (DATA / "routes.json").exists() else {}
-_ap = json.loads((DATA / "airports.json").read_text(encoding="utf-8"))
+ROUTES = {r["id"]: r for r in load_json_file(RESOURCE_DATA / "routes.json", [])} if (RESOURCE_DATA / "routes.json").exists() else {}
+_ap = json.loads((RESOURCE_DATA / "airports.json").read_text(encoding="utf-8"))
 AIRPORTS = {r[0]: dict(zip(_ap["fields"], r)) for r in _ap["rows"]}
 del _ap
 CARGO_TYPES = ["General cargo", "Express parcels", "E-commerce parcels", "Mail", "Perishables", "Fresh flowers",
                "Seafood", "Pharmaceuticals (temperature controlled)", "Medical supplies", "Humanitarian relief",
                "Livestock", "Dangerous goods", "Automotive parts", "Aircraft spares (AOG)", "Electronics",
                "Oversized / heavy machinery", "Valuables", "Military logistics", "Ferry flight (no cargo)"]
-FLEET = json.loads((DATA / "fleet.json").read_text(encoding="utf-8"))
+FLEET = json.loads((RESOURCE_DATA / "fleet.json").read_text(encoding="utf-8"))
 FLEET_CUSTOM_PATH = DATA / "fleet_custom.json"   # your edits, kept apart so updates don't overwrite them
 FLEET_PHOTO_DIR = DATA / "fleet_photos"
 FLEET_TEXT = ("role", "division", "description", "engines", "crew", "main_deck", "sim", "sim_model", "name", "icao", "simbrief_type",
