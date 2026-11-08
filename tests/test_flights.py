@@ -254,9 +254,12 @@ rec, p, booking = checkride("Hard landing on a checkride", td_fpm=-620)
 tc = p.get("type_checkride") or {}
 check("a hard landing fails the checkride", tc.get("passed") is False, tc)
 check("the reason is given", any("landing firmer" in r for r in tc.get("reasons", [])), tc.get("reasons"))
+rec, p, booking = checkride("A firm but acceptable checkride landing", td_fpm=-563)
+tc = p.get("type_checkride") or {}
+check("a -563 fpm landing can pass the checkride", tc.get("passed") is True, tc)
 rec, p, booking = checkride("Bounced checkride landing", bounce=True)
 tc = p.get("type_checkride") or {}
-check("a bounce fails the checkride", tc.get("passed") is False and any("bounce" in r for r in tc.get("reasons", [])), tc)
+check("one bounce is allowed on the checkride", tc.get("passed") is True, tc)
 booking_wrong = {**booking, "aircraft": "A306F"}
 check("booking the checkride in the wrong type is refused",
       bool(va.check_booking(va.checkride_mission("PAC0001", "TR-B737"), "A306F", None, {})[0]))

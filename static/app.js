@@ -65,6 +65,7 @@ function show(view) {
   if (view === "stats") loadStats();
   if (view === "pilots") loadPilots(S.pilotOpen);
   if (view === "stations") loadStations();
+  if (view === "cargo") loadCargo();
   if (view === "downloads") loadDownloads();
   if (view === "handbook") loadHandbook();
   if (view === "privacy") renderPrivacy();
@@ -1964,7 +1965,7 @@ function checkrideBanner(p) {
   const t = p.type_checkride;
   if (t) out.push(t.passed
     ? `<div class="ck-banner pass"><b>${esc(t.family)} type checkride passed.</b> The ${esc(t.family)} rating is yours ${p.review_status === "Accepted" ? "as soon as you file this report" : "once staff accept this report"}${S.career?.checkride === "Pending" ? ", and it also counts as your line checkride, so rank progression opens up" : ""}.</div>`
-    : `<div class="ck-banner fail"><b>${esc(t.family)} type checkride not passed:</b> ${t.reasons.map(r => checkrideReason(r, p)).join("; ")}. Your score of ${p.score} doesn't change this: every checkride standard has to be met (score 85+, landing softer than 400 fpm with no bounce, a stable approach and no overspeed). Fly it again from Career › Qualifications; retakes are free.</div>`);
+    : `<div class="ck-banner fail"><b>${esc(t.family)} type checkride not passed:</b> ${t.reasons.map(r => checkrideReason(r, p)).join("; ")}. Your score of ${p.score} doesn't change this: every checkride standard has to be met (score 80+, landing no firmer than 600 fpm and no higher than 1.8 G, at most one bounce, and a steady approach). Overspeed penalties affect score but aren't automatic failures. Fly it again from Career › Qualifications; retakes are free.</div>`);
   return out.join("");
 }
 async function filePirep() {
@@ -2345,6 +2346,105 @@ async function loadStations() {
   $("#stSearch").oninput = e => draw(e.target.value);
   draw("");
 }
+
+/* ================= Persistent cargo inventory ================= */
+async function loadCargo() {
+  const root = $("#cargoRoot");
+  if (!root) return;
+  root.innerHTML = `<div class="profile-bar"><h1>Cargo inventory</h1><span class="muted">Persistent PAC shipments and their recorded station movements.</span></div>
+    <p class="muted cargo-note">Shipment movements update when a PIREP is filed. Planned tracking milestones on a dispatch release are estimates, not live scans.</p>
+    <div class="cargo-filters">
+      <label>Station<select id="cargoStation"><option value="ALL">All stations</option></select></label>
+      <label>Status<select id="cargoStatus">
+        <option value="ALL">All statuses</option><option value="BOOKED">Booked</option><option value="DELIVERED">Delivered</option>
+        <option value="DELIVERED_LATE">Delivered late</option><option value="HELD_AT_STATION">Held at station</option><option value="EXCEPTION">Exception</option>
+      </select></label>
+      <label class="cargo-search">Search<input id="cargoSearch" type="search" maxlength="80" placeholder="AWB, shipper, consignee or commodity"></label>
+      <button class="btn ghost small" id="cargoRefresh" type="button">Refresh</button>
+    </div>
+    <p class="muted cargo-results" id="cargoResults" role="status">Loading cargo…</p>
+    <div id="cargoList" class="cargo-list" aria-live="polite"></div>`;
+  const station = $("#cargoStation"), status = $("#cargoStatus"), search = $("#cargoSearch");
+  try {
+    const stations = await api("/api/cargo/stations");
+    station.innerHTML = `<option value="ALL">All stations</option>` + stations.map(x =>
+      `<option value="${esc(x.icao)}">${esc(x.icao)} · ${fmt(x.shipments)}</option>`).join("");
+    if (stations.some(x => x.icao === S.cargoStation)) station.value = S.cargoStation;
+  } catch (e) {
+    $("#cargoResults").textContent = e.message;
+    return;
+  }
+  if (S.cargoStatus) status.value = S.cargoStatus;
+  if (S.cargoSearch) search.value = S.cargoSearch;
+
+  let requestNo = 0, searchTimer;
+  const refresh = async () => {
+    const request = ++requestNo;
+    S.cargoStation = station.value;
+    S.cargoStatus = status.value;
+    S.cargoSearch = search.value.trim();
+    const params = new URLSearchParams({ station: S.cargoStation, status: S.cargoStatus, q: S.cargoSearch });
+    $("#cargoResults").textContent = "Loading cargo…";
+    $("#cargoList").innerHTML = "";
+    try {
+      const result = await api(`/api/cargo/shipments?${params}`);
+      if (request !== requestNo || $("#view-cargo").hidden) return;
+      const shown = result.shipments || [];
+      $("#cargoResults").textContent = result.total
+        ? `Showing ${shown.length} of ${fmt(result.total)} shipment${result.total === 1 ? "" : "s"}${result.total > result.limit ? " (first 300; narrow the filters to see more)." : "."}`
+        : "No shipments match these filters.";
+      $("#cargoList").innerHTML = shown.map(x => `<article class="cargo-card">
+        <div class="cargo-card-main">
+          <div class="cargo-card-title"><b>${esc(x.awb)}</b><span class="cargo-status ${esc((x.status || "").toLowerCase())}">${esc((x.status || "").replaceAll("_", " "))}</span></div>
+          <div class="cargo-card-route"><b>${esc(x.origin)}</b><span aria-hidden="true">→</span><b>${esc(x.destination)}</b><span>Current station: <b>${esc(x.current_station)}</b></span></div>
+          <div class="cargo-card-grid">
+            <span><small>Shipper</small>${esc(x.shipper || "—")}</span><span><small>Consignee</small>${esc(x.consignee || "—")}</span>
+            <span><small>Commodity</small>${esc(x.commodity || "—")}</span><span><small>Pieces / gross</small>${fmt(x.pieces)} · ${fmt(x.gross_weight_lbs)} lb</span>
+            <span><small>Priority / service</small>${esc(x.priority || "Standard")}</span><span><small>Last recorded event</small>${esc(x.last_event || "—")}${x.last_flight ? ` · ${esc(x.last_flight)}` : ""}${x.last_event_time ? ` · ${cargoDate(x.last_event_time)}` : ""}</span>
+          </div>
+        </div>
+        <details class="cargo-history" data-cargo-id="${esc(x.id)}"><summary>Movement history</summary><div class="cargo-history-body"><p class="muted">Open to load the recorded history.</p></div></details>
+      </article>`).join("");
+      $("#cargoList").querySelectorAll(".cargo-history").forEach(details => {
+        details.addEventListener("toggle", () => { if (details.open && !details.dataset.loaded) loadCargoHistory(details); });
+      });
+    } catch (e) {
+      if (request === requestNo) {
+        $("#cargoResults").textContent = "Cargo inventory could not be loaded.";
+        $("#cargoList").innerHTML = `<p class="notice err">${esc(e.message)}</p>`;
+      }
+    }
+  };
+  station.onchange = refresh;
+  status.onchange = refresh;
+  search.oninput = () => { clearTimeout(searchTimer); searchTimer = setTimeout(refresh, 250); };
+  $("#cargoRefresh").onclick = refresh;
+  await refresh();
+}
+
+function cargoDate(timestamp) {
+  return timestamp ? new Date(timestamp * 1000).toISOString().replace("T", " ").slice(0, 16) + " UTC" : "—";
+}
+
+async function loadCargoHistory(details) {
+  details.dataset.loaded = "1";
+  const body = details.querySelector(".cargo-history-body");
+  body.innerHTML = `<p class="muted">Loading movement history…</p>`;
+  try {
+    const result = await api(`/api/cargo/shipments/${encodeURIComponent(details.dataset.cargoId)}`);
+    const events = result.movements || [];
+    body.innerHTML = events.length ? `<ol class="cargo-events">${events.map(e => `<li>
+      <span class="cargo-event-time">${cargoDate(e.event_time)}</span><b>${esc((e.event_type || "").replaceAll("_", " "))}</b>
+      <span>${esc(e.from_station || "—")} → ${esc(e.to_station || "—")}</span>
+      <span>${esc((e.status || "").replaceAll("_", " "))}${e.flight_number ? ` · ${esc(e.flight_number)}` : ""}${e.pirep_id ? ` · PIREP ${fmt(e.pirep_id)}` : ""}</span>
+      ${e.details?.flight_status ? `<small>Flight result: ${esc(e.details.flight_status)}</small>` : ""}
+    </li>`).join("")}</ol>` : `<p class="muted">No movement events recorded yet.</p>`;
+  } catch (e) {
+    details.dataset.loaded = "";
+    body.innerHTML = `<p class="notice err">${esc(e.message)}</p>`;
+  }
+}
+
 /* PAC's stands on the station map: emblems with the stand number; staff can drag them into place */
 function drawStands(m, d) {
   const icon = x => L.divIcon({ className: "pac-stand-ic", iconSize: [36, 44], iconAnchor: [18, 22],
@@ -4989,7 +5089,7 @@ function renderCareer(c) {
     </div>
     <div class="rank-next">
       ${k.checkride === "Pending" && k.checkride_last && !k.checkride_last.passed ? `<div class="notice err"><b>Your last checkride attempt (${new Date(k.checkride_last.when * 1000).toLocaleDateString("en-US", { day: "numeric", month: "short" })}) didn't pass:</b> ${esc(k.checkride_last.reasons.join(", "))}. Every other part can be fine; these are automatic fails on a checkride.</div>` : ""}
-      ${k.checkride === "Pending" ? `<div class="notice"><b>Your rank-progression checkride.</b> ${S.ratings?.direct_entry ? "Or book a type checkride for any aircraft family in Qualifications instead: passing one also counts as this checkride for rank progression (it rates you on that family, not the 737). " : ""}Fly PAC001 from your chosen training airport on the 737-800BCF. Dedicated training and company positioning are free. To pass: score 80 or better, land softer than 400 fpm and under 1.5 G with no bounce, and stay at or below 250 kt under FL100 (no overspeed, no slew). <button class="btn small" style="margin-top:8px" onclick="flyMission('${S.checkrideId}')">Fly the checkride</button></div>` : ""}
+      ${k.checkride === "Pending" ? `<div class="notice"><b>Your rank-progression checkride.</b> ${S.ratings?.direct_entry ? "Or book a type checkride for any aircraft family in Qualifications instead: passing one also counts as this checkride for rank progression (it rates you on that family, not the 737). " : ""}Fly PAC001 from your chosen training airport on the 737-800BCF. Dedicated training and company positioning are free. To pass: score 80 or better, land no firmer than 600 fpm and no higher than 1.8 G, with at most one bounce. An overspeed penalty reduces your score but doesn't automatically fail you; a position jump still does. <button class="btn small" style="margin-top:8px" onclick="flyMission('${S.checkrideId}')">Fly the checkride</button></div>` : ""}
       ${k.appointed ? `<h2 style="margin:0">Appointed ${esc(k.rank)}</h2><p style="margin:0">This rank was set by staff, so it doesn't depend on hours or score.${k.earned_rank !== k.rank ? ` On flying alone you'd be ${esc(k.earned_rank)}.` : ""}</p>
         <p class="muted" style="margin:0;font-size:13px">Every aircraft your rank covers is unlocked. Staff can return you to earned progression in Staff › Roster.</p>`
       : k.next ? `<h2 style="margin:0">Next: ${esc(k.next)}</h2>
@@ -5135,7 +5235,7 @@ async function loadHandbook() {
   try { S.vaConfig = S.vaConfig || await api("/api/va/config"); renderHandbook(S.vaConfig); } catch (e) { toast(e.message); }
 }
 function renderHandbook(cfg) {
-  const ck = cfg.checkride, rv = cfg.review, tc = cfg.type_checkride || { min_score: 85, min_rate: -400, max_g: 1.5, min_nm: 250, max_nm: 1000 };
+  const ck = cfg.checkride, rv = cfg.review, tc = cfg.type_checkride || { min_score: 80, min_rate: -600, max_g: 1.8, max_approach_speed_spread: 35, max_sustained_descent_fpm: 1300, min_nm: 250, max_nm: 1000 };
   const sections = [
     ["training-policy", "Company-funded checkrides", trainingPolicyHTML()],
     ["first-flight", "Your first flight", `<p>Start with your qualification or a cargo mission. The guide explains each step and the difference between pilot travel and aircraft delivery.</p><button class="btn" onclick="openPilotGuide()">Open first-flight guide</button>`],
@@ -5144,7 +5244,7 @@ function renderHandbook(cfg) {
       <p>This handbook is the rulebook for every PAC flight. It's short on purpose. Read it once before your checkride and come back when something changes.</p>`],
     ["joining", "Joining and the checkride", `<p>Apply from the home page. Staff review every application and assign you a pilot ID. Your first flight is the line checkride:</p>
       <table><tr><th>Flight</th><td>PAC001, from your chosen training airport</td></tr><tr><th>Aircraft</th><td>Boeing 737-800BCF / BDSF</td></tr>
-      <tr><th>To pass</th><td>Arrive at the booked destination, score ${ck.min_score} or better, landing softer than ${Math.abs(ck.min_rate)} fpm at no more than ${ck.max_g} G, no bounce, no overspeed below 10,000 ft and no position jumps in the air.</td></tr></table>
+      <tr><th>To pass</th><td>Arrive at the booked destination, score ${ck.min_score} or better, land no firmer than ${Math.abs(ck.min_rate)} fpm at no more than ${ck.max_g} G, and have no more than one bounce. Overspeed penalties reduce score but aren't automatic failures; position jumps still fail.</td></tr></table>
       <p>ACARS grades the checkride automatically when you file the PIREP. If it doesn't pass, fly it again. There's no limit on attempts, and checkrides cost you nothing (see Company-funded checkrides).</p>
       ${cfg.direct_entry ? `<p><b>Already fly a bigger type?</b> You can start with that family's type checkride instead (Career › Qualifications). An accepted pass counts as your line checkride and rates you on that family; it doesn't give you the 737.</p>` : ""}`],
     ["ranks", "Ranks and aircraft", `<p>Rank depends on your hours (PAC hours plus any transfer hours staff have credited, see Transfer hours below), and on your average score over your last ${cfg.avg_window} accepted flights once you have at least ${cfg.avg_min_flights}.</p>
@@ -5229,7 +5329,7 @@ function renderHandbook(cfg) {
       <li><b>Jumpseating</b> moves you somewhere else, paid from your wallet: a seat on a PAC freighter where PAC flies (cheap), or an airline ticket to anywhere (dearer).</li>
       <li>Ferry flights move you along with the aircraft, and pay you for the hours.</li></ul>`],
     ["ratings", "Type ratings and checkrides", `<p>${cfg.type_ratings_required ? "Each aircraft family needs a <b>type rating</b> before you fly regular work in it." : "Your rank decides what you can fly. <b>Type ratings</b> are optional: they go on your license and show what you've proved you can fly, but you don't need one to fly a type your rank has unlocked."} Ratings follow real-world families: one rating covers the 737-200C, 737-300SF and 737-800BCF; the 757 and 767 share one; the 747 classic and the 747-8 are separate.</p>
-      <ul><li><b>How to earn one:</b> Career › Qualifications › <b>Book checkride</b>. It's a short company sector (${tc.min_nm} to ${tc.max_nm} nm) in that type, in a dedicated training aircraft or an available fleet aircraft, with free travel (see Company-funded checkrides). To pass: score ${tc.min_score} or better, land softer than ${Math.abs(tc.min_rate)} fpm at no more than ${tc.max_g} G with no bounce, fly a stable approach, and no overspeed or position jump. Staff accept the report, then the rating is yours.</li>
+      <ul><li><b>How to earn one:</b> Career › Qualifications › <b>Book checkride</b>. It's a short company sector (${tc.min_nm} to ${tc.max_nm} nm) in that type, in a dedicated training aircraft or an available fleet aircraft, with free travel (see Company-funded checkrides). To pass: score ${tc.min_score} or better, land no firmer than ${Math.abs(tc.min_rate)} fpm at no more than ${tc.max_g} G, and have no more than one bounce. A steady approach allows up to ${tc.max_approach_speed_spread} kt of speed variation and sustained descent rates down to ${tc.max_sustained_descent_fpm} fpm below 500 ft. Overspeed penalties reduce score but aren't automatic failures; position jumps still fail. Staff accept the report, then the rating is yours.</li>
         ${cfg.direct_entry ? `<li><b>Already fly a type?</b> You can take any type checkride at any rank. An accepted passing report unlocks that family for line flights and also counts as your line checkride. Rank and pay keep their existing progression rules; this does not grant other aircraft ratings.</li>` : ""}
       <li><b>Already rated:</b> every type you flew with PAC before ratings began, and the 737 family once you pass the line checkride in the 737.</li>
       <li>Passing adds the checkride date to that type on your license. Staff can grant or remove ratings, or switch the requirement off (Staff › Site and rules).</li></ul>`],
@@ -7570,7 +7670,7 @@ async function openTraining(course='PAC001'){
  if(!choices.length)f.choice.innerHTML='<option>No available options — try another type or dedicated training</option>';
  form.querySelector('[type=submit]').disabled=!choices.length;
  root.querySelector('#trainingModeHelp').textContent=f.mode.value==='dedicated'?'Train at a supported airport without moving your pilot or any fleet aircraft. Start your simulator at the departure airport shown.':'Available aircraft only. PAC pays your positioning travel when you book; the aircraft stays reserved for you. Availability is checked again at booking.';
- const r=c.standard;root.querySelector('#trainingRules').textContent=`Same standards in either mode: score ${r.min_score}+, touchdown no firmer than ${Math.abs(r.min_rate)} fpm, maximum ${r.max_g} G, no bounce or overspeed/position jump; accepted report required. Type checkrides also assess approach stability.`;
+ const r=c.standard,approach=c.id==='PAC001'?'':` Type checkrides also require an approach within ${r.max_approach_speed_spread} kt speed variation and sustained descent no steeper than ${r.max_sustained_descent_fpm} fpm below 500 ft.`;root.querySelector('#trainingRules').textContent=`Same standards in either mode: score ${r.min_score}+, touchdown no firmer than ${Math.abs(r.min_rate)} fpm, maximum ${r.max_g} G, no more than one bounce; overspeed penalties reduce score, and position jumps fail.${approach} An accepted report is required.`;
  };
  f.course.onchange=()=>refresh(true);f.mode.onchange=()=>refresh();f.aircraft.onchange=()=>refresh();f.choice.onchange=()=>{revision++;review.innerHTML=''};refresh(true);
  form.onsubmit=async e=>{e.preventDefault();const choice=choices[Number(f.choice.value)];if(!choice)return;const rev=++revision;review.textContent='Checking the route…';

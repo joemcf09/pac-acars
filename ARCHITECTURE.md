@@ -78,6 +78,7 @@ After `complete`, filing goes through the normal `POST /api/pirep`.
 3. **Talk to dispatch** (the app's Dispatch panel, `acars_core.handle_message`): delays, diversions, fuel checks, ETA, fault write-ups and free text; OCC replies are queued a few seconds later. Reported delays and declared diversions feed into scoring; write-ups are opened on the tail at filing.
 4. **File** (`POST /api/pirep`): `build_pirep` scores the flight, runs landing and takeoff analysis, economics and pay; `va.after_file` moves the airframe and pilot, opens maintenance items, pays the wallet and awards badges. A unique pilot-and-booking key reuses the same PIREP on retries, and a transactionally recorded marker prevents database side effects such as airframe hours and cycles from being applied twice.
 5. **Record cargo**: booking persists each generated shipment and its AWB in `cargo_shipments`; PIREP filing adds an idempotent `FLIGHT_ARRIVAL` custody event in `cargo_movements` in the same transaction as the PIREP. This is the persistence foundation only; selecting freight from a station warehouse for an onward flight is a later milestone.
+6. **Browse cargo** (`Operations → Cargo inventory`): signed-in pilots can filter persistent shipments by station or status, search shipment details, and expand each record's actual movement history. Planned cargo-folder timeline scans remain separate from this recorded history.
 
 ## Data, backups and updates
 

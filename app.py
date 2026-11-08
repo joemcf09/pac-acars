@@ -3483,6 +3483,74 @@ def logbook():
     return jsonify({"pireps": rows, "totals": totals, "pilot": pid})
 
 
+@app.get("/api/cargo/stations")
+def cargo_stations():
+    with db() as con:
+        rows = con.execute("""SELECT current_station AS icao, COUNT(*) AS shipments
+            FROM cargo_shipments GROUP BY current_station ORDER BY current_station""").fetchall()
+    return jsonify([dict(row) for row in rows])
+
+
+@app.get("/api/cargo/shipments")
+def cargo_shipments_api():
+    station = (request.args.get("station") or "").strip().upper()
+    status = (request.args.get("status") or "").strip().upper()
+    query = " ".join((request.args.get("q") or "").split())[:80]
+    if station and station != "ALL" and not re.fullmatch(r"[A-Z0-9]{3,4}", station):
+        return jsonify({"error": "Enter a valid ICAO station code."}), 400
+    valid_statuses = {"BOOKED", "DELIVERED", "DELIVERED_LATE", "HELD_AT_STATION", "EXCEPTION"}
+    if status and status != "ALL" and status not in valid_statuses:
+        return jsonify({"error": "Choose a valid cargo status."}), 400
+
+    where, params = [], []
+    if station and station != "ALL":
+        where.append("s.current_station=?")
+        params.append(station)
+    if status and status != "ALL":
+        where.append("s.status=?")
+        params.append(status)
+    if query:
+        like = f"%{query}%"
+        where.append("(s.awb LIKE ? OR s.shipper LIKE ? OR s.consignee LIKE ? OR s.commodity LIKE ?)")
+        params.extend([like] * 4)
+    clause = " WHERE " + " AND ".join(where) if where else ""
+    with db() as con:
+        total = con.execute("SELECT COUNT(*) FROM cargo_shipments s" + clause, params).fetchone()[0]
+        rows = con.execute("""SELECT s.id, s.awb, s.origin, s.destination, s.current_station, s.status,
+            s.shipper, s.consignee, s.commodity, s.pieces, s.gross_weight_lbs, s.chargeable_weight_kg,
+            s.priority, s.handling, s.security_status, s.created_at, s.updated_at,
+            m.event_type AS last_event, m.event_time AS last_event_time, m.flight_number AS last_flight
+            FROM cargo_shipments s
+            LEFT JOIN cargo_movements m ON m.id=(
+                SELECT m2.id FROM cargo_movements m2 WHERE m2.shipment_id=s.id ORDER BY m2.event_time DESC,m2.id DESC LIMIT 1
+            )""" + clause + " ORDER BY s.updated_at DESC,s.awb LIMIT 300", params).fetchall()
+    return jsonify({"shipments": [dict(row) for row in rows], "total": total, "limit": 300})
+
+
+@app.get("/api/cargo/shipments/<shipment_id>")
+def cargo_shipment_detail(shipment_id):
+    if not re.fullmatch(r"[0-9a-f]{32}", shipment_id):
+        return jsonify({"error": "Shipment not found."}), 404
+    with db() as con:
+        row = con.execute("SELECT * FROM cargo_shipments WHERE id=?", (shipment_id,)).fetchone()
+        if not row:
+            return jsonify({"error": "Shipment not found."}), 404
+        movements = con.execute("""SELECT event_type, event_time, from_station, to_station, pilot_id,
+            flight_number, pirep_id, status, details FROM cargo_movements
+            WHERE shipment_id=? ORDER BY event_time,id""", (shipment_id,)).fetchall()
+    try:
+        shipment = dict(row)
+        shipment["data"] = json.loads(shipment["data"])
+        shipment["handling"] = json.loads(shipment["handling"] or "[]")
+        history = [dict(event) for event in movements]
+        for event in history:
+            event["details"] = json.loads(event["details"] or "{}")
+    except (TypeError, ValueError, json.JSONDecodeError):
+        app.logger.exception("Invalid persisted cargo record for shipment %s", shipment_id)
+        return jsonify({"error": "Shipment history could not be read. Contact PAC staff."}), 500
+    return jsonify({"shipment": shipment, "movements": history})
+
+
 @app.get("/api/logbook/<int:pid>")
 def logbook_entry(pid):
     with db() as con:

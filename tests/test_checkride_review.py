@@ -1,17 +1,18 @@
-"""A failed line checkride is shown clearly to the pilot and staff, and staff waiving a misread penalty checks it again.
+"""A minor overspeed penalty does not prevent an otherwise passing line checkride.
 
 Run from the PAC folder:   python tests/test_checkride_review.py
 """
 import sys
+import os
+import shutil
+import tempfile
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-DATA = Path(__file__).resolve().parent.parent / "data"
-for _f in ("logbook.db", "settings.json", "secret_key", "site.json"):
-    (DATA / _f).unlink(missing_ok=True)
-for _p in (DATA / "flights").glob("*.pkl"):
-    _p.unlink()
+TEST_DATA = Path(tempfile.mkdtemp())
+os.environ["PAC_DATA_DIR"] = str(TEST_DATA)
+shutil.copy2(Path(__file__).resolve().parent.parent / "data" / "runways.json", TEST_DATA / "runways.json")
 
 import analysis  # noqa: E402
 import app as A  # noqa: E402
@@ -42,38 +43,30 @@ rw = analysis.runways(A.DATA)
 
 
 def fly_checkride(**opts):
-    b = c.post("/api/booking", json={"mission_id": "PAC001", "aircraft": "B738F", "airframe": None}).json
+    b = c.post("/api/booking", json={"training": {
+        "course": "PAC001", "mode": "dedicated", "aircraft": "B738F", "origin": "KCVG"
+    }}).json
     assert "error" not in b, b
     c.post("/api/acars/app/start", json={"source": "MSFS", "requested_at": b["requested_at"]})
     rec = FlightRecorder(b)
-    for s in fly("KCVG", rw["KCVG"][0][0], "KBNA", rw["KBNA"][0][0], td_fpm=-120, **opts):
+    dep, arr = b["mission"]["origin"]["icao"], b["mission"]["destination"]["icao"]
+    for s in fly(dep, rw[dep][0][0], arr, rw[arr][0][0], td_fpm=-120, **opts):
         rec.update(s)
     c.post("/api/acars/app/complete", json={"record": rec.export(), "requested_at": b["requested_at"], "source": "MSFS"})
     return c.post("/api/pirep", json={"remarks": "checkride"}).json
 
 
-print("A checkride with an overspeed below FL100")
+print("A checkride with a minor overspeed")
 p = fly_checkride(overspeed_s=40)
 check("it files", bool(p.get("id")), p)
 car = c.get("/api/va/career").json["career"]
-check("the checkride is still to do", car["checkride"] == "Pending", car["checkride"])
-check("Career says the last attempt didn't pass, and why", car["checkride_last"] and not car["checkride_last"]["passed"]
-      and "overspeed or position jump" in car["checkride_last"]["reasons"], car.get("checkride_last"))
+check("a minor overspeed does not fail the checkride", car["checkride"] == "Passed", car["checkride"])
+check("Career records the checkride as passed", car["checkride_last"] and car["checkride_last"]["passed"], car.get("checkride_last"))
 book = c.post("/api/booking", json={"mission_id": "PAC1022", "aircraft": "B738F", "airframe": None}).json
-check("line aircraft stay locked", "error" in book, book)
+check("passing unlocks line aircraft", "error" not in book, book)
+c.delete("/api/booking")
 rv = [r for r in staff.get("/api/staff/overview").json["reviews"] if r["id"] == p["id"]][0]
-check("staff see the checkride wasn't passed, with the reason", rv["checkride"] and not rv["checkride"]["passed"]
-      and "overspeed or position jump" in rv["checkride"]["reasons"], rv.get("checkride"))
-
-print("Staff waive the overspeed")
-idx = [i for i, x in enumerate(rv["breakdown"]) if "250" in x[0] and x[1] < 0]
-r = staff.post(f"/api/staff/reviews/{p['id']}/waive", json={"items": idx, "note": "gust on descent"}).json
-check("the waiver goes through", r.get("ok"), r)
-car = c.get("/api/va/career").json["career"]
-check("the checkride now counts as passed", car["checkride"] == "Passed", car["checkride"])
-check("and the pilot moves up to Second Officer", car["rank"] == "Second Officer", car["rank"])
-rv = [r for r in staff.get("/api/staff/overview").json["reviews"] if r["id"] == p["id"]][0]
-check("the PIREP shows it passed after review", rv["checkride"]["passed"] and rv["checkride"].get("passed_after_review"), rv["checkride"])
+check("staff see that the checkride passed", rv["checkride"] and rv["checkride"]["passed"], rv.get("checkride"))
 
 print("What a new Second Officer can fly")
 staff.post("/api/settings", json={"require_type_ratings": True})

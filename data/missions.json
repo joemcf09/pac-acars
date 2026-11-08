@@ -23,7 +23,7 @@
     "payload_lbs": 30000,
     "target_block_min": 75,
     "reward": 150,
-    "briefing": "Your line checkride on the 737-800BCF. Fly a normal company sector by the book: SimBrief plan, gate departure, 250 kt below 10,000 ft, a stable approach and a landing softer than 400 fpm with no bounce, then park and shut down. ACARS grades it automatically. Score 80 or better to pass and join the line as a Second Officer. Going over 250 kt below 10,000 ft, a bounce or a landing over 1.5 G fails the checkride, whatever the score."
+    "briefing": "Your line checkride on the 737-800BCF. Fly a normal company sector by the book: SimBrief plan, gate departure, 250 kt below 10,000 ft, a steady approach and a landing no firmer than 600 fpm with landing load no higher than 1.8 G. One bounce is allowed; position jumps are not. ACARS grades it automatically. Score 80 or better to pass and join the line as a Second Officer. An overspeed penalty reduces your score but does not automatically fail the checkride."
   },
   {
     "id": "PAC101",

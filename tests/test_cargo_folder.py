@@ -50,9 +50,15 @@ def check(name, cond, detail=""):
 
 
 c = A.app.test_client()
+guest_cargo = A.app.test_client().get("/api/cargo/shipments")
+check("cargo inventory API requires sign-in", guest_cargo.status_code == 401)
 c.post("/api/auth/setup", json={"password": "Cargo-Folder-1"})
 c.post("/api/settings", json={"enforce_pilot_location": False, "enforce_airframes": False, "enforce_ranks": False,
                               "require_type_ratings": False, "require_release_signature": False})
+inventory_page = c.get("/")
+check("cargo inventory is linked from Operations navigation",
+      inventory_page.status_code == 200 and b"Cargo inventory" in inventory_page.data
+      and b'id="view-cargo"' in inventory_page.data)
 
 print("Air waybills on the preliminary load sheet")
 ls = c.post("/api/plan/loadsheet", json={"mission_id": "PAC712", "aircraft": "B77F"}).json
@@ -128,6 +134,21 @@ with A.db() as con:
         "SELECT awb FROM cargo_shipments WHERE booking_key LIKE 'PAC0002:%'")}
 check("a separate booking receives globally unique permanent AWBs",
       len(duplicate_awbs) == len(d["shipments"]) and not duplicate_awbs.intersection({s["awb"] for s in d["shipments"]}))
+inventory = c.get(f"/api/cargo/shipments?station={p['arr']}&status=DELIVERED").json
+check("cargo inventory API filters by current station and status",
+      inventory.get("total") == len(d["shipments"])
+      and all(x["current_station"] == p["arr"] and x["status"] == "DELIVERED" for x in inventory["shipments"]), inventory)
+station_list = c.get("/api/cargo/stations").json
+check("cargo inventory exposes stations with shipment counts",
+      any(x["icao"] == p["arr"] and x["shipments"] == len(d["shipments"]) for x in station_list), station_list)
+detail_response = c.get(f"/api/cargo/shipments/{cargo_rows[0]['id']}")
+detail = detail_response.json
+check("shipment detail API returns its recorded flight history",
+      detail_response.status_code == 200 and detail.get("shipment", {}).get("current_station") == p["arr"]
+      and any(x.get("pirep_id") == p["id"] and x.get("to_station") == p["arr"] for x in detail.get("movements", [])),
+      (detail_response.status_code, detail))
+check("cargo inventory rejects malformed station filters",
+      c.get("/api/cargo/shipments?station=INVALID!").status_code == 400)
 
 print()
 print("All cargo folder checks passed." if not failures else f"{len(failures)} failed: {failures}")

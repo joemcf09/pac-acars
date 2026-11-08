@@ -500,8 +500,8 @@ update. Always install the newest zip: an update makes the program match the zip
 
 ## The line checkride
 
-* PAC001 passes with a score of 80 or more, a landing softer than 400 fpm and under 1.5 G, no bounce, and no
-  overspeed (250 kt below FL100) or slew. Any one of those fails it, whatever the score.
+* PAC001 passes with a score of 80 or more, a landing no firmer than 600 fpm and no higher than 1.8 G, and no more
+  than one bounce. An overspeed penalty reduces the score but is not an automatic failure; a position jump still is.
 * The result is recorded when the PIREP is filed. Accepting the PIREP pays it but doesn't change the result.
   Staff see "Line checkride not passed" and the reasons on the PIREP in review, and the pilot sees them on Career.
 * If a failing penalty was ACARS misreading something, waive it in review: the checkride is checked again and,
@@ -537,7 +537,9 @@ update. Always install the newest zip: an update makes the program match the zip
 
 * **Type ratings**: each aircraft family (737, 727, A300, MD-11, 757/767, 777, 747 classic, 747-8) needs a
   rating before regular flying. Earn one with a short checkride from where you are (Career › Type ratings ›
-  Book checkride): score 85+, softer than 400 fpm, no bounce, stable approach. Types you've already flown
+  Book checkride): score 80+, landing no firmer than 600 fpm and no higher than 1.8 G, no more than one bounce,
+  and a steady approach (within 35 kt speed variation and no sustained descent beyond 1,300 fpm below 500 ft).
+  Overspeed penalties count toward the score but do not automatically fail the checkride. Types you've already flown
   count; the 737 family comes with the line checkride. Staff can grant or remove ratings (Roster › Ratings)
   or switch the requirement off (Site and rules).
 * **Planning helper** (every flight page): suggested cruise level (odd/even for your direction), fuel

@@ -44,12 +44,13 @@ REVIEW = {"auto_accept_score": 80, "hard_landing_fpm": -600, "max_landing_g": 1.
 A_CHECK_HOURS = 500
 
 CHECKRIDE_ID = "PAC001"
-CHECKRIDE = {"aircraft": "B738F", "min_score": 80, "min_rate": -400, "max_g": 1.5}
+CHECKRIDE = {"aircraft": "B738F", "min_score": 80, "min_rate": -600, "max_g": 1.8}
 
 # Type ratings, in real-world families: one checkride covers closely related aircraft
 RATING_FAMILY = {"B738F": "B737", "B732F": "B737", "B733F": "B737", "B722F": "B727", "A306F": "A300", "MD11F": "MD-11",
                  "B752F": "B757/767", "B763F": "B757/767", "B77F": "B777", "B742F": "B747 classic", "B748F": "B747-8"}
-TYPE_CHECKRIDE = {"min_score": 85, "min_rate": -400, "max_g": 1.5, "min_nm": 250, "max_nm": 1000}
+TYPE_CHECKRIDE = {"min_score": 80, "min_rate": -600, "max_g": 1.8, "max_approach_speed_spread": 35,
+                  "max_sustained_descent_fpm": 1300, "min_nm": 250, "max_nm": 1000}
 
 FEATURED_COUNT = 6
 FEATURED_MULT = 1.25
@@ -1885,10 +1886,10 @@ def enrich_pirep(p, booking, rec):
             fails.append(f"landing firmer than {CHECKRIDE['min_rate']} fpm")
         if (p.get("landing_g") or 0) > CHECKRIDE["max_g"]:
             fails.append(f"landing load above {CHECKRIDE['max_g']} G")
-        if p.get("bounces"):
-            fails.append("bounced landing")
-        if any(e["kind"] in ("overspeed", "slew") for e in rec.events):
-            fails.append("overspeed or position jump")
+        if (p.get("bounces") or 0) > 1:
+            fails.append("multiple landing bounces")
+        if any(e["kind"] == "slew" for e in rec.events):
+            fails.append("position jump")
         p["checkride"] = {"passed": not fails, "reasons": fails}
     if m.get("type_checkride"):
         fam, fails = m["type_checkride"], []
@@ -1902,12 +1903,18 @@ def enrich_pirep(p, booking, rec):
             fails.append(f"landing firmer than {abs(TYPE_CHECKRIDE['min_rate'])} fpm")
         if (p.get("landing_g") or 0) > TYPE_CHECKRIDE["max_g"]:
             fails.append(f"landing load above {TYPE_CHECKRIDE['max_g']} G")
-        if p.get("bounces"):
-            fails.append("bounced landing")
-        if (p.get("landing_analysis") or {}).get("stable") is False:
+        if (p.get("bounces") or 0) > 1:
+            fails.append("multiple landing bounces")
+        landing_analysis = p.get("landing_analysis") or {}
+        approach = landing_analysis.get("approach") or {}
+        if (approach.get("ias_min") is not None and approach.get("ias_max") is not None
+                and approach["ias_max"] - approach["ias_min"] > TYPE_CHECKRIDE["max_approach_speed_spread"]):
             fails.append("unstable approach")
-        if any(e["kind"] in ("overspeed", "slew") for e in rec.events):
-            fails.append("overspeed or position jump")
+        if approach.get("sustained_descent_500_fpm") is not None and (
+                approach["sustained_descent_500_fpm"] < -TYPE_CHECKRIDE["max_sustained_descent_fpm"]):
+            fails.append("unstable approach")
+        if any(e["kind"] == "slew" for e in rec.events):
+            fails.append("position jump")
         p["type_checkride"] = {"family": fam, "passed": not fails, "reasons": fails}
 
     # review flags
@@ -2228,7 +2235,8 @@ def checkride_mission(pilot_id, mission_id, origin=None, aircraft=None, _career=
             "payload_lbs": int(round(lead["max_payload_lbs"] * 0.55 / 500) * 500), "reward": 150,
             "cargo": "Ballast and company material", "urgent": False,
             "briefing": (f"Your {fam} type rating checkride, flown in the {names}. Fly a normal company sector by the book: SimBrief plan, "
-                         f"250 kt below 10,000 ft, a stable approach, and a landing softer than {abs(TYPE_CHECKRIDE['min_rate'])} fpm with no bounce. "
+                         f"250 kt below 10,000 ft, a steady approach, and a landing no firmer than {abs(TYPE_CHECKRIDE['min_rate'])} fpm "
+                         f"with landing load no higher than {TYPE_CHECKRIDE['max_g']} G and no more than one bounce. "
                          f"ACARS grades it: score {TYPE_CHECKRIDE['min_score']} or better with no review flags, followed by an accepted report, earns the rating.")}
 
 
@@ -2887,7 +2895,7 @@ def _recheck_checkrides(d, items, score, note=""):
         if not ck or ck.get("passed"):
             continue
         reasons = [x for x in ck.get("reasons", []) if not x.startswith("score below")
-                   and not (x == "overspeed or position jump" and not jump_left)]
+                   and not (x in ("overspeed or position jump", "position jump") and not jump_left)]
         if score < rules["min_score"]:
             reasons.append(f"score below {rules['min_score']}")
         ck.update(reasons=reasons, passed=not reasons)
