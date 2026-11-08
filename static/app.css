@@ -1626,3 +1626,6 @@ html[data-theme="dark"] .aar-ok{color:#5fd08a}
 .brief-card{background:var(--white);color:var(--ink);border-color:var(--line)}
 .brief-route{background:var(--paper);color:var(--ink);border-color:var(--line)}
 .brief-route:hover{background:var(--red-wash);border-color:var(--red)}
+html[data-theme="dark"] .journey-intro,html[data-theme="dark"] .journey-welcome{background:var(--white);color:var(--ink);border-color:var(--line);border-top-color:var(--red)}
+html[data-theme="dark"] .journey-welcome{background:var(--red-wash)}
+html[data-theme="dark"] .journey-text-button{color:var(--steel)}
