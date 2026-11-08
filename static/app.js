@@ -1137,6 +1137,7 @@ function cfAwb(ls, s) {
     "AIR CARGO WAYBILL  /  CONTRACT OF CARRIAGE",
     "=".repeat(78),
     cfLine("Air waybill", s.awb), cfLine("Issuing carrier", `${a.carrier} (${a.code})`), cfLine("Issued", `${a.issued} AT ${a.issued_at}`),
+    ...(a.charter_customer ? [cfLine("Charter customer", a.charter_customer)] : []),
     cfLine("Shipper", s.shipper.name.toUpperCase()), cfLine("Shipper address", a.shipper_addr),
     cfLine("Consignee", s.consignee.name.toUpperCase()), cfLine("Consignee address", a.consignee_addr),
     cfLine("Freight forwarder", (s.agent || "Direct from shipper").toUpperCase()), cfLine("Notify party", (s.notify || "Consignee").toUpperCase()),

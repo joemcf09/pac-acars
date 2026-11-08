@@ -201,6 +201,7 @@ def generate(booking, fleet, pilot, now=None):
                    "lower_lbs": sum(p["weight_lbs"] for p in positions if not p["pos"].startswith("M"))},
         "release_no": f"{(m.get('operator') or {}).get('code', 'PAC')}-{std.strftime('%y%m%d')}-{rng.randrange(1000, 9999)}",
         "operator": m.get("operator"),
+        "charter_customer": (m.get("customer") or {}).get("name", ""),
     }
     import shipments  # shippers, consignees and the ground handling timeline
     d["shipment_seed"] = seed

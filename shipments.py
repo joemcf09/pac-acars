@@ -491,6 +491,7 @@ def enrich(d):
         deliver = sta + dt.timedelta(hours=s.get("deliver_h") or 6)
         s["awb_doc"] = {
             "carrier": carrier, "code": code, "issued": stamp(booked), "issued_at": _plain(ocity),
+            "charter_customer": _plain(d.get("charter_customer")),
             "shipper_addr": _plain(f"CARGO TERMINAL, {ocity}, {octry}"), "consignee_addr": _plain(f"IMPORT CENTER, {dcity}, {dctry}"),
             "kg": kg, "vol_m3": vol, "vol_kg": vol_kg, "chg_kg": chg, "dims": dims, "rate_class": rclass, "rate": rate,
             "freight": freight, "others": [{"code": c, "what": w, "amt": a} for c, w, a in others],
