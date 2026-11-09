@@ -22,6 +22,7 @@ function renderCargoGuide() {
           <li><b>Cargo folder</b>: the paperwork, including the air waybills, the dangerous goods notice (NOTOC) and the handling timeline.</li></ul></li>
         <li><b>Add waiting freight (optional).</b> Under <b>Transfer cargo at</b> your departure airport you'll see freight that's waiting there and can travel on your flight: it's either going to your destination, or to an airport PAC flies to <b>from</b> your destination. Tick what you want to carry. Its weight comes out of your flight's own cargo, so your total payload stays the same and within limits.</li>
         <li><b>Book the flight</b>, then plan it in SimBrief as usual. The payload on your release already includes the freight you picked.</li>
+        <li><b>Arrange the load (optional).</b> On the ACARS page, <b>Load planner</b> lets you drag main-deck units between positions or press <b>Auto-load</b>, with a live bar showing whether the weight sits forward, centered or aft. Saving updates your release, so you'll sign it again.</li>
         <li><b>Fly it with PAC ACARS</b> and file your PIREP.</li>
       </ol>
       <p class="muted">Nothing is reserved until you book. If you cancel the booking, any waiting freight you picked goes back to the station for someone else.</p>`],
