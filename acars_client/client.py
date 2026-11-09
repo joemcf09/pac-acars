@@ -1319,7 +1319,9 @@ def alarm(on):
     try:
         import winsound
         if on:
-            winsound.PlaySound(alarm_wav(), winsound.SND_FILENAME | winsound.SND_ASYNC | winsound.SND_LOOP)
+            path = alarm_wav()
+            print("Alarm: playing", path)
+            winsound.PlaySound(path, winsound.SND_FILENAME | winsound.SND_ASYNC | winsound.SND_LOOP)
         else:
             winsound.PlaySound(None, 0)
     except Exception as e:
@@ -1390,13 +1392,20 @@ def start_reminder_watch():
                     src = MSFSSource() if sim == "MSFS" else XPlaneSource(host=load_config().get("xplane_host") or "127.0.0.1", freq=1)
                     try:
                         src.connect()
-                    except Exception:
-                        time.sleep(25)       # the sim is still loading: try again later, quietly
+                    except Exception as e:
+                        print("Start reminder: can't read", sim, "yet:", e)
+                        time.sleep(25)       # the sim is still loading: try again later
                         continue
                     _remind["src"] = src
+                    print("Start reminder: watching", sim, "for", ((state.get("hello") or {}).get("booking") or {}).get("flight_number"))
                 t = _remind["src"].read()
+            if t and time.time() - _remind.get("logged", 0) > 60:
+                _remind["logged"] = time.time()
+                print(f"Start reminder: engines {'on' if t.engines_running else 'off'}, brake {'set' if t.parking_brake else 'off'}, "
+                      f"{t.gs or 0:.0f} kt, {'on ground' if t.on_ground else 'airborne'}")
             if t and reminder_moving(t):
                 bk = (state.get("hello") or {}).get("booking") or {}
+                print("Start reminder: aircraft is moving and not tracked. Alarm on.")
                 state["start_reminder"] = {"since": time.time(), "flight": bk.get("flight_number")}
                 alarm(True)
                 try:
