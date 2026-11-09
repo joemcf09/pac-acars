@@ -1713,8 +1713,20 @@ def airframes(con=None):
     for it in con.execute("SELECT id, reg, ata, description, severity, category, due FROM maint WHERE status='open' ORDER BY time"):
         items.setdefault(it["reg"], []).append({**dict(it), "ata_name": ATA.get(it["ata"], ""), "overdue": bool(it["due"] and it["due"] < time.time())})
     namers = {r["id"]: r["name"] for r in con.execute("SELECT id, name FROM pilots")}
+    aog_open = {}
+    try:
+        import aog
+        aog.init(con)
+        for c in con.execute("SELECT * FROM aog_cases WHERE status IN ('awaiting_parts','repairing')"):
+            k = json.loads(c["kit"] or "{}")
+            aog_open[c["reg"]] = {"id": c["id"], "status": c["status"], "title": c["title"], "station": c["station"], "mission_id": c["mission_id"],
+                                  "hub": c["hub"], "contractor": bool(c["contractor"]), "parts_due": c["parts_due"], "repair_until": c["repair_until"],
+                                  "weight_lbs": k.get("weight_lbs"), "team": k.get("team"), "cause_flight": c["cause_flight"], "opened": c["opened"]}
+    except Exception as e:
+        print("AOG list:", e)
     for r in rows:
         r["open_items"] = items.get(r["reg"], [])
+        r["aog"] = aog_open.get(r["reg"])
         if r.get("named_by"):
             r["named_by_name"] = namers.get(r["named_by"], r["named_by"])
     if own:
@@ -1944,6 +1956,7 @@ def after_file(p, booking, rec, pirep_id):
     reg = booking.get("airframe")
     pid = current_pilot_id()
     tc = p.get("type_checkride") or {}
+    bot_events = []
     with C["db"]() as con:
         # Commit the marker with these database effects so a retry cannot apply them twice.
         applied = con.execute("INSERT OR IGNORE INTO pirep_effects (pirep_id, applied) VALUES (?,?)",
@@ -1958,12 +1971,15 @@ def after_file(p, booking, rec, pirep_id):
                     hrs = (p.get("flight_min") or 0) / 60
                     since = (row["hours_since_check"] or 0) + hrs
                     status, note = "Available", None
-                    if p.get("landing_rate") is not None and p["landing_rate"] < -1000:
-                        status, note = "Damaged", f"Structural damage after a {p['landing_rate']} fpm landing on {p['flight_number']}"
-                    elif p.get("landing_rate") is not None and p["landing_rate"] < REVIEW["hard_landing_fpm"]:
-                        status, note = "Inspection", f"Hard landing inspection after {p['flight_number']} ({p['landing_rate']} fpm)"
-                    elif (p.get("takeoff_analysis") or {}).get("tail_strike"):
+                    import aog
+                    aog_kind = aog.classify(p.get("landing_rate"), p.get("landing_g"), (p.get("takeoff_analysis") or {}).get("tail_strike"))
+                    touch = f"{p.get('landing_rate')} fpm, {p.get('landing_g') or 0:.2f} G"
+                    if aog_kind == "structural":
+                        status, note = "Damaged", f"Structural damage after a hard landing on {p['flight_number']} ({touch})"
+                    elif aog_kind == "tail_strike":
                         status, note = "Inspection", f"Tail strike inspection after {p['flight_number']}"
+                    elif aog_kind == "hard_landing":
+                        status, note = "Inspection", f"Hard landing inspection after {p['flight_number']} ({touch})"
                     elif since >= A_CHECK_HOURS:
                         status, note = "A-check due", f"A-check due at {since:.0f} hours since last check"
                     arr_st = (booking.get("arr_stand") or {})
@@ -1973,7 +1989,14 @@ def after_file(p, booking, rec, pirep_id):
                                 (loc, status, hrs, since, p["flight_number"], pid, time.time(), note, parked, reg))
                     auto = {"Damaged": (5, note), "Inspection": (53 if "Tail strike" in (note or "") else 5, note), "A-check due": (5, note)}
                     if status in auto:
-                        create_item(con, reg, auto[status][0], auto[status][1], "grounding", source="acars", flight=p["flight_number"], pirep_id=pirep_id)
+                        iid = create_item(con, reg, auto[status][0], auto[status][1], "grounding", source="acars", flight=p["flight_number"], pirep_id=pirep_id)
+                        if aog_kind:   # grounded away from maintenance: recovery case and mission
+                            try:
+                                _case, ev = aog.open_case(con, reg, row["type"], loc, aog_kind, [iid], p["flight_number"], pirep_id, C)
+                                if ev:
+                                    bot_events.append(("aog_opened", ev))
+                            except Exception as e:
+                                print("AOG case:", e)
                     for f in getattr(rec, "faults", []) or []:
                         create_item(con, reg, f["ata"], f["description"], f["severity"], f.get("category", "C"), "pilot", p["flight_number"], pirep_id, f.get("t"))
                     if status == "Available" and con.execute("SELECT 1 FROM maint WHERE reg=? AND status='open' AND severity='grounding'", (reg,)).fetchone():
@@ -1987,13 +2010,33 @@ def after_file(p, booking, rec, pirep_id):
                 con.execute("UPDATE jobs SET status=? WHERE id=?", ("completed" if not p.get("demo") else "open", booking["mission"]["id"]))
             if booking["mission"].get("urgent"):
                 con.execute("UPDATE urgent SET status=? WHERE id=?", ("completed" if not p.get("demo") else "open", booking["mission"]["id"]))
+                if booking["mission"].get("aog_case") and not p.get("demo") and p.get("status") in ("Delivered", "Delivered late"):
+                    import aog
+                    ev = aog.parts_delivered(con, booking["mission"]["aog_case"], p["flight_number"], pid)
+                    if ev:
+                        prof = con.execute("SELECT name, discord_id FROM pilots WHERE id=?", (pid,)).fetchone()
+                        ev.update({"pilot": prof["name"] if prof else pid, "discord_id": prof["discord_id"] if prof else None})
+                        bot_events.append(("aog_parts", ev))
             if booking["mission"].get("live"):
                 con.execute("UPDATE live_missions SET status=? WHERE id=?", ("completed" if not p.get("demo") else "open", booking["mission"]["id"]))
             if p.get("checkride", {}).get("passed") and not p.get("demo") and p.get("review_status") == "Accepted":
                 mark_line_checkride_passed(con, pid)
     if tc.get("passed") and not p.get("demo") and p.get("review_status") == "Accepted" and p.get("status") in ("Delivered", "Delivered late"):
         note_rating_on_licence(pid, tc["family"], time.time())
+    _emit_bot(bot_events)
     return pay_pirep(pirep_id)
+
+
+def _emit_bot(events):
+    """Bot events go out after the database transaction (the bot's log shares the database)."""
+    if not events:
+        return
+    try:
+        import botlink
+        for kind, data in events:
+            botlink.emit(kind, data)
+    except Exception as e:
+        print("bot event:", e)
 
 
 # ---------------------------------------------------------------- awards and leaderboards
@@ -3217,8 +3260,16 @@ def open_items(reg=None, con=None):
 
 
 def enforce_overdue():
-    """A deferred item that runs past its deadline grounds the aircraft."""
+    """A deferred item that runs past its deadline grounds the aircraft. Also moves AOG recoveries along."""
     now = time.time()
+    events = []
+    try:
+        import aog
+        with C["db"]() as con:
+            events = [("aog_resolved", e) for e in aog.tick(con, now)]
+    except Exception as e:
+        print("AOG tick:", e)
+    _emit_bot(events)
     with C["db"]() as con:
         for r in con.execute("SELECT reg, ata, description FROM maint WHERE status='open' AND severity='deferred' AND due < ?", (now,)).fetchall():
             con.execute("UPDATE airframes SET status='Maintenance', note=?, updated=? WHERE reg=? AND status='Available'",
@@ -3239,6 +3290,8 @@ def clear_item(item_id, note="", by=None):
         if not still:
             con.execute("UPDATE airframes SET status='Available', note=NULL, updated=? WHERE reg=? AND status IN ('Maintenance','Inspection','A-check due','Damaged')",
                         (time.time(), it["reg"]))
+            import aog
+            aog.staff_cleared(con, it["reg"])
     return True
 
 

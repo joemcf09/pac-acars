@@ -449,6 +449,22 @@ def run(cfg):
             await post(key, card=site_news_card(d, site))
         elif kind == "unlinked":
             await sync_member({"discord_id": d["discord_id"], "active": False})
+        elif kind == "aog_opened":
+            ch = "dispatch" if channel("dispatch") else "news"
+            if d.get("at_hub"):
+                await post(ch, f"🔧 **AOG: {d['reg']}** ({d.get('type')}) grounded at **{d['station']}**: {d['title'].lower()} after {d.get('cause') or 'its last flight'}. Parts are on site at the hub; back in about {d['repair_hours']} h.")
+            elif d.get("mission"):
+                await post(ch, f"🚨 **AOG: {d['reg']}** ({d.get('type')}) is grounded at **{d['station']}**: {d['title'].lower()} after {d.get('cause') or 'its last flight'}.\n"
+                               f"Recovery mission **{d['mission']}** from {d['hub']}: fly {d['weight_lbs']:,} lb of parts and the engineers in. Repair takes about {d['repair_hours']} h once they arrive. Who's going? ✈️")
+            else:
+                await post(ch, f"🔧 **AOG: {d['reg']}** grounded at **{d['station']}**: {d['title'].lower()}. A contractor is flying the parts in.")
+        elif kind == "aog_parts":
+            mention = f"<@{d['discord_id']}>" if d.get("discord_id") else d.get("pilot")
+            await post("dispatch" if channel("dispatch") else "news",
+                       f"🧰 Parts and engineers delivered to **{d['station']}** on {d['flight']}{(' by ' + mention) if mention else ''}. {d['reg']} is under repair, about {d['repair_hours']} h to go.")
+        elif kind == "aog_resolved":
+            await post("dispatch" if channel("dispatch") else "news",
+                       f"✅ **{d['reg']}** is back in service at **{d['station']}** after {d['hours']} h AOG ({d.get('by')}).")
         elif kind == "freight_delivered":
             who = f"<@{d['discord_id']}>" if d.get("discord_id") else f"**{d.get('pilot')}**"
             what = f"{d.get('commodity') or 'freight'}" + (f" ({d['season']})" if d.get("season") else "")

@@ -6233,6 +6233,24 @@ function fleetCodes(includeRetired = false) {
   return includeRetired ? all : all.filter(k => !S.fleet[k].retired);
 }
 function simCount(sim) { return Object.values(S.fleet).filter(a => (a.sim || "MSFS").includes(sim)).length; }
+function aogBoard() {
+  const list = (S.airframes || []).filter(a => a.aog);
+  if (!list.length) return "";
+  const when = t => t ? new Date(t * 1000).toISOString().slice(5, 16).replace("T", " ") + "Z" : "–";
+  const step = (a, n) => { const st = a.aog.status === "repairing" ? 2 : 1; return n < st ? "done" : n === st ? "now" : ""; };
+  return `<section class="aog-board" aria-label="Aircraft on ground">
+    <h2>🔧 Aircraft on ground</h2>
+    <p class="muted">Grounded away from maintenance. Fly the recovery mission to get the parts and engineers there: the aircraft returns to service when the repair is done.</p>
+    ${list.map(a => { const g = a.aog; return `<div class="aog-card">
+      <div class="aog-top"><b>${esc(a.reg)}</b> <span class="muted">${esc(S.fleet[a.type]?.name || a.type)} · at ${esc(g.station)}</span><span class="aog-title">${esc(g.title)}</span></div>
+      <ol class="aog-steps"><li class="done">Grounded after ${esc(g.cause_flight || "its last flight")}</li>
+        <li class="${step(a, 1)}">${g.status === "awaiting_parts" ? (g.contractor ? `Contractor flying ${fmt(g.weight_lbs)} lb of parts in, due ${when(g.parts_due)}` : `Waiting for ${fmt(g.weight_lbs)} lb of parts and the ${esc(g.team || "engineers")} from ${esc(g.hub)}`) : "Parts and engineers on site"}</li>
+        <li class="${step(a, 2)}">${g.status === "repairing" ? `Repair under way, back in service about ${when(g.repair_until)}` : "Repair"}</li>
+        <li>Back in service</li></ol>
+      ${g.status === "awaiting_parts" && g.mission_id && !g.contractor ? `<button class="btn small" onclick="show('missions')">Fly recovery mission ${esc(g.mission_id)} →</button>` : ""}
+    </div>`; }).join("")}
+  </section>`;
+}
 function renderFleet() {
   const all = fleetCodes(), st = S.fleetStats || {};
   const divNames = divisions().map(d => d.name);
@@ -6254,6 +6272,7 @@ function renderFleet() {
       <div><span>Fleet flights / hours</span><b>${fmt(flights)} / ${esch(hours)}</b></div>
     </div>
   </div>
+  ${aogBoard()}
   <nav class="fleet-jump" aria-label="Jump to aircraft">${codes.map(k => `<a href="#ac-${k}" data-jump="${k}"><img src="${esc(displayPhoto(S.fleet[k].thumb || S.fleet[k].photo, 400))}" alt="" loading="lazy"><span>${esc(S.fleet[k].icao)}${S.fleet[k].sim === "X-Plane" ? ' <span class="tag dark" style="font-size:10px;padding:1px 5px">XP</span>' : ""}<small>${esc(S.fleet[k].name)}</small></span></a>`).join("")}</nav>
   ${codes.map((k, i) => (i === 0 || divOf(k) !== divOf(codes[i - 1]) ? divisionHead(divOf(k)) : "") + fleetSheet(k)).join("") || `<p class="muted">No aircraft in that division for this simulator.</p>`}
   ${fleetCodes(true).some(k => S.fleet[k].retired) ? `<p class="muted" style="font-size:14px">Retired from the fleet: ${fleetCodes(true).filter(k => S.fleet[k].retired).map(k => esc(S.fleet[k].name)).join(", ")}. Past flights on these types stay in the logbook.</p>` : ""}`;
@@ -6305,7 +6324,7 @@ function fleetSheet(k) {
       <div><span>Type in service since</span><b>${a.entered_service || "–"}</b></div>
       <div><span>Simulator</span><b>${esc(a.sim || "MSFS")}</b><small>${a.sim_model ? esc(a.sim_model) + " · " : ""}SimBrief ${esc(a.simbrief_type)}</small></div>
     </div>
-    <div class="af-list">${(S.airframes || []).filter(x => x.type === k).map(x => `<span class="af-chip ${["Maintenance", "Inspection", "A-check due", "Damaged"].includes(x.status) ? "grounded" : x.status === "Booked" ? "booked" : ""}" data-af="${x.reg}" role="button" tabindex="0" title="Open ${x.reg}'s history"><b>${x.reg}</b> at ${x.location} · ${esc(reservationSummary(x))} · ${esch(x.hours || 0)} h, ${x.cycles || 0} cycles${(x.open_items || []).length ? ` <span class="af-mx">${x.open_items.length} MX</span>` : ""}</span>`).join("") || `<span class="muted" style="font-size:13px">No airframes. Add them in Staff › Airframes.</span>`}</div>
+    <div class="af-list">${(S.airframes || []).filter(x => x.type === k).map(x => `<span class="af-chip ${["Maintenance", "Inspection", "A-check due", "Damaged"].includes(x.status) ? "grounded" : x.status === "Booked" ? "booked" : ""}" data-af="${x.reg}" role="button" tabindex="0" title="Open ${x.reg}'s history"><b>${x.reg}</b> at ${x.location} · ${esc(reservationSummary(x))} · ${esch(x.hours || 0)} h, ${x.cycles || 0} cycles${(x.open_items || []).length ? ` <span class="af-mx">${x.open_items.length} MX</span>` : ""}${x.aog ? ` <span class="af-mx" style="background:#b00000;color:#fff">AOG</span>` : ""}</span>`).join("") || `<span class="muted" style="font-size:13px">No airframes. Add them in Staff › Airframes.</span>`}</div>
     ${liverySection(k)}
     <div class="ac-stats">
       <div><span>PAC flights</span><b>${fmt(st.flights)}</b></div>

@@ -1720,3 +1720,12 @@ html[data-theme="dark"] .journey-text-button{color:var(--steel)}
 .cgo-tabs button[aria-selected="true"]{color:#c80000;border-bottom-color:#c80000}
 .cgo-tabs button:hover{color:#1e2228}
 .cgo-pane[hidden]{display:none}
+
+/* AOG board on the fleet page */
+.aog-board{border:2px solid #b00000;border-radius:8px;padding:16px 18px;margin:18px 0;background:#fff8f8}
+.aog-board h2{margin:0 0 4px}
+.aog-card{border-top:1px solid #f0d0d0;padding:12px 0}
+.aog-top{display:flex;gap:10px;align-items:baseline;flex-wrap:wrap}.aog-title{margin-left:auto;font-weight:600;color:#b00000}
+.aog-steps{display:flex;gap:8px;list-style:none;padding:0;margin:10px 0;flex-wrap:wrap}
+.aog-steps li{flex:1 1 160px;padding:8px 10px;border-radius:6px;background:#f1f2f4;color:#5b6472;font-size:13px}
+.aog-steps li.done{background:#e5f4e4;color:#176b3c}.aog-steps li.now{background:#fff1d6;color:#7a4b00;font-weight:600}
