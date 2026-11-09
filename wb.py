@@ -198,7 +198,7 @@ def balance(code, positions, dow_lbs, takeoff_fuel_lbs, trip_fuel_lbs, flaps="fl
         "max_lbs": {k: round(v * LB_PER_KG) for k, v in m.max_kg.items()},
         "mac": {"length_in": m.mac, "lemac_in": m.lemac},
         "sources": [m.d["sources"]["wb_report"], m.d["sources"]["tcds"], m.d["pmdg_msfs"]["source"]],
-        "provisional_note": ("Provisional: the empty aircraft and fuel tank figures are awaiting the simulator calibration, "
+        "provisional_note": ("The empty aircraft and fuel tank figures are awaiting the simulator calibration, "
                              "so CG values may be off by several percent. Envelope, positions and trim tables are final.") if m.provisional else None,
         "note": "Simulation paperwork: envelope, positions and trim from the AEI 737-800SF weight-and-balance data; basic aircraft "
                 "and fuel tanks from the PMDG 737-800BCF. Not an aircraft's approved weight-and-balance.",
