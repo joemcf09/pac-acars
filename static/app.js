@@ -4854,6 +4854,19 @@ function networkPartners(h) {
       <p>Live air traffic control from real people, all over the world, free to join. PAC flights file as <b>${esc(filingIcao())}</b>, spoken “Pagani”.</p></div></div>
     <div class="net-partners">${nets.map(x => `<a class="net-logo" href="${x.href}" target="_blank" rel="noopener"><img src="${esc(x.logo)}" alt="${x.name}"></a>`).join("")}</div>`;
 }
+async function fillHomeCampaigns() {
+  const el = $("#homeCampaigns"); if (!el || !S.me?.id) return;
+  try {
+    const d = await api("/api/pilot/cargo-campaigns"); if (!el.isConnected) return;
+    const live = (d.campaigns || []).filter(c => c.phase === "Active");
+    el.innerHTML = live.length ? `<div class="section-h"><div><div class="kicker">Operation in progress</div><h2>Fly for the shared goal</h2></div><button class="btn ghost small" data-stats-tab="campaigns">All campaigns</button></div>
+      ${live.map(c => { const left = Math.max(0, Math.ceil((c.ends - Date.now() / 1000) / 86400)); return `<div class="home-op">${c.patch ? `<img src="${esc(c.patch)}" alt="">` : ""}<div class="home-op-body"><h3>${esc(c.title)}</h3>
+        <div class="cargo-progress"><strong>${fmt(c.cargo_lbs)} <small>/ ${fmt(c.target_lbs)} lb to ${c.destinations.map(esc).join(" · ")}</small></strong><span>${c.pct}%</span></div>
+        <progress max="100" value="${c.pct}">${c.pct}%</progress>
+        <p class="muted" style="margin:4px 0 10px">${fmt(c.flights)} deliveries · ${fmt(c.pilots)} pilots · ${left} day${left === 1 ? "" : "s"} left${c.personal_lbs > 0 ? ` · You: <b>${fmt(c.personal_lbs)} lb</b>` : ""}${c.reward_cash > 0 ? ` · Reward: patch + $${fmt(c.reward_cash)}` : ""}</p>
+        <button class="btn small" onclick="S.boardCampaignId='${Number(c.id)}';show('missions')">Find flights to ${esc(c.destinations[0])} and more →</button></div></div>`; }).join("")}` : "";
+  } catch (e) { el.innerHTML = ""; }
+}
 async function renderHome(h, st) {
   const t = h.totals, f = h.founder || {}, site = h.site;
   const codes = fleetCodes();
@@ -4898,6 +4911,7 @@ async function renderHome(h, st) {
     <div class="board-scroll" tabindex="0" role="region" aria-label="Arrivals flight table"><table class="fb-table" id="fbArr"></table></div><div class="board-foot"><span>Every PAC pilot's booked and active flights, then the latest arrivals. OPEN rows are featured routes anyone can fly.</span><span id="boardFreshness" role="status">Waiting for flight data…</span></div>
   </div>
 
+  <div id="homeCampaigns"></div>
   ${h.events.length ? `<div class="section-h"><div><div class="kicker">On now</div><h2>Events</h2></div><button class="btn ghost small" onclick="show('career')">All events and tours</button></div>
   <div class="two-col">${h.events.map(e => `<div class="event-card"><h3>${esc(e.name)} <span class="tag">×${e.multiplier} points</span></h3><div class="when">${fmtDate(e.start)} – ${fmtDate(e.end)}</div><p style="margin:8px 0 0">${esc(e.description)}</p></div>`).join("")}</div>` : ""}
 
@@ -4978,7 +4992,7 @@ async function renderHome(h, st) {
     </form>
   </div>
   ${siteFooter(site)}`;
-  buildBoard($("#fbDep")); buildBoard($("#fbArr")); refreshBoard(); tickClock(); tickCountdowns();
+  fillHomeCampaigns(); buildBoard($("#fbDep")); buildBoard($("#fbArr")); refreshBoard(); tickClock(); tickCountdowns();
   bindShots($("#homeRoot"), shots, () => loadHome());
   const hero = $("#homeRoot .hero");
   gfHomeStrip();
@@ -7308,6 +7322,7 @@ function renderBoardCampaigns() {
 }
 
 function cargoAwardArt(a) {
+  if (a.patch) return `<img src="${esc(a.patch)}" alt="${esc(a.title)} patch" style="width:120px;height:120px;object-fit:contain">`;
   const colors=['#173c52','#7d202b','#285342','#493b66'];const color=colors[Math.abs(Number(a.id)||0)%colors.length];
   return `<svg viewBox="0 0 120 120" role="img" aria-label="${esc(a.title)} contributor patch"><circle cx="60" cy="60" r="55" fill="${color}" stroke="#d9ba6e" stroke-width="5"/><circle cx="60" cy="60" r="48" fill="none" stroke="#d9ba6e" stroke-dasharray="2 3"/><text x="60" y="33" text-anchor="middle" fill="white" font-size="17" font-weight="800">PAC</text><path d="M60 44l8 15 28 5-28 7-8 15-8-15-28-7 28-5z" fill="#d9ba6e"/><text x="60" y="101" text-anchor="middle" fill="white" font-size="10">${esc(a.year)} · ${Number(a.id)||0}</text></svg>`;
 }

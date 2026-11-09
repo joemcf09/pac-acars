@@ -27,9 +27,10 @@ def awards(con, pid):
             COALESCE(SUM(CASE WHEN pilot_id=? THEN payload_lbs ELSE 0 END),0) personal
             FROM pireps WHERE {QUALIFY} AND filed_at>=? AND filed_at<? AND arr IN ({marks})''',
             (pid,c['starts'],end,*dest)).fetchone()
-        if row['total']>=c['target_lbs'] and row['personal']>0:
+        base=(c['baseline_lbs'] if 'baseline_lbs' in c.keys() else 0) or 0
+        if row['total']+base>=c['target_lbs'] and row['personal']>0:
             # Deliberately public fields only; other pilots' totals and wallet are private.
-            result.append(dict(id=c['id'],title=c['title'],year=time.strftime('%Y',time.gmtime(c['starts'])),destinations=dest))
+            result.append(dict(id=c['id'],title=c['title'],year=time.strftime('%Y',time.gmtime(c['starts'])),destinations=dest,patch=c['patch'] if 'patch' in c.keys() else None))
     return result
 
 

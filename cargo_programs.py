@@ -31,6 +31,11 @@ def migrate(con):
         starts REAL NOT NULL, ends REAL NOT NULL, target_lbs INTEGER NOT NULL,
         destinations TEXT NOT NULL, state TEXT NOT NULL DEFAULT 'draft',
         created_at REAL NOT NULL, created_by TEXT NOT NULL, archived_at REAL)''')
+    cols={r[1] for r in con.execute('PRAGMA table_info(cargo_campaigns)')}
+    for col,typ in (('patch','TEXT'),('reward_cash','REAL DEFAULT 0'),('baseline_lbs','INTEGER DEFAULT 0')):
+        if col not in cols:con.execute(f'ALTER TABLE cargo_campaigns ADD COLUMN {col} {typ}')
+    con.execute('''CREATE TABLE IF NOT EXISTS cargo_campaign_wrapups (campaign_id INTEGER PRIMARY KEY, at REAL NOT NULL,
+        cargo_lbs REAL, flights INTEGER, pilots INTEGER, goal_met INTEGER, paid INTEGER DEFAULT 0)''')
     con.execute('CREATE INDEX IF NOT EXISTS idx_cargo_pilot_reports ON pireps(pilot_id,review_status,demo,filed_at)')
     con.execute('CREATE INDEX IF NOT EXISTS idx_cargo_campaign_reports ON pireps(review_status,demo,filed_at,arr)')
 
@@ -112,12 +117,56 @@ def campaigns(con, pid, staff=False):
             FROM pireps WHERE {QUALIFY} AND filed_at>=? AND filed_at<? AND arr IN ({marks})''',
             (pid,c['starts'],min(c['ends'],c['archived_at']) if c['archived_at'] else c['ends'],*dest)).fetchone()
         c.update(dict(tally));c['destinations']=dest
+        c['flown_lbs']=c['cargo_lbs'];c['cargo_lbs']=c['cargo_lbs']+(c.get('baseline_lbs') or 0)
         c['pct']=min(100,round(c['cargo_lbs']/c['target_lbs']*100,1))
         c['goal_met']=c['cargo_lbs']>=c['target_lbs']
         c['phase']='Draft' if c['state']=='draft' else 'Archived' if c['state']=='archived' else 'Upcoming' if now<c['starts'] else 'Ended' if now>=c['ends'] else 'Active'
         c['contributor_badge']=c['state']!='draft' and c['goal_met'] and c['personal_lbs']>0
+        c['top']=top_contributors(con,c,dest) if c['state']!='draft' else []
         result.append(c)
     return result
+
+
+def _window(c):
+    return c['starts'],(min(c['ends'],c['archived_at']) if c.get('archived_at') else c['ends'])
+
+
+def top_contributors(con, c, dest, n=5):
+    marks=','.join('?' for _ in dest);lo,hi=_window(c)
+    return [dict(r) for r in con.execute(f'''SELECT p.pilot_id AS id,COALESCE(r.name,p.pilot_id) AS name,SUM(p.payload_lbs) AS cargo_lbs,COUNT(*) AS flights
+        FROM (SELECT pilot_id,payload_lbs FROM pireps WHERE {QUALIFY} AND filed_at>=? AND filed_at<? AND arr IN ({marks})) p
+        LEFT JOIN pilots r ON r.id=p.pilot_id GROUP BY p.pilot_id ORDER BY cargo_lbs DESC LIMIT ?''',(lo,hi,*dest,n))]
+
+
+def wrap_up(con, add_tx=None, now=None):
+    """Closes each published campaign once after its end date: a news post with the result and top contributors,
+    and the campaign's cash reward (if any) paid once to every contributor when the target was reached."""
+    now=now or time.time();done=[]
+    for row in con.execute("""SELECT * FROM cargo_campaigns c WHERE state='published' AND ends<=?
+            AND NOT EXISTS (SELECT 1 FROM cargo_campaign_wrapups w WHERE w.campaign_id=c.id)""",(now,)).fetchall():
+        c=dict(row);dest=json.loads(c['destinations']);marks=','.join('?' for _ in dest);lo,hi=_window(c)
+        t=con.execute(f'''SELECT COALESCE(SUM(payload_lbs),0) lbs,COUNT(*) flights,COUNT(DISTINCT pilot_id) pilots
+            FROM pireps WHERE {QUALIFY} AND filed_at>=? AND filed_at<? AND arr IN ({marks})''',(lo,hi,*dest)).fetchone()
+        total=t['lbs']+(c.get('baseline_lbs') or 0);met=total>=c['target_lbs']
+        everyone=top_contributors(con,c,dest,n=1000);paid=0
+        reward=float(c.get('reward_cash') or 0)
+        if met and reward>0 and add_tx:
+            for p in everyone:
+                add_tx(p['id'],'campaign',reward,f"{c['title']}: contributor reward",None,con);paid+=1
+        lines=[f"{'Target reached' if met else 'Final total'}: {total:,.0f} of {c['target_lbs']:,} lb to {' · '.join(dest)}.",
+               f"{t['flights']} deliveries by {max(t['pilots'],len(everyone))} pilots."]
+        if everyone:
+            lines.append('Top contributors: '+', '.join(f"{p['name']} ({p['cargo_lbs']:,.0f} lb)" for p in everyone[:5])+'.')
+        if met:
+            lines.append('Every contributor earned the campaign patch'+(f' and a ${reward:,.0f} bonus, paid to their wallet.' if reward>0 else '.'))
+        else:
+            lines.append('Thank you to everyone who flew. The next operation is coming.')
+        con.execute('INSERT INTO news (time, kind, title, body, important, expires, author) VALUES (?,?,?,?,?,?,?)',
+                    (now,'event',f"{c['title']}: {'mission accomplished' if met else 'operation closed'}",' '.join(lines),1,now+21*86400,'PAC Operations'))
+        con.execute('INSERT INTO cargo_campaign_wrapups (campaign_id,at,cargo_lbs,flights,pilots,goal_met,paid) VALUES (?,?,?,?,?,?,?)',
+                    (c['id'],now,total,t['flights'],t['pilots'],int(met),paid))
+        done.append(c['id'])
+    return done
 
 
 def register(app,context):
@@ -140,10 +189,17 @@ def register(app,context):
             data=passport(con,context['AIRPORTS'],p['id'])
         return reply(data)
 
+    def close_ended():
+        try:
+            with closing(db()) as con,con:
+                con.execute('BEGIN IMMEDIATE');wrap_up(con,context['va'].add_tx)
+        except Exception as e:print('campaign wrap-up:',e)
+
     @app.get('/api/pilot/cargo-campaigns')
     def cargo_campaigns():
         p,error=user()
         if error is not None:return error
+        close_ended()
         with closing(db()) as con:data=campaigns(con,p['id'])
         return reply({'campaigns':data})
 
@@ -172,6 +228,17 @@ def register(app,context):
         if error is not None:return error
         b=request.get_json(silent=True)
         action=b.get('action') if isinstance(b,dict) else None
+        if action=='extras':
+            patch=str(b.get('patch') or '').strip()[:300]
+            if patch and not re.fullmatch(r'(/static/[\w./-]+|https://[\w./%-]+)\.(png|jpg|jpeg|svg|webp)',patch,re.I):
+                return reply({'error':'Patch must be an image link (PNG, JPG, SVG or WebP).'},400)
+            try:reward=max(0.0,min(1e6,float(b.get('reward_cash') or 0)));base=max(0,min(10**9,int(b.get('baseline_lbs') or 0)))
+            except (TypeError,ValueError):return reply({'error':'Reward and starting pounds must be numbers.'},400)
+            with closing(db()) as con,con:
+                if not con.execute("SELECT 1 FROM cargo_campaigns WHERE id=? AND state!='discarded'",(cid,)).fetchone():return reply({'error':'Campaign not found.'},404)
+                if con.execute('SELECT 1 FROM cargo_campaign_wrapups WHERE campaign_id=?',(cid,)).fetchone():return reply({'error':'This campaign has already closed and paid out.'},409)
+                con.execute('UPDATE cargo_campaigns SET patch=?,reward_cash=?,baseline_lbs=? WHERE id=?',(patch or None,reward,base,cid))
+            return reply({'ok':True})
         if action not in ('publish','archive'):return reply({'error':'Choose publish or archive.'},400)
         with closing(db()) as con,con:
             con.execute('BEGIN IMMEDIATE')

@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 600" width="600" height="600">
+<defs>
+ <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#0b3a63"/><stop offset=".55" stop-color="#1b77a8"/><stop offset=".56" stop-color="#f2b33d"/><stop offset="1" stop-color="#e8743b"/></linearGradient>
+ <linearGradient id="sea" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#1aa3b8"/><stop offset="1" stop-color="#0b4f78"/></linearGradient>
+ <linearGradient id="gold" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff1b8"/><stop offset=".45" stop-color="#d9a428"/><stop offset="1" stop-color="#8a5a10"/></linearGradient>
+ <clipPath id="c"><circle cx="300" cy="300" r="196"/></clipPath>
+ <path id="top" d="M80,300 A220,220 0 0 1 520,300"/>
+ <path id="bot" d="M64,300 A236,236 0 0 0 536,300"/>
+</defs>
+<circle cx="300" cy="300" r="290" fill="url(#gold)"/>
+<circle cx="300" cy="300" r="272" fill="#14181f"/>
+<circle cx="300" cy="300" r="262" fill="none" stroke="url(#gold)" stroke-width="3"/>
+<circle cx="300" cy="300" r="204" fill="url(#gold)"/>
+<g clip-path="url(#c)">
+ <rect x="100" y="100" width="400" height="400" fill="url(#sky)"/>
+ <circle cx="300" cy="318" r="62" fill="#ffd36b" opacity=".95"/>
+ <rect x="100" y="330" width="400" height="200" fill="url(#sea)"/>
+ <path d="M130 352 h70 M240 368 h120 M390 352 h80 M170 392 h90 M330 404 h110" stroke="#bff3ff" stroke-width="4" stroke-linecap="round" opacity=".6"/>
+ <path d="M150 340 Q215 300 290 338 Q330 328 360 340 Z" fill="#163a2a"/>
+ <path d="M372 340 Q420 312 470 340 Z" fill="#163a2a"/>
+ <g stroke="#0f2a1e" stroke-width="7" fill="none" stroke-linecap="round"><path d="M220 334 Q214 290 230 252"/></g>
+ <g fill="#1d5a3a"><path d="M230 252 q-40 -6 -62 18 q34 -8 62 -18z"/><path d="M230 252 q38 -14 64 6 q-34 -4 -64 -6z"/><path d="M230 252 q-14 -34 -48 -40 q30 18 48 40z"/><path d="M230 252 q18 -32 52 -32 q-32 14 -52 32z"/></g>
+ <g transform="translate(320 170) rotate(-14) scale(.62)" fill="#d7262f" stroke="#7a0f16" stroke-width="2">
+  <path d="M-120 0 C-110 -11 90 -11 112 -4 C124 0 124 4 112 6 C90 12 -110 12 -120 0Z"/>
+  <path d="M-10 -4 L-58 -62 L-38 -62 L28 -4Z"/><path d="M-10 6 L-40 52 L-24 52 L24 6Z"/>
+  <path d="M-110 -2 L-128 -36 L-116 -36 L-92 -4Z"/>
+  <rect x="-40" y="10" width="14" height="10" rx="5"/><rect x="-6" y="11" width="14" height="10" rx="5"/>
+  
+ </g>
+ <g transform="translate(395 262) scale(.8)">
+  <path d="M0 -40 v28" stroke="#f4f6f8" stroke-width="2"/>
+  <path d="M-26 -62 q26 -26 52 0 q-26 -8 -52 0z" fill="#f4f6f8"/><path d="M-26 -62 L-6 -40 M26 -62 L6 -40" stroke="#f4f6f8" stroke-width="2"/>
+  <rect x="-16" y="-14" width="32" height="26" fill="#a86b2c" stroke="#5c3610" stroke-width="2"/><path d="M-16 -1 h32 M0 -14 v26" stroke="#5c3610" stroke-width="2"/>
+ </g>
+</g>
+<circle cx="300" cy="300" r="196" fill="none" stroke="#14181f" stroke-width="4"/>
+<text font-family="Arial Black,Arial,sans-serif" font-weight="900" font-size="34" letter-spacing="5" fill="url(#gold)"><textPath href="#top" startOffset="50%" text-anchor="middle">OPERATION ISLAND SUPPLY</textPath></text>
+<g font-family="Arial Black,Arial,sans-serif" font-weight="900" fill="url(#gold)" text-anchor="middle">
+ <text font-size="27" letter-spacing="6" fill="#ffd970"><textPath href="#bot" startOffset="50%" text-anchor="middle" dominant-baseline="middle">MYNN · TJSJ · TNCM</textPath></text>
+</g>
+<g fill="url(#gold)"><path id="s" d="M0 -11 L3 -3 L11 -3 L5 2 L7 10 L0 5 L-7 10 L-5 2 L-11 -3 L-3 -3Z" transform="translate(70 318)"/><use href="#s" transform="translate(460 0)"/></g>
+<g transform="translate(300 418)">
+ <path d="M-150 -24 L-170 0 L-150 24 L150 24 L170 0 L150 -24Z" fill="#c8202e" stroke="url(#gold)" stroke-width="5"/>
+ <text y="9" font-family="Arial Black,Arial,sans-serif" font-weight="900" font-size="24" letter-spacing="3" fill="#fff" text-anchor="middle">PAC · NOV 2026</text>
+</g>
+</svg>
