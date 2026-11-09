@@ -6,9 +6,10 @@ PAC ACARS - CHANGELOG
 New: "Start ACARS" reminder
 - Forgot to press Start tracking? If you have a flight booked, your simulator
   is running and the aircraft starts moving (pushback, taxi, or already in
-  the air) without PAC ACARS recording, a voice says "Start ACARS
-  immediately", the window comes to the front, and a red bar with a
-  Start now button appears. It repeats every 45 seconds, up to 6 times.
+  the air) without PAC ACARS recording, an alarm call-out ("Start the
+  flight tracker immediately") plays on a loop, the window comes to the
+  front, and a red bar with a Start now button appears. It keeps playing
+  until you start tracking (or cancel the flight or close the sim).
 - PAC ACARS has to be open for this to work (it starts with Windows if you
   chose that when installing). Turn it off in Settings if you don't want it.
 

@@ -1256,32 +1256,35 @@ def api_chime():
     return jsonify({"ok": True})
 
 
-# ---------------------------------------------------------------- 1.1.4: "Start ACARS" voice reminder
-REMIND_SAY = "Start ACARS immediately. Your PAC flight is not being recorded."
-REMIND_EVERY_S = 45
-REMIND_MAX = 6
-_remind = {"src": None, "lock": threading.Lock()}
+# ---------------------------------------------------------------- 1.1.4: "Start the flight tracker" alarm
+ALARM_WAV = RES / "assets" / "start_acars.wav"
+_remind = {"src": None, "lock": threading.Lock(), "playing": False}
 
 
-def say(text):
-    """Speaks through the Windows voice (built into every Windows 10 and 11), asynchronously, then plays the chime as a backup."""
+def alarm(on):
+    """Loops the recorded call-out through Windows until tracking starts. Windows keeps looping it by itself,
+    so it can never block the app; PlaySound(None) silences it."""
+    if on == _remind["playing"]:
+        return
+    _remind["playing"] = on
     if sys.platform != "win32":
-        print("Say:", text)
+        print("Alarm", "on" if on else "off")
         return
     try:
-        import subprocess
-        safe = text.replace("'", "")
-        cmd = ("Add-Type -AssemblyName System.Speech; $s = New-Object System.Speech.Synthesis.SpeechSynthesizer; "
-               f"$s.Volume = 100; $s.Rate = 0; $s.Speak('{safe}')")
-        subprocess.Popen(["powershell", "-NoProfile", "-NonInteractive", "-WindowStyle", "Hidden", "-Command", cmd],
-                         creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
+        import winsound
+        if on:
+            winsound.PlaySound(str(ALARM_WAV), winsound.SND_FILENAME | winsound.SND_ASYNC | winsound.SND_LOOP | winsound.SND_NODEFAULT)
+        else:
+            winsound.PlaySound(None, 0)
     except Exception as e:
-        print("Voice:", e)
-        play_chime(force=True)
+        print("Alarm:", e)
 
 
 def reminder_release():
-    """Lets go of the sim before real tracking starts, so the watcher and the tracker never share a connection."""
+    """Silences the alarm and lets go of the sim before real tracking starts, so the watcher and the tracker never
+    share a connection."""
+    alarm(False)
+    state["start_reminder"] = None
     with _remind["lock"]:
         src, _remind["src"] = _remind["src"], None
     if src:
@@ -1312,45 +1315,44 @@ def reminder_moving(t):
 
 
 def start_reminder_watch():
-    said, last_say, booking_key = 0, 0.0, None
+    """Once the aircraft moves without tracking, the alarm loops until the pilot starts tracking (or the flight is
+    cancelled, the sim is closed, or the reminder is switched off in Settings). Stopping to taxi doesn't silence it."""
     while True:
-        time.sleep(5)
+        time.sleep(3)
         try:
             sim = reminder_should_watch()
-            bk = (state.get("hello") or {}).get("booking") or {}
-            key = bk.get("requested_at")
-            if key != booking_key:
-                booking_key, said = key, 0
             if not sim:
-                reminder_release()
-                state["start_reminder"] = None
+                if _remind["playing"] or _remind["src"]:
+                    reminder_release()
                 continue
+            if _remind["playing"]:
+                continue                     # already sounding: nothing to read, it only stops when tracking starts
             with _remind["lock"]:
                 if _remind["src"] is None:
                     src = MSFSSource() if sim == "MSFS" else XPlaneSource(host=load_config().get("xplane_host") or "127.0.0.1", freq=1)
                     try:
                         src.connect()
                     except Exception:
-                        time.sleep(25)          # the sim is still loading: try again later, quietly
+                        time.sleep(25)       # the sim is still loading: try again later, quietly
                         continue
                     _remind["src"] = src
-                src = _remind["src"]
-                t = src.read()
-            if not t or not reminder_moving(t):
-                state["start_reminder"] = None
-                continue
-            state["start_reminder"] = {"since": state.get("start_reminder", {}) and state["start_reminder"].get("since") or time.time(),
-                                       "flight": bk.get("flight_number")}
-            if said < REMIND_MAX and time.time() - last_say >= REMIND_EVERY_S:
-                said, last_say = said + 1, time.time()
-                say(REMIND_SAY)
+                t = _remind["src"].read()
+            if t and reminder_moving(t):
+                bk = (state.get("hello") or {}).get("booking") or {}
+                state["start_reminder"] = {"since": time.time(), "flight": bk.get("flight_number")}
+                alarm(True)
                 try:
                     show_window()
                 except Exception:
                     pass
         except Exception as e:
             print("Start reminder:", e)
-            reminder_release()
+            with _remind["lock"]:
+                src, _remind["src"] = _remind["src"], None
+            try:
+                src and src.close()
+            except Exception:
+                pass
             time.sleep(20)
 
 
