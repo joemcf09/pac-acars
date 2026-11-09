@@ -1,4 +1,5 @@
-"""Staff-reviewed untracked flights. No telemetry, booking or fleet mutations."""
+"""Staff-reviewed untracked flights. No telemetry or score. On approval, staff may also complete the flight:
+deliver its booked cargo, move the aircraft and pilot to the arrival airport and close the booking."""
 import base64, binascii, json, re, time
 from datetime import datetime, timezone
 from flask import request, jsonify, Response
@@ -30,9 +31,32 @@ def review(va, report_id, body):
             pay = va.flight_pay(r['block_min'], rank, 0)
             va.add_tx(r['pilot_id'], 'flight_pay', pay['flight_pay'], 'Manual flight approved: '+r['flight_number'], report_id, con)
             d['manual']['basic_pay'] = pay['flight_pay']
+            if body.get('complete_flight'):
+                d['manual']['completed'] = complete(con, r)
         con.execute('UPDATE pireps SET review_status=?,review_note=?,reviewed_at=?,detail=? WHERE id=?',
                     ('Accepted' if action=='accept' else 'Rejected',note,time.time(),json.dumps(d),report_id))
     return jsonify(ok=True)
+
+
+def complete(con, r):
+    """Staff ticked "deliver the cargo and move the aircraft": what the flight would have done had ACARS been running."""
+    import cargo_network
+    pilot, dep, arr, now = r['pilot_id'], r['dep'], r['arr'], time.time()
+    out = {'cargo': 0, 'booking_closed': False, 'aircraft_moved': False, 'pilot_moved': False}
+    row = con.execute('SELECT data FROM bookings WHERE pilot_id=?', (pilot,)).fetchone()
+    booking = json.loads(row['data']) if row else None
+    m = (booking or {}).get('mission') or {}
+    if booking and (m.get('origin') or {}).get('icao') == dep and (m.get('destination') or {}).get('icao') == arr:
+        if (booking.get('dispatch') or {}).get('shipments'):
+            cargo_network.record_flight(con, booking, {'arr': arr, 'status': 'Delivered', 'flight_number': r['flight_number']}, r['id'], pilot)
+            out['cargo'] = con.execute("SELECT COUNT(*) FROM cargo_movements WHERE pirep_id=? AND event_type='FLIGHT_ARRIVAL'", (r['id'],)).fetchone()[0]
+        con.execute('DELETE FROM bookings WHERE pilot_id=?', (pilot,))
+        out['booking_closed'] = True
+    moved = con.execute("""UPDATE airframes SET location=?, status=CASE WHEN status='Booked' THEN 'Available' ELSE status END,
+        last_flight=?, last_pilot=?, updated=? WHERE reg=? AND (location=? OR status='Booked')""", (arr, r['flight_number'], pilot, now, r['registration'], dep)).rowcount
+    out['aircraft_moved'] = bool(moved)
+    out['pilot_moved'] = bool(con.execute("UPDATE pilots SET location=? WHERE id=? AND (location=? OR location IS NULL OR location='')", (arr, pilot, dep)).rowcount)
+    return out
 
 
 def register(app, va):

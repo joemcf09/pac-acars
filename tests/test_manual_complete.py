@@ -1,0 +1,53 @@
+"""Manual PIREP approval can complete the booked flight: deliver its cargo, move the aircraft and pilot, close the booking.
+Run from the PAC folder: python tests/test_manual_complete.py"""
+import os, shutil, subprocess, sys, tempfile, time, datetime as dt
+from pathlib import Path
+ROOT = Path(__file__).resolve().parent.parent
+if len(sys.argv) == 1:
+    with tempfile.TemporaryDirectory(prefix="pac-manual-") as temp:
+        data = Path(temp) / "data"; data.mkdir()
+        shutil.copy2(ROOT / "data" / "runways.json", data / "runways.json")
+        sys.exit(subprocess.run([sys.executable, __file__, "--isolated"], cwd=ROOT, env=dict(os.environ, PAC_DATA_DIR=str(data))).returncode)
+sys.path.insert(0, str(ROOT))
+import app as A  # noqa: E402
+failures = []
+def check(name, cond, detail=""):
+    print(("  ok  " if cond else "  FAIL ") + name + ("" if cond else f" · {detail}"))
+    if not cond: failures.append(name)
+c = A.app.test_client()
+c.post("/api/auth/setup", json={"password": "Manual-Test-1"})
+c.post("/api/settings", json={"enforce_pilot_location": False, "enforce_airframes": False, "enforce_ranks": False,
+                              "require_type_ratings": False, "require_release_signature": False})
+c.get("/api/cargo/overview")
+with A.db() as con:
+    order = next(r for r in con.execute("SELECT * FROM cargo_shipments WHERE booking_key LIKE 'ORDER:%' AND status='AT_STATION' AND current_station='KCVG'"))
+route = next(rt for rt in A.ROUTES.values() if rt["origin"]["icao"] == "KCVG" and rt["destination"]["icao"] == order["destination"] and rt.get("category") == "Scheduled")
+ac = next(a for a in route["aircraft"] if A.FLEET.get(a, {}).get("max_payload_lbs", 0) >= order["gross_weight_lbs"] * 2)
+with A.db() as con:
+    tail = con.execute("SELECT reg FROM airframes WHERE type=? LIMIT 1", (ac,)).fetchone()[0]
+    con.execute("UPDATE airframes SET location='KCVG', status='Available' WHERE reg=?", (tail,))
+ls = c.post("/api/plan/loadsheet", json={"mission_id": route["id"], "aircraft": ac, "cargo_transfer_ids": [order["id"]]}).json
+b = c.post("/api/booking", json={"mission_id": route["id"], "aircraft": ac, "manifest_seed": ls["seed"], "cargo_transfer_ids": [order["id"]], "zone_ack": True}).json
+dep_t = (dt.datetime.utcnow() - dt.timedelta(hours=3)).strftime("%Y-%m-%dT%H:%M")
+r = c.post("/api/manual-pireps", json={"flight": route["id"], "dep": "KCVG", "arr": route["destination"]["icao"], "tail": tail, "aircraft": ac,
+                                       "departed": dep_t, "minutes": "90", "reason": "Forgot to start ACARS, sound was muted."})
+check("the manual report is filed", r.status_code == 201, r.json)
+rid = r.json["id"]
+a = c.post(f"/api/staff/reviews/{rid}", json={"action": "accept", "note": "Screenshot checks out.", "complete_flight": True})
+check("staff accept it with the complete box ticked", a.status_code == 200, a.json)
+with A.db() as con:
+    sh = con.execute("SELECT status, current_station FROM cargo_shipments WHERE id=?", (order["id"],)).fetchone()
+    own = con.execute("SELECT COUNT(*) FROM cargo_shipments WHERE booking_key=? AND status LIKE 'DELIVERED%'", (f"PAC0001:{b['requested_at']}",)).fetchone()[0]
+    frame = con.execute("SELECT location, status FROM airframes WHERE reg=?", (tail,)).fetchone()
+    loc = con.execute("SELECT location FROM pilots WHERE id='PAC0001'").fetchone()[0]
+    bk = con.execute("SELECT COUNT(*) FROM bookings WHERE pilot_id='PAC0001'").fetchone()[0]
+    rep = con.execute("SELECT score, review_status FROM pireps WHERE id=?", (rid,)).fetchone()
+dest = route["destination"]["icao"]
+check("the picked-up order is delivered", sh["status"].startswith("DELIVERED") and sh["current_station"] == dest, dict(sh))
+check("the flight's own cargo is delivered", own > 0, own)
+check("the aircraft is at the arrival airport and free", frame["location"] == dest and frame["status"] == "Available", dict(frame))
+check("the pilot is at the arrival airport", loc == dest, loc)
+check("the booking is closed", bk == 0, bk)
+check("still no score", rep["score"] is None and rep["review_status"] == "Accepted", dict(rep))
+print(); print("All manual completion checks passed." if not failures else f"{len(failures)} failed: {failures}")
+sys.exit(1 if failures else 0)
