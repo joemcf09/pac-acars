@@ -3766,7 +3766,7 @@ function econBox(e, title = "PAC's flight economics", note = "") {
       <div><span>Revenue</span><b>${money(e.revenue, true)}</b></div><div><span>Costs</span><b>${money(e.total_cost ?? e.cost, true)}</b></div>
       <div><span>Profit${e.margin != null ? ` · ${e.margin}%` : ""}</span><b class="${moneyCls(e.profit)}">${money(e.profit, true)}</b></div></div>
     <div class="econ-lines">${Object.entries(e.costs || {}).sort((a, b) => b[1] - a[1]).map(([k, v]) => `<span>${esc(COST_NAMES[k] || k)} <b>${money(v, true)}</b></span>`).join("")}</div>
-    ${(e.notes || []).length || note ? `<div style="padding:0 14px 10px;font-size:13px;color:var(--steel)">${esc([...(e.notes || []).map(n => /^Contract priced on the /i.test(n) ? n + " — contract pricing reference, not the aircraft flown." : n), note].filter(Boolean).join(" · "))}</div>` : ""}</div>`;
+    ${(e.notes || []).some(n => !/^Contract priced on the /i.test(n)) || note ? `<div style="padding:0 14px 10px;font-size:13px;color:var(--steel)">${esc([...(e.notes || []).filter(n => !/^Contract priced on the /i.test(n)), note].filter(Boolean).join(" · "))}</div>` : ""}</div>`;
 }
 async function loadFinance() {
   try { S.fin = await api("/api/finance"); renderFinance(S.fin); } catch (e) { toast(e.message); }
@@ -4558,7 +4558,7 @@ async function openDetail(id) {
     ${pacDebrief(p, d)}
     ${econBox(d.economics)}
     ${integrityNote(d.integrity)}
-    ${d.online ? `<div class="muted" style="font-size:14px">${d.online.share >= 0.6 ? `Flown online on ${esc(d.online.network)}${d.online.callsign ? " as " + esc(d.online.callsign) : ""}.` : `Seen on ${esc(d.online.network || "the network")} for part of the flight only.`}</div>` : ""}
+    ${d.online ? `<div class="muted" style="font-size:14px">${d.online.share >= 0.6 ? `Flown online on ${esc(d.online.network)}${d.online.callsign ? " as " + esc(d.online.callsign) : ""}.` : `Seen on ${esc(d.online.network || "the network")} for ${Math.round((d.online.share || 0) * 100)}% of the flight (60% earns the online bonus).`}</div>` : ""}
     <h3 style="margin:8px 0 0;font-size:18px">Landing</h3>
     ${landingSection("cardDetail", c)}
     <div id="glideChart"></div>
@@ -7529,23 +7529,30 @@ function pacDebrief(p, d = p) {
   if (la.stable === true) good.push('Approach speed and descent stayed within PAC’s recorded stability checks.');
   if (la.stable === false) focus.push(`${la.stability_note || 'The approach exceeded PAC’s stability checks'}. Review the final approach trace and aim to settle the aircraft earlier.`);
   if (n(d.bounces)) (d.bounces === 0 ? good : focus).push(d.bounces === 0 ? 'No landing bounce was recorded.' : `${d.bounces} bounce(s) recorded. Review the touchdown sequence before your next flight.`);
-  if (n(la.rate_fpm)) facts.push(`Touchdown recorded at ${la.rate_fpm} fpm${n(la.g) ? ` and ${la.g.toFixed(2)} G` : ''}. Touchdown softness alone does not establish landing quality.`);
+  if (n(la.rate_fpm)) facts.push(`Touchdown at ${la.rate_fpm} fpm${n(la.g) ? ` and ${la.g.toFixed(2)} G` : ''}${n(la.touchdown_ft) ? `, ${la.touchdown_ft.toLocaleString()} ft past the threshold` : ''}${n(la.float_s) ? ` after ${la.float_s} s of float` : ''}.`);
+  const tips = [];
+  if (n(la.float_s) && la.float_s > 8) tips.push(`You floated ${la.float_s} seconds from 50 ft to touchdown. Cross the threshold at Vref + 5 kt and close the thrust by 20 ft.`);
+  if (n(la.touchdown_ft) && la.touchdown_ft > 3000) tips.push(`Long landing: ${la.touchdown_ft.toLocaleString()} ft past the threshold. Aim for the touchdown zone markers, 1,000 to 2,000 ft down the runway.`);
+  else if (n(la.touchdown_ft) && la.touchdown_ft < 500) tips.push(`Short: you touched down ${la.touchdown_ft.toLocaleString()} ft past the threshold. Keep the aiming point steady until the flare.`);
+  if (n(la.centerline_ft) && Math.abs(la.centerline_ft) > 15) tips.push(`${Math.abs(la.centerline_ft)} ft ${la.centerline_ft > 0 ? 'right' : 'left'} of the centerline. Small rudder inputs in the flare keep you lined up.`);
+  focus.push(...tips);
+  if (!tips.length && n(la.touchdown_ft)) good.push(`Touched down in the zone, ${la.touchdown_ft.toLocaleString()} ft past the threshold${n(la.rate_fpm) ? `, at ${la.rate_fpm} fpm` : ''}.`);
   if (n(ta.climb_fpm)) facts.push(`Initial climb averaged ${Math.round(ta.climb_fpm).toLocaleString()} fpm between 50 and 1,000 ft.`);
   if (ta.touchback === true) focus.push('Ground contact was detected after becoming airborne. Review the takeoff trace and simulator conditions.');
   if (ta.tail_strike === true) focus.push('Recorded pitch reached the configured tail-clearance limit. This is a calculated indication, not confirmation of physical contact.');
   if (n(d.trip_burn_lbs) && n(d.planned_trip_lbs) && d.planned_trip_lbs > 0) {
     const pct = (d.trip_burn_lbs / d.planned_trip_lbs - 1) * 100;
-    facts.push(`Trip fuel: ${Math.round(d.trip_burn_lbs).toLocaleString()} lb used versus ${Math.round(d.planned_trip_lbs).toLocaleString()} lb planned (${pct >= 0 ? '+' : ''}${pct.toFixed(1)}%). Weather, routing and operating conditions can explain differences.`);
+    facts.push(`Trip fuel: ${Math.round(d.trip_burn_lbs).toLocaleString()} lb used versus ${Math.round(d.planned_trip_lbs).toLocaleString()} lb planned (${pct >= 0 ? '+' : ''}${pct.toFixed(1)}%). Winds, routing and cruise level all affect this.`);
   }
   const metric = (title, value, unit, note) => `<div class="pd-metric"><small>${e(title)}</small><strong>${n(value) ? e(value.toLocaleString()) : 'Not recorded'}${n(value) ? `<span> ${e(unit)}</span>` : ''}</strong><small>${e(note)}</small></div>`;
   const list = a => a.map(s => `<p>${e(s)}</p>`).join('');
   return `<section class="pac-debrief" data-pd-section="Summary"><div class="pd-head"><div><small>PAC · FLIGHT DEBRIEF</small><h2>Your flight, explained.</h2><p>${e(p.dep)} → ${e(p.arr)} · ${e(p.flight_number)}</p></div><div class="pd-grade"><small>Flight grade</small><strong>${e(p.grade || 'Unscored')}</strong><span>${n(p.score) ? `${e(p.score)} / 100` : 'Score unavailable'}</span></div></div>
     <div class="pd-grid">${metric('Touchdown', la.rate_fpm, 'fpm', 'Recorded vertical speed')}${metric('Landing load', la.g, 'G', 'Around touchdown')}${metric('Touchdown speed', la.ias, 'kt', 'Indicated airspeed')}${metric('Takeoff roll', ta.roll_ft, 'ft', 'Recorded ground roll')}</div>
-    <div class="pd-columns"><div><h3>What went well</h3>${list(good) || '<p>Not enough recorded evidence to identify strengths.</p>'}</div><div><h3>${focus.length ? 'Your next-flight focus' : 'Keep building consistency'}</h3>${list(focus) || '<p>No deductions were supplied in this report. Review the available flight traces; missing measurements are not a pass.</p>'}</div></div>
+    <div class="pd-columns"><div><h3>What went well</h3>${list(good) || '<p>Not enough recorded evidence to identify strengths.</p>'}</div><div><h3>${focus.length ? 'Technique notes for next time' : 'Keep it up'}</h3>${list(focus) || '<p>Nothing to work on from this flight. Fly the next one the same way.</p>'}${focus.length && !(d.breakdown || []).some(x => x[1] < 0) ? '<p class="muted" style="font-size:13px">These notes don\'t lower your grade. They\'re what a check captain would mention after the flight.</p>' : ''}</div></div>
     ${pacAfterAction(p.debrief || d.debrief)}
     ${pacShipmentDebrief(p, d)}
-    <details><summary>The evidence behind the feedback</summary>${list(facts) || '<p>No detailed measurements available for this report.</p>'}<p class="pd-note">PAC’s approach check currently uses speed variation and descent rate. It does not verify aircraft-specific Vref, landing configuration or a complete stabilized-approach procedure. Missing data is not a pass.</p></details>
-    <details><summary>How this relates to your score</summary><p>This explanation uses recorded measurements and existing analysis. It does not add penalties, change pay or create separate phase grades.</p>${(d.breakdown || []).map(x => `<p>${e(pacScoreLabel(x[0]))}: <b>${e(x[1])}</b></p>`).join('')}</details></section>`;
+    <details><summary>The evidence behind the feedback</summary>${list(facts) || '<p>No detailed measurements available for this report.</p>'}<p class="pd-note">The approach check looks at your speed spread below 1,000 ft and your descent rate below 500 ft.</p></details>
+    <details><summary>How this relates to your score</summary><p>What added to or took away from your score:</p>${(d.breakdown || []).map(x => `<p>${e(pacScoreLabel(x[0]))}: <b>${e(x[1])}</b></p>`).join('')}</details></section>`;
 }
 function pacAfterAction(db) {
   if (!db) return "";
@@ -7554,7 +7561,7 @@ function pacAfterAction(db) {
   const mark = r => r.ok === true ? '<span class="aar-ok">Within plan</span>' : r.ok === false ? '<span class="aar-bad">Outside plan</span>' : '<span class="muted">Not compared</span>';
   return `<section class="aar" data-pd-section="After-action review"><h3>After-action review</h3>
     <div class="aar-cols">
-      <div class="aar-box ${e(cu.tone)}"><small>Customer feedback · ${e(cu.from)}</small><p>${e(cu.text)}</p></div>
+      <div class="aar-box ${e(cu.tone)}"><small>Customer feedback</small><div style="font-size:13px;font-weight:600;margin:2px 0 6px">${e(String(cu.from || '').split(/,\s*/).slice(0, 3).join(' · '))}</div><p>${e(cu.text)}</p></div>
       <div class="aar-box"><small>Dispatcher debrief</small><p>${e(db.dispatcher)}</p>${(db.takeaways || []).length ? `<ul>${db.takeaways.map(t => `<li>${e(t)}</li>`).join("")}</ul>` : ""}</div>
     </div>
     ${rows.length ? `<h4>Planned versus actual</h4><div class="aar-wrap"><table class="aar-table"><thead><tr><th>Item</th><th class="r">Planned</th><th class="r">Actual</th><th class="r">Variance</th><th></th></tr></thead><tbody>
@@ -7576,21 +7583,24 @@ function pacShipmentDebrief(p, d) {
   if (n(deadline) && n(arrived) && delivered) {
     const seconds = arrived - deadline, minutes = Math.abs(seconds / 60);
     timing = seconds <= 0 ? 'Delivery deadline met' : 'Delivery deadline missed';
-    comparison = `${minutes < 1 ? 'Less than 1' : Math.round(minutes)} min ${seconds <= 0 ? 'before' : 'after'} the deadline. Based on on-block time, not unloading completion.`;
+    comparison = `On block ${minutes < 1 ? 'less than 1' : Math.round(minutes)} min ${seconds <= 0 ? 'before' : 'after'} the deadline.`;
   } else if (p.status === 'Delivered late') timing = 'Late under PAC’s delivery rules';
   else if (delivered) timing = 'Within PAC’s delivery allowance';
   else if (p.status === 'Diverted') timing = 'Diverted — intended delivery not completed';
   else if (p.status === 'Failed') timing = 'Delivery not completed';
   if (!comparison && n(p.block_min) && n(d.target_block_min) && d.target_block_min > 0) {
     const delta = Math.round(p.block_min - d.target_block_min);
-    comparison = `Block time ${Math.abs(delta)} min ${delta < 0 ? 'shorter' : 'longer'} than planned. This is flight duration, not a scheduled arrival comparison; PAC may allow or excuse delays.`;
+    comparison = `Block time ${Math.abs(delta)} min ${delta < 0 ? 'shorter' : 'longer'} than planned.`;
   }
   const weight = n(p.payload_lbs) ? p.payload_lbs : d.loaded_lbs;
   const risk = (d.breakdown || []).some(x => /structural damage/i.test(x[0]) && x[1] < 0);
-  const condition = risk ? 'Handling inspection recommended' : 'Cargo condition not verified';
-  const conditionNote = risk ? 'The flight report contains an aircraft structural-damage flag. Inspect the shipment; this does not prove cargo damage.' : 'ACARS does not inspect packaging, restraints or temperature. A smooth flight is not proof of undamaged cargo.';
-  const handover = delivered ? 'At destination — handover unconfirmed' : 'Customer handover not confirmed';
-  return `<section class="pd-shipment" data-pd-section="Shipment"><small>SHIPMENT DEBRIEF</small><h3>${e(p.mission_title || 'Your cargo assignment')}</h3><p><b>${delivered ? 'Arrived at destination' : e(p.status || 'Arrival not confirmed')}</b> · ${e(timing)}${n(weight) ? ` · ${e(weight.toLocaleString())} lb reported cargo` : ''}${pending ? ' · Awaiting staff review' : ''}</p>${risk ? `<p><b>${e(condition)}</b></p>` : ''}<details><summary>Timing and tracking details</summary><p>${e(comparison)}</p><p><b>${e(condition)}</b> — ${e(conditionNote)}</p><p>${e(handover)}. Unloading and customer acceptance are not currently tracked.</p></details></section>`;
+  const cargo = (p.debrief || d.debrief || {}).cargo || [];
+  const to = [...new Set(cargo.map(c => c.consignee).filter(Boolean))];
+  const inZ = n(arrived) ? new Date(arrived * 1000).toISOString().slice(11, 16).replace(':', '') + 'Z' : '';
+  const handover = delivered
+    ? `Handed over to ${to.length ? to.slice(0, 3).map(e).join(', ') + (to.length > 3 ? ` and ${to.length - 3} more` : '') : 'the consignee'}${inZ ? ` after on-block at ${inZ}` : ''}.`
+    : p.status === 'Diverted' ? 'Held at the diversion airport until it can be flown on.' : 'Not delivered on this flight.';
+  return `<section class="pd-shipment" data-pd-section="Shipment"><small>SHIPMENT DEBRIEF</small><h3>${e(p.mission_title || 'Your cargo assignment')}</h3><p><b>${delivered ? 'Delivered' : e(p.status || 'Arrival not confirmed')}</b> · ${e(timing)}${n(weight) ? ` · ${e(weight.toLocaleString())} lb` : ''}${pending ? ' · Awaiting staff review' : ''}</p><p>${handover}</p>${risk ? `<p><b>Handling inspection requested</b>: the flight report flagged possible structural damage, so the ground team will check the freight.</p>` : ''}${comparison ? `<details><summary>Timing</summary><p>${e(comparison)}</p></details>` : ''}</section>`;
 }
 function pacScoreLabel(label) {
   const text = String(label ?? '');

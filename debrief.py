@@ -78,7 +78,7 @@ def build(p, booking, rec=None, fleet=None):
         _row("Block time", target, p.get("block_min"), "h:mm", "time",
              good=lambda v, pl: v <= pl * (0.25 if m.get("priority") in ("Critical", "High") else 0.35)),
         _row("Trip fuel", p.get("planned_trip_lbs"), p.get("trip_burn_lbs"), "lb", good=lambda v, pl: v <= pl * 0.05),
-        _row("Payload (consignment the type can carry)", _can_carry(p, m, booking, fleet), p.get("payload_lbs"), "lb", good=lambda v, pl: v >= -max(500, pl * 0.02)),
+        _row("Payload", _can_carry(p, m, booking, fleet), p.get("payload_lbs"), "lb", good=lambda v, pl: v >= -max(500, pl * 0.02)),
         _row("Landing weight (limit MLW)", p.get("mlw_lbs"), p.get("landing_weight_lbs"), "lb", limit=True),
     ]
     if fuel.get("on") is not None and ofp.get("reserve_fuel_lbs"):
