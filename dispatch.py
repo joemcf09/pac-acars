@@ -183,6 +183,23 @@ def generate(booking, fleet, pilot, now=None):
                 if spec["imp"] not in positions[-1]["shc"]:
                     positions[-1]["shc"].append(spec["imp"])
 
+    # load control plans the main deck for balance before the aircraft arrives (types with weight-and-balance data)
+    import wb
+    if positions and wb.supported(code) and code in LIMITS and ac.get("max_payload_lbs"):
+        main_slots = [p for p in main if p != "M12"] if code == "B738F" else main
+        dow_est = LIMITS[code][0] - ac["max_payload_lbs"]
+        burn = ac.get("fuel_burn_pph") or 5000
+        # mission-based fuel estimate (not the OFP), so the preliminary load sheet and the release keep the same positions
+        trip_est = burn * max(.3, ((m.get("target_block_min") or 60) - 25) / 60)
+        tof_est = trip_est * 1.6
+        plan = wb.auto_assign(code, positions, dow_est, tof_est, trip_est, main_slots)
+        if plan:
+            for p in positions:
+                p["pos"] = plan.get(p["pos"], p["pos"])
+            for g in dgs:
+                g["pos"] = plan.get(g["pos"], g["pos"])
+            positions.sort(key=lambda p: (not p["pos"].startswith("M"), p["pos"]))
+
     # times
     req = booking.get("requested_at") or (now or dt.datetime.now(dt.timezone.utc).timestamp())
     std = dt.datetime.fromtimestamp(req, dt.timezone.utc) + dt.timedelta(minutes=45)

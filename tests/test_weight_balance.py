@@ -90,5 +90,14 @@ ab = wb.balance("B738F", moved, 87375, 10600, 4500)
 check("auto-load keeps every unit and position unique", len(set(plan.values())) == len(plan) == len(pac1150) and plan["FWD BULK"] == "FWD BULK")
 check("auto-load lands the takeoff CG within 0.5% of 24% MAC", abs(ab["phases"][1]["pct_mac"] - 24.0) <= 0.5, ab["phases"][1]["pct_mac"])
 check("auto-load result is within limits", ab["ok"], ab["warnings"])
+
+# 5. load control plans new 737 releases for balance, the same way every time
+bk1 = {"flight_number": "PAC7001", "requested_at": 1794100000, "aircraft": "B738F", "mission": mission, "ofp": {"payload_lbs": 42000}}
+bk2 = dict(bk1, ofp={"payload_lbs": 42000, "block_fuel_lbs": 30000, "trip_fuel_lbs": 21000, "taxi_fuel_lbs": 400})
+r1, r2 = dispatch.generate(bk1, FLEET, "T"), dispatch.generate(bk2, FLEET, "T")
+check("the release keeps the preliminary load sheet's positions, whatever the OFP fuel", [(p["pos"], p["unit"]) for p in r1["positions"]] == [(p["pos"], p["unit"]) for p in r2["positions"]])
+pb = dispatch.paperwork(r1, FLEET)["balance"]
+check("a new 737 release starts near the target CG and within limits", pb["ok"] and 21 <= pb["phases"][1]["pct_mac"] <= 27, pb["phases"][1]["pct_mac"])
+check("dangerous goods follow their unit to its planned position", all(any(p["pos"] == g["pos"] and p["awb"] == g["awb"] for p in r1["positions"]) for g in r1["dg"]))
 print(); print("WEIGHT AND BALANCE TEST PASSED" if not failures else f"{len(failures)} failed: {failures}")
 sys.exit(1 if failures else 0)

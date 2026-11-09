@@ -371,6 +371,42 @@ function loadsheetLines(d) {
   return out;
 }
 
+/* ---------------- loading instruction / report (LIR): what the ramp loads where ---------------- */
+function lirLines(d) {
+  const p = d.paper, ia = i => p.iata[i] || i.slice(-3), bal = p.balance && p.balance.available ? p.balance : null;
+  const deck = d.deck || {}, byPos = Object.fromEntries((d.positions || []).map(x => [x.pos, x]));
+  const limit = pos => bal && bal.position_map[pos] ? bal.max_lbs[bal.position_map[pos]] : (String(pos).startsWith("M") ? deck.cap : deck.lcap);
+  const out = [];
+  out.push(esc(L("FROM/TO", 10) + L("FLIGHT", 12) + L("A/C REG", 11) + L("TYPE", 9) + L("DATE", 11) + L("STD", 7) + "EDNO " + (p.loadsheet.edno || "01")));
+  out.push(esc(L(`${ia(d.origin.icao)} ${ia(d.destination.icao)}`, 10) + L(d.flight, 12) + L(d.tail, 11) + L(d.aircraft, 9) + L(d.date.replace(/ /g, ""), 11) + L(d.std, 7)), "");
+  out.push(esc(`PLANNED LOAD  ${d.totals.units} ULD  ${d.totals.pieces} PCS  ${N(d.totals.weight_lbs)} LBS   MAIN ${N(d.totals.main_lbs)}  LOWER ${N(d.totals.lower_lbs)}`));
+  if (bal) out.push(esc(`PLANNED CG  ZFW ${bal.phases[0].pct_mac}%  TOW ${bal.phases[1].pct_mac}%  LW ${bal.phases[2].pct_mac}% MAC   TRIM ${bal.trim_units.toFixed(2)}`));
+  out.push(rule("*"), "<b>LOADING INSTRUCTION</b>");
+  out.push(`<b>${esc(L("POS", 9) + R("MAX LBS", 8) + "  " + L("ULD", 13) + L("DEST", 6) + L("SHC", 13) + R("WT LBS", 8) + "  " + "REPORT")}</b>`);
+  const all = [...(deck.main || []), ...(deck.lower || [])], said = new Set();
+  const note = (key, text) => { if (said.has(key)) return; said.add(key); out.push(esc("         " + text)); };
+  all.forEach(pos => {
+    const x = byPos[pos], lim = limit(pos);
+    if (!x) { out.push(esc(L(pos, 9) + R(lim ? N(lim) : "", 8) + "  " + L("NIL", 13) + L("", 6) + L("", 13) + R("", 8) + "  ........")); return; }
+    const over = lim && x.weight_lbs > lim;
+    out.push(esc(L(pos, 9) + R(lim ? N(lim) : "", 8) + "  " + L(x.unit || x.uld, 13) + L(ia(d.destination.icao), 6) + L((x.shc || []).join(" "), 13) + R(N(x.weight_lbs), 8) + "  " + (over ? "OVER LIMIT" : "........")));
+    if (x.dg) note("dg" + x.dg, "DG " + x.dg + " (ALL " + x.dg + " UNITS) - SEE NOTOC. LOAD ACCESSIBLE, SEGREGATE AS REQUIRED.");
+    if ((x.shc || []).includes("AVI")) note("avi", "AVI - LIVE ANIMALS: MAIN DECK, TEMPERATURE CONTROLLED, LOAD LAST, UNLOAD FIRST.");
+    if ((x.shc || []).some(c => ["PIL", "PER", "PES", "PEF", "COL", "CRT"].includes(c))) note("temp", "TEMPERATURE SENSITIVE UNITS (PIL/PER/PES/PEF/COL/CRT): MINIMIZE RAMP TIME, LOAD LAST.");
+  });
+  out.push(rule("-"));
+  const main = (d.positions || []).filter(x => String(x.pos).startsWith("M")).reduce((a, x) => a + x.weight_lbs, 0);
+  const lower = d.totals.weight_lbs - main;
+  out.push(esc(L("DECK", 12) + R("PLANNED", 10) + R("LOADED", 10)));
+  out.push(esc(L("MAIN", 12) + R(N(main), 10) + R("......", 10) + (bal && d.aircraft === "B738F" ? "     MAIN DECK LIMIT 54000" : "")));
+  out.push(esc(L("LOWER", 12) + R(N(lower), 10) + R("......", 10)));
+  out.push(esc(L("TOTAL", 12) + R(N(d.totals.weight_lbs), 10) + R("......", 10)), "");
+  wrap("ALL COMPARTMENTS CHECKED FREE OF ITEMS THAT DO NOT BELONG THERE BEFORE LOADING. ULDS AND BULK LOAD SECURED IN ACCORDANCE WITH COMPANY INSTRUCTIONS. THIS AIRCRAFT HAS BEEN LOADED IN ACCORDANCE WITH THESE INSTRUCTIONS AND THE DEVIATIONS RECORDED ABOVE.", W).forEach(l => out.push(esc(l)));
+  out.push("", esc(L("LOADING SUPERVISOR", 22) + L("R. OKAFOR  " + ia(d.origin.icao), 26) + "SIGNATURE .............."));
+  out.push(esc(L("LOAD CONTROL", 22) + L(p.dispatcher ? p.dispatcher.name : "", 26) + "/S/ ELECTRONIC"));
+  return out;
+}
+
 /* ---------------- cargo manifest and NOTOC ---------------- */
 function manifestLines(d) {
   const out = [`<b>${esc(L("POS", 5) + L("ULD", 12) + L("AWB", 14) + R("PCS", 5) + R("WT LBS", 9) + "  " + L("SHC", 12) + "CONTENTS")}</b>`];
@@ -607,6 +643,7 @@ const pageBreaks = (lines, size) => {
     if (nav) chunk(nav, ROWS).forEach((c, i) => sheet("NAVIGATION LOG" + (i ? " (CONT)" : ""), f.release, c));
     sheet("WEATHER AND NOTAMS", f.weather, pid ? ["WEATHER IS PRINTED WITH THE RELEASE AT DISPATCH AND IS NOT KEPT WITH FILED FLIGHTS."] : await weatherLines(d));
     sheet("LOADSHEET", f.loadsheet, loadsheetLines(d));
+    chunk(lirLines(d), ROWS).forEach((c, i) => sheet("LOADING INSTRUCTION / REPORT" + (i ? " (CONT)" : ""), f.loadsheet, c));
     chunk(manifestLines(d), ROWS).forEach((c, i) => sheet("CARGO MANIFEST" + (i ? " (CONT)" : ""), f.manifest, c));
     const ships = shipmentLines(d);
     if (ships) pageBreaks(ships, ROWS).forEach((c, i) => sheet("SHIPMENT DETAILS" + (i ? " (CONT)" : ""), f.manifest, c));
