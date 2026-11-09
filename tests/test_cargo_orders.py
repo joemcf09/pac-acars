@@ -181,6 +181,30 @@ with A.db() as con:
     again = con.execute("SELECT COUNT(*) FROM news WHERE title LIKE 'Cargo season:%'").fetchone()[0]
 check("…and not again on the next restock", again == 2, again)
 
+print("Warehouses that fill up")
+import uuid as _u
+with A.db() as con:
+    for i in range(20):      # someone left a lot of freight at KMIA
+        sid_ = _u.uuid4().hex
+        con.execute("""INSERT INTO cargo_shipments (id, awb, booking_key, source_awb, origin, destination, current_station, status, shipper, consignee,
+            commodity, pieces, gross_weight_lbs, handling, data, created_at, updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+            (sid_, f"901-9{i:07d}", "X", f"S{i}", "KCVG", "SKBO", "KMIA", "AT_STATION", "A", "B", "Freight", 10, 7000, "[]", "{}", time.time(), time.time()))
+    before = con.execute("SELECT COUNT(*) FROM cargo_shipments WHERE current_station='KMIA' AND booking_key LIKE 'ORDER:%' AND status='AT_STATION'").fetchone()[0]
+    con.execute("UPDATE cargo_shipments SET status='WITHDRAWN' WHERE current_station='KMIA' AND booking_key LIKE 'ORDER:%'")
+    rk = O.tick(con, A.ROUTES.values(), A.FLEET, A.dispatch_pilot(), A.settings(), force=True)
+    after = con.execute("SELECT COUNT(*) FROM cargo_shipments WHERE current_station='KMIA' AND booking_key LIKE 'ORDER:%' AND status='AT_STATION'").fetchone()[0]
+    emb = A.warehouses.embargoed(con, "KMIA")
+    mia_route = next(r for r in A.ROUTES.values() if r["origin"]["icao"] == "KMIA" and r.get("category") == "Scheduled")
+    topped = O.ensure_route(con, mia_route, A.FLEET, A.dispatch_pilot(), mia_route["aircraft"][0], A.settings(), now=time.time() + 99999, routes=A.ROUTES.values())
+check("a congested shed takes no new customer orders", emb and after == 0 and topped == 0, (rk, before, after, emb, topped))
+ov = c.get("/api/cargo/overview").json
+mia = next((x for x in ov["sheds"] if x["station"] == "KMIA"), None)
+check("the Cargo inventory shows it as congested or full", mia and mia["level"] in ("Congested", "Full") and mia["pct"] >= 85, mia)
+stk = c.get("/api/staff/cargo-stock").json
+check("staff see each station's shed", next(x for x in stk["stations"] if x["icao"] == "KMIA")["shed_pct"] >= 85)
+with A.db() as con:
+    con.execute("DELETE FROM cargo_shipments WHERE booking_key='X'")
+
 print("Unclaimed orders")
 with A.db() as con:
     r = O.tick(con, A.ROUTES.values(), A.FLEET, A.dispatch_pilot(), A.settings(), now=time.time() + 8 * 86400, force=True)

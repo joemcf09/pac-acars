@@ -1707,3 +1707,10 @@ html[data-theme="dark"] .journey-text-button{color:var(--steel)}
 .tag.lane-pref{background:#e3f2e8;color:#176b3c}.tag.lane-good{background:#eef1f5;color:#3a4250}
 .tag.lane-review{background:#fbeccc;color:#7a4e00}.tag.lane-risk{background:#f9dcdc;color:#a00000}
 .cgo-lanes h2{margin:22px 0 6px}
+.cgo-sheds h2{margin:18px 0 10px}
+.shed-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:10px}
+.shed{background:var(--white,#fff);border:1px solid var(--line,#d7dce3);padding:10px 12px;display:flex;flex-direction:column;gap:6px}
+.shed-top{display:flex;justify-content:space-between;font-size:13px}
+.shed-bar{height:10px;background:#eef1f5;border-radius:5px;overflow:hidden}.shed-bar i{display:block;height:100%;background:#2e7d4f}
+.shed-busy .shed-bar i{background:#d9a428}.shed-congested .shed-bar i,.shed-full .shed-bar i{background:#c80000}
+.shed-congested .shed-top span,.shed-full .shed-top span{color:#a00000;font-weight:700}

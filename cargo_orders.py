@@ -20,6 +20,7 @@ import cargo_network
 import dispatch
 import lanes as lane_rep
 import seasons
+import warehouses
 import shipments
 
 ORDER_PILOT = "PAC-OPS"
@@ -175,9 +176,13 @@ def tick(con, routes, fleet, pilot, st, now=None, force=False):
     except Exception as e:            # reputation shapes demand; it must never stop stocking
         print("lane reputation:", e)
         reps = {}
+    out["embargoed"] = []
     for station in stations(routes, pol["stations"]):
         target = pol["hub_target"] if station in HUBS else pol["station_target"]
         need = target - _waiting(con, station)
+        if need > 0 and warehouses.embargoed(con, station):
+            out["embargoed"].append(station)      # the shed is congested: no new orders until pilots fly some out
+            continue
         out_routes = [r for r in routes if r.get("category") == "Scheduled" and (r.get("origin") or {}).get("icao") == station
                       and (r.get("destination") or {}).get("icao") != station]
         tries = 0
@@ -204,7 +209,7 @@ def stock_seasons(con, routes, fleet, pilot, rng, now, pol):
     made = 0
     day = __import__("datetime").datetime.utcfromtimestamp(now).date()
     for season in seasons.active(day):
-        lanes = seasons.routes_for(season, routes)
+        lanes = [r for r in seasons.routes_for(season, routes) if not warehouses.embargoed(con, (r.get("origin") or {}).get("icao"))]
         if not lanes:
             continue
         have = con.execute("""SELECT COUNT(*) FROM cargo_shipments WHERE booking_key LIKE 'ORDER:%' AND status='AT_STATION'
@@ -255,6 +260,8 @@ def ensure_route(con, route, fleet, pilot, aircraft, st, now=None, routes=None):
         return 0
     if routes is not None and not _net["routes"]:
         learn(routes)
+    if warehouses.embargoed(con, origin):
+        return 0
     con.execute("CREATE TABLE IF NOT EXISTS cargo_orders_route (route_id TEXT PRIMARY KEY, last REAL NOT NULL)")
     last = con.execute("SELECT last FROM cargo_orders_route WHERE route_id=?", (route["id"],)).fetchone()
     if last and now - last[0] < ROUTE_TOPUP_S:

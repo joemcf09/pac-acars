@@ -47,6 +47,9 @@ function renderCargoGuide() {
     ["lanes", "Lane reputation", `
       <p>Shippers remember how PAC performs on each route. Every lane (one airport to another) starts at <b>70</b>. Each accepted flight that carried freight on it in the last 90 days moves it: on time <b>+4</b>, late <b>−6</b>, damaged or spoiled freight <b>−8</b>, a failed flight <b>−10</b>. Flights in the last 30 days count double.</p>
       <p>85 and up is a <b>Preferred lane</b>, 70 to 84 <b>Good</b>, 50 to 69 <b>Under review</b>, below 50 <b>At risk</b>. Preferred lanes get about twice the customer orders; at-risk lanes far fewer. You'll see the standing on Missions board cards and the full table on the Cargo inventory. It's shared: it never affects one pilot's score or pay.</p>`],
+    ["sheds", "Warehouses", `
+      <p>Every station has a cargo shed with room for so much freight: about 220,000 lb at KCVG, 150,000 lb at the other hubs and 60,000 lb at other stations. Waiting freight fills it.</p>
+      <p>Under 60% is <b>Normal</b>, 60% <b>Busy</b>, 85% <b>Congested</b>. A congested shed takes no new customer orders until pilots fly freight out, and Missions board flights from there are tagged <b>Clears a congested shed</b>. The Cargo inventory shows the fullest sheds at the top.</p>`],
     ["inventory", "Reading the Cargo inventory", `
       <p>Operations › Cargo inventory is the airline's warehouse view.</p>
       <ul>

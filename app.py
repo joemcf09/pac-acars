@@ -33,6 +33,7 @@ import cargo_orders  # noqa: E402  (customer orders waiting at stations)
 import seasons  # noqa: E402  (real air cargo seasons)
 import cargo_care  # noqa: E402  (what sensitive freight felt on the flight)
 import lanes as lane_rep  # noqa: E402  (lane reputation)
+import warehouses  # noqa: E402  (cargo sheds that fill up)
 import debrief  # noqa: E402  (after-action review: planned vs actual, customer and dispatcher comments)
 import paperwork_release as releases
 import discord_post  # noqa: E402  (flights to a Discord channel)
@@ -3662,6 +3663,14 @@ def stock_cargo_orders():
         return None
 
 
+@app.get("/api/sheds")
+def sheds_api():
+    if not auth.current():
+        return jsonify({"error": "Sign in to see the warehouses."}), 401
+    with db() as con:
+        return jsonify({"sheds": [x for x in warehouses.fill(con).values() if x["pct"] >= 60]})
+
+
 @app.get("/api/lanes")
 def lanes_api():
     """Lane reputation for the Missions board and the Cargo inventory."""
@@ -3683,6 +3692,7 @@ def staff_cargo_stock():
     pol = cargo_orders.policy(st)
     names = cargo_orders.stations(list(ROUTES.values()), pol["stations"])
     with db() as con:
+        sheds = warehouses.fill(con)
         rows = {r["s"]: dict(r) for r in con.execute("""SELECT current_station AS s, COUNT(*) AS n, COALESCE(SUM(gross_weight_lbs),0) AS lbs,
             SUM(booking_key LIKE 'ORDER:%') AS orders FROM cargo_shipments WHERE status IN ('AT_STATION','HELD_AT_STATION')
             AND reserved_booking_key IS NULL GROUP BY current_station""")}
@@ -3695,7 +3705,9 @@ def staff_cargo_stock():
     out = []
     for name in names:
         r = rows.get(name, {})
+        shed = sheds.get(name) or {"pct": 0, "level": "Normal", "capacity": warehouses.capacity(name)}
         out.append({"icao": name, "city": (AIRPORTS.get(name) or {}).get("city"), "hub": name in cargo_orders.HUBS,
+                    "shed_pct": shed["pct"], "shed_level": shed["level"], "shed_capacity": shed["capacity"],
                     "target": pol["hub_target"] if name in cargo_orders.HUBS else pol["station_target"],
                     "waiting": r.get("n", 0), "orders": r.get("orders", 0) or 0, "weight_lbs": round(r.get("lbs", 0))})
     return jsonify({"policy": pol, "stations": out, "last_stocked": last, "hubs": list(cargo_orders.HUBS),
@@ -3752,7 +3764,11 @@ def cargo_overview():
             end = f"{['', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][b[0]]} {b[1]}"
             in_season.append({"id": x["id"], "name": x["name"], "blurb": x["blurb"], "cargo": x["cargo"], "until": end,
                               "waiting": sum(r["n"] for r in rows), "lanes": [{"station": r["s"], "destination": r["d"], "n": r["n"]} for r in rows[:6]]})
-    return jsonify({"counts": counts, "waiting": groups, "overdue_hours": overdue_s // 3600, "seasons": in_season})
+    with db() as con:
+        sheds = sorted(warehouses.fill(con).values(), key=lambda x: -x["pct"])
+    for x in sheds:
+        x["city"] = (AIRPORTS.get(x["station"]) or {}).get("city")
+    return jsonify({"counts": counts, "waiting": groups, "overdue_hours": overdue_s // 3600, "seasons": in_season, "sheds": sheds[:8]})
 
 
 @app.get("/api/cargo/shipments")

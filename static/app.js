@@ -2391,6 +2391,7 @@ async function loadCargo() {
   S.cargoView = S.cargoView || "waiting";
   root.innerHTML = `<div class="profile-bar"><h1>Cargo inventory</h1><span class="muted">Every PAC shipment keeps its air waybill from first pickup to final delivery, across pilots and flights. <a href="#cargoguide" onclick="show('cargoguide');return false">How cargo works →</a></span></div>
     <div class="cgo-strip" id="cgoStrip" role="tablist" aria-label="Cargo views"></div>
+    <section id="cgoSheds" class="cgo-sheds" aria-label="Warehouses"></section>
     <section id="cgoSeasons" class="cgo-seasons" aria-label="Cargo seasons running now"></section>
     <section id="cgoWaiting" class="cgo-waiting" aria-label="Freight waiting at stations"></section>
     <section id="cgoLanes" class="cgo-lanes" aria-label="Lane reputation"></section>
@@ -2419,6 +2420,11 @@ async function loadCargo() {
   const drawStrip = () => { $("#cgoStrip").innerHTML = views.map(([k, l, n, sub]) => `<button type="button" role="tab" data-cgo-view="${k}" aria-selected="${S.cargoView === k}" class="${k === "waiting" && c.overdue ? "warn" : ""}"><small>${l}</small><b>${fmt(n)}</b><span>${esc(sub)}</span></button>`).join(""); };
   drawStrip();
   const ago = h => h < 1 ? "under an hour" : h < 48 ? `${Math.round(h)} h` : `${Math.round(h / 24)} days`;
+  const sheds = overview.sheds || [];
+  $("#cgoSheds").innerHTML = sheds.length ? `<h2>Warehouses</h2>${sheds.some(x => x.pct >= 85) ? `<p class="notice" style="margin:0 0 10px">${sheds.filter(x => x.pct >= 85).map(x => `<b>${esc(x.station)} shed ${x.pct}% full</b>`).join(", ")}: no new customer orders there until freight flies out. Every shipment you carry from there helps.</p>` : ""}
+    <div class="shed-grid">${sheds.map(x => `<div class="shed shed-${esc(x.level.toLowerCase())}"><div class="shed-top"><b class="mono">${esc(x.station)}</b><span>${esc(x.level)}</span></div>
+      <div class="shed-bar" role="img" aria-label="${esc(x.station)} shed ${x.pct}% full"><i style="width:${Math.min(100, x.pct)}%"></i></div>
+      <small class="muted">${fmt(x.lbs)} of ${fmt(x.capacity)} lb · ${fmt(x.shipments)} shipment${x.shipments === 1 ? "" : "s"}</small></div>`).join("")}</div>` : "";
   loadLanes(true).then(list => {
     const el = $("#cgoLanes"); if (!el) return;
     const weak = list.filter(L => L.tier === "Under review" || L.tier === "At risk"), strong = list.filter(L => L.tier === "Preferred" || L.tier === "Good").slice(0, 6);
@@ -5593,8 +5599,8 @@ async function staffCargoStock() {
       <button class="btn small" type="submit">Save</button>
       <button class="btn ghost small" type="button" id="stockNow">Restock now</button></form>
     <p class="muted" style="max-width:90ch;font-size:14px">Hubs: ${d.hubs.map(esc).join(", ")}. The other stations are the ones with the most scheduled departures. A target is a minimum: freight pilots leave behind adds to it. About ${Math.round(d.truck_share * 100)}% of new orders go to a town near a PAC destination with the last leg by truck. Freight on a booking left unflown for ${d.idle_release_h / 24} days goes back on the shelf. Last restocked: ${esc(when)}.</p>
-    <div class="aar-wrap"><table class="aar-table"><thead><tr><th>Station</th><th class="r">Target</th><th class="r">Waiting now</th><th class="r">Of which customer orders</th><th class="r">Weight</th></tr></thead><tbody>
-    ${d.stations.map(x => `<tr><td><b class="mono">${esc(x.icao)}</b> ${esc(x.city || "")} ${x.hub ? '<span class="tag dark">Hub</span>' : ""}</td><td class="r">${x.target}</td><td class="r ${x.waiting < x.target ? "aar-bad" : ""}">${x.waiting}</td><td class="r">${x.orders}</td><td class="r mono">${fmt(x.weight_lbs)} lb</td></tr>`).join("")}
+    <div class="aar-wrap"><table class="aar-table"><thead><tr><th>Station</th><th class="r">Target</th><th class="r">Waiting now</th><th class="r">Of which customer orders</th><th class="r">Weight</th><th>Shed</th></tr></thead><tbody>
+    ${d.stations.map(x => `<tr><td><b class="mono">${esc(x.icao)}</b> ${esc(x.city || "")} ${x.hub ? '<span class="tag dark">Hub</span>' : ""}</td><td class="r">${x.target}</td><td class="r ${x.waiting < x.target ? "aar-bad" : ""}">${x.waiting}</td><td class="r">${x.orders}</td><td class="r mono">${fmt(x.weight_lbs)} lb</td><td>${x.shed_pct}% <small class="muted">${esc(x.shed_level)} · room for ${fmt(x.shed_capacity)} lb</small></td></tr>`).join("")}
     </tbody></table></div>`;
   $("#stockOn").onchange = async e => {
     try { await api("/api/settings", { method: "POST", body: { cargo_orders_enabled: e.target.checked } }); toast(e.target.checked ? "Customer orders on." : "Customer orders off."); staffCargoStock(); }
@@ -7302,6 +7308,10 @@ function boardAccent(m) {
   if (m.urgent) return 'urgent';
   return ({'Humanitarian':'relief','Express':'express','Heavy lift':'heavy','Medical':'medical','Medicine':'medical'})[m.category] || 'standard';
 }
+function shedTag(m) {
+  const x = S.shedMap?.[m.origin?.icao];
+  return x && x.pct >= 85 ? `<span class="tag lane-review" title="The shed at ${esc(x.station)} is ${x.pct}% full">Clears a congested shed</span>` : "";
+}
 function laneTag(m) {
   const L = S.laneMap?.[`${m.origin?.icao}>${m.destination?.icao}`];
   if (!L || L.tier === "Good") return "";
@@ -7310,6 +7320,7 @@ function laneTag(m) {
 }
 async function loadLanes(force) {
   if (!S.me?.id || (S.laneMap && !force && Date.now() - (S.laneAt || 0) < 300000)) return S.laneList || [];
+  api("/api/sheds").then(x => { S.shedMap = Object.fromEntries((x.sheds || []).map(y => [y.station, y])); }).catch(() => {});
   try { const d = await api("/api/lanes"); S.laneList = d.lanes; S.laneMap = Object.fromEntries(d.lanes.map(L => [`${L.origin}>${L.destination}`, L])); S.laneAt = Date.now(); }
   catch (e) { S.laneMap = S.laneMap || {}; }
   return S.laneList || [];
@@ -7319,7 +7330,7 @@ function boardCard(m) {
     <span class="mb-card-top"><span class="mb-work-label">${m.urgent ? '<span class="mb-urgent-label">! URGENT</span>' : ''}${esc(boardSource(m))} · ${esc(m.short_heavy ? "Short-haul heavies" : m.category || 'Cargo')}</span><span>${esc(m.id)}</span></span>
     <span class="mb-route"><span><b>${esc(m.origin.icao)}</b><small>${esc(m.origin.city || m.origin.name)}</small></span><span aria-hidden="true">→</span><span><b>${esc(m.destination.icao)}</b><small>${esc(m.destination.city || m.destination.name)}</small></span></span>
     <strong class="mb-title">${esc(m.title)}</strong><span class="mb-cargo">${esc(m.cargo)}</span>
-    <span class="mb-tags">${laneTag(m)}${zoneTag(m)}${m.short_heavy ? `<span class="tag dark">${fmt(m.distance_nm)} NM · Routine delivery</span>` : ""}${boardCampaignLabels(m)}${bonusTags(m)}${freshTags(m)}${m.tour || m.rotation ? `<span class="tag dark">Leg ${esc(m.leg)}/${esc(m.legs)}</span>` : ''}${m.handling ? `<span class="tag grey">${esc(m.handling.label)}</span>` : ''}${m.challenge ? `<span class="tag amber">${esc(m.challenge.label)}</span>` : ''}${m.urgent ? `<span class="tag amber">URGENT ×1.5 · deliver by ${zulu(m.deliver_by)}</span><span>Offer: <span class="countdown" data-countdown="${Number(m.expires)}"></span></span>` : ''}</span>
+    <span class="mb-tags">${shedTag(m)}${laneTag(m)}${zoneTag(m)}${m.short_heavy ? `<span class="tag dark">${fmt(m.distance_nm)} NM · Routine delivery</span>` : ""}${boardCampaignLabels(m)}${bonusTags(m)}${freshTags(m)}${m.tour || m.rotation ? `<span class="tag dark">Leg ${esc(m.leg)}/${esc(m.legs)}</span>` : ''}${m.handling ? `<span class="tag grey">${esc(m.handling.label)}</span>` : ''}${m.challenge ? `<span class="tag amber">${esc(m.challenge.label)}</span>` : ''}${m.urgent ? `<span class="tag amber">URGENT ×1.5 · deliver by ${zulu(m.deliver_by)}</span><span>Offer: <span class="countdown" data-countdown="${Number(m.expires)}"></span></span>` : ''}</span>
     <span class="mb-facts"><span>Estimated block<b>${hm(m.target_block_min)}</b></span><span>Recommended types<b>${(m.aircraft || []).map(a=>esc(S.fleet[a]?.icao || a)).join(', ')}</b>${(() => { const ds = [...new Set((m.aircraft || []).map(divOf).filter(Boolean))]; return ds.length ? `<small class="mb-div">${ds.map(d => esc(divShort(d))).join(" · ")}</small>` : ""; })()}</span><span>Cargo load<b>${fmt(m.payload_lbs || 0)} lb</b></span><span>Reward<b>${fmt(m.reward || 0)} points${m.short_heavy ? ` · includes ${fmt(m.handling_points)} handling points` : ""}${m.contract_bonus ? ` · $${fmt(m.contract_bonus)} bonus` : m.ferry_bonus ? ` · $${fmt(m.ferry_bonus)} ferry bonus` : ''}</b></span></span>
     <span class="mb-status">${esc(boardStatus(m))}</span><span class="mb-card-bottom"><small>Check details before planning</small><b>Review flight →</b></span></button>`;
 }
