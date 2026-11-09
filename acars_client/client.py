@@ -1257,7 +1257,20 @@ def api_chime():
 
 
 # ---------------------------------------------------------------- 1.1.4: "Start the flight tracker" alarm
-ALARM_WAV = RES / "assets" / "start_acars.wav"
+ALARM_SRC = RES / "assets" / "start_acars.wav"
+
+
+def alarm_wav():
+    """Windows plays the alarm from the user's PAC ACARS folder, like the chime (the bundled copy sits in a
+    temporary unpack folder that Windows sound can refuse)."""
+    dst = USER_DIR / "start_acars.wav"
+    try:
+        if not dst.exists() or dst.stat().st_size != ALARM_SRC.stat().st_size:
+            dst.write_bytes(ALARM_SRC.read_bytes())
+        return str(dst)
+    except Exception as e:
+        print("Alarm file:", e)
+        return str(ALARM_SRC)
 _remind = {"src": None, "lock": threading.Lock(), "playing": False}
 
 
@@ -1273,7 +1286,7 @@ def alarm(on):
     try:
         import winsound
         if on:
-            winsound.PlaySound(str(ALARM_WAV), winsound.SND_FILENAME | winsound.SND_ASYNC | winsound.SND_LOOP | winsound.SND_NODEFAULT)
+            winsound.PlaySound(alarm_wav(), winsound.SND_FILENAME | winsound.SND_ASYNC | winsound.SND_LOOP)
         else:
             winsound.PlaySound(None, 0)
     except Exception as e:
@@ -1286,7 +1299,7 @@ def api_alarm_test():
     if sys.platform == "win32" and not _remind["playing"]:
         try:
             import winsound
-            winsound.PlaySound(str(ALARM_WAV), winsound.SND_FILENAME | winsound.SND_ASYNC | winsound.SND_NODEFAULT)
+            winsound.PlaySound(alarm_wav(), winsound.SND_FILENAME | winsound.SND_ASYNC)
         except Exception as e:
             print("Alarm test:", e)
     return jsonify({"ok": True})

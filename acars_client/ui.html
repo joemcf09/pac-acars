@@ -749,7 +749,10 @@ $("#sMsg").onclick = ack;
 $("#compactBtn").onclick = () => setCompact(true);
 $("#sExpand").onclick = () => setCompact(false);  // (the engine's tray menu can switch it too)
 $("#testChime").onclick = () => chime(true);
-$("#testAlarm").onclick = () => api("/api/alarm/test", {}).catch(() => {});
+$("#testAlarm").onclick = () => {   // the window plays it itself; if it can't, PAC ACARS plays it through Windows
+  const a = new Audio("/static/start_acars.wav"); a.volume = 1;
+  a.play().catch(() => api("/api/alarm/test", {}).catch(() => {}));
+};
 $("#signOutApp").onclick = async () => { try { await api("/api/logout", {}); note("Signed out of PAC ACARS."); poll(); } catch (e) { note(esc(e.message), "err"); } };
 $("#resumeBtn").onclick = () => start(true);
 $("#stopBtn").onclick = async () => {
