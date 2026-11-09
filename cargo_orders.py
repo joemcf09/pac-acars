@@ -188,6 +188,9 @@ def tick(con, routes, fleet, pilot, st, now=None, force=False):
         tries = 0
         while need > 0 and out_routes and tries < target * 3:
             tries += 1
+            if warehouses.embargoed(con, station):
+                out["embargoed"].append(station)
+                break
             try:
                 pick = rng.choices(out_routes, weights=[lane_rep.weight(reps, station, (r.get("destination") or {}).get("icao"))
                                                         for r in out_routes])[0]
@@ -217,8 +220,11 @@ def stock_seasons(con, routes, fleet, pilot, rng, now, pol):
         tries = 0
         while have < SEASON_TARGET and tries < SEASON_TARGET * 3:
             tries += 1
+            lane = rng.choice(lanes)
+            if warehouses.embargoed(con, (lane.get("origin") or {}).get("icao")):
+                continue
             try:
-                n = len(make_order(con, rng.choice(lanes), fleet, pilot, rng, now, season=season))
+                n = len(make_order(con, lane, fleet, pilot, rng, now, season=season))
             except Exception as e:
                 print("season order:", season["id"], e)
                 n = 0

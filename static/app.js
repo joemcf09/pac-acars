@@ -2390,11 +2390,21 @@ async function loadCargo() {
   if (!root) return;
   S.cargoView = S.cargoView || "waiting";
   root.innerHTML = `<div class="profile-bar"><h1>Cargo inventory</h1><span class="muted">Every PAC shipment keeps its air waybill from first pickup to final delivery, across pilots and flights. <a href="#cargoguide" onclick="show('cargoguide');return false">How cargo works →</a></span></div>
+    <div class="cgo-tabs" role="tablist" aria-label="Cargo inventory sections">
+      <button type="button" role="tab" data-cgo-tab="waiting">Freight waiting</button>
+      <button type="button" role="tab" data-cgo-tab="shipments">All shipments</button>
+      <button type="button" role="tab" data-cgo-tab="network">Warehouses and lanes</button>
+    </div>
+    <div class="cgo-pane" data-pane="waiting">
+      <section id="cgoSeasons" class="cgo-seasons" aria-label="Cargo seasons running now"></section>
+      <section id="cgoWaiting" class="cgo-waiting" aria-label="Freight waiting at stations"></section>
+    </div>
+    <div class="cgo-pane" data-pane="network">
+      <section id="cgoSheds" class="cgo-sheds" aria-label="Warehouses"></section>
+      <section id="cgoLanes" class="cgo-lanes" aria-label="Lane reputation"></section>
+    </div>
+    <div class="cgo-pane" data-pane="shipments">
     <div class="cgo-strip" id="cgoStrip" role="tablist" aria-label="Cargo views"></div>
-    <section id="cgoSheds" class="cgo-sheds" aria-label="Warehouses"></section>
-    <section id="cgoSeasons" class="cgo-seasons" aria-label="Cargo seasons running now"></section>
-    <section id="cgoWaiting" class="cgo-waiting" aria-label="Freight waiting at stations"></section>
-    <section id="cgoLanes" class="cgo-lanes" aria-label="Lane reputation"></section>
     <div class="cargo-filters">
       <label>Station<select id="cargoStation"><option value="ALL">All stations</option></select></label>
       <label class="cargo-search">Search<input id="cargoSearch" type="search" maxlength="80" placeholder="AWB, shipper, consignee or commodity"></label>
@@ -2403,8 +2413,17 @@ async function loadCargo() {
     <p class="muted cargo-results" id="cargoResults" role="status">Loading cargo…</p>
     <div class="cgo-table-wrap"><table class="cgo-table"><thead><tr><th>Air waybill</th><th>Journey</th><th>Commodity</th><th class="r">Pieces · weight</th><th>Status</th><th>Due / since</th></tr></thead>
       <tbody id="cargoList"></tbody></table></div>
+    </div>
     <p class="muted cargo-note">Movements are recorded when a PIREP is filed. Shippers and consignees are real companies chosen to fit the route; the shipments are fictional.</p>`;
   const station = $("#cargoStation"), search = $("#cargoSearch");
+  const cargoTab = t => {
+    S.cargoTab = t; try { localStorage.setItem("pac-cargo-tab", t); } catch (e) { /* private window */ }
+    root.querySelectorAll("[data-cgo-tab]").forEach(b => b.setAttribute("aria-selected", String(b.dataset.cgoTab === t)));
+    root.querySelectorAll(".cgo-pane").forEach(p => { p.hidden = p.dataset.pane !== t; });
+  };
+  let savedTab = S.cargoTab; if (!savedTab) { try { savedTab = localStorage.getItem("pac-cargo-tab"); } catch (e) { savedTab = null; } }
+  cargoTab(["waiting", "shipments", "network"].includes(savedTab) ? savedTab : "waiting");
+  root.querySelectorAll("[data-cgo-tab]").forEach(b => b.onclick = () => cargoTab(b.dataset.cgoTab));
   let overview;
   try {
     const [stations, ov] = await Promise.all([api("/api/cargo/stations"), api("/api/cargo/overview")]);
@@ -2454,7 +2473,7 @@ async function loadCargo() {
   });
   let dest = "";
   $("#cgoWaiting").querySelectorAll("[data-cgo-show]").forEach(b => b.onclick = () => {
-    const [from, to] = b.dataset.cgoShow.split("|"); S.cargoView = "waiting"; station.value = from; dest = to; drawStrip(); refresh(); $(".cgo-table-wrap").scrollIntoView({ behavior: "smooth", block: "start" });
+    const [from, to] = b.dataset.cgoShow.split("|"); S.cargoView = "waiting"; station.value = from; dest = to; drawStrip(); refresh(); cargoTab("shipments");
   });
   let requestNo = 0, searchTimer;
   const statusWord = { AT_STATION: "Waiting", HELD_AT_STATION: "Held (diversion)", BOOKED: "On a booked flight", DELIVERED: "Delivered", DELIVERED_LATE: "Delivered late", EXCEPTION: "Exception" };

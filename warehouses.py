@@ -6,8 +6,8 @@ orders until pilots fly freight out, and the Missions board flags flights that h
 """
 from __future__ import annotations
 
-HUBS = {"KCVG": 220_000, "KMIA": 150_000, "LIMC": 150_000, "OMDW": 150_000, "VHHH": 150_000, "PANC": 150_000}
-STATION_LBS = 60_000
+HUBS = {"KCVG": 900_000, "KMIA": 600_000, "LIMC": 600_000, "OMDW": 600_000, "VHHH": 600_000, "PANC": 600_000}
+STATION_LBS = 250_000
 LEVELS = ((100, "Full"), (85, "Congested"), (60, "Busy"), (0, "Normal"))
 
 

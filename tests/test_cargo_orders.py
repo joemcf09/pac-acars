@@ -188,7 +188,7 @@ with A.db() as con:
         sid_ = _u.uuid4().hex
         con.execute("""INSERT INTO cargo_shipments (id, awb, booking_key, source_awb, origin, destination, current_station, status, shipper, consignee,
             commodity, pieces, gross_weight_lbs, handling, data, created_at, updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
-            (sid_, f"901-9{i:07d}", "X", f"S{i}", "KCVG", "SKBO", "KMIA", "AT_STATION", "A", "B", "Freight", 10, 7000, "[]", "{}", time.time(), time.time()))
+            (sid_, f"901-9{i:07d}", "X", f"S{i}", "KCVG", "SKBO", "KMIA", "AT_STATION", "A", "B", "Freight", 10, 30000, "[]", "{}", time.time(), time.time()))
     before = con.execute("SELECT COUNT(*) FROM cargo_shipments WHERE current_station='KMIA' AND booking_key LIKE 'ORDER:%' AND status='AT_STATION'").fetchone()[0]
     con.execute("UPDATE cargo_shipments SET status='WITHDRAWN' WHERE current_station='KMIA' AND booking_key LIKE 'ORDER:%'")
     rk = O.tick(con, A.ROUTES.values(), A.FLEET, A.dispatch_pilot(), A.settings(), force=True)
