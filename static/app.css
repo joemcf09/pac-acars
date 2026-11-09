@@ -1699,3 +1699,8 @@ html[data-theme="dark"] .journey-text-button{color:var(--steel)}
 .cgo-season-card{background:var(--white,#fff);border:1px solid var(--line,#d7dce3);border-top:4px solid #d9a428;padding:14px 18px}
 .cgo-season-card h3{margin:2px 0 6px;font-size:19px}.cgo-season-card p{margin:0 0 8px;font-size:14px}
 .tag.cgo-season{background:#fff3d6;color:#6b4a00}
+.care-box{margin:14px 0;border:1px solid var(--line,#d7dce3);padding:12px 16px;background:var(--white,#fff)}
+.care-box h4{margin:0 0 8px}.care-row{padding:8px 0;border-top:1px solid var(--line,#e5e7eb)}.care-row:first-of-type{border-top:0}
+.care-row ul{margin:6px 0 0 18px;padding:0;font-size:14px}
+.care-tag{display:inline-block;font-size:12px;font-weight:700;padding:2px 8px;border-radius:3px;background:#e3f2e8;color:#176b3c}
+.care-tag.watch{background:#fbeccc;color:#7a4e00}.care-tag.excursion{background:#f9dcdc;color:#a00000}

@@ -106,16 +106,27 @@ def build(p, booking, rec=None, fleet=None):
             state, when = "HELD AT DIVERSION AIRPORT", None
         else:
             state, when = "NOT DELIVERED", None
+        care = next((c for c in p.get("cargo_care") or [] if c.get("awb") == s["awb"]), None)
         cargo.append({"awb": s["awb"], "shipper": s["shipper"]["name"], "consignee": s["consignee"]["name"], "contents": s["contents"],
                       "pieces": s.get("pieces"), "weight_lbs": s.get("weight_lbs"), "shc": s.get("shc") or [], "status": state, "delivered": when,
-                      "charges": a.get("total")})
+                      "charges": a.get("total"), "care": care})
 
     # ---- what the customers said
     rng = random.Random(f"{booking.get('requested_at')}|{booking.get('flight_number')}|cust")
     names = list(dict.fromkeys(c["consignee"] for c in cargo))[:3]
     who = ", ".join(names) if names else "The consignee"
     shc = {c for x in cargo for c in x["shc"]} or set(m.get("shc") or [])
-    if not delivered:
+    hurt = [c for c in cargo if c.get("care") and c["care"]["status"] == "excursion"]
+    close = [c for c in cargo if c.get("care") and c["care"]["status"] == "watch"]
+    if delivered and hurt:
+        x = hurt[0]
+        names = [x["consignee"]]
+        who = x["consignee"]
+        tone = "bad"
+        text = {"cold": f"Our {x['contents'].lower()} arrived with a temperature excursion. {x['care']['log'][0]} We're inspecting it before acceptance.",
+                "animals": f"The animals arrived distressed ({x['care']['label'].split('(')[-1].rstrip(')')}). Our handler noted: {' '.join(x['care']['log'][:2])}",
+                "fragile": f"Our {x['contents'].lower()} arrived damaged. {x['care']['log'][0]}"}[x["care"]["kind"]]
+    elif not delivered:
         tone = "bad"
         text = (f"The cargo didn't reach {p.get('planned_arr') or 'its destination'}. " +
                 ("It is being held at the diversion airport while PAC arranges onward carriage. " if status == "Diverted" else "") +
@@ -130,6 +141,11 @@ def build(p, booking, rec=None, fleet=None):
     elif late:
         tone = "mixed"
         text = "Consignments received, but the delivery commitment was missed. Please improve connection and handling reliability."
+    elif close:
+        x = close[0]
+        who = x["consignee"]
+        tone = "mixed"
+        text = f"Received, and {x['care']['label'][0].lower() + x['care']['label'][1:]}. {x['care']['log'][-1]}"
     elif hard or firm:
         tone = "mixed"
         text = f"All consignments received on time. The ground team noted a firm arrival ({rate} fpm); no damage was reported."
@@ -174,6 +190,12 @@ def build(p, booking, rec=None, fleet=None):
                          f"{r['what']}: outside the plan."))
     if hard:
         take.append("Hard landing: review the flare on the touchdown trace before your next flight.")
+    for c in cargo:
+        if c.get("care") and c["care"]["status"] == "excursion":
+            take.append({"cold": "Cold chain: keep ramp time short on hot or freezing days; a quick turn protects temperature-sensitive freight.",
+                         "animals": "Live animals: a smooth ride matters: gentle turns, avoid turbulence where you can, and a soft landing.",
+                         "fragile": "Fragile freight: fly it gently and land softly; G-loads and bounces damage it."}[c["care"]["kind"]])
+            break
     if not take:
         take.append("Everything ran to plan. Keep this standard for the next one.")
     return {"v": 1, "planned_actual": rows, "customer": customer, "dispatcher": dispatcher, "takeaways": take, "cargo": cargo,

@@ -324,6 +324,8 @@ def record_flight(con, booking, pirep, pirep_id, pilot_id):
         raise RuntimeError("Not every dispatch shipment has a persistent cargo record.")
     actual_station = str(pirep.get("arr") or "").upper()
     flight_status = str(pirep.get("status") or "")
+    care_by_awb = {c.get("awb"): {"label": c.get("label"), "status": c.get("status"), "log": c.get("log")}
+                   for c in pirep.get("cargo_care") or [] if c.get("awb")}
 
     now = time.time()
     for shipment, shipment_id in zip(shipments, registered):
@@ -348,7 +350,9 @@ def record_flight(con, booking, pirep, pirep_id, pilot_id):
         event_key = f"pirep:{pirep_id}:{shipment_id}"
         details = json.dumps({"flight_status": flight_status, "planned_destination": dispatch.get("destination", {}).get("icao"),
                               "final_destination": row["destination"], "cargo_status": status,
-                              **({"trucked_from": actual_station} if trucked else {})}, separators=(",", ":"))
+                              **({"trucked_from": actual_station} if trucked else {}),
+                              **({"care": care_by_awb[shipment.get("awb")]} if shipment.get("awb") in care_by_awb else {})},
+                             separators=(",", ":"))
         inserted = con.execute("""INSERT OR IGNORE INTO cargo_movements
             (shipment_id, event_key, event_type, event_time, from_station, to_station, pilot_id, flight_number,
              pirep_id, status, details)

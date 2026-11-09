@@ -31,6 +31,7 @@ import shipments  # noqa: E402  (air waybills, acceptance and tracking)
 import cargo_network
 import cargo_orders  # noqa: E402  (customer orders waiting at stations)
 import seasons  # noqa: E402  (real air cargo seasons)
+import cargo_care  # noqa: E402  (what sensitive freight felt on the flight)
 import debrief  # noqa: E402  (after-action review: planned vs actual, customer and dispatcher comments)
 import paperwork_release as releases
 import discord_post  # noqa: E402  (flights to a Discord channel)
@@ -688,6 +689,14 @@ def build_pirep(booking, rec: FlightRecorder):
             p['registration'] = 'TRAINING'
     p = apply_conflict_zones(p, booking, rec)
     try:
+        try:   # what happened to sensitive freight on this flight (cold chain, live animals, fragile)
+            d_ = booking.get("dispatch") or {}
+            p["cargo_care"] = cargo_care.assess(d_.get("shipments") or [], rec, {"g": p.get("landing_g")},
+                                                AIRPORTS.get(p.get("dep")) and {**AIRPORTS[p["dep"]], "icao": p["dep"]},
+                                                AIRPORTS.get(p.get("arr")) and {**AIRPORTS[p["arr"]], "icao": p["arr"]},
+                                                d_.get("block_min") or p.get("target_block_min"))
+        except Exception as e:     # never let this block a PIREP
+            app.logger.exception("cargo care: %s", e)
         p["debrief"] = debrief.build(p, booking, rec, FLEET)   # planned vs actual, customer and dispatcher comments, cargo results
     except Exception as e:  # the debrief explains the flight; it must never stop a PIREP
         print("debrief failed:", e)

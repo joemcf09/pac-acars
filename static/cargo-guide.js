@@ -36,6 +36,14 @@ function renderCargoGuide() {
         <tr><th>The flight failed</th><td><b>Exception</b>. Staff can see it on the inventory.</td></tr>
         <tr><th>Staff rejected the PIREP</th><td>The cargo goes <b>back where it was</b> before the flight, as if the flight never happened. If staff later accept it, the cargo moves again. This only ever happens once per decision.</td></tr>
       </table>`],
+    ["care", "Cargo that feels your flight", `
+      <p>Some freight reacts to how you fly it. After every flight, the debrief's <b>How the sensitive freight rode</b> box and each shipment's history show what happened:</p>
+      <table>
+        <tr><th>Cold chain</th><td>Pharmaceuticals, flowers, seafood and produce. Time on a hot (30°C or more) or freezing ramp, from handling plus your taxi time, can cause a <b>temperature excursion</b>. Arriving an hour or more late shortens its shelf life. The real arrival temperature comes from the METAR when PAC ACARS has one; otherwise it's estimated and says so.</td></tr>
+        <tr><th>Live animals</th><td>A comfort score out of 100: turbulence, steep banks, a firm landing, a bounce and a long taxi all upset them.</td></tr>
+        <tr><th>Fragile and high-value</th><td>Electronics, wafers, art and valuables. A landing at 1.8 G or more, 2 G in flight, two bounces or repeated rough patches damages them; a firmer landing or one bounce means an inspection.</td></tr>
+      </table>
+      <p>It doesn't change your score or pay. The customer notices, though: their feedback says what they found.</p>`],
     ["inventory", "Reading the Cargo inventory", `
       <p>Operations › Cargo inventory is the airline's warehouse view.</p>
       <ul>
