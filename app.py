@@ -1921,6 +1921,12 @@ def load_plan_api():
         body = request.get_json(silent=True)
         if not isinstance(body, dict):
             return jsonify(error='A load plan is required.'), 400
+        if body.get('preview'):   # live CG while the pilot moves units: nothing is saved
+            try:
+                trial = load_planner.rearrange(booking, body.get('assignments'))
+            except ValueError as exc:
+                return jsonify(error=str(exc)), 400
+            return jsonify(balance=plan_balance(booking, trial or booking['dispatch']))
         if releases.started(booking) or remote_active():
             return jsonify(error='Tracking has started. Load planning is locked.'), 409
         if body.get('requested_at') != booking.get('requested_at') or body.get('revision') != releases.revision(booking):
@@ -1935,11 +1941,18 @@ def load_plan_api():
             save_booking(booking)
             changed = True
     result = load_planner.describe(booking, releases.revision(booking))
+    result['balance'] = plan_balance(booking, booking['dispatch'])
     result['signed'] = releases.valid_signature(booking)
     result['changed'] = changed
     response = jsonify(result)
     response.headers['Cache-Control'] = 'private, no-store'
     return response
+
+
+def plan_balance(booking, d):
+    """The release's weight-and-balance block (CG, envelope, trim) for a dispatch, or None for types without data."""
+    paper = dispatch.paperwork(d, FLEET, booking, [], None, AIRPORTS, dow_override=(learned_dow(booking["aircraft"]) or {}).get("dow"))
+    return paper.get("balance")
 
 
 def signature_required(booking):
@@ -1957,6 +1970,11 @@ def dispatch_sign():
     booking = load_booking()
     if not booking:
         return jsonify({"error": "No flight is booked."}), 404
+    bal = plan_balance(booking, booking["dispatch"]) if booking.get("dispatch") else None
+    if bal and bal.get("available") and not bal.get("provisional") and not bal.get("ok"):
+        # out of the envelope or over a position limit: a real release can't be signed like this either
+        return jsonify({"error": "The load is outside the weight-and-balance limits. " + (bal.get("advice") or "; ".join(bal.get("warnings") or [])) +
+                                 " Fix it in the load planner, then sign."}), 409
     error, code = releases.sign(booking, request.get_json(silent=True), dispatch_pilot())
     if error:
         return jsonify({"error": error}), code
@@ -2702,7 +2720,7 @@ def plan_loadsheet():
     keep = ("ferry", "aircraft", "aircraft_name", "icao", "tail", "origin", "destination", "deck", "positions", "dg", "shc",
             "totals", "shipments", "onward", "international", "block_min")
     out = {k: d.get(k) for k in keep}
-    out.update({"seed": seed, "mission_id": m["id"], "loadsheet": ls, "limits": lim, "checks": checks,
+    out.update({"seed": seed, "mission_id": m["id"], "loadsheet": ls, "limits": lim, "checks": checks, "balance": paper.get("balance"),
                 "min_release_fuel": paper["min_release_fuel"], "fuel": f, "cruise_fl": est["cruise_fl"],
                 "alternate": est["alternate"], "payload_requested": m.get("payload_lbs") or 0,
                 "transfer_options": [{"id": item["id"], "awb": item["awb"], "destination": item["destination"],

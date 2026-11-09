@@ -3,7 +3,7 @@ import copy
 import time
 
 SOURCE = 'https://www.boeing.com/content/dam/boeing/boeingdotcom/commercial/airports/acaps/737NG_REV_B.pdf'
-MAIN_COUNTS = {'B738F': 11, 'B722F': 12}
+MAIN_COUNTS = {'B738F': 10, 'B722F': 12}
 PRESET_NAMES = {'B738F': '737 BCF simulation', 'B722F': '727-200F simulation'}
 
 def main_positions(booking):

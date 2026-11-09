@@ -352,11 +352,14 @@ function loadsheetLines(d) {
   out.push(esc(L("TAKE OFF WEIGHT ACTUAL", 24) + R(N(ls.tow), 8) + "  MAX " + R(N(lim.mtow), 8) + "  " + lf(1) + "  ADJ"));
   out.push(esc(L("TRIP FUEL", 21) + R(N(ls.trip), 8)));
   out.push(esc(L("LANDING WEIGHT ACTUAL", 24) + R(N(ls.law), 8) + "  MAX " + R(N(lim.mlw), 8) + "  " + lf(2) + "  ADJ"), "");
-  out.push("<b>SIMULATION ESTIMATES: CG / TRIM NOT AIRCRAFT-VALIDATED</b>");
+  out.push(`<b>${ls.cg_source === "calculated" ? "CG / TRIM CALCULATED FROM 737-800SF W&amp;B DATA (SIMULATION PAPERWORK)"
+    : ls.cg_source === "provisional" ? "CG / TRIM CALCULATED: PROVISIONAL, AWAITING SIM CALIBRATION" : "SIMULATION ESTIMATES: CG / TRIM NOT AIRCRAFT-VALIDATED"}</b>`);
   out.push(`<b>${esc(L("BALANCE AND SEATING CONDITIONS", 42) + "LAST MINUTE CHANGES")}</b>`);
   out.push(esc(L(`DOI   ${ls.doi.toFixed(1)}    DLI   ${ls.dli.toFixed(1)}`, 42) + "DEST  SPEC  CL/CPT  + -  WEIGHT"));
   out.push(esc(L(`LIZFW ${ls.lizfw.toFixed(1)}    LITOW ${ls.litow.toFixed(1)}`, 42) + "....  ....  ......  .    ......"));
+  if (ls.lildw != null) out.push(esc(L(`LILDW ${ls.lildw.toFixed(1)}`, 42) + "....  ....  ......  .    ......"));
   out.push(esc(L(`MACZFW ${ls.mac_zfw.toFixed(1)}   MACTOW ${ls.mac_tow.toFixed(1)}`, 42) + "....  ....  ......  .    ......"));
+  if (ls.mac_ldw != null) out.push(esc(L(`MACLDW ${ls.mac_ldw.toFixed(1)}`, 42) + "....  ....  ......  .    ......"));
   out.push(esc(L(`STAB TRIM SETTING  ${ls.trim}`, 42) + "LMC TOTAL  + -     ......"));
   out.push(esc(`UNDERLOAD BEFORE LMC  ${N(ls.underload)}`), "");
   out.push("<b>LOADMESSAGE AND CAPTAINS INFORMATION BEFORE LMC</b>");

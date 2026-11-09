@@ -6,6 +6,7 @@
   <title>737 cargo load plan · Pagani Air Cargo</title>
   <link rel="stylesheet" href="/static/load-visualizer.css">
   <link rel="stylesheet" href="/static/load-visualizer-graphic.css">
+  <link rel="stylesheet" href="/static/load-balance.css?v=cg-20261109">
 </head>
 <body>
   <header class="topbar">
@@ -19,8 +20,8 @@
       <div class="intro-actions"><a class="button outline" href="/dispatch">Review dispatch release</a></div>
     </div>
 
-    <section class="notice" aria-label="Planning scope"><strong>Planning view — not an aircraft weight-and-balance approval.</strong>
-      <span>The aircraft and reference figures below describe a 737-800BCF. PAC's B738F fleet label also covers BDSF aircraft. Station arms, CG limits, floor loading, contour, restraint and dangerous-goods separation are not verified here. Use the simulator aircraft's own loading system for those checks.</span>
+    <section class="notice" aria-label="Planning scope"><strong>Simulation paperwork, not an aircraft's approved weight-and-balance.</strong>
+      <span>Positions, position limits, the CG envelope and takeoff trim come from the AEI 737-800SF weight-and-balance data; the basic aircraft and fuel tanks from the PMDG 737-800BCF. Floor loading, contour, restraint and dangerous-goods separation are not checked here.</span>
     </section>
 
     <section class="aircraft-panel" aria-label="PAC 737 cargo diagram">
@@ -35,17 +36,20 @@
     <section class="metrics" aria-label="Live manifest figures">
       <div><span>Manifest cargo</span><strong id="cargoTotal">—</strong><small>unchanged by a move</small></div>
       <div><span>Forward · M01–M05</span><strong id="forwardTotal">—</strong><small>main-deck cargo</small></div>
-      <div><span>Center · M06</span><strong id="centerTotal">—</strong><small>main-deck cargo</small></div>
-      <div><span>Aft · M07–M11</span><strong id="aftTotal">—</strong><small>main-deck cargo</small></div>
+      <div><span>Aft · M06–M10</span><strong id="aftTotal">—</strong><small>main-deck cargo</small></div>
+      <div><span>CG at takeoff</span><strong id="cgTowMetric">—</strong><small>live, from the load</small></div>
+      <span id="centerTotal" hidden></span>
       <div><span>Compact + lower / fixed</span><strong id="fixedTotal">—</strong><small>not movable here</small></div>
     </section>
+
+    <section id="cgPanel" class="aircraft-panel cg-panel" aria-label="Center of gravity" hidden></section>
 
     <section class="workspace" aria-labelledby="deckTitle">
       <div class="section-heading"><div><p class="eyebrow">MAIN DECK</p><h2 id="deckTitle">Position the load</h2>
         <p>Drag a cargo block onto another station to move or swap it. Each block also has a position menu for keyboard and touch use.</p></div>
         <div class="tools"><button id="auto" disabled>Auto-allocate</button><button id="reset" class="ghost" disabled>Reset changes</button></div></div>
-      <p class="auto-note">Auto-allocate places heavier units toward the middle of this schematic. Review the suggestion before saving; it does not calculate aircraft balance.</p>
-      <div class="zone-legend"><span>Forward M01–M05</span><span>Center M06</span><span>Aft M07–M11</span></div>
+      <p class="auto-note">Auto-allocate places heavier units toward the middle of the deck. Check the center of gravity panel before saving.</p>
+      <div class="zone-legend"><span>Forward M01–M05</span><span>Aft M06–M10</span><span>M12: small rear position (P12)</span></div>
       <div id="deck" class="deck" aria-label="Main-deck cargo positions"></div>
       <div id="fixedWrap" hidden><h3>Compact and lower deck · fixed</h3><div id="fixedDeck" class="fixed-deck"></div></div>
     </section>
@@ -61,6 +65,7 @@
       <p>Atlas Air 737-800BCF specifications one-sheet (2019), supplied by PAC. These are reference figures, not limits applied to a PAC airframe or simulator add-on. PAC's reviewed fleet configuration lists 174,200 lb MTOW, 200 lb above this sheet; confirm the exact aircraft variant before treating either figure as an operating limit.</p>
     </details>
   </main>
+  <script src="/static/load-balance.js?v=cg-20261109"></script>
   <script src="/static/load-allocation.js"></script>
   <script src="/static/load-visualizer.js"></script>
 </body>

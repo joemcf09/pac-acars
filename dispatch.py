@@ -14,7 +14,7 @@ AWB_PREFIX = "901"
 DECKS = {
     "B732F": {"main": 7, "uld": "PAG", "cap": 7000, "lower": 2, "luld": "BULK", "lcap": 3000},
     "B733F": {"main": 9, "uld": "AAY", "cap": 7000, "lower": 2, "luld": "BULK", "lcap": 3500},
-    "B738F": {"main": 12, "uld": "AAY", "cap": 7500, "lower": 2, "luld": "BULK", "lcap": 4500},
+    "B738F": {"main": 11, "uld": "AAY", "cap": 8000, "lower": 2, "luld": "BULK", "lcap": 4500},
     "B722F": {"main": 12, "uld": "PAG", "cap": 7500, "lower": 2, "luld": "BULK", "lcap": 4000},
     "B752F": {"main": 15, "uld": "PAG", "cap": 8000, "lower": 2, "luld": "BULK", "lcap": 5000},
     "A306F": {"main": 20, "uld": "PMC", "cap": 11000, "lower": 8, "luld": "AKE", "lcap": 3500},
@@ -121,6 +121,8 @@ def generate(booking, fleet, pilot, now=None):
 
     # positions
     main = [f"M{i + 1:02d}" for i in range(deck["main"])]
+    if code == "B738F":   # the real 737-800SF/BCF: ten full positions (M1-M10) and the small P12 at the back (PAC's M12)
+        main = [f"M{i:02d}" for i in range(1, 11)] + ["M12"]
     lower = ([f"L{i + 1}" for i in range(deck["lower"])] if deck["luld"] != "BULK" else ["FWD BULK", "AFT BULK"][:deck["lower"]])
     positions, dgs = [], []
     if payload > 0:
@@ -132,6 +134,10 @@ def generate(booking, fleet, pilot, now=None):
         n_main = max(1, min(deck["main"], round(deck["main"] * fill)))
         n_low = min(len(lower), round(len(lower) * fill * 0.8))
         slots = [(p, deck["uld"], deck["cap"]) for p in main[:n_main]] + [(p, deck["luld"], deck["lcap"]) for p in lower[:n_low]]
+        import wb  # documented per-position limits where PAC has the aircraft's weight-and-balance data
+        caps = wb.position_limits_lbs(code)
+        if caps:
+            slots = [(p, u, min(c, caps.get(p, c))) for p, u, c in slots]
         # spread weight, then keep every unit under its limit
         raw = [rng.uniform(0.65, 1.35) * cap for _, _, cap in slots]
         scale = payload / sum(raw)
@@ -381,6 +387,18 @@ def paperwork(d, fleet, booking=None, notams=None, captain_rank=None, airports=N
     lizfw, litow = dli, round(dli + (mac_tow - mac_zfw) * 3.1, 1)
     airbus = ac.get("icao", "").startswith("A")
     trim = f"{round((26 - mac_tow) * .2, 1):+.1f} THS" if airbus else f"{round(9.6 - .2 * mac_tow, 1):.1f} UNITS"
+    cg_source = "estimate"
+    import wb  # real weight and balance where PAC has documented data for the type
+    bal = wb.balance(d["aircraft"], d.get("positions") or [], dow, tof, trip) if wb.supported(d["aircraft"]) else None
+    if bal and bal.get("available"):
+        zf, to, lw = bal["phases"]
+        mac_zfw, mac_tow, mac_ldw = zf["pct_mac"], to["pct_mac"], lw["pct_mac"]
+        doi, lizfw, litow, lildw = bal["doi"], zf["index"], to["index"], lw["index"]
+        dli = lizfw
+        trim = f"{bal['trim_units']:.2f} UNITS (FLAPS {bal['trim_flaps']})"
+        cg_source = "provisional" if bal.get("provisional") else "calculated"
+    else:
+        mac_ldw, lildw = None, None
     underload = min(mzfw - zfw, mtow - tow, mlw + trip - tow)
     issued = (booking or {}).get("requested_at") or 0
     reg = str(d.get("tail") or "")
@@ -392,7 +410,8 @@ def paperwork(d, fleet, booking=None, notams=None, captain_rank=None, airports=N
         "limits": {"mzfw": mzfw, "mtow": mtow, "mlw": mlw, "max_payload": max_pl},
         "loadsheet": {"dow": dow, "payload": payload, "zfw": zfw, "tof": tof, "tow": tow, "trip": trip, "law": law, "taxi": taxi, "block": block,
                       "underload": underload, "doi": doi, "dli": dli, "lizfw": lizfw, "litow": litow, "mac_zfw": mac_zfw, "mac_tow": mac_tow,
-                      "trim": trim, "crew": crew, "edno": "01"},
+                      "mac_ldw": mac_ldw, "lildw": lildw, "trim": trim, "crew": crew, "edno": "01", "cg_source": cg_source},
+        "balance": bal,
         "min_release_fuel": min_release, "contingency": contingency,
         "dispatcher": {"name": rng.choice(DISPATCHERS), "cert": f"ADX {rng.randrange(2000000, 3999999)}"},
         "pic_cert": f"ATP {rng.randrange(2000000, 3999999)}", "captain_rank": captain_rank,

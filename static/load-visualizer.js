@@ -1,5 +1,5 @@
 /* PAC cargo distribution view. A schematic, not certified weight and balance. */
-const MAIN = Array.from({length:11}, (_, i) => 'M' + String(i + 1).padStart(2, '0'));
+const MAIN = Array.from({length:10}, (_, i) => 'M' + String(i + 1).padStart(2, '0'));
 
 function identityAssignments(positions) {
   const assignments = {};
@@ -32,7 +32,6 @@ function distribution(positions, assignments) {
     sums.total += weight;
     if (!MAIN.includes(p.pos)) sums.fixed += weight;
     else if (MAIN.indexOf(target) < 5) sums.forward += weight;
-    else if (target === 'M06') sums.center += weight;
     else sums.aft += weight;
   }
   return sums;
@@ -94,6 +93,7 @@ if (typeof document !== 'undefined') (function () {
     $('save').disabled = !dirty;
     $('reset').disabled = !dirty;
     $('auto').disabled = false;
+    if (window.pacBalanceUpdate) window.pacBalanceUpdate(plan, assignments, dirty);
     $('planState').textContent = dirty ? (plan.signed ? 'Unsaved changes · saving will clear the release signature' : 'Unsaved allocation changes') : 'No changes to save';
   }
   async function load() {
