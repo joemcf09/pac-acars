@@ -34,7 +34,7 @@ let toastT;
 function toast(msg, ms = 5200) { const t = $("#toast"); t.textContent = msg; t.hidden = false; clearTimeout(toastT); toastT = setTimeout(() => t.hidden = true, ms); }
 
 /* ---------------- navigation ---------------- */
-const PUBLIC_VIEWS = ["home", "fleet", "handbook", "gallery", "privacy", "roster"];   // "live" joins when staff make the live map public
+const PUBLIC_VIEWS = ["home", "fleet", "handbook", "cargoguide", "gallery", "privacy", "roster"];   // "live" joins when staff make the live map public
 function show(view) {
   if (view === "reports" && location.hash !== "#reports") captureReportContext();
   if (/^career\/(overview|qualifications|wallet|activities|awards)$/.test(view)) {
@@ -68,6 +68,7 @@ function show(view) {
   if (view === "cargo") loadCargo();
   if (view === "downloads") loadDownloads();
   if (view === "handbook") loadHandbook();
+  if (view === "cargoguide") renderCargoGuide();
   if (view === "privacy") renderPrivacy();
   if (view === "roster") loadRoster();
   if (view === "staff") loadStaff();
@@ -2380,7 +2381,7 @@ async function loadCargo() {
   const root = $("#cargoRoot");
   if (!root) return;
   S.cargoView = S.cargoView || "waiting";
-  root.innerHTML = `<div class="profile-bar"><h1>Cargo inventory</h1><span class="muted">Every PAC shipment keeps its air waybill from first pickup to final delivery, across pilots and flights.</span></div>
+  root.innerHTML = `<div class="profile-bar"><h1>Cargo inventory</h1><span class="muted">Every PAC shipment keeps its air waybill from first pickup to final delivery, across pilots and flights. <a href="#cargoguide" onclick="show('cargoguide');return false">How cargo works →</a></span></div>
     <div class="cgo-strip" id="cgoStrip" role="tablist" aria-label="Cargo views"></div>
     <section id="cgoWaiting" class="cgo-waiting" aria-label="Freight waiting at stations"></section>
     <div class="cargo-filters">
@@ -4605,7 +4606,7 @@ async function openDetail(id) {
 }
 
 /* ================= VA core ================= */
-const VIEWS = ["privacy", "roster", "home", "dashboard", "missions", "bids", "acars", "fleet", "stations", "downloads", "career", "stats", "finance", "shop", "live", "logbook", "gallery", "handbook", "staff", "profile", "pilots", "updates"];
+const VIEWS = ["privacy", "roster", "home", "dashboard", "missions", "bids", "acars", "fleet", "stations", "downloads", "career", "stats", "finance", "shop", "live", "logbook", "gallery", "handbook", "cargoguide", "staff", "profile", "pilots", "updates"];
 const TOUR_ORDER = {};
 function applyCore(d) {
   if (d.partners) S.partners = d.partners;
@@ -4866,7 +4867,7 @@ async function fillHomeCampaigns() {
       ${live.map(c => { const left = Math.max(0, Math.ceil((c.ends - Date.now() / 1000) / 86400)); return `<div class="home-op">${c.patch ? `<img src="${esc(c.patch)}" alt="">` : ""}<div class="home-op-body"><h3>${esc(c.title)}</h3>
         <div class="cargo-progress"><strong>${fmt(c.cargo_lbs)} <small>/ ${fmt(c.target_lbs)} lb to ${c.destinations.map(esc).join(" · ")}</small></strong><span>${c.pct}%</span></div>
         <progress max="100" value="${c.pct}">${c.pct}%</progress>
-        <p class="muted" style="margin:4px 0 10px">${fmt(c.flights)} deliveries · ${fmt(c.pilots)} pilots · ${left} day${left === 1 ? "" : "s"} left${c.personal_lbs > 0 ? ` · You: <b>${fmt(c.personal_lbs)} lb</b>` : ""}${c.reward_cash > 0 ? ` · Reward: patch + $${fmt(c.reward_cash)}` : ""}</p>
+        <p class="muted" style="margin:4px 0 10px">${fmt(c.flights)} ${c.flights === 1 ? "delivery" : "deliveries"} · ${fmt(c.pilots)} ${c.pilots === 1 ? "pilot" : "pilots"} · ${left} day${left === 1 ? "" : "s"} left${c.personal_lbs > 0 ? ` · You: <b>${fmt(c.personal_lbs)} lb</b>` : ""}${c.reward_cash > 0 ? ` · Reward: patch + $${fmt(c.reward_cash)}` : ""}</p>
         <button class="btn small" onclick="S.boardCampaignId='${Number(c.id)}';show('missions')">Find flights to ${esc(c.destinations[0])} and more →</button></div></div>`; }).join("")}` : "";
   } catch (e) { el.innerHTML = ""; }
 }

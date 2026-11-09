@@ -1685,3 +1685,4 @@ html[data-theme="dark"] .journey-text-button{color:var(--steel)}
 .home-op img{width:120px;height:120px;object-fit:contain;flex:none}.home-op-body{flex:1;min-width:0}.home-op h3{margin:0;font-size:22px}
 .home-op progress{width:100%;height:12px;accent-color:#c80000;margin:10px 0 4px}
 @media(max-width:600px){.home-op{flex-direction:column;align-items:flex-start}.home-op img{width:90px;height:90px}}
+.cargo-card-top:has(.cargo-patch-img){justify-content:flex-start;align-items:center}
