@@ -64,6 +64,21 @@ with A.db() as con:
 check("filing delivers it with its history", f["status"].startswith("DELIVERED") and f["current_station"] == d
       and h == ["ORDER_RECEIVED", "TRANSFER_BOOKED", "FLIGHT_ARRIVAL"], (dict(f), h))
 
+print("Freight for the leg you plan")
+stocked = set(O.stations(list(A.ROUTES.values()), O.policy(A.settings())["stations"]))
+leg = next(r for r in A.ROUTES.values() if r.get("category") == "Scheduled" and r["origin"]["icao"] not in stocked
+           and r["origin"]["icao"] != r["destination"]["icao"] and any(a in A.FLEET for a in r["aircraft"]))
+lac = next(a for a in leg["aircraft"] if a in A.FLEET)
+ls1 = c.post("/api/plan/loadsheet", json={"mission_id": leg["id"], "aircraft": lac}).json
+opts = [t for t in ls1.get("transfer_options") or ls1.get("cargo_transfers") or [] if (t.get("destination") == leg["destination"]["icao"])]
+with A.db() as con:
+    n1 = con.execute("SELECT COUNT(*) FROM cargo_shipments WHERE current_station=? AND destination=?", (leg["origin"]["icao"], leg["destination"]["icao"])).fetchone()[0]
+check("planning a quiet leg puts customer freight on it", n1 >= 1, (leg["id"], list(ls1)[:30]))
+c.post("/api/plan/loadsheet", json={"mission_id": leg["id"], "aircraft": lac})
+with A.db() as con:
+    n2 = con.execute("SELECT COUNT(*) FROM cargo_shipments WHERE current_station=? AND destination=?", (leg["origin"]["icao"], leg["destination"]["icao"])).fetchone()[0]
+check("reopening the load sheet doesn't keep adding freight", n2 == n1, (n1, n2))
+
 print("Unclaimed orders")
 with A.db() as con:
     r = O.tick(con, A.ROUTES.values(), A.FLEET, A.dispatch_pilot(), A.settings(), now=time.time() + 8 * 86400, force=True)

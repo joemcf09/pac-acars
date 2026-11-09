@@ -154,3 +154,41 @@ def tick(con, routes, fleet, pilot, st, now=None, force=False):
             need -= len(made)
             out["created"] += len(made)
     return out
+
+
+ROUTE_TOPUP_S = 2 * 3600
+
+
+def ensure_route(con, route, fleet, pilot, aircraft, st, now=None):
+    """When a pilot plans a scheduled flight, make sure there's customer freight waiting for that exact leg: at least
+    two shipments, or a fifth of the chosen aircraft's payload, whichever comes first. At most once every two hours per
+    route, so reopening the load sheet doesn't keep adding freight. Returns how many orders were added."""
+    now = now or time.time()
+    if not policy(st)["enabled"] or route.get("category") != "Scheduled" or route.get("charter"):
+        return 0
+    origin, dest = (route.get("origin") or {}).get("icao"), (route.get("destination") or {}).get("icao")
+    if not origin or not dest or origin == dest:
+        return 0
+    con.execute("CREATE TABLE IF NOT EXISTS cargo_orders_route (route_id TEXT PRIMARY KEY, last REAL NOT NULL)")
+    last = con.execute("SELECT last FROM cargo_orders_route WHERE route_id=?", (route["id"],)).fetchone()
+    if last and now - last[0] < ROUTE_TOPUP_S:
+        return 0
+    con.execute("INSERT INTO cargo_orders_route (route_id, last) VALUES (?, ?) ON CONFLICT(route_id) DO UPDATE SET last=excluded.last",
+                (route["id"], now))
+    cap = (fleet.get(aircraft) or {}).get("max_payload_lbs") or 0
+    n, w = con.execute("""SELECT COUNT(*), COALESCE(SUM(gross_weight_lbs),0) FROM cargo_shipments WHERE current_station=? AND destination=?
+        AND status IN ('AT_STATION','HELD_AT_STATION') AND reserved_booking_key IS NULL""", (origin, dest)).fetchone()
+    rng = random.Random(f"route|{route['id']}|{int(now // ROUTE_TOPUP_S)}")
+    made, tries = 0, 0
+    while (n < 2 and (not cap or w < cap * 0.2)) and tries < 4:
+        tries += 1
+        try:
+            new = make_order(con, route, fleet, pilot, rng, now)
+        except Exception as e:
+            print("cargo order (route):", route.get("id"), e)
+            break
+        for awb in new:
+            w += con.execute("SELECT gross_weight_lbs FROM cargo_shipments WHERE awb=?", (awb,)).fetchone()[0] or 0
+        n += len(new)
+        made += len(new)
+    return made

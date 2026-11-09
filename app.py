@@ -2619,6 +2619,11 @@ def plan_loadsheet():
     except ValueError as e:
         return jsonify({"error": str(e)}), 409
     stock_cargo_orders()
+    try:
+        with db() as con:
+            cargo_orders.ensure_route(con, m, FLEET, dispatch_pilot(), ac_code, settings())
+    except Exception as e:      # freight for this leg must never break the load sheet
+        app.logger.exception("cargo orders (route): %s", e)
     with db() as con:
         transfer_options = cargo_network.transfer_options(con, m["origin"]["icao"], m["destination"]["icao"], ROUTES.values())
     fake = {"mission": m, "aircraft": ac_code, "ofp": None, "flight_number": m["id"], "requested_at": time.time(),
