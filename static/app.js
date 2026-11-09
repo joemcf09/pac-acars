@@ -1093,7 +1093,7 @@ function loadsheetHTML(ls, m) {
     <p class="muted">${ls.ferry ? "Ferry flight: the hold is empty." : `${units} unit${units === 1 ? "" : "s"} · ${fmt(ls.totals.pieces)} pieces · ${fmt(ls.totals.weight_lbs)} lb · ${(ls.shipments || []).length} shipment${(ls.shipments || []).length === 1 ? "" : "s"}`}</p></div>
     <span class="ls-status ${ls.ok ? "ok" : "bad"}">${ls.ok ? "Within limits" : "Over a limit"}</span></div>
   ${transferOptions.length ? `<section class="ls-transfer"><h4>Transfer cargo at ${esc(ls.origin.icao)}</h4><p class="muted">Select freight already at this station and routed through ${esc(ls.destination.icao)}. It keeps its original AWB and is delivered only when it reaches its final destination. ${fmt(ls.cargo_transfer_weight_lbs || 0)} lb selected.</p>
-    <div class="ls-transfer-list">${transferOptions.map(x => `<label><input type="checkbox" data-transfer-id="${esc(x.id)}" ${transferIds.has(x.id) ? "checked" : ""}><span><b>${esc(x.awb)}</b> · ${esc(x.commodity || "Cargo")} · ${fmt(x.gross_weight_lbs)} lb · ${fmt(x.pieces)} pcs · final ${esc(x.destination)}</span><small>${esc(x.shipper || "—")} → ${esc(x.consignee || "—")}</small></label>`).join("")}</div></section>` : ""}
+    <div class="ls-transfer-list">${transferOptions.map(x => `<label><input type="checkbox" data-transfer-id="${esc(x.id)}" ${transferIds.has(x.id) ? "checked" : ""}><span><b>${esc(x.awb)}</b> · ${esc(x.commodity || "Cargo")} · ${fmt(x.gross_weight_lbs)} lb · ${fmt(x.pieces)} pcs · final ${esc(x.destination)}${x.truck_nm ? ` <span class="tag grey" title="PAC flies it to your destination; the last leg goes by road">last ${fmt(x.truck_nm)} nm by truck</span>` : ""}</span><small>${esc(x.shipper || "—")} → ${esc(x.consignee || "—")}</small></label>`).join("")}</div></section>` : ""}
   ${partial ? `<div class="notice">The ${esc(ls.aircraft_name)} carries up to ${fmt(ls.limits.max_payload)} lb, so you'll take ${fmt(ls.totals.weight_lbs)} lb of the ${fmt(ls.payload_requested)} lb consignment.</div>` : ""}
   ${!ls.ok ? `<div class="notice err">This load and fuel go over a structural limit${ls.checks.some(c => c.code === "MTOW" && !c.ok) ? ": SimBrief will cut the cargo to fit under the take-off weight limit" : ""}. Pick a larger type on the Aircraft step, or plan less fuel or cargo.</div>` : ""}
   ${lsTabsHTML(ls, units)}
@@ -2421,11 +2421,11 @@ async function loadCargo() {
       <div class="cgo-wait-route"><b>${esc(w.station)}</b><span aria-hidden="true">→</span><b>${esc(w.destination)}</b></div>
       <p>${fmt(w.shipments)} shipment${w.shipments === 1 ? "" : "s"} · ${fmt(w.weight_lbs)} lb</p>
       <p class="muted">${w.due ? `Due ${cargoInventoryDate(w.due)}` : `Waiting ${ago(w.waiting_h)}`}${w.overdue ? " · <b>overdue</b>" : ""}</p>
-      ${w.direct_route ? `<button type="button" class="btn small" data-cgo-fly="${esc(w.station)}|${esc(w.destination)}">Find a flight →</button>` : `<span class="muted cgo-nodirect">No scheduled ${esc(w.station)}–${esc(w.destination)} route yet</span>`}
+      ${(w.fly_to || []).length ? `<button type="button" class="btn small" data-cgo-fly="${esc(w.station)}|${esc(w.destination)}|${esc(w.fly_to.join(","))}">Find a flight →</button>${w.direct_route ? "" : `<small class="muted" style="display:block;margin-top:4px">Fly to ${esc(w.fly_to.slice(0, 3).join(", "))}${w.fly_to.length > 3 ? "…" : ""}</small>`}` : `<span class="muted cgo-nodirect">No PAC flight reaches ${esc(w.destination)} from ${esc(w.station)} yet</span>`}
       <button type="button" class="linkish" data-cgo-show="${esc(w.station)}|${esc(w.destination)}">See the shipments</button></article>`).join("")}</div>` : "";
   $("#cgoWaiting").querySelectorAll("[data-cgo-fly]").forEach(b => b.onclick = () => {
-    const [from, to] = b.dataset.cgoFly.split("|");
-    resetMissionFilters(); Object.assign(S, { board: "all", parkedOrigin: from, shipmentDestinations: [to], shipmentFilterTitle: `Freight waiting at ${from} for ${to}` });
+    const [from, to, via] = b.dataset.cgoFly.split("|");
+    resetMissionFilters(); Object.assign(S, { board: "all", parkedOrigin: from, shipmentDestinations: (via || to).split(","), shipmentFilterTitle: `Freight waiting at ${from} for ${to}` });
     show("missions");
   });
   let dest = "";
@@ -2484,9 +2484,9 @@ const CARGO_EVENT = {
   BOOKED: e => `Booked on ${e.flight_number || "a PAC flight"}`,
   TRANSFER_BOOKED: e => `Booked for its next leg on ${e.flight_number || "a PAC flight"}`,
   TRANSFER_CANCELLED: e => `Booking cancelled, waiting at ${e.to_station || "the station"} again`,
-  FLIGHT_ARRIVAL: e => ({ DELIVERED: `Arrived ${e.to_station}, delivered`, DELIVERED_LATE: `Arrived ${e.to_station}, delivered late`, AT_STATION: `Arrived ${e.to_station}, waiting for its next leg`,
+  FLIGHT_ARRIVAL: e => e.details?.trucked_from ? `Arrived ${e.to_station}, then by truck to ${e.details.final_destination}: delivered${e.status === "DELIVERED_LATE" ? " late" : ""}` : ({ DELIVERED: `Arrived ${e.to_station}, delivered`, DELIVERED_LATE: `Arrived ${e.to_station}, delivered late`, AT_STATION: `Arrived ${e.to_station}, waiting for its next leg`,
     HELD_AT_STATION: `Diverted to ${e.to_station}, held there`, EXCEPTION: `Arrived ${e.to_station}: exception` }[e.status] || `Arrived ${e.to_station}`),
-  ORDER_RECEIVED: e => `Order received at ${e.to_station}${e.details?.deadline ? `, due by ${cargoInventoryDate(e.details.deadline)}` : ""}`,
+  ORDER_RECEIVED: e => `Order received at ${e.to_station}${e.details?.truck_from ? ` (flies to ${e.details.truck_from}, then by truck)` : ""}${e.details?.deadline ? `, due by ${cargoInventoryDate(e.details.deadline)}` : ""}`,
   ORDER_WITHDRAWN: e => `Not picked up in time: moved to another carrier`,
   TRANSFER_RELEASED: e => `Back on the shelf at ${esc(e.from_station || "")}: the flight it was booked on sat unflown for three days`,
   FLIGHT_REJECTED: e => `Flight rejected, back at ${e.to_station}`,

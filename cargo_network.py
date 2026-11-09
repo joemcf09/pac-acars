@@ -61,6 +61,31 @@ def has_route(routes, origin, destination):
                and r.get("category") == "Scheduled" for r in routes)
 
 
+NEAR_NM = 300
+_ctx = {"near": None, "routes": None}
+
+
+def set_context(near=None, routes=None):
+    """near(a, b) -> nautical miles between two airports (or None); routes() -> PAC's routes. Set once by the app."""
+    _ctx.update(near=near, routes=routes)
+
+
+def nearby(a, b):
+    """Two different airports close enough for the last leg to go by road (road feeder service)."""
+    if not a or not b or a == b or not _ctx["near"]:
+        return False
+    d = _ctx["near"](a, b)
+    return d is not None and d <= NEAR_NM
+
+
+def reachable(routes, destination, final):
+    """(ok, by_truck): the shipment can travel on a flight to `destination`: it's going there, PAC flies on from there,
+    or its final airport is within 300 nm and the last leg goes by truck."""
+    if final == destination or has_route(routes, destination, final):
+        return True, False
+    return (True, True) if nearby(destination, final) else (False, False)
+
+
 def transfer_options(con, origin, destination, routes):
     origin, destination = str(origin or "").upper(), str(destination or "").upper()
     rows = con.execute("""SELECT id, awb, origin, destination, current_station, status, shipper, consignee,
@@ -69,10 +94,13 @@ def transfer_options(con, origin, destination, routes):
         WHERE current_station=? AND status IN ('AT_STATION','HELD_AT_STATION') AND reserved_booking_key IS NULL
         ORDER BY updated_at, awb""", (origin,)).fetchall()
     available = []
+    routes = list(routes)
     for row in rows:
-        if row["destination"] != destination and not has_route(routes, destination, row["destination"]):
+        ok, truck = reachable(routes, destination, row["destination"])
+        if not ok:
             continue
         item = dict(row)
+        item["truck"] = truck
         try:
             item["data"] = json.loads(item["data"])
         except (TypeError, ValueError, json.JSONDecodeError) as exc:
@@ -98,8 +126,7 @@ def selected_transfers(con, shipment_ids, origin, destination, routes, booking_k
             if (not row or row["current_station"] != str(origin or "").upper() or row["status"] != "BOOKED"
                     or row["reserved_booking_key"] != booking_key):
                 raise ValueError(f"Transfer shipment {shipment_id} is no longer reserved on this flight.")
-            if row["destination"] != str(destination or "").upper() and not has_route(
-                    routes, str(destination or "").upper(), row["destination"]):
+            if not reachable(list(routes), str(destination or "").upper(), row["destination"])[0]:
                 raise ValueError(f"Transfer shipment {row['awb']} is not routed through {destination}.")
             item = dict(row)
             try:
@@ -304,9 +331,14 @@ def record_flight(con, booking, pirep, pirep_id, pilot_id):
         if not row:
             raise RuntimeError(f"Persistent shipment {shipment_id} was not created.")
         previous_station = row["current_station"]
+        trucked = False
         if flight_status in ("Delivered", "Delivered late"):
             if actual_station == row["destination"]:
                 status = "DELIVERED_LATE" if flight_status == "Delivered late" else "DELIVERED"
+            elif nearby(actual_station, row["destination"]) and not (
+                    _ctx["routes"] and has_route(list(_ctx["routes"]()), actual_station, row["destination"])):
+                status = "DELIVERED_LATE" if flight_status == "Delivered late" else "DELIVERED"
+                trucked = True           # the last leg goes by road from the arrival airport
             else:
                 status = "AT_STATION"
         elif flight_status == "Diverted":
@@ -315,7 +347,8 @@ def record_flight(con, booking, pirep, pirep_id, pilot_id):
             status = "EXCEPTION"
         event_key = f"pirep:{pirep_id}:{shipment_id}"
         details = json.dumps({"flight_status": flight_status, "planned_destination": dispatch.get("destination", {}).get("icao"),
-                              "final_destination": row["destination"], "cargo_status": status}, separators=(",", ":"))
+                              "final_destination": row["destination"], "cargo_status": status,
+                              **({"trucked_from": actual_station} if trucked else {})}, separators=(",", ":"))
         inserted = con.execute("""INSERT OR IGNORE INTO cargo_movements
             (shipment_id, event_key, event_type, event_time, from_station, to_station, pilot_id, flight_number,
              pirep_id, status, details)
@@ -324,7 +357,8 @@ def record_flight(con, booking, pirep, pirep_id, pilot_id):
              dispatch.get("flight"), pirep_id, status, details)).rowcount
         if inserted:
             con.execute("""UPDATE cargo_shipments SET current_station=?, status=?, reserved_booking_key=NULL,
-                reserved_previous_status=NULL, updated_at=? WHERE id=?""", (actual_station or previous_station, status, now, shipment_id))
+                reserved_previous_status=NULL, updated_at=? WHERE id=?""",
+                (row["destination"] if trucked else (actual_station or previous_station), status, now, shipment_id))
 
 
 IDLE_RELEASE_S = 72 * 3600

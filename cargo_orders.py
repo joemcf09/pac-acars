@@ -58,6 +58,27 @@ def _fits(fleet, route, weight):
     return any(c >= weight for c in caps)
 
 
+_net = {"airports": [], "routes": []}
+TRUCK_SHARE = 0.3
+
+
+def learn(routes):
+    routes = list(routes)
+    _net.update(routes=routes, airports=sorted(({(r.get("destination") or {}).get("icao") for r in routes} |
+                                               {(r.get("origin") or {}).get("icao") for r in routes}) - {None}))
+
+
+def _truck_final(route, rng):
+    """Sometimes a forwarder books freight for a town near the route's destination: PAC flies it in and the last
+    leg (up to 300 nm) goes by truck. Only airports PAC can't fly on to from the destination."""
+    dest = route["destination"]["icao"]
+    if rng.random() >= TRUCK_SHARE:
+        return None
+    near = [a for a in _net["airports"] if a not in (dest, route["origin"]["icao"]) and cargo_network.nearby(dest, a)
+            and not cargo_network.has_route(_net["routes"], dest, a)]
+    return rng.choice(sorted(near)) if near else None
+
+
 def make_order(con, route, fleet, pilot, rng, now):
     """One or two consignments from a full paperwork run on this route, stored as waiting freight at its origin."""
     ac = [a for a in route.get("aircraft") or [] if a in fleet]
@@ -72,6 +93,7 @@ def make_order(con, route, fleet, pilot, rng, now):
         return []
     shipments.enrich(d)
     origin, dest = route["origin"]["icao"], route["destination"]["icao"]
+    final = _truck_final(route, rng)
     small_cap = min((fleet.get(a) or {}).get("max_payload_lbs") or 1e9 for a in ac)
     pool = [s for s in d["shipments"] if (s.get("weight_lbs") or 0) <= small_cap * 0.5 and (s.get("destination") or {}).get("icao") in (None, dest)]
     rng.shuffle(pool)
@@ -84,22 +106,25 @@ def make_order(con, route, fleet, pilot, rng, now):
         awb = cargo_network._next_awb(con, set())
         sid = uuid.uuid4().hex
         hours = SERVICE_HOURS.get(s.get("service"), 72) + rng.choice((0, 12, 24))
-        deadline = now + hours * 3600
+        deadline = now + hours * 3600 + (12 * 3600 if final else 0)     # the truck needs its time too
         data = dict(s, awb=awb, cargo_source_awb=s["awb"], shipment_id=sid, unit_details=units, order=True,
-                    deadline=deadline, destination={"icao": dest, "city": route["destination"].get("city")})
+                    deadline=deadline,
+                    destination={"icao": final or dest, "city": None if final else route["destination"].get("city")},
+                    **({"truck_from": dest} if final else {}))
         a = s.get("awb_doc") or {}
         con.execute("""INSERT INTO cargo_shipments (id, awb, booking_key, source_awb, origin, destination, current_station, status,
             shipper, consignee, commodity, pieces, gross_weight_lbs, chargeable_weight_kg, priority, handling, security_status,
             reserved_booking_key, reserved_previous_status, data, created_at, updated_at)
             VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
-            (sid, awb, f"ORDER:{sid}", s["awb"], origin, dest, origin, "AT_STATION", s["shipper"]["name"], s["consignee"]["name"],
+            (sid, awb, f"ORDER:{sid}", s["awb"], origin, final or dest, origin, "AT_STATION", s["shipper"]["name"], s["consignee"]["name"],
              s.get("contents") or "", int(s.get("pieces") or 0), float(s.get("weight_lbs") or 0), a.get("chg_kg"), s.get("service"),
              json.dumps(s.get("handling") or []), (a.get("screen") or {}).get("status"), None, None,
              json.dumps(data, separators=(",", ":"), ensure_ascii=False), now, now))
         con.execute("""INSERT OR IGNORE INTO cargo_movements (shipment_id, event_key, event_type, event_time, from_station, to_station,
             pilot_id, flight_number, status, details) VALUES (?,?,?,?,?,?,?,?,?,?)""",
             (sid, f"order:{sid}", "ORDER_RECEIVED", now, None, origin, ORDER_PILOT, None, "AT_STATION",
-             json.dumps({"deadline": deadline, "service": s.get("service"), "forwarder": s.get("agent")}, separators=(",", ":"))))
+             json.dumps({"deadline": deadline, "service": s.get("service"), "forwarder": s.get("agent"),
+                         **({"truck_from": dest} if final else {})}, separators=(",", ":"))))
         made.append(awb)
     return made
 
@@ -137,6 +162,7 @@ def tick(con, routes, fleet, pilot, st, now=None, force=False):
     con.execute("INSERT INTO cargo_orders_state (id, last) VALUES (1, ?) ON CONFLICT(id) DO UPDATE SET last=excluded.last", (now,))
     out["withdrawn"] = withdraw_stale(con, now)
     routes = list(routes)
+    learn(routes)
     rng = random.Random(f"orders|{int(now // TICK_S)}")
     for station in stations(routes, pol["stations"]):
         target = pol["hub_target"] if station in HUBS else pol["station_target"]
@@ -159,7 +185,7 @@ def tick(con, routes, fleet, pilot, st, now=None, force=False):
 ROUTE_TOPUP_S = 2 * 3600
 
 
-def ensure_route(con, route, fleet, pilot, aircraft, st, now=None):
+def ensure_route(con, route, fleet, pilot, aircraft, st, now=None, routes=None):
     """When a pilot plans a scheduled flight, make sure there's customer freight waiting for that exact leg: at least
     two shipments, or a fifth of the chosen aircraft's payload, whichever comes first. At most once every two hours per
     route, so reopening the load sheet doesn't keep adding freight. Returns how many orders were added."""
@@ -169,6 +195,8 @@ def ensure_route(con, route, fleet, pilot, aircraft, st, now=None):
     origin, dest = (route.get("origin") or {}).get("icao"), (route.get("destination") or {}).get("icao")
     if not origin or not dest or origin == dest:
         return 0
+    if routes is not None and not _net["routes"]:
+        learn(routes)
     con.execute("CREATE TABLE IF NOT EXISTS cargo_orders_route (route_id TEXT PRIMARY KEY, last REAL NOT NULL)")
     last = con.execute("SELECT last FROM cargo_orders_route WHERE route_id=?", (route["id"],)).fetchone()
     if last and now - last[0] < ROUTE_TOPUP_S:
@@ -179,6 +207,7 @@ def ensure_route(con, route, fleet, pilot, aircraft, st, now=None):
     n, w = con.execute("""SELECT COUNT(*), COALESCE(SUM(gross_weight_lbs),0) FROM cargo_shipments WHERE current_station=? AND destination=?
         AND status IN ('AT_STATION','HELD_AT_STATION') AND reserved_booking_key IS NULL""", (origin, dest)).fetchone()
     rng = random.Random(f"route|{route['id']}|{int(now // ROUTE_TOPUP_S)}")
+
     made, tries = 0, 0
     while (n < 2 and (not cap or w < cap * 0.2)) and tries < 4:
         tries += 1

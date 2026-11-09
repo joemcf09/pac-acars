@@ -2644,7 +2644,7 @@ def plan_loadsheet():
     stock_cargo_orders()
     try:
         with db() as con:
-            cargo_orders.ensure_route(con, m, FLEET, dispatch_pilot(), ac_code, settings())
+            cargo_orders.ensure_route(con, m, FLEET, dispatch_pilot(), ac_code, settings(), routes=ROUTES.values())
     except Exception as e:      # freight for this leg must never break the load sheet
         app.logger.exception("cargo orders (route): %s", e)
     with db() as con:
@@ -2690,7 +2690,9 @@ def plan_loadsheet():
                 "transfer_options": [{"id": item["id"], "awb": item["awb"], "destination": item["destination"],
                                       "shipper": item["shipper"], "consignee": item["consignee"],
                                       "commodity": item["commodity"], "pieces": item["pieces"],
-                                      "gross_weight_lbs": item["gross_weight_lbs"]} for item in transfer_options],
+                                      "gross_weight_lbs": item["gross_weight_lbs"],
+                                      "truck_nm": round(_airport_nm(m["destination"]["icao"], item["destination"]) or 0) if item.get("truck") else None}
+                                     for item in transfer_options],
                 "cargo_transfer_ids": [item["id"] for item in transfer_rows],
                 "cargo_transfer_weight_lbs": transfer_weight,
                 "erg": paper["erg"], "ok": all(c["ok"] for c in checks),
@@ -3601,6 +3603,16 @@ def cargo_stations():
     return jsonify([dict(row) for row in rows])
 
 
+def _airport_nm(a, b):
+    pa, pb = AIRPORTS.get(a), AIRPORTS.get(b)
+    if not pa or not pb or pa.get("lat") is None or pb.get("lat") is None:
+        return None
+    return gc_distance_nm(pa["lat"], pa["lon"], pb["lat"], pb["lon"])
+
+
+cargo_network.set_context(near=_airport_nm, routes=lambda: ROUTES.values())
+
+
 def release_idle_cargo():
     """Waiting freight reserved by bookings nobody has flown in three days goes back on the shelf."""
     try:
@@ -3656,8 +3668,13 @@ def cargo_overview():
     groups = []
     for w in waiting:
         direct = cargo_network.has_route(ROUTES.values(), w["station"], w["destination"])
+        fly_to = sorted({
+            (r.get("destination") or {}).get("icao") for r in ROUTES.values()
+            if r.get("category") == "Scheduled" and (r.get("origin") or {}).get("icao") == w["station"]
+            and cargo_network.reachable(ROUTES.values(), (r.get("destination") or {}).get("icao"), w["destination"])[0]})
         groups.append({**dict(w), "weight_lbs": round(w["weight_lbs"] or 0), "waiting_h": round((now - w["oldest"]) / 3600, 1),
-                       "overdue": (w["due"] or (w["oldest"] + overdue_s)) < now, "direct_route": bool(direct)})
+                       "overdue": (w["due"] or (w["oldest"] + overdue_s)) < now, "direct_route": bool(direct),
+                       "fly_to": ([w["destination"]] if direct else []) + [x for x in fly_to if x != w["destination"]][:11]})
     return jsonify({"counts": counts, "waiting": groups, "overdue_hours": overdue_s // 3600})
 
 

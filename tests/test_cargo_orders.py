@@ -121,6 +121,48 @@ with A.db() as con:
 check("flying the old booking later still files", fr.status_code == 200 and own > 0, (fr.status_code, fr.json.get("error") if fr.is_json else None, own))
 check("and the released freight stays behind for someone else", f3["status"] == "AT_STATION" and f3["current_station"] == o2, dict(f3))
 
+print("Freight for a town near the destination (last leg by truck)")
+O.TRUCK_SHARE = 1.0
+with A.db() as con:
+    con.execute("UPDATE cargo_shipments SET status='WITHDRAWN' WHERE booking_key LIKE 'ORDER:%' AND status='AT_STATION'")
+    O.tick(con, A.ROUTES.values(), A.FLEET, A.dispatch_pilot(), A.settings(), force=True)
+    tr = [r for r in con.execute("SELECT * FROM cargo_shipments WHERE booking_key LIKE 'ORDER:%' AND status='AT_STATION'")
+          if '"truck_from"' in r["data"]]
+O.TRUCK_SHARE = 0.3
+check("some orders are booked to a town near a PAC destination", len(tr) > 0, len(tr))
+import json as _j
+tk = None
+for r3 in tr:
+    via = _j.loads(r3["data"])["truck_from"]
+    rt3 = next(((r, a) for r in A.ROUTES.values() if r["origin"]["icao"] == r3["current_station"] and r["destination"]["icao"] == via
+                and r.get("category") == "Scheduled" for a in r["aircraft"] if A.FLEET.get(a, {}).get("max_payload_lbs", 0) >= r3["gross_weight_lbs"] * 2), None)
+    if rt3:
+        tk = (r3, rt3); break
+r3, (route3, ac3) = tk
+nm = A._airport_nm(route3["destination"]["icao"], r3["destination"])
+check("the truck leg is 300 nm or less and PAC doesn't fly it", nm <= 300 and not A.cargo_network.has_route(A.ROUTES.values(), route3["destination"]["icao"], r3["destination"]), nm)
+ls3 = c.post("/api/plan/loadsheet", json={"mission_id": route3["id"], "aircraft": ac3}).json
+opt = next((t for t in ls3["transfer_options"] if t["id"] == r3["id"]), None)
+check("the load sheet offers it, marked by truck", opt and opt.get("truck_nm"), opt)
+ov = c.get("/api/cargo/overview").json
+grp = next((g for g in ov["waiting"] if g["destination"] == r3["destination"] and g["station"] == r3["current_station"]), None)
+check("Find a flight knows which flights reach it", grp and route3["destination"]["icao"] in grp["fly_to"], grp)
+c.delete("/api/booking")
+ls3 = c.post("/api/plan/loadsheet", json={"mission_id": route3["id"], "aircraft": ac3, "cargo_transfer_ids": [r3["id"]]}).json
+b3 = c.post("/api/booking", json={"mission_id": route3["id"], "aircraft": ac3, "manifest_seed": ls3["seed"], "cargo_transfer_ids": [r3["id"]], "zone_ack": True}).json
+o3, d3 = route3["origin"]["icao"], route3["destination"]["icao"]
+c.post("/api/acars/app/start", json={"source": "MSFS", "requested_at": b3["requested_at"]})
+rec3 = FlightRecorder(b3)
+for s_ in fly(o3, rw[o3][0][0], d3, rw[d3][0][0], td_fpm=-150):
+    rec3.update(s_)
+c.post("/api/acars/app/complete", json={"record": rec3.export(), "requested_at": b3["requested_at"], "source": "MSFS"})
+c.post("/api/pirep", json={"remarks": "truck"})
+with A.db() as con:
+    f4 = con.execute("SELECT status, current_station, destination FROM cargo_shipments WHERE id=?", (r3["id"],)).fetchone()
+    det = con.execute("SELECT details FROM cargo_movements WHERE shipment_id=? AND event_type='FLIGHT_ARRIVAL'", (r3["id"],)).fetchone()[0]
+check("flying it to the nearby airport delivers it by truck", f4["status"].startswith("DELIVERED") and f4["current_station"] == f4["destination"]
+      and '"trucked_from"' in det, (dict(f4), det))
+
 print("Unclaimed orders")
 with A.db() as con:
     r = O.tick(con, A.ROUTES.values(), A.FLEET, A.dispatch_pilot(), A.settings(), now=time.time() + 8 * 86400, force=True)
