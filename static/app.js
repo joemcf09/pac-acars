@@ -2726,7 +2726,7 @@ async function loadDownloads() {
   const acList = [...new Set(liveries.map(f => f.aircraft).filter(Boolean))]
     .sort((a, b) => (S.fleet[a]?.name || a).localeCompare(S.fleet[b]?.name || b, undefined, { numeric: true }));
   const shortName = k => (S.fleet[k]?.name || k).replace(/^(Boeing|Airbus|McDonnell Douglas)\s+/, "");
-  const liveryFilter = liveries.length > 4 ? `<div class="dl-filter" role="group" aria-label="Filter liveries">
+  const liveryFilter = liveries.length > 4 && staff ? `<div class="dl-filter" role="group" aria-label="Filter liveries">
       <div class="dl-chips" data-group="sim"><span class="dl-flabel">Simulator</span>${[["", "All"], ["msfs", "MSFS"], ["xp", "X-Plane"]].map(([v, l]) => `<button type="button" class="dl-chip" data-v="${v}" aria-pressed="${(pref.sim || "") === v}">${l}</button>`).join("")}</div>
       <div class="dl-chips" data-group="ac"><span class="dl-flabel">Aircraft</span><button type="button" class="dl-chip" data-v="" aria-pressed="${!pref.ac}">All</button>${acList.map(k => `<button type="button" class="dl-chip" data-v="${esc(k)}" aria-pressed="${pref.ac === k}">${esc(shortName(k))}</button>`).join("")}</div>
       <span class="muted dl-count" id="dlCount" aria-live="polite"></span></div>` : "";
@@ -2743,7 +2743,7 @@ async function loadDownloads() {
     <section class="dl-sec" id="siCard"></section>
     ${d.categories.filter(c => byCat[c].length || c === "Livery" || c === "Document").map(c => `<section class="dl-sec"><h2>${{ Livery: "Liveries", Checklist: "Checklists", Document: "Documents", Scenery: "Scenery", Other: "Other files" }[c]}</h2>
       ${c === "Livery" ? liveryFilter : ""}
-      ${byCat[c].length ? `<div ${c === "Livery" ? 'id="dlLiveries"' : ""}>${byCat[c].map(fileRow).join("")}</div>${c === "Livery" ? `<p class="muted" id="dlNone" hidden>No liveries for that aircraft in that simulator yet.</p>` : ""}` : c === "Livery" ? `<p class="muted">No liveries yet.${staff ? " Upload one below." : ""}</p>` : ""}
+      ${c === "Livery" ? `<div class="notice" style="display:flex;gap:14px;align-items:center;flex-wrap:wrap"><span style="flex:1;min-width:240px"><b>PAC liveries are on the Fleet page.</b> Each one sits with its aircraft, with a preview and credit to its painter, for MSFS and X-Plane.</span><button class="btn small" type="button" onclick="show('fleet')">Get liveries on the Fleet page →</button></div>${byCat[c].length && staff ? `<p class="muted" style="font-size:13px">Staff: the files below are older copies. Delete them to free space; pilots get liveries from the Fleet page.</p>` : ""}` : ""}${byCat[c].length && (c !== "Livery" || staff) ? `<div ${c === "Livery" ? 'id="dlLiveries"' : ""}>${byCat[c].map(fileRow).join("")}</div>${c === "Livery" ? `<p class="muted" id="dlNone" hidden>No liveries for that aircraft in that simulator yet.</p>` : ""}` : ""}
       ${c === "Document" ? `
         <div class="dl-row"><div><b>KCVG station guide</b><p>Cincinnati in detail: runways, frequencies, cargo ramps, procedures and PAC's stands.</p></div><div class="dl-actions"><button class="btn ghost small" type="button" data-station="KCVG">Open to print</button></div></div>` : ""}</section>`).join("")}
     <section class="dl-sec"><h2>SimBrief airframes</h2>
