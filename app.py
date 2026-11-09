@@ -3643,6 +3643,40 @@ def stock_cargo_orders():
         return None
 
 
+@app.get("/api/staff/cargo-stock")
+def staff_cargo_stock():
+    """Staff › Cargo stock: the order settings and what each stocked station is holding right now."""
+    st = settings()
+    pol = cargo_orders.policy(st)
+    names = cargo_orders.stations(list(ROUTES.values()), pol["stations"])
+    with db() as con:
+        rows = {r["s"]: dict(r) for r in con.execute("""SELECT current_station AS s, COUNT(*) AS n, COALESCE(SUM(gross_weight_lbs),0) AS lbs,
+            SUM(booking_key LIKE 'ORDER:%') AS orders FROM cargo_shipments WHERE status IN ('AT_STATION','HELD_AT_STATION')
+            AND reserved_booking_key IS NULL GROUP BY current_station""")}
+        last = None
+        try:
+            r = con.execute("SELECT last FROM cargo_orders_state WHERE id=1").fetchone()
+            last = r[0] if r else None
+        except Exception:
+            pass
+    out = []
+    for name in names:
+        r = rows.get(name, {})
+        out.append({"icao": name, "city": (AIRPORTS.get(name) or {}).get("city"), "hub": name in cargo_orders.HUBS,
+                    "target": pol["hub_target"] if name in cargo_orders.HUBS else pol["station_target"],
+                    "waiting": r.get("n", 0), "orders": r.get("orders", 0) or 0, "weight_lbs": round(r.get("lbs", 0))})
+    return jsonify({"policy": pol, "stations": out, "last_stocked": last, "hubs": list(cargo_orders.HUBS),
+                    "truck_share": cargo_orders.TRUCK_SHARE, "idle_release_h": cargo_network.IDLE_RELEASE_S // 3600})
+
+
+@app.post("/api/staff/cargo-stock/restock")
+def staff_cargo_restock():
+    """Restock now instead of waiting for the next 30-minute window."""
+    with db() as con:
+        r = cargo_orders.tick(con, ROUTES.values(), FLEET, dispatch_pilot(), settings(), force=True)
+    return jsonify({"ok": True, **r})
+
+
 @app.get("/api/cargo/overview")
 def cargo_overview():
     """The cargo operation at a glance: what's waiting where (and for which onward flight), what's in the air,

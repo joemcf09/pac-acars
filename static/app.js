@@ -5529,15 +5529,48 @@ function renderStaff() {
   const d = S.staff;
   const pendingReviews = d.reviews.filter(r => r.review_status === "Pending").length;
   const pendingApps = d.applications.filter(a => a.status === "Pending").length;
-  const tabs = [["reports", "Problem reports", 0], ["health", "Operations health", 0], ["campaigns", "Cargo campaigns", 0], ["reviews", "PIREP review", pendingReviews], ["applications", "Applications", pendingApps], ["transfers", "Transfer hours", d.transfer_pending || 0], ["activity", "Activity", d.activity_overdue || 0], ["roster", "Roster", 0],
+  const tabs = [["reports", "Problem reports", 0], ["health", "Operations health", 0], ["campaigns", "Cargo campaigns", 0], ["cargostock", "Cargo stock", 0], ["reviews", "PIREP review", pendingReviews], ["applications", "Applications", pendingApps], ["transfers", "Transfer hours", d.transfer_pending || 0], ["activity", "Activity", d.activity_overdue || 0], ["roster", "Roster", 0],
     ["news", "News", 0], ["mx", "Maintenance", d.airframes.reduce((n, a) => n + (a.open_items || []).length, 0)], ["types", "Fleet types", 0], ["pphotos", "Partner photos", 0], ["airframes", "Airframes", d.airframes.filter(a => ["Maintenance", "Inspection", "A-check due", "Damaged"].includes(a.status)).length], ["events", "Events", 0], ["site", "Site and rules", 0]];
   $("#staffRoot").innerHTML = `<div class="profile-bar"><h1>Staff</h1><span class="muted">Running the airline. Only staff accounts can see this area.</span></div>
     <div class="staff-tabs" role="tablist">${tabs.map(([k, t, n]) => `<button role="tab" data-st="${k}" aria-selected="${S.staffTab === k}">${t}${n ? `<span class="count">${n}</span>` : ""}</button>`).join("")}</div>
     <div id="staffBody"></div>`;
   document.querySelectorAll("[data-st]").forEach(b => b.onclick = () => { S.staffTab = b.dataset.st; renderStaff(); });
-  ({ reports: staffProblemReports, health: staffOperationsHealth, campaigns: staffCargoCampaigns, reviews: staffReviews, applications: staffApps, transfers: staffTransfers, activity: staffActivity, roster: staffRoster, news: staffNews, mx: staffMx, types: staffTypes, pphotos: staffPartnerPhotos, airframes: staffAirframes, events: staffEvents, site: staffSite })[S.staffTab]();
+  ({ reports: staffProblemReports, health: staffOperationsHealth, campaigns: staffCargoCampaigns, cargostock: staffCargoStock, reviews: staffReviews, applications: staffApps, transfers: staffTransfers, activity: staffActivity, roster: staffRoster, news: staffNews, mx: staffMx, types: staffTypes, pphotos: staffPartnerPhotos, airframes: staffAirframes, events: staffEvents, site: staffSite })[S.staffTab]();
 }
 /* Staff › Activity: every pilot's next-flight-due date, who is on leave and who is overdue */
+async function staffCargoStock() {
+  const body = $("#staffBody");
+  body.innerHTML = `<p class="muted">Loading cargo stock…</p>`;
+  let d;
+  try { d = await api("/api/staff/cargo-stock"); } catch (e) { body.innerHTML = `<div class="notice err">${esc(e.message)}</div>`; return; }
+  const P = d.policy;
+  const when = d.last_stocked ? new Date(d.last_stocked * 1000).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }) : "not yet";
+  body.innerHTML = `<div class="notice" style="margin:0 0 12px;${P.enabled ? "" : "border-color:var(--line)"}"><label style="display:flex;gap:8px;align-items:center;font-weight:700"><input type="checkbox" id="stockOn" ${P.enabled ? "checked" : ""}> Customer orders ${P.enabled ? "on" : "off"}</label>
+    <p style="margin:6px 0 0;font-size:14px">${P.enabled ? "PAC's hubs and busiest stations keep real-company freight waiting for pilots, topped up at most every 30 minutes. Orders nobody flies go to another carrier a day after their deadline." : "Off: no new orders are created. Orders already waiting stay until they're flown or their deadline passes."}</p></div>
+    <form id="stockForm" class="row" style="gap:14px;align-items:flex-end;margin-bottom:10px">
+      <label>Shipments waiting at each hub<br><input name="hub" type="number" min="0" max="40" value="${P.hub_target}" style="width:90px"></label>
+      <label>At each other station<br><input name="station" type="number" min="0" max="20" value="${P.station_target}" style="width:90px"></label>
+      <label>How many other stations<br><input name="stations" type="number" min="0" max="60" value="${P.stations}" style="width:90px"></label>
+      <button class="btn small" type="submit">Save</button>
+      <button class="btn ghost small" type="button" id="stockNow">Restock now</button></form>
+    <p class="muted" style="max-width:90ch;font-size:14px">Hubs: ${d.hubs.map(esc).join(", ")}. The other stations are the ones with the most scheduled departures. A target is a minimum: freight pilots leave behind adds to it. About ${Math.round(d.truck_share * 100)}% of new orders go to a town near a PAC destination with the last leg by truck. Freight on a booking left unflown for ${d.idle_release_h / 24} days goes back on the shelf. Last restocked: ${esc(when)}.</p>
+    <div class="aar-wrap"><table class="aar-table"><thead><tr><th>Station</th><th class="r">Target</th><th class="r">Waiting now</th><th class="r">Of which customer orders</th><th class="r">Weight</th></tr></thead><tbody>
+    ${d.stations.map(x => `<tr><td><b class="mono">${esc(x.icao)}</b> ${esc(x.city || "")} ${x.hub ? '<span class="tag dark">Hub</span>' : ""}</td><td class="r">${x.target}</td><td class="r ${x.waiting < x.target ? "aar-bad" : ""}">${x.waiting}</td><td class="r">${x.orders}</td><td class="r mono">${fmt(x.weight_lbs)} lb</td></tr>`).join("")}
+    </tbody></table></div>`;
+  $("#stockOn").onchange = async e => {
+    try { await api("/api/settings", { method: "POST", body: { cargo_orders_enabled: e.target.checked } }); toast(e.target.checked ? "Customer orders on." : "Customer orders off."); staffCargoStock(); }
+    catch (err) { toast(err.message); e.target.checked = !e.target.checked; }
+  };
+  $("#stockForm").onsubmit = async e => {
+    e.preventDefault(); const f = e.target;
+    try { await api("/api/settings", { method: "POST", body: { cargo_orders_hub_target: +f.hub.value, cargo_orders_station_target: +f.station.value, cargo_orders_stations: +f.stations.value } }); toast("Saved. Stations top up on the next restock."); staffCargoStock(); }
+    catch (err) { toast(err.message); }
+  };
+  $("#stockNow").onclick = async () => {
+    try { const r = await api("/api/staff/cargo-stock/restock", { method: "POST" }); toast(`Restocked: ${r.created} new order${r.created === 1 ? "" : "s"}${r.withdrawn ? `, ${r.withdrawn} expired` : ""}.`); staffCargoStock(); }
+    catch (err) { toast(err.message); }
+  };
+}
 async function staffActivity() {
   const body = $("#staffBody");
   body.innerHTML = `<p class="muted">Loading activity…</p>`;
