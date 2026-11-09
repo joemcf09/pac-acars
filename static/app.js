@@ -4717,6 +4717,8 @@ async function refreshReleaseGate() {
     if (panel) panel.innerHTML = paperNote(S.booking);
     const btn = document.getElementById('dispatchBtn');   // the ACARS strip's button follows the signature too
     if (btn) btn.textContent = needsSignature(S.booking) ? "Review and sign paperwork" : "Dispatch release";
+    const hn = document.getElementById('homeNext');   // the Home page's "Do this next" follows the signature too
+    if (hn) hn.innerHTML = homeNextHTML(S.status);
     if (location.hash === '#bids') await loadBids();
   } catch (e) { /* Keep last state; server independently enforces the start gate. */ }
   finally { releaseRefreshing = false; }
