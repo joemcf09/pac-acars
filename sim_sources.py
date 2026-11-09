@@ -307,6 +307,7 @@ class XPlaneSource:
         ("nav_lt", "sim/cockpit/electrical/nav_lights_on"),
         ("taxi_lt", "sim/cockpit/electrical/taxi_light_on"),
         ("n_eng", "sim/aircraft/engine/acf_num_engines"),
+        ("vy_ms", "sim/flightmodel/position/local_vy"),   # true vertical speed (m/s), no instrument lag
     ]
 
     def __init__(self, host="127.0.0.1", port=49000, freq=20):
@@ -316,6 +317,8 @@ class XPlaneSource:
         self.values = {}
         self.last_rx = 0.0
         self.last_sub = 0.0
+        self._air_vy = None          # last true vertical speed seen while airborne (fpm)
+        self._td = None              # (fpm, time) captured at the moment the wheels touched
 
     def _subscribe(self, freq):
         self.last_sub = time.time()
@@ -363,6 +366,15 @@ class XPlaneSource:
                 idx, val = struct.unpack("<if", data[off:off + 8])
                 if 0 <= idx < len(self.DATAREFS):
                     self.values[self.DATAREFS[idx][0]] = val
+            # X-Plane has no touchdown-rate value like MSFS, so catch it here, packet by packet: the true vertical
+            # speed in the last packet before the wheels touched (what in-sim landing tools measure).
+            vy = self.values.get("vy_ms")
+            if vy is not None:
+                if self.values.get("on_ground", 1.0) <= 0.5:
+                    self._air_vy = vy * 196.850394
+                elif self._air_vy is not None:
+                    self._td = (-abs(self._air_vy), time.time())
+                    self._air_vy = None
         return got
 
     def read(self):
@@ -389,6 +401,7 @@ class XPlaneSource:
             bank=v("bank", None), beacon=_flag(v("beacon", None)), landing_lights=_flag(v("landing_lt", None)),
             strobe=_flag(v("strobe", None)), nav_lights=_flag(v("nav_lt", None)), taxi_light=_flag(v("taxi_lt", None)),
             num_engines=int(v("n_eng")) if v("n_eng", None) else None,
+            touchdown_fpm=self._td[0] if self._td and v("on_ground", 1.0) > 0.5 and now - self._td[1] <= 2.0 else None,
         )
 
     def close(self):

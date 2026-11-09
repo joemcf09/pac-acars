@@ -1,6 +1,15 @@
 PAC ACARS - CHANGELOG
 =====================
 
+1.1.6 (November 2026)
+---------------------
+Fixed: X-Plane landing rates
+- On X-Plane, the landing rate is now X-Plane's true vertical speed at the
+  moment the wheels touch, the same value in-sim landing tools show.
+  Before, it came from the cockpit vertical speed needle, which lags in the
+  flare and made landings look harder than they were.
+- MSFS is unchanged.
+
 1.1.5 (November 2026)
 ---------------------
 New: finished flights are never lost
