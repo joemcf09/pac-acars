@@ -42,7 +42,14 @@ def url(rule):
 
 
 print("Visitors")
-PUBLIC_OK = {"/", "/api/acars/app/download", "/api/bootstrap", "/api/fleet", "/api/fleet/<code>/photo", "/api/gallery",
+PUBLIC_OK = {
+    # public on purpose: search engines, the Academy, conflict maps, the public roster and group flight, partner photos,
+    # basic site settings; the load planner pages are empty shells whose data (/api/load-plan) needs a sign-in
+    "/academy", "/academy/", "/academy/<path:name>", "/robots.txt", "/sitemap.xml", "/api/conflict-zones",
+    "/api/conflict-zones/map", "/media/image", "/api/partner-photos", "/api/partner-photo/<key>/<ac>", "/load-planner",
+    "/load-planner-all", "/load-planner-727", "/api/va/config", "/api/public/roster", "/api/public/group-flight",
+    "/api/group-flight.ics",
+    "/", "/api/acars/app/download", "/api/bootstrap", "/api/fleet", "/api/fleet/<code>/photo", "/api/gallery",
              # liveries are on the public Fleet page; an uploaded file still needs a sign-in (checked in test_liveries.py)
              "/api/fleet/liveries", "/api/fleet/liveries/<lid>/preview", "/api/fleet/liveries/<lid>/download",
              "/api/va/home/network-logo/<net>",   # the VATSIM logo in the home page's Network partners section
@@ -103,7 +110,9 @@ print("Ordinary pilot: profiles")
 p = pilot.get("/api/profile").get_json()["profile"]
 check("sees their own profile, not the founder's", p["pilot_id"] == "PAC0002" and p["name"] == "Bob Member", p)
 check("the pilot chip shows them", pilot.get("/api/bootstrap").get_json()["profile"]["name"] == "Bob Member")
-r = pilot.post("/api/profile", json={**p, "name": "Joseph Pagani", "pilot_id": "PAC0001", "rank": "Senior Captain", "bio": "Hello, I'm Bob."})
+r = pilot.post("/api/profile", json={**p, "name": "Joseph  PAGANI", "pilot_id": "PAC0001", "rank": "Senior Captain", "bio": "Hello, I'm Bob."})
+check("can't take another pilot's name (the founder's here)", r.status_code == 400, (r.status_code, r.get_json()))
+r = pilot.post("/api/profile", json={**p, "pilot_id": "PAC0001", "rank": "Senior Captain", "bio": "Hello, I'm Bob."})
 q = r.get_json()["profile"]
 check("can edit their own bio", q["bio"] == "Hello, I'm Bob.")
 check("can't rename themselves, take another ID or promote themselves",

@@ -8,6 +8,7 @@ import json
 import threading
 import os
 import re
+import unicodedata
 
 import pickle
 import sqlite3
@@ -1277,6 +1278,10 @@ def save_profile():
         with db() as con:
             if not con.execute("SELECT 1 FROM pilots WHERE id=?", (pid,)).fetchone():
                 return jsonify({"error": "Your pilot record was not found."}), 404
+            key = lambda n: re.sub(r"[^a-z]", "", unicodedata.normalize("NFKD", str(n or "")).encode("ascii", "ignore").decode().lower())
+            others = [r[0] for r in con.execute("SELECT name FROM pilots WHERE id!=?", (pid,))] + [load_profile(founder_pid()).get("name")]
+            if key(name) != key(old.get("name")) and any(key(name) == key(o) for o in others if o):
+                return jsonify({"error": "That name belongs to another PAC pilot. Use your own name; staff can help if it really is yours."}), 400
             con.execute("UPDATE pilots SET name=? WHERE id=?", (name, pid))
         p = {**old, "name": name, "bio": p["bio"], "secondary_base": p["secondary_base"], "photo": p["photo"]}
         save_profile_for(pid, p)
