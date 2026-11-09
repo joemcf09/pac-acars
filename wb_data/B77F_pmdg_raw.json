@@ -1,9 +1,114 @@
-{"type": "B77F", "status": "raw: awaiting envelope/position source and FMC calibration",
+{
+ "type": "B77F",
+ "status": "basic aircraft and fuel verified; CG envelope and main-deck positions still needed",
  "source": "PMDG 777F for MSFS 2024: flight_model.cfg and legacy.cfg (files supplied by PAC0001, 2026-11-09)",
- "empty_weight_lbs": 318300, "empty_cg_ft": -9.28, "pmdg_comment": "Boeing WBM 1245.36-117.5in BA (legacy.cfg note on empty CG)",
- "mac_in": 278.5, "max_weights_lbs": {"taxi": 768800, "zero_fuel": 547000, "landing": 575000},
- "crew_lbs_ft": [[190, 75.0], [190, 75.0]],
- "lower_holds_lbs_ft": {"fwd": [46025, 30.45], "aft": [38405, -48.52], "bulk": [6500, -78.88]},
- "fuel_gal_ft": {"center1": [27290, -2.287], "center2": [5625, -29.52], "left_main": [10300, -11.495], "right_main": [10300, -11.495]},
- "main_deck_points_ft": [60, 50, 40, 30, 25, 20, 15, 10, 5, 0, -5, -10, -15, -20, -25, -30, -35, -40, -45, -50, -60, -70],
- "planned_readings": "zero cargo, FMC TAKEOFF REF CG at 20,000 / 80,000 / 200,000 lb fuel (wings hold about 138,000 lb)"}
+ "empty_weight_lbs": 318300,
+ "empty_cg_ft": -9.28,
+ "pmdg_comment": "Boeing WBM 1245.36-117.5in BA (legacy.cfg note on empty CG)",
+ "mac_in": 278.5,
+ "max_weights_lbs": {
+  "taxi": 768800,
+  "zero_fuel": 547000,
+  "landing": 575000
+ },
+ "crew_lbs_ft": [
+  [
+   190,
+   75.0
+  ],
+  [
+   190,
+   75.0
+  ]
+ ],
+ "lower_holds_lbs_ft": {
+  "fwd": [
+   46025,
+   30.45
+  ],
+  "aft": [
+   38405,
+   -48.52
+  ],
+  "bulk": [
+   6500,
+   -78.88
+  ]
+ },
+ "fuel_gal_ft": {
+  "center1": [
+   27290,
+   -2.287
+  ],
+  "center2": [
+   5625,
+   -29.52
+  ],
+  "left_main": [
+   10300,
+   -11.495
+  ],
+  "right_main": [
+   10300,
+   -11.495
+  ]
+ },
+ "main_deck_points_ft": [
+  60,
+  50,
+  40,
+  30,
+  25,
+  20,
+  15,
+  10,
+  5,
+  0,
+  -5,
+  -10,
+  -15,
+  -20,
+  -25,
+  -30,
+  -35,
+  -40,
+  -45,
+  -50,
+  -60,
+  -70
+ ],
+ "planned_readings": "zero cargo, FMC TAKEOFF REF CG at 20,000 / 80,000 / 200,000 lb fuel (wings hold about 138,000 lb)",
+ "calibration": {
+  "status": "basic_and_fuel_verified",
+  "fmc_resolution": "whole percent",
+  "readings": [
+   {
+    "fuel_lbs": 20091,
+    "gw_lbs": 338771,
+    "fmc_cg_pct": 23
+   },
+   {
+    "fuel_lbs": 80000,
+    "gw_lbs": 398680,
+    "fmc_cg_pct": 25
+   },
+   {
+    "fuel_lbs": 200000,
+    "gw_lbs": 518680,
+    "fmc_cg_pct": 22
+   }
+  ],
+  "basic_weight_lbs": 318680,
+  "basic_pct_mac": 22.81,
+  "basic_pct_mac_range": [
+   22.71,
+   22.91
+  ],
+  "wing_tanks_pct_mac": 32.79,
+  "center_tank_pct_mac": -6.89,
+  "method": "PMDG tank positions relative to the basic CG, checked against three FMC readings: all three agree only for a basic CG in the range shown.",
+  "sim_lemac_ft": -3.886,
+  "date": "2026-11-09",
+  "by": "PAC0001, PMDG 777F (MSFS 2024)"
+ }
+}
