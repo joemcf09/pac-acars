@@ -254,6 +254,7 @@ html[data-design="loadsheet"] #map{border-radius:0}
       <label class="full" style="display:flex;gap:8px;align-items:center;color:var(--text)"><input type="checkbox" id="cfgCoach" style="width:auto"> SOP coach: reminders from PAC's standard procedures (beacon, lights, stable approach)</label>
       <label class="full" style="display:flex;gap:8px;align-items:center;color:var(--text)"><input type="checkbox" id="cfgDiscord" style="width:auto"> Show my PAC flight in my Discord status</label>
       <label class="full" style="display:flex;gap:8px;align-items:center;color:var(--text)"><input type="checkbox" id="cfgRemind" style="width:auto"> Alarm ("Start the flight tracker immediately", on a loop) if I push back or taxi with a flight booked but not started</label>
+      <div class="full" style="display:flex;gap:8px;align-items:center"><button class="btn ghost" type="button" id="testAlarm">Preview alarm</button><span class="small muted">Plays the call-out once.</span></div>
       <div class="full"><label for="cfgWin">Window (after a restart of PAC ACARS)</label><select id="cfgWin">
         <option value="auto">Automatic (recommended): Edge app window</option><option value="app">Edge or Chrome app window</option><option value="webview">Built-in window</option></select></div>
       <div class="full row"><button class="btn ghost" id="cfgSave" type="button">Save settings</button><span class="small muted" id="ver"></span></div>
@@ -748,6 +749,7 @@ $("#sMsg").onclick = ack;
 $("#compactBtn").onclick = () => setCompact(true);
 $("#sExpand").onclick = () => setCompact(false);  // (the engine's tray menu can switch it too)
 $("#testChime").onclick = () => chime(true);
+$("#testAlarm").onclick = () => api("/api/alarm/test", {}).catch(() => {});
 $("#signOutApp").onclick = async () => { try { await api("/api/logout", {}); note("Signed out of PAC ACARS."); poll(); } catch (e) { note(esc(e.message), "err"); } };
 $("#resumeBtn").onclick = () => start(true);
 $("#stopBtn").onclick = async () => {

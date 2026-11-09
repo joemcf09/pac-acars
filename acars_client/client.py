@@ -1280,6 +1280,18 @@ def alarm(on):
         print("Alarm:", e)
 
 
+@ui.post("/api/alarm/test")
+def api_alarm_test():
+    """Settings › Test alarm: plays the call-out once (not looped), unless the real alarm is sounding."""
+    if sys.platform == "win32" and not _remind["playing"]:
+        try:
+            import winsound
+            winsound.PlaySound(str(ALARM_WAV), winsound.SND_FILENAME | winsound.SND_ASYNC | winsound.SND_NODEFAULT)
+        except Exception as e:
+            print("Alarm test:", e)
+    return jsonify({"ok": True})
+
+
 def reminder_release():
     """Silences the alarm and lets go of the sim before real tracking starts, so the watcher and the tracker never
     share a connection."""
