@@ -556,6 +556,8 @@ function render() {
   const upd = $("#update");
   if (upd) upd.innerHTML = newer(h.latest_app, S.version) && (S.update?.dismissed || (st && st.tracking)) ? `<div class="notice">PAC ACARS ${esc(verLabel(h.latest_app))} is available. ${S.update?.can_install ? `<a href="#" style="color:var(--cyan)" onclick="openUpdate();return false">Update now</a>` : `<a style="color:var(--cyan)" href="${esc(cfg.server)}/#downloads" target="_blank" rel="noopener">Download it from the PAC website</a>`}.</div>` : "";
   splashStep(); updateDialog(st); whatsNewDialog(st);
+  const ps = S.pending_send;
+  if (upd && ps) upd.innerHTML += `<div class="notice">Your finished flight ${esc(ps.flight || "")} is saved on this PC and will be sent to the PAC website as soon as it can be reached. You can close PAC ACARS; it sends it next time.</div>`;
   const nag = S.start_reminder && bk && !(st && st.tracking);
   $("#startNag").classList.toggle("hidden", !nag); $("#startNag").style.display = nag ? "flex" : "none";
   if (nag) $("#startNagText").textContent = `START ACARS: ${S.start_reminder.flight || "your flight"} is moving and isn't being recorded.`;

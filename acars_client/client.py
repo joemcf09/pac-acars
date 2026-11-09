@@ -90,7 +90,7 @@ import acars_core  # noqa: E402
 from sim_sources import DemoSource, MSFSSource, XPlaneSource, gc_distance_nm  # noqa: E402
 from tracker import FlightRecorder, TrackerThread  # noqa: E402
 
-VERSION = "1.1.4"   # major.minor.patch, plus a fourth number for hotfixes (shown as "1.1.2 hotfix 1")
+VERSION = "1.1.5"   # major.minor.patch, plus a fourth number for hotfixes (shown as "1.1.2 hotfix 1")
 PORT = int(os.environ.get("PAC_ACARS_PORT", "5070"))  # not 5060: browsers block that port (SIP)
 CONFIG_PATH = USER_DIR / "config.json"
 STATE_PATH = USER_DIR / "flight_state.pkl"
@@ -382,6 +382,35 @@ def stop_thread():
     state["thread"] = None
 
 
+def send_finished(rec):
+    """Offline queue: a finished flight is kept on this PC (it survives closing PAC ACARS or restarting Windows) and
+    sent the moment the website can be reached again. Tries every 3 seconds, quietly."""
+    if not state.get("finished_saved"):
+        save_state(rec)
+        state["finished_saved"] = True
+    try:
+        hand_over()
+        state.update(server_ok=True, server_error=None, pending_send=None)
+        print("Finished flight sent to the website.")
+    except ServerError as e:
+        state.update(server_ok=False, server_error=str(e), pending_send={"flight": rec.booking.get("flight_number"), "since": state.get("pending_send", {}) and state["pending_send"].get("since") or time.time()})
+    except Exception as e:
+        print("Send finished flight:", e)
+
+
+def restore_finished():
+    """At start-up: a flight that finished but never reached the website goes back in the queue."""
+    saved = saved_flight()
+    if not saved or getattr(saved["recorder"], "practice", False) or not saved["recorder"].complete:
+        return
+    rec = saved["recorder"]
+    bk = (state.get("hello") or {}).get("booking")
+    if bk and bk.get("requested_at") != rec.booking.get("requested_at"):
+        return                           # the website moved on (a new booking): this one was already filed or cancelled
+    state.update(rec=rec, booking=rec.booking, source=saved.get("source"), handed_over=False, finished_saved=True)
+    print("Restored a finished flight that hadn't reached the website:", rec.booking.get("flight_number"))
+
+
 def hand_over(force=False):
     """Sends the finished flight record to the website, which scores it."""
     rec, booking = state["rec"], state["booking"]
@@ -437,6 +466,9 @@ def pusher():
             debrief_tick(rec)
         if rec and getattr(rec, "practice", False):
             continue                     # landing practice stays on this PC: nothing is sent to the website
+        if rec and rec.complete and not state.get("handed_over") and not (th and th.is_alive()):
+            send_finished(rec)           # a finished flight still waiting to reach the website (offline at block-in)
+            continue
         if not rec or not th or state.get("handed_over"):
             continue
         try:
@@ -512,7 +544,7 @@ def api_state():
                     "unread": unread(), "compact": state.get("compact"), "native": bool(state.get("native")), "tray": bool(state.get("tray")),
                     "win_cmd": state.get("win_cmd"), "window_restarts": state.get("window_restarts", 0),
                     "practice": bool(state.get("practice")), "debriefs": state.get("debriefs") or [],
-                    "update": update_info(), "whats_new": whats_new(), "start_reminder": state.get("start_reminder")})
+                    "update": update_info(), "whats_new": whats_new(), "start_reminder": state.get("start_reminder"), "pending_send": state.get("pending_send")})
 
 
 @ui.get("/api/track")
@@ -1039,6 +1071,7 @@ def api_config():
 @ui.post("/api/start")
 def api_start():
     reminder_release()
+    state["finished_saved"] = False
     if state.get("thread") and state["thread"].is_alive():
         return jsonify({"error": "Already tracking."}), 409
     hello = refresh_hello()
@@ -2002,6 +2035,10 @@ def main():
     else:
         refresh_hello()
     quiet_request_log()
+    try:
+        restore_finished()
+    except Exception as e:
+        print("Restore finished flight:", e)
     for job in (pusher, sim_watch, chime_watch, window_supervisor, discord_presence, start_reminder_watch):
         threading.Thread(target=job, daemon=True).start()
     url = f"http://127.0.0.1:{PORT}/"

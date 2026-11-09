@@ -1,6 +1,17 @@
 PAC ACARS - CHANGELOG
 =====================
 
+1.1.5 (November 2026)
+---------------------
+New: finished flights are never lost
+- If the internet (or the PAC website) is down when you block in, your
+  finished flight is saved on this PC and sent automatically as soon as the
+  website can be reached, even if you close PAC ACARS or restart Windows
+  in between. A notice shows while it's waiting.
+- Reminder: if the sim or PC crashes mid-flight, reopen PAC ACARS and press
+  Resume flight. It carries on from this PC's copy or the website's copy
+  (saved every minute).
+
 1.1.4 (November 2026)
 ---------------------
 New: "Start ACARS" reminder
