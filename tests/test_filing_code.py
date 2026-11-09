@@ -1,4 +1,4 @@
-"""PAC flies on VATSIM and IVAO under its own network code (PGC by default: PAC is Polar Air Cargo's ICAO code),
+"""PAC flies on VATSIM and IVAO under its own network code (PGI by default: PAC is Polar Air Cargo's ICAO code),
 while the website keeps showing PAC flight numbers. Also checks that the Discord invite and website address are read
 from the home-page settings, where staff enter them.
 
@@ -31,28 +31,28 @@ c = A.app.test_client()
 c.post("/api/auth/setup", json={"password": "Filing-Code-Test-1"})
 
 print("The network code")
-check("PGC by default", A.filing_icao() == "PGC")
-check("pilots' browsers are told it", c.get("/api/bootstrap").get_json()["settings"].get("filing_icao") == "PGC")
-for bad in ("12", "PG", "PGCX", "p-c"):
-    check(f"a bad code ({bad!r}) falls back to PGC", A.filing_icao({"filing_icao": bad}) == "PGC")
-check("staff can change it", c.post("/api/settings", json={"filing_icao": "PGC"}).status_code == 200)
-check("the SimBrief airframe sheets use it", va.simbrief_sheet("B738F")["airline"] == "PGC", va.simbrief_sheet("B738F").get("airline"))
+check("PGI by default", A.filing_icao() == "PGI")
+check("pilots' browsers are told it", c.get("/api/bootstrap").get_json()["settings"].get("filing_icao") == "PGI")
+for bad in ("12", "PG", "PGIX", "p-c"):
+    check(f"a bad code ({bad!r}) falls back to PGI", A.filing_icao({"filing_icao": bad}) == "PGI")
+check("staff can change it", c.post("/api/settings", json={"filing_icao": "PGI"}).status_code == 200)
+check("the SimBrief airframe sheets use it", va.simbrief_sheet("B738F")["airline"] == "PGI", va.simbrief_sheet("B738F").get("airline"))
 
 print("Flight numbers on the website stay PAC")
-check("a plan filed as PGC shows as PAC", A.site_flight_number({"airline": "PGC", "flight_number": "9613"}, "PAC9613") == "PAC9613")
+check("a plan filed as PGI shows as PAC", A.site_flight_number({"airline": "PGI", "flight_number": "9613"}, "PAC9613") == "PAC9613")
 check("so does a plan with no airline", A.site_flight_number({"airline": "", "flight_number": "9613"}, "PAC9613") == "PAC9613")
 check("a partner's plan keeps the partner's code", A.site_flight_number({"airline": "GTI", "flight_number": "5988"}, "GTI5988") == "GTI5988")
 check("no plan: the mission's own number", A.site_flight_number(None, "PAC1022") == "PAC1022")
 
-print("Booking with a PGC plan, end to end")
+print("Booking with a PGI plan, end to end")
 c.post("/api/settings", json={"enforce_pilot_location": False})
 r = c.post("/api/booking", json={"mission_id": "PAC1022", "aircraft": "B733F", "airframe": "N010PC",
-                                  "ofp": {"airline": "PGC", "flight_number": "1022", "origin": "KCVG", "destination": "KBNA"}})
+                                  "ofp": {"airline": "PGI", "flight_number": "1022", "origin": "KCVG", "destination": "KBNA"}})
 check("the booking is made", r.status_code == 200, r.get_data(as_text=True)[:300])
 b = A.load_booking() or {}
 check("and shows as PAC1022", b.get("flight_number") == "PAC1022", b.get("flight_number"))
 d = c.get("/api/dispatch").get_json() or {}
-check("the dispatch release gives the ATC callsign to file", d.get("paper", {}).get("atc_callsign") == "PGC1022", d.get("paper", {}).get("atc_callsign"))
+check("the dispatch release gives the ATC callsign to file", d.get("paper", {}).get("atc_callsign") == "PGI1022", d.get("paper", {}).get("atc_callsign"))
 check("and keeps the radio callsign PAGANI", str(d.get("paper", {}).get("callsign", "")).startswith("PAGANI"), d.get("paper", {}).get("callsign"))
 check("a partner flight files under the partner's code",
       A.atc_callsign({"flight_number": "GTI5988", "mission": {"id": "GTI5988", "operator": {"code": "GTI"}}}) == "GTI5988")

@@ -635,7 +635,7 @@ function discordWidget(site) {   // the live Discord server widget on the home p
       <li>Help with PAC ACARS, SimBrief and your sim setup.</li>
       <li>Find someone to fly a group flight or an event with.</li></ul></div>`;
 }
-function filingIcao() { const c = String(S.settings?.filing_icao || "").toUpperCase(); return /^[A-Z]{3}$/.test(c) ? c : "PGC"; }
+function filingIcao() { const c = String(S.settings?.filing_icao || "").toUpperCase(); return /^[A-Z]{3}$/.test(c) ? c : "PGI"; }
 function atcCallsign(m) { return (m.operator?.code || filingIcao()) + m.id.replace(/\D/g, ""); }
 function simbriefRemarks(m) {
   return m.operator ? `PAC PILOT HIRED TO FILL IN FOR ${m.operator.name.toUpperCase()} CREW SHORTAGE. ${m.id} FLOWN BY ${(displayName(S.profile || {}) || "PAC CAPTAIN").toUpperCase()} ${S.profile?.pilot_id || ""}`.trim()
@@ -825,7 +825,7 @@ document.addEventListener("click", e => {
 function simbriefUrl(m, ac) {
   const fl = S.fleet[ac];
   const num = m.id.replace(/\D/g, "");
-  const al = m.operator?.code || filingIcao();      // PAC flights are filed as PGC on the networks: PAC is Polar Air Cargo's code
+  const al = m.operator?.code || filingIcao();      // PAC flights are filed as PGI on the networks: PAC is Polar Air Cargo's code
   const p = new URLSearchParams({ airline: al, fltnum: num, orig: m.origin.icao, dest: m.destination.icao, type: myAirframe(ac) || fl.simbrief_airframe || fl.simbrief_type,   // the pilot's own airframe, then PAC's, then SimBrief's default
     cargo: (Math.min(m.payload_lbs, fl.max_payload_lbs) / 1000).toFixed(1), pax: "0", units: "LBS", callsign: al + num,
     manualrmk: simbriefRemarks(m) });
@@ -6196,7 +6196,7 @@ function staffSite() {
   };
   $("#filingSave").onclick = async () => {
     const code = $("#filingIcao").value.trim().toUpperCase();
-    if (!/^[A-Z]{3}$/.test(code)) { toast("The network code is three letters, like PGC."); return; }
+    if (!/^[A-Z]{3}$/.test(code)) { toast("The network code is three letters, like PGI."); return; }
     try { S.settings = await api("/api/settings", { method: "POST", body: { filing_icao: code } }); toast(`PAC flights now file as ${code} on VATSIM and IVAO.`); }
     catch (e) { toast(e.message); }
   };

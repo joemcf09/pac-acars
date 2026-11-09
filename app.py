@@ -174,7 +174,7 @@ DEFAULT_SETTINGS = {"pilot_name": "", "pilot_id": "PAC0001", "simbrief_username"
                     "reuse_pilot_ids": False, "shop_enabled": True,
                     "live_map_public": False, "discord_bot_enabled": False, "discord_bot_token": "", "discord_guild": "",
                     "discord_ch_flights": "flight-log", "discord_ch_news": "announcements", "discord_ch_welcome": "welcome",
-                    "filing_icao": "PGC",
+                    "filing_icao": "PGI",
                     "vatsim_partner_section": False, "ivao_partner_section": False,   # the VATSIM logo on the home page: only once VATSIM has accepted PAC     # the ICAO code pilots file under on VATSIM and IVAO (PAC belongs to Polar Air Cargo)
                     "discord_ch_dispatch": "dispatch", "discord_ch_notams": "notams", "discord_ch_honeypot": "do-not-post", "discord_ch_modlog": "", "conflict_zones_enabled": False, "conflict_zone_overrides": {}, "activity_rule_on": False, "cargo_orders_enabled": True, "cargo_orders_hub_target": 6, "cargo_orders_station_target": 2, "cargo_orders_stations": 12, "activity_days": 45, "activity_remind_days": 7, "leave_max_days": 60, "activity_auto_inactive": False, "discord_dispatch_missions": True, "discord_dispatch_partners": True,
                     "discord_dispatch_urgent": True, "discord_dispatch_per_hour": 4,
@@ -1136,9 +1136,9 @@ AIRLINE_CALLSIGN = "PAGANI"
 
 def filing_icao(st=None):
     """The three-letter code PAC flights are filed under on VATSIM and IVAO. PAC stays the airline's own prefix on the
-    website (PAC9613); on the networks the same flight is PGC9613, spoken "Pagani 9613" (CALLSIGN PAGANI in remarks)."""
+    website (PAC9613); on the networks the same flight is PGI9613, spoken "Pagani 9613" (CALLSIGN PAGANI in remarks)."""
     code = str((st or settings()).get("filing_icao") or "").strip().upper()
-    return code if re.fullmatch(r"[A-Z]{3}", code) else "PGC"
+    return code if re.fullmatch(r"[A-Z]{3}", code) else "PGI"
 
 
 def partner_tail(m, ac):

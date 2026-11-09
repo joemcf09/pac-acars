@@ -318,13 +318,13 @@ queued. Choose the channel, the kinds of work and the limit under **Discord bot 
 channel empty to switch it off. When the bot starts it doesn't repost what's already on the board. Everything is set in **Staff › Site and rules › Discord bot**. The bot
 talks to PAC over a private API (`botlink.py`) protected by `data/bot_secret`, which never leaves the server.
 
-## Flying online: PGC
+## Flying online: PGI
 
-PAC is Polar Air Cargo's ICAO code, so on VATSIM and IVAO PAC flights are filed under PAC's own network code, **PGC**
-by default (Staff › Site and rules › Flying online). The SimBrief link fills in PGC and the flight number, with
+PAC is Polar Air Cargo's ICAO code, so on VATSIM and IVAO PAC flights are filed under PAC's own network code, **PGI**
+by default (Staff › Site and rules › Flying online). The SimBrief link fills in PGI and the flight number, with
 `CALLSIGN PAGANI` in the remarks so controllers say "Pagani 9613"; the mission page and the dispatch release
 (**ATC FPL** line) tell pilots what to connect as. Everything on the website, in PAC ACARS and on Discord keeps the
-PAC number (PAC9613): a plan filed as PGC9613 is booked as PAC9613. Partner crew requests are filed under the
+PAC number (PAC9613): a plan filed as PGI9613 is booked as PAC9613. Partner crew requests are filed under the
 partner's own code, as before.
 
 After importing a valid SimBrief plan, the planning screen and **My bids** can prepare the VATSIM filing details,
@@ -648,7 +648,7 @@ python tests/test_shop.py               # the PAC shop and the pilots' Finance s
 python tests/test_liveries.py           # liveries on the Fleet page: files, links, painter credit, downloads
 python tests/test_applications.py       # deleting and clearing old applications; pilots' records and IDs are safe
 python tests/test_dispatch_channel.py   # the Discord dispatch channel: new work, card wording, hourly limit
-python tests/test_filing_code.py        # PGC on the networks, PAC on the website; Discord invite and site address
+python tests/test_filing_code.py        # PGI on the networks, PAC on the website; Discord invite and site address
 python tests/test_network_logo.py       # the VATSIM logo on the home page: upload, safe serving, removal
 python tests/test_flight_cards.py       # landing and takeoff cards credit the pilot who flew, in their simulator
 python tests/test_pilots_page.py        # the Pilots roster and profiles: members only, nothing private

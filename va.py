@@ -1094,7 +1094,7 @@ def _dl_dir():
 def _filing_icao():
     import re as _re
     code = str(C["settings"]().get("filing_icao") or "").strip().upper()
-    return code if _re.fullmatch(r"[A-Z]{3}", code) else "PGC"
+    return code if _re.fullmatch(r"[A-Z]{3}", code) else "PGI"
 
 
 def simbrief_sheet(code):
@@ -2761,7 +2761,7 @@ def public_roster():
             f["pilot_id"] = ""
         f["aircraft_name"] = (C["FLEET"].get(f["aircraft"]) or {}).get("name", f["aircraft"])
     return jsonify({"pilots": roster, "flights": flights, "totals": {"pilots": len(roster), "flights": tot[0], "hours": round(tot[1], 1)},
-                    "callsign": C["settings"]().get("filing_icao") or "PGC"})
+                    "callsign": C["settings"]().get("filing_icao") or "PGI"})
 
 
 @bp.get("/api/va/home")
