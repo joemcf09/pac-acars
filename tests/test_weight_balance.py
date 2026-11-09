@@ -48,7 +48,13 @@ if not bad["within_envelope"]:
 check("an old release with an M11 unit is reported, not miscalculated", wb.balance("B738F", [{"pos": "M11", "weight_lbs": 1000}], 87400, 1, 1)["available"] is False)
 check("types without data return None", wb.balance("B763F", units, 1, 1, 1) is None)
 check("fuel fills the wing tanks first", m.fuel_split(10000) == (10000, 0.0) and abs(m.fuel_split(30000)[1] - (30000 - m.main_cap_lbs)) < 1e-6)
-check("the 737 is provisional until calibrated", b["provisional"] is True and b["provisional_note"])
+check("the 737 is verified by the sim calibration", b["provisional"] is False and b["provisional_note"] is None)
+cal = d["calibration"]
+for rd in cal["readings"]:
+    f = rd["fuel_lbs"]; wing, ctr = m.fuel_split(f)
+    arm = (m.basic_lbs * m.basic_arm + wing * m.main_arm + ctr * m.center_arm) / (m.basic_lbs + f)
+    check(f"reproduces the PMDG FMC CG at {f:,} lb fuel ({rd['fmc_cg_pct']}%)", abs(m.pct_mac(arm) - rd["fmc_cg_pct"]) < 0.06, round(m.pct_mac(arm), 2))
+check("basic weight equals the FMC ZFW (87,375 lb)", round(m.basic_lbs) == 87375)
 
 # 3. manifests and paperwork
 fleet = json.load(open(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data", "fleet.json")))
@@ -71,7 +77,7 @@ else:
     check("generated 737 manifests use M01-M10, M12 and the holds, each within its real limit", True)
 paper = dispatch.paperwork(rel, FLEET)
 ls = paper["loadsheet"]
-check("the release loadsheet uses the calculation (provisional for now)", ls["cg_source"] == "provisional" and paper["balance"]["available"], ls["cg_source"])
+check("the release loadsheet uses the verified calculation", ls["cg_source"] == "calculated" and paper["balance"]["available"], ls["cg_source"])
 check("loadsheet CG equals the engine's", ls["mac_tow"] == paper["balance"]["phases"][1]["pct_mac"] and ls["mac_ldw"] == paper["balance"]["phases"][2]["pct_mac"])
 check("trim on the loadsheet names units and flaps", "UNITS (FLAPS" in ls["trim"], ls["trim"])
 print(); print("WEIGHT AND BALANCE TEST PASSED" if not failures else f"{len(failures)} failed: {failures}")

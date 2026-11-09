@@ -550,14 +550,11 @@
    ]
   }
  },
- "missing": [
-  "Fuel index: now from PMDG tank positions (to verify by calibration)",
-  "Dry operating weight: PMDG empty 85,500 lb + crew and galley stations (to verify by calibration)"
- ],
+ "missing": [],
  "pmdg_msfs": {
   "source": "PMDG 737-800BCF for MSFS 2024: flight_model.cfg [WEIGHT_AND_BALANCE] and [FUEL] (files supplied by PAC0001, 2026-11-09)",
-  "datum_note": "MSFS positions are feet from PMDG's datum, positive forward. Boeing balance arm (in) is about C - 12*x; C fitted from PMDG's two lower-hold stations against the Boeing hold arms. PROVISIONAL: this two-hold fit puts the main gear forward of the aft CG limit, so it is not trusted; replaced by the FMC calibration.",
-  "ba_offset_in": 541.3,
+  "datum_note": "MSFS positions are feet from PMDG's datum, positive forward. Boeing balance arm (in) = ba_offset_in - 12*x, with the offset set by the FMC calibration (the earlier two-hold fit was wrong and is not used).",
+  "ba_offset_in": 565.2,
   "fit_spread_in": 3.3,
   "empty_weight_lbs": 85500,
   "empty_cg_ft": -7.97,
@@ -627,11 +624,35 @@
   "to_verify": "calibration in ACARS: compare MSFS CG PERCENT with these values (empty, then fuel steps)"
  },
  "calibration": {
-  "status": "provisional",
-  "basic_pct_mac": null,
-  "main_tank_arm_in": null,
-  "center_tank_arm_in": null,
+  "status": "verified",
+  "basic_pct_mac": 22.52,
+  "main_tank_arm_in": 681.1,
+  "center_tank_arm_in": 636.3,
   "method": "PMDG 737-800BCF FMC TAKEOFF REF CG with zero payload at 6,000 / 16,000 / 30,000 lb fuel; solve basic CG, wing-tank and center-tank arms.",
-  "readings": []
+  "date": "2026-11-09",
+  "by": "PAC0001 in the PMDG 737-800BCF (MSFS 2024)",
+  "readings": [
+   {
+    "fuel_lbs": 6000,
+    "gw_lbs": 93375,
+    "fmc_cg_pct": 23.3
+   },
+   {
+    "fuel_lbs": 16000,
+    "gw_lbs": 103375,
+    "fmc_cg_pct": 24.4
+   },
+   {
+    "fuel_lbs": 30000,
+    "gw_lbs": 117375,
+    "fmc_cg_pct": 22.5
+   }
+  ],
+  "solved_pct_mac": {
+   "basic": 22.52,
+   "wing_tanks": 34.67,
+   "center_tank": 5.88
+  },
+  "cross_check": "With the offset implied by the basic CG, PMDG's own tank positions land at 34.1% (wing) and 5.9% (center) MAC, within rounding of the solved values."
  }
 }
