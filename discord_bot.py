@@ -195,7 +195,7 @@ def site_news_card(ev, site):
             "fields": [("From", ev.get("author") or "PAC Operations")], "url": f"{site.rstrip('/')}/#home"}
 
 
-DISPATCH_COLOURS = {"urgent": PAC_RED, "partner": 0x2B6CB0, "Critical": 0xE06A00, "High": 0xE0A100}
+DISPATCH_COLOURS = {"urgent": PAC_RED, "freight": 0xD9A428, "partner": 0x2B6CB0, "Critical": 0xE06A00, "High": 0xE0A100}
 DISPATCH_ORDER = {"urgent": 0, "partner": 1, "mission": 2}      # when there's more than the hourly limit allows
 
 
@@ -208,7 +208,9 @@ def dispatch_card(item, site):
     o, d = item["origin"], item["destination"]
     route = f"{o['icao']} → {d['icao']}"
     places = f"{o['city']} to {d['city']}" if o.get("city") and d.get("city") else ""
-    if item["kind"] == "urgent":
+    if item["kind"] == "freight":
+        title = f"{'🌸' if item.get('season') else '📦'} Freight waiting · {item['id']} · {item['title']}"
+    elif item["kind"] == "urgent":
         title = f"🚨 Urgent · {item['id']} · {item['title']}"
     elif item["kind"] == "partner":
         title = f"🤝 Crew request · {item.get('operator') or 'Partner airline'} · {route}"
@@ -217,9 +219,13 @@ def dispatch_card(item, site):
     brief = item.get("briefing") or ""
     desc = (f"**{places}**\n" if places else "") + (brief if len(brief) <= 300 else brief[:297].rsplit(" ", 1)[0] + "…")
     load = f"{int(item['payload_lbs']):,} lb" if item.get("payload_lbs") else ""
-    fields = [("Route", route), ("Aircraft", " or ".join(item.get("aircraft") or []) or "–"),
-              ("Cargo", " · ".join(x for x in (load, item.get("cargo")) if x) or "–"),
-              ("Distance", f"{int(item.get('distance_nm') or 0):,} nm · about {hm(item.get('block_min'))}")]
+    if item["kind"] == "freight":
+        fields = [("Waiting at", o["icao"]), ("Going to", d["icao"]), ("Freight", f"{load} · {int(item.get('pieces') or 0)} pcs"),
+                  ("Claim it", f"`/claim {item['id']}`")]
+    else:
+        fields = [("Route", route), ("Aircraft", " or ".join(item.get("aircraft") or []) or "–"),
+                  ("Cargo", " · ".join(x for x in (load, item.get("cargo")) if x) or "–"),
+                  ("Distance", f"{int(item.get('distance_nm') or 0):,} nm · about {hm(item.get('block_min'))}")]
     if item.get("special"):
         fields.append(("Watch out for", item["special"]))
     if item["kind"] == "partner":
@@ -227,12 +233,13 @@ def dispatch_card(item, site):
             fields.append(("Callsign", item["callsign"]))
         if item.get("bonus"):
             fields.append(("Shortage bonus", f"${int(item['bonus']):,}"))
-    if item["kind"] == "urgent" and item.get("deliver_by"):
+    if item["kind"] in ("urgent", "freight") and item.get("deliver_by"):
         fields.append(("Deliver by", f"<t:{int(item['deliver_by'])}:t> (<t:{int(item['deliver_by'])}:R>)"))
     if item.get("expires"):
         fields.append(("Book by", f"<t:{int(item['expires'])}:R>"))
     colour = DISPATCH_COLOURS.get(item["kind"]) or DISPATCH_COLOURS.get(item.get("priority"), 0x5E6470)
-    return {"title": title[:250], "description": desc, "colour": colour, "fields": fields, "url": f"{site.rstrip('/')}/#missions"}
+    return {"title": title[:250], "description": desc, "colour": colour, "fields": fields,
+            "url": f"{site.rstrip('/')}/#{'cargo' if item['kind'] == 'freight' else 'missions'}"}
 
 
 def dispatch_pick(items, settings, posted_times, now):
@@ -442,6 +449,10 @@ def run(cfg):
             await post(key, card=site_news_card(d, site))
         elif kind == "unlinked":
             await sync_member({"discord_id": d["discord_id"], "active": False})
+        elif kind == "freight_delivered":
+            who = f"<@{d['discord_id']}>" if d.get("discord_id") else f"**{d.get('pilot')}**"
+            what = f"{d.get('commodity') or 'freight'}" + (f" ({d['season']})" if d.get("season") else "")
+            await post("dispatch" if channel("dispatch") else "flights", f"📦 {who} delivered **{d['awb']}**, {what}, to **{d['destination']}** on {d.get('flight') or 'a PAC flight'}.")
 
     async def dispatch_tick():
         """Every minute: post new missions, partner crew requests and urgent requests in the dispatch channel."""
@@ -601,6 +612,17 @@ def run(cfg):
             await inter.response.send_message(msg, ephemeral=True)
             return
         await inter.response.send_message(embed=embed(pilot_card(r, site)))
+
+    @tree.command(name="claim", description="Hold waiting PAC freight for your next flight (24 hours)")
+    @app_commands.describe(awb="The air waybill number, like 901-10000034")
+    async def claim_cmd(inter: discord.Interaction, awb: str):
+        st, r = await apac("POST", "/api/bot/claim", {"discord_id": str(inter.user.id), "awb": awb})
+        if st != 200:
+            await inter.response.send_message(r.get("error") or "That didn't work. Try again in a minute.", ephemeral=True)
+            return
+        await inter.response.send_message(
+            f"📦 **{r['awb']}** ({r['commodity']}) is held for you until <t:{int(r['until'])}:f>. It's waiting at **{r['station']}** for **{r['destination']}**: "
+            f"book a flight from {r['station']} and tick it under Transfer cargo on the load sheet.")
 
     @tree.command(name="link", description="Link your Discord account to your PAC pilot")
     @app_commands.describe(code="The code from Settings on the PAC website, like PAC-7F3KX")

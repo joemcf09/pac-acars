@@ -2617,7 +2617,7 @@ def cargo_transfer_selection(body, mission, aircraft, ofp=None, booking_key=None
     origin = (mission.get("origin") or {}).get("icao")
     destination = (mission.get("destination") or {}).get("icao")
     with db() as con:
-        selected = cargo_network.selected_transfers(con, ids, origin, destination, ROUTES.values(), booking_key)
+        selected = cargo_network.selected_transfers(con, ids, origin, destination, ROUTES.values(), booking_key, va.current_pilot_id())
     weight = sum(float(item.get("gross_weight_lbs") or 0) for item in selected)
     mission_payload = int(mission.get("payload_lbs") or 0)
     target = min(int((ofp or {}).get("payload_lbs") or mission_payload or 0), mission_payload,
@@ -2665,7 +2665,7 @@ def plan_loadsheet():
     except Exception as e:      # freight for this leg must never break the load sheet
         app.logger.exception("cargo orders (route): %s", e)
     with db() as con:
-        transfer_options = cargo_network.transfer_options(con, m["origin"]["icao"], m["destination"]["icao"], ROUTES.values())
+        transfer_options = cargo_network.transfer_options(con, m["origin"]["icao"], m["destination"]["icao"], ROUTES.values(), va.current_pilot_id())
         transfer_notes = cargo_network.notes(con, [x["id"] for x in transfer_options])
     fake = {"mission": m, "aircraft": ac_code, "ofp": None, "flight_number": m["id"], "requested_at": time.time(),
             "airframe": airframe, "manifest_seed": seed, "cargo_transfer_ids": [item["id"] for item in transfer_rows],
@@ -2710,6 +2710,7 @@ def plan_loadsheet():
                                       "commodity": item["commodity"], "pieces": item["pieces"],
                                       "gross_weight_lbs": item["gross_weight_lbs"],
                                       "truck_nm": round(_airport_nm(m["destination"]["icao"], item["destination"]) or 0) if item.get("truck") else None,
+                                      "claimed_by_me": item.get("claimed_by_me"),
                                       "notes": [{"text": n["text"], "pilot": n.get("pilot_name") or n["pilot_id"], "station": n["station"]}
                                                 for n in transfer_notes.get(item["id"], [])][-2:]}
                                      for item in transfer_options],
@@ -3329,10 +3330,25 @@ def file_pirep():
             raise RuntimeError("PIREP filing did not create or find its booking record.")
         pid = filed["id"]
         cargo_network.record_flight(con, booking, p, pid, pid_)
+        board_events = []
+        try:   # the Discord freight board: claimed and seasonal freight that this flight delivered
+            for r_ in con.execute("""SELECT s.awb, s.commodity, s.destination, json_extract(s.data,'$.season_name') AS season,
+                    EXISTS(SELECT 1 FROM cargo_movements c WHERE c.shipment_id=s.id AND c.event_type='CLAIMED' AND c.pilot_id=?) AS claimed
+                    FROM cargo_movements m JOIN cargo_shipments s ON s.id=m.shipment_id
+                    WHERE m.pirep_id=? AND m.event_type='FLIGHT_ARRIVAL' AND m.status LIKE 'DELIVERED%'""", (pid_, pid)).fetchall():
+                if r_["claimed"] or r_["season"]:
+                    prof = con.execute("SELECT name, discord_id FROM pilots WHERE id=?", (pid_,)).fetchone()
+                    board_events.append({"awb": r_["awb"], "commodity": r_["commodity"], "destination": r_["destination"],
+                                                       "season": r_["season"], "pilot_id": pid_, "pilot": prof["name"] if prof else pid_,
+                                                       "discord_id": prof["discord_id"] if prof else None, "flight": p.get("flight_number")})
+        except Exception as e:
+            app.logger.exception("freight board: %s", e)
         if p.get("review_status") == "Rejected":      # e.g. a restricted conflict-zone flight: its cargo stays put
             cargo_network.set_flight_outcome(con, pid, accepted=False)
         if p.get("conflict_note") and con.execute("SELECT review_note FROM pireps WHERE id=?", (pid,)).fetchone()[0] is None:
             con.execute("UPDATE pireps SET review_note=?, reviewed_at=? WHERE id=?", (p["conflict_note"], time.time(), pid))
+    for ev_ in board_events:          # after the filing transaction, so the bot's event log isn't locked out
+        botlink.emit("freight_delivered", ev_)
     p["paid"] = va.after_file(p, booking, rec, pid)
     car = va.career(pid_)
     new_badges = [b for b in va.badges(pid_) if b["earned"] and b["id"] not in before_badges]
@@ -3851,7 +3867,12 @@ def cargo_shipment_detail(shipment_id):
     with db() as con:
         note_list = cargo_network.notes(con, [shipment_id]).get(shipment_id, [])
         may_note = bool(me) and cargo_network.can_note(con, shipment_id, me)
-    return jsonify({"shipment": shipment, "movements": history, "notes": note_list, "can_note": may_note})
+        holder = con.execute("SELECT name FROM pilots WHERE id=?", (shipment.get("claimed_by"),)).fetchone() if shipment.get("claimed_by") else None
+    held = shipment.get("claimed_by") and (shipment.get("claimed_until") or 0) >= time.time()
+    claim = {"held": bool(held), "mine": bool(held and shipment["claimed_by"] == me), "until": shipment.get("claimed_until") if held else None,
+             "by": (holder["name"] if holder else shipment.get("claimed_by")) if held else None,
+             "can": bool(me) and not held and shipment["status"] in ("AT_STATION", "HELD_AT_STATION") and not shipment.get("reserved_booking_key")}
+    return jsonify({"shipment": shipment, "movements": history, "notes": note_list, "can_note": may_note, "claim": claim})
 
 
 @app.post("/api/cargo/shipments/<shipment_id>/notes")
@@ -3871,6 +3892,32 @@ def cargo_shipment_note(shipment_id):
     except ValueError as e:
         return jsonify({"error": str(e)}), 400
     return jsonify({"ok": True, "notes": note_list})
+
+
+@app.post("/api/cargo/shipments/<shipment_id>/claim")
+def cargo_shipment_claim(shipment_id):
+    """Hold waiting freight for my next flight (24 hours)."""
+    me = auth.current_id()
+    if not me:
+        return jsonify({"error": "Sign in to hold freight."}), 401
+    if not re.fullmatch(r"[0-9a-f]{32}", shipment_id):
+        return jsonify({"error": "Shipment not found."}), 404
+    try:
+        with db() as con:
+            r = cargo_network.claim(con, shipment_id, me)
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 400
+    return jsonify({"ok": True, **r})
+
+
+@app.delete("/api/cargo/shipments/<shipment_id>/claim")
+def cargo_shipment_unclaim(shipment_id):
+    me = auth.current_id()
+    if not me:
+        return jsonify({"error": "Sign in first."}), 401
+    with db() as con:
+        cargo_network.release_claim(con, shipment_id, me)
+    return jsonify({"ok": True})
 
 
 @app.delete("/api/staff/cargo/notes/<int:nid>")
@@ -3933,7 +3980,7 @@ import activity  # noqa: E402  (next flight due, leave of absence, reminders)
 activity.init({"db": db, "settings": settings, "clean_text": clean_text, "va": va})
 app.register_blueprint(activity.bp)
 import botlink  # noqa: E402
-botlink.init({"db": db, "settings": settings, "save_settings": lambda s_: save_json(SETTINGS_PATH, s_), "DATA": DATA, "va": va, "live_flights": lambda member=True: live_flights(member),
+botlink.init({"cargo_network": cargo_network, "AIRPORTS": AIRPORTS, "db": db, "settings": settings, "save_settings": lambda s_: save_json(SETTINGS_PATH, s_), "DATA": DATA, "va": va, "live_flights": lambda member=True: live_flights(member),
               "FLEET": FLEET, "AIRPORTS": AIRPORTS})
 app.register_blueprint(botlink.bp)
 va.C["on_pirep_accepted"] = botlink.pirep_accepted

@@ -53,6 +53,10 @@ def migrate(con):
         con.execute("ALTER TABLE cargo_shipments ADD COLUMN reserved_booking_key TEXT")
     if "reserved_previous_status" not in columns:
         con.execute("ALTER TABLE cargo_shipments ADD COLUMN reserved_previous_status TEXT")
+    if "claimed_by" not in columns:
+        con.execute("ALTER TABLE cargo_shipments ADD COLUMN claimed_by TEXT")
+    if "claimed_until" not in columns:
+        con.execute("ALTER TABLE cargo_shipments ADD COLUMN claimed_until REAL")
 
 
 def has_route(routes, origin, destination):
@@ -86,13 +90,17 @@ def reachable(routes, destination, final):
     return (True, True) if nearby(destination, final) else (False, False)
 
 
-def transfer_options(con, origin, destination, routes):
+def transfer_options(con, origin, destination, routes, pilot_id=None, now=None):
+    """Freight waiting at `origin` that a flight to `destination` can carry. Freight another pilot has claimed
+    (held for their next flight, up to 24 hours) is left out; the pilot's own claims come first."""
     origin, destination = str(origin or "").upper(), str(destination or "").upper()
+    now = now or time.time()
     rows = con.execute("""SELECT id, awb, origin, destination, current_station, status, shipper, consignee,
-        commodity, pieces, gross_weight_lbs, data
+        commodity, pieces, gross_weight_lbs, data, claimed_by, claimed_until
         FROM cargo_shipments
         WHERE current_station=? AND status IN ('AT_STATION','HELD_AT_STATION') AND reserved_booking_key IS NULL
-        ORDER BY updated_at, awb""", (origin,)).fetchall()
+          AND (claimed_by IS NULL OR claimed_until < ? OR claimed_by=?)
+        ORDER BY (claimed_by=? AND claimed_until>=?) DESC, updated_at, awb""", (origin, now, pilot_id or "", pilot_id or "", now)).fetchall()
     available = []
     routes = list(routes)
     for row in rows:
@@ -101,6 +109,8 @@ def transfer_options(con, origin, destination, routes):
             continue
         item = dict(row)
         item["truck"] = truck
+        by, until = item.pop("claimed_by", None), item.pop("claimed_until", None) or 0
+        item["claimed_by_me"] = bool(pilot_id and by == pilot_id and until >= now)
         try:
             item["data"] = json.loads(item["data"])
         except (TypeError, ValueError, json.JSONDecodeError) as exc:
@@ -109,7 +119,7 @@ def transfer_options(con, origin, destination, routes):
     return available
 
 
-def selected_transfers(con, shipment_ids, origin, destination, routes, booking_key=None):
+def selected_transfers(con, shipment_ids, origin, destination, routes, booking_key=None, pilot_id=None):
     if not isinstance(shipment_ids, list) or len(shipment_ids) > 100:
         raise ValueError("Choose no more than 100 transfer shipments.")
     if any(not isinstance(shipment_id, str) or len(shipment_id) != 32
@@ -135,7 +145,7 @@ def selected_transfers(con, shipment_ids, origin, destination, routes, booking_k
                 raise RuntimeError(f"Persistent cargo {item['awb']} has invalid shipment data.") from exc
             allowed[shipment_id] = item
     else:
-        allowed = {item["id"]: item for item in transfer_options(con, origin, destination, routes)}
+        allowed = {item["id"]: item for item in transfer_options(con, origin, destination, routes, pilot_id)}
     selected = []
     for shipment_id in shipment_ids:
         item = allowed.get(shipment_id)
@@ -361,7 +371,7 @@ def record_flight(con, booking, pirep, pirep_id, pilot_id):
              dispatch.get("flight"), pirep_id, status, details)).rowcount
         if inserted:
             con.execute("""UPDATE cargo_shipments SET current_station=?, status=?, reserved_booking_key=NULL,
-                reserved_previous_status=NULL, updated_at=? WHERE id=?""",
+                reserved_previous_status=NULL, claimed_by=NULL, claimed_until=NULL, updated_at=? WHERE id=?""",
                 (row["destination"] if trucked else (actual_station or previous_station), status, now, shipment_id))
 
 
@@ -500,3 +510,33 @@ def add_note(con, shipment_id, pilot_id, text, now=None):
     station = con.execute("SELECT current_station FROM cargo_shipments WHERE id=?", (shipment_id,)).fetchone()[0]
     con.execute("INSERT INTO cargo_notes (shipment_id, pilot_id, station, text, created_at) VALUES (?,?,?,?,?)",
                 (shipment_id, pilot_id, station, text, now or time.time()))
+
+
+# ---------------------------------------------------------------- claims: hold waiting freight for your next flight
+CLAIM_S = 24 * 3600
+CLAIM_MAX = 3
+
+
+def claim(con, shipment_id, pilot_id, now=None):
+    """Hold waiting freight for this pilot's next flight for 24 hours (website or Discord /claim)."""
+    now = now or time.time()
+    row = con.execute("""SELECT id, awb, status, current_station, reserved_booking_key, claimed_by, claimed_until FROM cargo_shipments
+        WHERE id=?""", (shipment_id,)).fetchone()
+    if not row or row["status"] not in ("AT_STATION", "HELD_AT_STATION") or row["reserved_booking_key"]:
+        raise ValueError("That freight isn't waiting at a station right now.")
+    if row["claimed_by"] and row["claimed_by"] != pilot_id and (row["claimed_until"] or 0) >= now:
+        raise ValueError("Another pilot is already holding that freight.")
+    mine = con.execute("SELECT COUNT(*) FROM cargo_shipments WHERE claimed_by=? AND claimed_until>=? AND id!=?",
+                       (pilot_id, now, shipment_id)).fetchone()[0]
+    if mine >= CLAIM_MAX:
+        raise ValueError(f"You're already holding {CLAIM_MAX} shipments. Fly or release one first.")
+    until = now + CLAIM_S
+    con.execute("UPDATE cargo_shipments SET claimed_by=?, claimed_until=? WHERE id=?", (pilot_id, until, shipment_id))
+    con.execute("""INSERT OR IGNORE INTO cargo_movements (shipment_id, event_key, event_type, event_time, from_station, to_station, pilot_id,
+        status, details) VALUES (?,?,?,?,?,?,?,?,?)""", (shipment_id, f"claim:{shipment_id}:{pilot_id}:{int(now // 60)}", "CLAIMED", now,
+        row["current_station"], row["current_station"], pilot_id, row["status"], json.dumps({"until": until})))
+    return {"awb": row["awb"], "station": row["current_station"], "until": until}
+
+
+def release_claim(con, shipment_id, pilot_id):
+    con.execute("UPDATE cargo_shipments SET claimed_by=NULL, claimed_until=NULL WHERE id=? AND claimed_by=?", (shipment_id, pilot_id))

@@ -252,8 +252,52 @@ def bot_dispatch():
                 data = json.loads(r["data"])
                 if (data.get("expires") or float("inf")) >= now:
                     items.append(_work_item(kind, data, r["created"]))
+        items += _freight_items(con, after, now)
     items.sort(key=lambda x: x["created"])
     return jsonify({"items": items, "last": max([after] + [x["created"] for x in items]), "settings": dispatch_settings()})
+
+
+def _freight_items(con, after, now):
+    """The freight board: new customer orders worth shouting about (seasonal freight, or due within 36 hours)."""
+    out = []
+    try:
+        rows = con.execute("""SELECT awb, commodity, origin, destination, current_station, gross_weight_lbs, pieces, created_at,
+            json_extract(data,'$.deadline') AS deadline, json_extract(data,'$.season_name') AS season, json_extract(data,'$.truck_from') AS truck
+            FROM cargo_shipments WHERE booking_key LIKE 'ORDER:%' AND status='AT_STATION' AND created_at>?
+              AND (json_extract(data,'$.season') IS NOT NULL OR json_extract(data,'$.deadline') - created_at <= 36*3600)
+            ORDER BY created_at""", (after,)).fetchall()
+    except Exception as e:
+        print("freight board:", e)
+        return out
+    for r in rows:
+        out.append({"kind": "freight", "id": r["awb"], "title": r["commodity"], "category": r["season"] or "Express", "priority": "",
+                    "briefing": (f"In season: {r['season']}. " if r["season"] else "") + (f"Last leg by truck from {r['truck']}. " if r["truck"] else "")
+                                + f"Use /claim {r['awb']} to hold it for your next flight.",
+                    "cargo": r["commodity"], "payload_lbs": r["gross_weight_lbs"], "distance_nm": 0, "block_min": 0, "aircraft": [],
+                    "origin": _place({"icao": r["current_station"], "city": (C.get("AIRPORTS", {}).get(r["current_station"]) or {}).get("city")}),
+                    "destination": _place({"icao": r["destination"], "city": (C.get("AIRPORTS", {}).get(r["destination"]) or {}).get("city")}),
+                    "deliver_by": r["deadline"], "expires": None, "created": r["created_at"], "pieces": r["pieces"], "season": r["season"]})
+    return out
+
+
+@bp.post("/api/bot/claim")
+def bot_claim():
+    """/claim 901-1000034 in Discord: hold that freight for the linked pilot's next flight."""
+    b = request.json or {}
+    did, awb = str(b.get("discord_id") or ""), str(b.get("awb") or "").strip().upper().replace(" ", "")
+    with C["db"]() as con:
+        p = con.execute("SELECT id, name FROM pilots WHERE discord_id=?", (did,)).fetchone() if did else None
+        if not p:
+            return jsonify({"error": "Link your PAC pilot first: use /link with the code from Settings on the website."}), 404
+        row = con.execute("SELECT id, commodity, current_station, destination FROM cargo_shipments WHERE awb=?", (awb,)).fetchone()
+        if not row:
+            return jsonify({"error": f"No PAC shipment {awb}. Check the air waybill number (like 901-10000034)."}), 404
+        try:
+            r = C["cargo_network"].claim(con, row["id"], p["id"])
+        except ValueError as e:
+            return jsonify({"error": str(e)}), 400
+    return jsonify({"ok": True, "pilot": p["name"], "awb": awb, "commodity": row["commodity"], "station": row["current_station"],
+                    "destination": row["destination"], "until": r["until"]})
 
 
 @bp.get("/api/bot/roster")

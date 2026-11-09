@@ -156,7 +156,7 @@ DB.run({"token": TOKEN, "guild": "", "channels": {"flights": "flight-log", "news
         "pilot_role": "PAC Pilot", "staff_role": "PAC Staff", "rank_roles": True, "ranks": [], "site": "https://pac-va.com"})
 names = sorted(cmd.name for cmd in seen["tree"].get_commands())
 check("it logs in with the token", seen.get("token") == TOKEN)
-check("all five commands are registered", names == ["flights", "link", "live", "pilot", "unlink"], names)
+check("all six commands are registered", names == ["claim", "flights", "link", "live", "pilot", "unlink"], names)
 
 print("Bot trap")
 check("the trap channel is in the bot's settings", bot.get("/api/bot/config", headers=H).get_json()["channels"]["honeypot"] == "do-not-post")

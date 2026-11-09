@@ -1714,3 +1714,4 @@ html[data-theme="dark"] .journey-text-button{color:var(--steel)}
 .shed-bar{height:10px;background:#eef1f5;border-radius:5px;overflow:hidden}.shed-bar i{display:block;height:100%;background:#2e7d4f}
 .shed-busy .shed-bar i{background:#d9a428}.shed-congested .shed-bar i,.shed-full .shed-bar i{background:#c80000}
 .shed-congested .shed-top span,.shed-full .shed-top span{color:#a00000;font-weight:700}
+.cgo-claim{margin-top:12px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;font-size:14px}

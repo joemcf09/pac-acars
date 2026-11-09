@@ -1094,7 +1094,7 @@ function loadsheetHTML(ls, m) {
     <p class="muted">${ls.ferry ? "Ferry flight: the hold is empty." : `${units} unit${units === 1 ? "" : "s"} · ${fmt(ls.totals.pieces)} pieces · ${fmt(ls.totals.weight_lbs)} lb · ${(ls.shipments || []).length} shipment${(ls.shipments || []).length === 1 ? "" : "s"}`}</p></div>
     <span class="ls-status ${ls.ok ? "ok" : "bad"}">${ls.ok ? "Within limits" : "Over a limit"}</span></div>
   ${transferOptions.length ? `<section class="ls-transfer"><h4>Transfer cargo at ${esc(ls.origin.icao)}</h4><p class="muted">Select freight already at this station and routed through ${esc(ls.destination.icao)}. It keeps its original AWB and is delivered only when it reaches its final destination. ${fmt(ls.cargo_transfer_weight_lbs || 0)} lb selected.</p>
-    <div class="ls-transfer-list">${transferOptions.map(x => `<label><input type="checkbox" data-transfer-id="${esc(x.id)}" ${transferIds.has(x.id) ? "checked" : ""}><span><b>${esc(x.awb)}</b> · ${esc(x.commodity || "Cargo")} · ${fmt(x.gross_weight_lbs)} lb · ${fmt(x.pieces)} pcs · final ${esc(x.destination)}${x.truck_nm ? ` <span class="tag grey" title="PAC flies it to your destination; the last leg goes by road">last ${fmt(x.truck_nm)} nm by truck</span>` : ""}</span><small>${esc(x.shipper || "—")} → ${esc(x.consignee || "—")}</small>${(x.notes || []).map(n => `<small class="ls-note"><b>Handover note from ${esc(n.pilot)} at ${esc(n.station || "")}:</b> ${esc(n.text)}</small>`).join("")}</label>`).join("")}</div></section>` : ""}
+    <div class="ls-transfer-list">${transferOptions.map(x => `<label><input type="checkbox" data-transfer-id="${esc(x.id)}" ${transferIds.has(x.id) ? "checked" : ""}><span><b>${esc(x.awb)}</b> · ${esc(x.commodity || "Cargo")} · ${fmt(x.gross_weight_lbs)} lb · ${fmt(x.pieces)} pcs · final ${esc(x.destination)}${x.claimed_by_me ? ` <span class="tag lane-pref">Held for you</span>` : ""}${x.truck_nm ? ` <span class="tag grey" title="PAC flies it to your destination; the last leg goes by road">last ${fmt(x.truck_nm)} nm by truck</span>` : ""}</span><small>${esc(x.shipper || "—")} → ${esc(x.consignee || "—")}</small>${(x.notes || []).map(n => `<small class="ls-note"><b>Handover note from ${esc(n.pilot)} at ${esc(n.station || "")}:</b> ${esc(n.text)}</small>`).join("")}</label>`).join("")}</div></section>` : ""}
   ${partial ? `<div class="notice">The ${esc(ls.aircraft_name)} carries up to ${fmt(ls.limits.max_payload)} lb, so you'll take ${fmt(ls.totals.weight_lbs)} lb of the ${fmt(ls.payload_requested)} lb consignment.</div>` : ""}
   ${!ls.ok ? `<div class="notice err">This load and fuel go over a structural limit${ls.checks.some(c => c.code === "MTOW" && !c.ok) ? ": SimBrief will cut the cargo to fit under the take-off weight limit" : ""}. Pick a larger type on the Aircraft step, or plan less fuel or cargo.</div>` : ""}
   ${lsTabsHTML(ls, units)}
@@ -2512,6 +2512,7 @@ const CARGO_EVENT = {
     HELD_AT_STATION: `Diverted to ${e.to_station}, held there`, EXCEPTION: `Arrived ${e.to_station}: exception` }[e.status] || `Arrived ${e.to_station}`)),
   ORDER_RECEIVED: e => `Order received at ${e.to_station}${e.details?.truck_from ? ` (flies to ${e.details.truck_from}, then by truck)` : ""}${e.details?.deadline ? `, due by ${cargoInventoryDate(e.details.deadline)}` : ""}`,
   ORDER_WITHDRAWN: e => `Not picked up in time: moved to another carrier`,
+  CLAIMED: e => `Held for ${e.pilot_name || e.pilot_id || "a pilot"}'s next flight (24 hours)`,
   TRANSFER_RELEASED: e => `Back on the shelf at ${esc(e.from_station || "")}: the flight it was booked on sat unflown for three days`,
   FLIGHT_REJECTED: e => `Flight rejected, back at ${e.to_station}`,
   FLIGHT_REINSTATED: e => `Flight accepted after review, at ${e.to_station}`,
@@ -2544,7 +2545,7 @@ async function toggleCargoHistory(tr) {
   row.innerHTML = `<td colspan="6"><p class="muted">Loading history…</p></td>`;
   tr.after(row);
   try {
-    const { shipment, movements, notes = [], can_note } = await api(`/api/cargo/shipments/${encodeURIComponent(tr.dataset.cargoId)}`);
+    const { shipment, movements, notes = [], can_note, claim = {} } = await api(`/api/cargo/shipments/${encodeURIComponent(tr.dataset.cargoId)}`);
     const d = shipment.data || {}, a = d.awb_doc || {};
     row.firstElementChild.innerHTML = `<div class="cgo-hist-grid">
       <ol class="cgo-events">${(movements || []).map(e => `<li><span class="cargo-event-time">${cargoInventoryDate(e.event_time)}</span>
@@ -2555,7 +2556,15 @@ async function toggleCargoHistory(tr) {
         ${d.agent ? `<dt>Forwarder</dt><dd>${esc(d.agent)}</dd>` : ""}<dt>Handling</dt><dd>${esc((shipment.handling || []).join(" · ") || (d.shc || []).join(" ") || "General")}</dd>
         ${a.chg_kg ? `<dt>Chargeable</dt><dd>${cf1(a.chg_kg)} kg</dd>` : ""}${a.temp ? `<dt>Temperature</dt><dd>${esc(a.temp)}</dd>` : ""}
         ${shipment.security_status ? `<dt>Security</dt><dd>${esc(shipment.security_status)}</dd>` : ""}</dl></div>
+      <div class="cgo-claim">${claim.mine ? `<b>Held for you</b> until ${cargoInventoryDate(claim.until)}. Book a flight from ${esc(shipment.current_station)} and tick it under Transfer cargo. <button type="button" class="btn small ghost" data-unclaim="${esc(shipment.id)}">Release it</button>`
+        : claim.held ? `<span class="muted">Held by ${esc(claim.by)} until ${cargoInventoryDate(claim.until)}.</span>`
+        : claim.can ? `<button type="button" class="btn small" data-claim="${esc(shipment.id)}">Hold for my next flight (24 h)</button> <small class="muted">Or in Discord: <code>/claim ${esc(shipment.awb)}</code></small>` : ""}</div>
       <div class="cgo-notes" data-notes-for="${esc(shipment.id)}">${cargoNotesHTML(notes, can_note)}</div>`;
+    row.querySelectorAll("[data-claim],[data-unclaim]").forEach(b => b.onclick = async ev => {
+      ev.stopPropagation();
+      try { await api(`/api/cargo/shipments/${encodeURIComponent(b.dataset.claim || b.dataset.unclaim)}/claim`, { method: b.dataset.claim ? "POST" : "DELETE" }); toast(b.dataset.claim ? "Held for your next flight for 24 hours." : "Released."); tr.nextElementSibling?.remove(); toggleCargoHistory(tr); }
+      catch (err) { toast(err.message); }
+    });
     row.querySelectorAll("[data-pirep]").forEach(b => b.onclick = ev => { ev.stopPropagation(); openDetail(+b.dataset.pirep); });
     bindCargoNotes(row, shipment.id);
   } catch (e) { row.firstElementChild.innerHTML = `<p class="notice err">${esc(e.message)}</p>`; }

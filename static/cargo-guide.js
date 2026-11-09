@@ -50,6 +50,9 @@ function renderCargoGuide() {
     ["sheds", "Warehouses", `
       <p>Every station has a cargo shed with room for so much freight: about 220,000 lb at KCVG, 150,000 lb at the other hubs and 60,000 lb at other stations. Waiting freight fills it.</p>
       <p>Under 60% is <b>Normal</b>, 60% <b>Busy</b>, 85% <b>Congested</b>. A congested shed takes no new customer orders until pilots fly freight out, and Missions board flights from there are tagged <b>Clears a congested shed</b>. The Cargo inventory shows the fullest sheds at the top.</p>`],
+    ["claims", "Holding freight and the Discord freight board", `
+      <p>See freight you want? Open it on the Cargo inventory and press <b>Hold for my next flight</b>, or type <code>/claim 901-10000034</code> in the PAC Discord (link your account first with <code>/link</code>). It's held for you for <b>24 hours</b>: other pilots don't see it, and it's at the top of your load sheet marked <b>Held for you</b>. You can hold up to 3 at a time. Release it any time from the same place.</p>
+      <p>The PAC bot posts seasonal freight and freight due within 36 hours in the dispatch channel, with the <code>/claim</code> command to grab it. When you deliver freight you held, or seasonal freight, the bot announces it.</p>`],
     ["inventory", "Reading the Cargo inventory", `
       <p>Operations › Cargo inventory is the airline's warehouse view.</p>
       <ul>
