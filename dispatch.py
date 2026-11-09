@@ -331,7 +331,7 @@ def attach_transfers(d, shipments, booking):
 
 # ---------------------------------------------------------------- the paperwork around the release (authentic figures)
 # published structural limits (lb): max zero fuel weight and max landing weight; MTOW comes from the fleet data
-LIMITS = {"B732F": (95000, 107000), "B733F": (106500, 114000), "B738F": (138300, 146300), "B722F": (147000, 161000),
+LIMITS = {"B732F": (95000, 105000), "B733F": (109600, 116600), "B738F": (138300, 146300), "B722F": (147000, 161000),
           "A306F": (286600, 308600), "MD11F": (461300, 491500), "B752F": (200000, 210000), "B763F": (309000, 326000),
           "B77F": (547000, 575000), "B742F": (590000, 660000), "B748F": (721000, 757000)}
 # ICAO emergency response drill codes and packing groups for the dangerous goods PAC carries
