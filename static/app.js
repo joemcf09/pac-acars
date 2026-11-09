@@ -720,6 +720,12 @@ function vatsimIcaoFpl(m, aircraft, ofp, values) {
     missing: [],
   };
 }
+async function sendToSayIntentions(btn) {
+  btn.disabled = true; const was = btn.textContent; btn.textContent = "Sending…";
+  try { await api("/api/sayintentions/push", { method: "POST" }); toast("Sent to SayIntentions. Start your SayIntentions flight and your crew will know the plan."); }
+  catch (e) { toast(/API key/i.test(e.message) ? "Link your SayIntentions account first: Resources › Downloads › SayIntentions.AI (or just fly once with PAC ACARS running)." : e.message, 9000); }
+  finally { btn.disabled = false; btn.textContent = was; }
+}
 function vatsimFilingPanel(m, aircraft, ofp) {
   const scheduled = simbriefUtcParts(ofp.departure_time_utc);
   const flightDate = scheduled.date || new Date().toISOString().slice(0, 10);
@@ -729,6 +735,7 @@ function vatsimFilingPanel(m, aircraft, ofp) {
     <p class="muted" style="margin:4px 0 10px;font-size:13px">PAC cannot file directly through VATSIM's documented API. File in your approved pilot client; copy these details to keep the PAC callsign and remarks when SimBrief's network filing omits them.</p>
     ${(ofp.prefile?.vatsim || ofp.prefile?.ivao) ? `<p style="margin:0 0 6px;font-size:13px"><b>One click:</b> open a flight plan already filled in from your SimBrief OFP (route, times and remarks). Check it, then send it.</p><div class="row" style="margin:0 0 10px">${ofp.prefile.vatsim ? `<a class="btn small" href="${esc(ofp.prefile.vatsim)}" target="_blank" rel="noopener">Prefile on VATSIM</a>` : ""}${ofp.prefile.ivao ? `<a class="btn small" href="${esc(ofp.prefile.ivao)}" target="_blank" rel="noopener">Prefile on IVAO</a>` : ""}</div>` : ""}
     <p style="margin:0 0 10px;font-size:13px"><a href="https://my.vatsim.net/pilots/flightplan" target="_blank" rel="noopener">Open VATSIM flight planning</a> · <a href="https://fpl.ivao.aero" target="_blank" rel="noopener">Open IVAO flight planning</a></p>
+    <p class="muted" style="margin:0 0 10px;font-size:13px">Flying offline with AI ATC? <b>BeyondATC</b> and <b>SayIntentions</b> load your latest SimBrief plan by themselves. After you book, the <b>Send to SayIntentions</b> button on the ACARS page also briefs your SayIntentions crew on the PAC flight.</p>
     <button class="btn ghost small" type="button" data-vatsim-copy>Copy filing details</button>
     <details style="margin-top:8px"><summary>Build ICAO FPL for VATSIM import</summary>
       <p class="muted" style="font-size:13px;margin:6px 0">PAC prefills the equipment and surveillance codes from your SimBrief OFP. Confirm they match your aircraft, check the UTC departure time/date and flight rules/type, then review the message. Copy it into VATSIM's <b>Import ICAO FPL</b> box and click <b>Process</b>.</p>
@@ -4665,6 +4672,7 @@ function paperNote(b) {
     ${b.aircraft === 'B738F' ? '<a class="btn" style="color:#8b0000;background:#fff;border:2px solid #8b0000" href="/load-planner" target="_blank" rel="noopener">737 load planner</a>' : ''}
     ${b.aircraft === 'B722F' ? '<a class="btn" style="color:#8b0000;background:#fff;border:2px solid #8b0000" href="/load-planner-727" target="_blank" rel="noopener">727 load planner</a>' : ''}
     ${!['B738F', 'B722F'].includes(b.aircraft) && !(b.dispatch || {}).ferry ? '<a class="btn" style="color:#8b0000;background:#fff;border:2px solid #8b0000" href="/load-planner-all" target="_blank" rel="noopener">Load planner</a>' : ''}
+    <button class="btn" style="color:#8b0000;background:#fff;border:2px solid #8b0000" type="button" onclick="sendToSayIntentions(this)">Send to SayIntentions</button>
   </section>`;
 }
 let revisedSimbriefBusy = false;

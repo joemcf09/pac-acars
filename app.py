@@ -3803,7 +3803,7 @@ def si_key():
 def si_push():
     pid = va.current_pilot_id()
     ok, err = SI.push_now(pid, "sent by the pilot")
-    return jsonify({**SI.status(pid), "sent": ok}), (200 if ok else 400)
+    return jsonify({**SI.status(pid), "sent": ok, **({} if ok else {"error": err})}), (200 if ok else 400)
 
 
 @app.post("/api/acars/app/sayintentions")
