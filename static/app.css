@@ -1686,3 +1686,11 @@ html[data-theme="dark"] .journey-text-button{color:var(--steel)}
 .home-op progress{width:100%;height:12px;accent-color:#c80000;margin:10px 0 4px}
 @media(max-width:600px){.home-op{flex-direction:column;align-items:flex-start}.home-op img{width:90px;height:90px}}
 .cargo-card-top:has(.cargo-patch-img){justify-content:flex-start;align-items:center}
+.cgo-notes{margin-top:14px;border-top:1px solid var(--line,#d7dce3);padding-top:12px}
+.cgo-notes h4{margin:0 0 6px;font-size:14px}
+.cgo-note-list{list-style:none;margin:0 0 10px;padding:0;display:flex;flex-direction:column;gap:8px}
+.cgo-note-list li{background:#fff8e6;border:1px solid #f0d49a;padding:8px 12px}
+.cgo-note-list p{margin:4px 0 0}
+.cgo-note-form{display:flex;flex-direction:column;gap:6px;max-width:640px}
+.cgo-note-form textarea{font:inherit;padding:8px}
+.ls-note{display:block;background:#fff8e6;border-left:3px solid #d9a428;padding:4px 8px;margin-top:4px;color:#3d3420}

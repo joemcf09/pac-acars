@@ -447,3 +447,52 @@ def set_flight_outcome(con, pirep_id, accepted):
                     (station, status, now, a["shipment_id"]))
         moved += 1
     return moved
+
+
+# ---------------------------------------------------------------- handover notes: pilot to pilot, on the waybill
+NOTE_MAX = 280
+
+
+def _notes_table(con):
+    con.execute("""CREATE TABLE IF NOT EXISTS cargo_notes (id INTEGER PRIMARY KEY AUTOINCREMENT, shipment_id TEXT NOT NULL,
+        pilot_id TEXT NOT NULL, station TEXT, text TEXT NOT NULL, created_at REAL NOT NULL)""")
+    con.execute("CREATE INDEX IF NOT EXISTS idx_cargo_notes_shipment ON cargo_notes(shipment_id, created_at)")
+
+
+def notes(con, shipment_ids):
+    """{shipment_id: [note, ...]} oldest first, with the pilot's name."""
+    _notes_table(con)
+    ids = list(shipment_ids)
+    if not ids:
+        return {}
+    marks = ",".join("?" for _ in ids)
+    out = {}
+    for r in con.execute(f"""SELECT n.id, n.shipment_id, n.pilot_id, p.name AS pilot_name, n.station, n.text, n.created_at
+            FROM cargo_notes n LEFT JOIN pilots p ON p.id=n.pilot_id WHERE n.shipment_id IN ({marks})
+            ORDER BY n.created_at, n.id""", ids):
+        out.setdefault(r["shipment_id"], []).append(dict(r))
+    return out
+
+
+def can_note(con, shipment_id, pilot_id):
+    """A pilot can leave a note on freight they were the last to fly, while it waits at a station for its next leg."""
+    row = con.execute("SELECT status, current_station FROM cargo_shipments WHERE id=?", (shipment_id,)).fetchone()
+    if not row or row["status"] not in ("AT_STATION", "HELD_AT_STATION"):
+        return False
+    last = con.execute("""SELECT pilot_id FROM cargo_movements WHERE shipment_id=? AND event_type='FLIGHT_ARRIVAL'
+        ORDER BY event_time DESC, id DESC LIMIT 1""", (shipment_id,)).fetchone()
+    return bool(last and last["pilot_id"] == pilot_id)
+
+
+def add_note(con, shipment_id, pilot_id, text, now=None):
+    _notes_table(con)
+    text = " ".join(str(text or "").split())[:NOTE_MAX]
+    if len(text) < 3:
+        raise ValueError("Write a short note for the next pilot (at least a few words).")
+    if not can_note(con, shipment_id, pilot_id):
+        raise PermissionError("You can leave a note on freight you flew in, while it waits for its next flight.")
+    if con.execute("SELECT COUNT(*) FROM cargo_notes WHERE shipment_id=? AND pilot_id=?", (shipment_id, pilot_id)).fetchone()[0] >= 3:
+        raise ValueError("That's the most notes one pilot can leave on a shipment (3).")
+    station = con.execute("SELECT current_station FROM cargo_shipments WHERE id=?", (shipment_id,)).fetchone()[0]
+    con.execute("INSERT INTO cargo_notes (shipment_id, pilot_id, station, text, created_at) VALUES (?,?,?,?,?)",
+                (shipment_id, pilot_id, station, text, now or time.time()))

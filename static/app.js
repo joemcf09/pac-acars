@@ -1093,7 +1093,7 @@ function loadsheetHTML(ls, m) {
     <p class="muted">${ls.ferry ? "Ferry flight: the hold is empty." : `${units} unit${units === 1 ? "" : "s"} · ${fmt(ls.totals.pieces)} pieces · ${fmt(ls.totals.weight_lbs)} lb · ${(ls.shipments || []).length} shipment${(ls.shipments || []).length === 1 ? "" : "s"}`}</p></div>
     <span class="ls-status ${ls.ok ? "ok" : "bad"}">${ls.ok ? "Within limits" : "Over a limit"}</span></div>
   ${transferOptions.length ? `<section class="ls-transfer"><h4>Transfer cargo at ${esc(ls.origin.icao)}</h4><p class="muted">Select freight already at this station and routed through ${esc(ls.destination.icao)}. It keeps its original AWB and is delivered only when it reaches its final destination. ${fmt(ls.cargo_transfer_weight_lbs || 0)} lb selected.</p>
-    <div class="ls-transfer-list">${transferOptions.map(x => `<label><input type="checkbox" data-transfer-id="${esc(x.id)}" ${transferIds.has(x.id) ? "checked" : ""}><span><b>${esc(x.awb)}</b> · ${esc(x.commodity || "Cargo")} · ${fmt(x.gross_weight_lbs)} lb · ${fmt(x.pieces)} pcs · final ${esc(x.destination)}${x.truck_nm ? ` <span class="tag grey" title="PAC flies it to your destination; the last leg goes by road">last ${fmt(x.truck_nm)} nm by truck</span>` : ""}</span><small>${esc(x.shipper || "—")} → ${esc(x.consignee || "—")}</small></label>`).join("")}</div></section>` : ""}
+    <div class="ls-transfer-list">${transferOptions.map(x => `<label><input type="checkbox" data-transfer-id="${esc(x.id)}" ${transferIds.has(x.id) ? "checked" : ""}><span><b>${esc(x.awb)}</b> · ${esc(x.commodity || "Cargo")} · ${fmt(x.gross_weight_lbs)} lb · ${fmt(x.pieces)} pcs · final ${esc(x.destination)}${x.truck_nm ? ` <span class="tag grey" title="PAC flies it to your destination; the last leg goes by road">last ${fmt(x.truck_nm)} nm by truck</span>` : ""}</span><small>${esc(x.shipper || "—")} → ${esc(x.consignee || "—")}</small>${(x.notes || []).map(n => `<small class="ls-note"><b>Handover note from ${esc(n.pilot)} at ${esc(n.station || "")}:</b> ${esc(n.text)}</small>`).join("")}</label>`).join("")}</div></section>` : ""}
   ${partial ? `<div class="notice">The ${esc(ls.aircraft_name)} carries up to ${fmt(ls.limits.max_payload)} lb, so you'll take ${fmt(ls.totals.weight_lbs)} lb of the ${fmt(ls.payload_requested)} lb consignment.</div>` : ""}
   ${!ls.ok ? `<div class="notice err">This load and fuel go over a structural limit${ls.checks.some(c => c.code === "MTOW" && !c.ok) ? ": SimBrief will cut the cargo to fit under the take-off weight limit" : ""}. Pick a larger type on the Aircraft step, or plan less fuel or cargo.</div>` : ""}
   ${lsTabsHTML(ls, units)}
@@ -2493,6 +2493,25 @@ const CARGO_EVENT = {
   FLIGHT_REINSTATED: e => `Flight accepted after review, at ${e.to_station}`,
 };
 
+function cargoNotesHTML(notes, canNote) {
+  const list = (notes || []).map(n => `<li><b>${esc(n.pilot_name || n.pilot_id)}</b> <small class="muted">${esc(n.pilot_id)} · at ${esc(n.station || "")} · ${cargoInventoryDate(n.created_at)}</small>${S.me?.staff ? ` <button type="button" class="linkish" data-note-del="${n.id}">Remove</button>` : ""}<p>${esc(n.text)}</p></li>`).join("");
+  return `${list ? `<h4>Handover notes</h4><ul class="cgo-note-list">${list}</ul>` : ""}
+    ${canNote ? `<form class="cgo-note-form"><label for="cgoNote">Leave a handover note for the next pilot</label><textarea id="cgoNote" maxlength="280" rows="2" placeholder="For example: AKE in M04, straps checked. Consignee wants it before 0600Z."></textarea><button class="btn small" type="submit">Add note</button></form>` : ""}`;
+}
+function bindCargoNotes(root, id) {
+  const box = root.querySelector(`[data-notes-for="${id}"]`); if (!box) return;
+  const f = box.querySelector("form");
+  if (f) f.onsubmit = async e => {
+    e.preventDefault(); e.stopPropagation();
+    try { const r = await api(`/api/cargo/shipments/${encodeURIComponent(id)}/notes`, { method: "POST", body: { text: f.querySelector("textarea").value } }); box.innerHTML = cargoNotesHTML(r.notes, true); bindCargoNotes(root, id); toast("Note left for the next pilot."); }
+    catch (err) { toast(err.message); }
+  };
+  box.querySelectorAll("[data-note-del]").forEach(b => b.onclick = async ev => {
+    ev.stopPropagation();
+    try { await api(`/api/staff/cargo/notes/${b.dataset.noteDel}`, { method: "DELETE" }); b.closest("li").remove(); } catch (err) { toast(err.message); }
+  });
+  box.onclick = ev => ev.stopPropagation();
+}
 async function toggleCargoHistory(tr) {
   const open = tr.nextElementSibling?.classList.contains("cgo-hist");
   if (open) { tr.nextElementSibling.remove(); tr.setAttribute("aria-expanded", "false"); return; }
@@ -2501,7 +2520,7 @@ async function toggleCargoHistory(tr) {
   row.innerHTML = `<td colspan="6"><p class="muted">Loading history…</p></td>`;
   tr.after(row);
   try {
-    const { shipment, movements } = await api(`/api/cargo/shipments/${encodeURIComponent(tr.dataset.cargoId)}`);
+    const { shipment, movements, notes = [], can_note } = await api(`/api/cargo/shipments/${encodeURIComponent(tr.dataset.cargoId)}`);
     const d = shipment.data || {}, a = d.awb_doc || {};
     row.firstElementChild.innerHTML = `<div class="cgo-hist-grid">
       <ol class="cgo-events">${(movements || []).map(e => `<li><span class="cargo-event-time">${cargoInventoryDate(e.event_time)}</span>
@@ -2511,8 +2530,10 @@ async function toggleCargoHistory(tr) {
       <dl class="cgo-facts"><dt>Shipper</dt><dd>${esc(shipment.shipper)}</dd><dt>Consignee</dt><dd>${esc(shipment.consignee)}</dd>
         ${d.agent ? `<dt>Forwarder</dt><dd>${esc(d.agent)}</dd>` : ""}<dt>Handling</dt><dd>${esc((shipment.handling || []).join(" · ") || (d.shc || []).join(" ") || "General")}</dd>
         ${a.chg_kg ? `<dt>Chargeable</dt><dd>${cf1(a.chg_kg)} kg</dd>` : ""}${a.temp ? `<dt>Temperature</dt><dd>${esc(a.temp)}</dd>` : ""}
-        ${shipment.security_status ? `<dt>Security</dt><dd>${esc(shipment.security_status)}</dd>` : ""}</dl></div>`;
+        ${shipment.security_status ? `<dt>Security</dt><dd>${esc(shipment.security_status)}</dd>` : ""}</dl></div>
+      <div class="cgo-notes" data-notes-for="${esc(shipment.id)}">${cargoNotesHTML(notes, can_note)}</div>`;
     row.querySelectorAll("[data-pirep]").forEach(b => b.onclick = ev => { ev.stopPropagation(); openDetail(+b.dataset.pirep); });
+    bindCargoNotes(row, shipment.id);
   } catch (e) { row.firstElementChild.innerHTML = `<p class="notice err">${esc(e.message)}</p>`; }
 }
 

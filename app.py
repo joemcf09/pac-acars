@@ -2654,6 +2654,7 @@ def plan_loadsheet():
         app.logger.exception("cargo orders (route): %s", e)
     with db() as con:
         transfer_options = cargo_network.transfer_options(con, m["origin"]["icao"], m["destination"]["icao"], ROUTES.values())
+        transfer_notes = cargo_network.notes(con, [x["id"] for x in transfer_options])
     fake = {"mission": m, "aircraft": ac_code, "ofp": None, "flight_number": m["id"], "requested_at": time.time(),
             "airframe": airframe, "manifest_seed": seed, "cargo_transfer_ids": [item["id"] for item in transfer_rows],
             "cargo_transfer_weight_lbs": transfer_weight}
@@ -2696,7 +2697,9 @@ def plan_loadsheet():
                                       "shipper": item["shipper"], "consignee": item["consignee"],
                                       "commodity": item["commodity"], "pieces": item["pieces"],
                                       "gross_weight_lbs": item["gross_weight_lbs"],
-                                      "truck_nm": round(_airport_nm(m["destination"]["icao"], item["destination"]) or 0) if item.get("truck") else None}
+                                      "truck_nm": round(_airport_nm(m["destination"]["icao"], item["destination"]) or 0) if item.get("truck") else None,
+                                      "notes": [{"text": n["text"], "pilot": n.get("pilot_name") or n["pilot_id"], "station": n["station"]}
+                                                for n in transfer_notes.get(item["id"], [])][-2:]}
                                      for item in transfer_options],
                 "cargo_transfer_ids": [item["id"] for item in transfer_rows],
                 "cargo_transfer_weight_lbs": transfer_weight,
@@ -3793,7 +3796,38 @@ def cargo_shipment_detail(shipment_id):
     except (TypeError, ValueError, json.JSONDecodeError):
         app.logger.exception("Invalid persisted cargo record for shipment %s", shipment_id)
         return jsonify({"error": "Shipment history could not be read. Contact PAC staff."}), 500
-    return jsonify({"shipment": shipment, "movements": history})
+    me = auth.current_id()
+    with db() as con:
+        note_list = cargo_network.notes(con, [shipment_id]).get(shipment_id, [])
+        may_note = bool(me) and cargo_network.can_note(con, shipment_id, me)
+    return jsonify({"shipment": shipment, "movements": history, "notes": note_list, "can_note": may_note})
+
+
+@app.post("/api/cargo/shipments/<shipment_id>/notes")
+def cargo_shipment_note(shipment_id):
+    """A handover note for the next pilot, on freight this pilot flew in and left at a station."""
+    me = auth.current_id()
+    if not me:
+        return jsonify({"error": "Sign in to leave a note."}), 401
+    if not re.fullmatch(r"[0-9a-f]{32}", shipment_id):
+        return jsonify({"error": "Shipment not found."}), 404
+    try:
+        with db() as con:
+            cargo_network.add_note(con, shipment_id, me, (request.get_json(silent=True) or {}).get("text"))
+            note_list = cargo_network.notes(con, [shipment_id]).get(shipment_id, [])
+    except PermissionError as e:
+        return jsonify({"error": str(e)}), 403
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 400
+    return jsonify({"ok": True, "notes": note_list})
+
+
+@app.delete("/api/staff/cargo/notes/<int:nid>")
+def staff_delete_cargo_note(nid):
+    with db() as con:
+        cargo_network._notes_table(con)
+        con.execute("DELETE FROM cargo_notes WHERE id=?", (nid,))
+    return jsonify({"ok": True})
 
 
 @app.get("/api/logbook/<int:pid>")
