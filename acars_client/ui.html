@@ -174,6 +174,7 @@ html[data-design="loadsheet"] #map{border-radius:0}
   <button class="hbtn" id="compactBtn" type="button" title="Compact mode: a slim strip that stays on top">Compact</button>
   <span class="small" id="conn"><span class="dot"></span>…</span></header>
 <main>
+<div id="startNag" class="hidden" role="alert" style="background:#c62828;color:#fff;font:700 14px var(--font);padding:10px 12px;border-radius:8px;margin-bottom:10px;display:flex;align-items:center;gap:10px"><span style="flex:1" id="startNagText"></span><button class="btn" style="background:#fff;color:#c62828" type="button" onclick="start(false)">Start now</button></div>
   <div id="strip" class="strip" role="region" aria-label="Compact flight strip">
     <div class="top"><b id="sFn">PAC</b><span class="muted small" id="sRoute"></span><span class="sp" style="flex:1"></span>
       <button class="hbtn msg-light" id="sMsg" type="button">MSG</button><button class="hbtn" id="sExpand" type="button" title="Back to the full window">Full</button></div>
@@ -252,6 +253,7 @@ html[data-design="loadsheet"] #map{border-radius:0}
       <label class="full" style="display:flex;gap:8px;align-items:center;color:var(--text)"><input type="checkbox" id="cfgTray" style="width:auto"> Minimize and close to the tray while a flight is tracked</label>
       <label class="full" style="display:flex;gap:8px;align-items:center;color:var(--text)"><input type="checkbox" id="cfgCoach" style="width:auto"> SOP coach: reminders from PAC's standard procedures (beacon, lights, stable approach)</label>
       <label class="full" style="display:flex;gap:8px;align-items:center;color:var(--text)"><input type="checkbox" id="cfgDiscord" style="width:auto"> Show my PAC flight in my Discord status</label>
+      <label class="full" style="display:flex;gap:8px;align-items:center;color:var(--text)"><input type="checkbox" id="cfgRemind" style="width:auto"> Voice reminder ("Start ACARS immediately") if I push back or taxi with a flight booked but not started</label>
       <div class="full"><label for="cfgWin">Window (after a restart of PAC ACARS)</label><select id="cfgWin">
         <option value="auto">Automatic (recommended): Edge app window</option><option value="app">Edge or Chrome app window</option><option value="webview">Built-in window</option></select></div>
       <div class="full row"><button class="btn ghost" id="cfgSave" type="button">Save settings</button><span class="small muted" id="ver"></span></div>
@@ -553,6 +555,9 @@ function render() {
   const upd = $("#update");
   if (upd) upd.innerHTML = newer(h.latest_app, S.version) && (S.update?.dismissed || (st && st.tracking)) ? `<div class="notice">PAC ACARS ${esc(verLabel(h.latest_app))} is available. ${S.update?.can_install ? `<a href="#" style="color:var(--cyan)" onclick="openUpdate();return false">Update now</a>` : `<a style="color:var(--cyan)" href="${esc(cfg.server)}/#downloads" target="_blank" rel="noopener">Download it from the PAC website</a>`}.</div>` : "";
   splashStep(); updateDialog(st); whatsNewDialog(st);
+  const nag = S.start_reminder && bk && !(st && st.tracking);
+  $("#startNag").classList.toggle("hidden", !nag); $("#startNag").style.display = nag ? "flex" : "none";
+  if (nag) $("#startNagText").textContent = `START ACARS: ${S.start_reminder.flight || "your flight"} is moving and isn't being recorded.`;
   applyDesign();
   S.unread = S.unread ?? 0;
   runCommand(S.win_cmd);
@@ -594,7 +599,7 @@ function render() {
   if (!cfgLoaded) { $("#cfgXp").value = cfg.xplane_host || ""; $("#cfgDemo").value = cfg.demo_speedup || 60; $("#cfgTop").checked = !!cfg.always_on_top; $("#source").value = cfg.source || "MSFS";
     $("#cfgWin").value = cfg.window_mode || "auto";
     $("#cfgDesign").value = cfg.design || "loadsheet";
-    $("#cfgChime").checked = cfg.chime !== false; $("#cfgVol").value = cfg.chime_volume ?? 0.5; $("#cfgTray").checked = cfg.close_to_tray !== false; $("#cfgCoach").checked = cfg.sop_coach !== false; $("#cfgDiscord").checked = cfg.discord_status !== false; $("#ver").textContent = `PAC ACARS ${verLabel(S.version)}`; cfgLoaded = true; }
+    $("#cfgChime").checked = cfg.chime !== false; $("#cfgVol").value = cfg.chime_volume ?? 0.5; $("#cfgTray").checked = cfg.close_to_tray !== false; $("#cfgCoach").checked = cfg.sop_coach !== false; $("#cfgDiscord").checked = cfg.discord_status !== false; $("#cfgRemind").checked = cfg.start_reminder !== false; $("#ver").textContent = `PAC ACARS ${verLabel(S.version)}`; cfgLoaded = true; }
   if (S.auth_needed && !st) {
     if (!$("#appSignin")) {
       $("#flightCard").innerHTML = `<form id="appSignin" class="mform"><b class="full" style="font-size:16px">Sign in to PAC</b>
@@ -759,7 +764,7 @@ $("#cfgSave").onclick = async () => { if ($("#cfgSave").disabled) return; $("#cf
   const before = (S.config || {}).server; let r;
   try { r = await api("/api/config", { server: $("#cfgServer").value.trim(), xplane_host: $("#cfgXp").value.trim(), demo_speedup: +$("#cfgDemo").value || 60, always_on_top: $("#cfgTop").checked,
   window_mode: $("#cfgWin").value, design: $("#cfgDesign").value, chime: $("#cfgChime").checked, chime_volume: +$("#cfgVol").value, close_to_tray: $("#cfgTray").checked,
-  sop_coach: $("#cfgCoach").checked, discord_status: $("#cfgDiscord").checked }); } catch (e) { note(esc(e.message), "err"); return; }
+  sop_coach: $("#cfgCoach").checked, discord_status: $("#cfgDiscord").checked, start_reminder: $("#cfgRemind").checked }); } catch (e) { note(esc(e.message), "err"); return; }
   note(r.config.server !== before ? `Settings saved. PAC ACARS now uses ${esc(r.config.server)}: sign in there.` : "Settings saved.", "ok"); shownServer = null; refresh(); };
 
 const ATA = [[5, "Inspections"], [21, "Air conditioning / pressurization"], [22, "Autoflight"], [23, "Communications"], [24, "Electrical"], [26, "Fire protection"],

@@ -1,6 +1,17 @@
 PAC ACARS - CHANGELOG
 =====================
 
+1.1.4 (November 2026)
+---------------------
+New: "Start ACARS" reminder
+- Forgot to press Start tracking? If you have a flight booked, your simulator
+  is running and the aircraft starts moving (pushback, taxi, or already in
+  the air) without PAC ACARS recording, a voice says "Start ACARS
+  immediately", the window comes to the front, and a red bar with a
+  Start now button appears. It repeats every 45 seconds, up to 6 times.
+- PAC ACARS has to be open for this to work (it starts with Windows if you
+  chose that when installing). Turn it off in Settings if you don't want it.
+
 1.1.3 (November 2026)
 ---------------------
 Fixed: landing rates

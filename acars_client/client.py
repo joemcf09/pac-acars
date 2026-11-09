@@ -90,7 +90,7 @@ import acars_core  # noqa: E402
 from sim_sources import DemoSource, MSFSSource, XPlaneSource, gc_distance_nm  # noqa: E402
 from tracker import FlightRecorder, TrackerThread  # noqa: E402
 
-VERSION = "1.1.3"   # major.minor.patch, plus a fourth number for hotfixes (shown as "1.1.2 hotfix 1")
+VERSION = "1.1.4"   # major.minor.patch, plus a fourth number for hotfixes (shown as "1.1.2 hotfix 1")
 PORT = int(os.environ.get("PAC_ACARS_PORT", "5070"))  # not 5060: browsers block that port (SIP)
 CONFIG_PATH = USER_DIR / "config.json"
 STATE_PATH = USER_DIR / "flight_state.pkl"
@@ -111,7 +111,7 @@ SITE = (os.environ.get("PAC_SITE", "").strip().rstrip("/") or _built_site()
         or (OFFICIAL_SITE if FROZEN else "http://127.0.0.1:5050"))
 DEFAULTS = {"server": SITE, "source": "MSFS", "xplane_host": "127.0.0.1", "demo_speedup": 60, "always_on_top": True,
             "win_w": 460, "win_h": 640, "chime": True, "chime_volume": 0.5, "close_to_tray": True,
-            "sop_coach": True, "discord_status": True}
+            "sop_coach": True, "discord_status": True, "start_reminder": True}
 # Discord Rich Presence: the PAC application's ID from discord.com/developers (public, not a secret).
 # The website can also send one (Staff settings: discord_app_id), which wins.
 DISCORD_APP_ID = ""
@@ -512,7 +512,7 @@ def api_state():
                     "unread": unread(), "compact": state.get("compact"), "native": bool(state.get("native")), "tray": bool(state.get("tray")),
                     "win_cmd": state.get("win_cmd"), "window_restarts": state.get("window_restarts", 0),
                     "practice": bool(state.get("practice")), "debriefs": state.get("debriefs") or [],
-                    "update": update_info(), "whats_new": whats_new()})
+                    "update": update_info(), "whats_new": whats_new(), "start_reminder": state.get("start_reminder")})
 
 
 @ui.get("/api/track")
@@ -1028,7 +1028,7 @@ def api_config():
             cfg = load_config()
         b = {k: v for k, v in b.items() if k != "server"}
     for k in ("source", "xplane_host", "demo_speedup", "always_on_top", "chime", "chime_volume", "close_to_tray", "window_mode", "design",
-              "sop_coach", "discord_status"):
+              "sop_coach", "discord_status", "start_reminder"):
         if k in b:
             cfg[k] = b[k]
     save_config(cfg)
@@ -1038,6 +1038,7 @@ def api_config():
 
 @ui.post("/api/start")
 def api_start():
+    reminder_release()
     if state.get("thread") and state["thread"].is_alive():
         return jsonify({"error": "Already tracking."}), 409
     hello = refresh_hello()
@@ -1253,6 +1254,104 @@ def chime_watch():
 def api_chime():
     threading.Thread(target=play_chime, args=(True,), daemon=True).start()
     return jsonify({"ok": True})
+
+
+# ---------------------------------------------------------------- 1.1.4: "Start ACARS" voice reminder
+REMIND_SAY = "Start ACARS immediately. Your PAC flight is not being recorded."
+REMIND_EVERY_S = 45
+REMIND_MAX = 6
+_remind = {"src": None, "lock": threading.Lock()}
+
+
+def say(text):
+    """Speaks through the Windows voice (built into every Windows 10 and 11), asynchronously, then plays the chime as a backup."""
+    if sys.platform != "win32":
+        print("Say:", text)
+        return
+    try:
+        import subprocess
+        safe = text.replace("'", "")
+        cmd = ("Add-Type -AssemblyName System.Speech; $s = New-Object System.Speech.Synthesis.SpeechSynthesizer; "
+               f"$s.Volume = 100; $s.Rate = 0; $s.Speak('{safe}')")
+        subprocess.Popen(["powershell", "-NoProfile", "-NonInteractive", "-WindowStyle", "Hidden", "-Command", cmd],
+                         creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
+    except Exception as e:
+        print("Voice:", e)
+        play_chime(force=True)
+
+
+def reminder_release():
+    """Lets go of the sim before real tracking starts, so the watcher and the tracker never share a connection."""
+    with _remind["lock"]:
+        src, _remind["src"] = _remind["src"], None
+    if src:
+        try:
+            src.close()
+        except Exception:
+            pass
+
+
+def reminder_should_watch():
+    """A flight is booked, a simulator is running, and PAC ACARS is not recording it."""
+    if load_config().get("start_reminder") is False or state.get("practice") or state.get("handed_over"):
+        return None
+    th = state.get("thread")
+    if th and th.is_alive():
+        return None
+    if not (state.get("hello") or {}).get("booking"):
+        return None
+    sims = [x for x in state.get("detected_sims") or [] if x in ("MSFS", "X-Plane")]
+    return sims[0] if len(sims) == 1 else None
+
+
+def reminder_moving(t):
+    """Pushback, taxi or airborne: engines running and rolling, brake released, or off the ground."""
+    if not t.on_ground:
+        return (t.agl_ft or 0) > 50
+    return bool(t.engines_running) and ((t.gs or 0) > 3 or t.parking_brake is False)
+
+
+def start_reminder_watch():
+    said, last_say, booking_key = 0, 0.0, None
+    while True:
+        time.sleep(5)
+        try:
+            sim = reminder_should_watch()
+            bk = (state.get("hello") or {}).get("booking") or {}
+            key = bk.get("requested_at")
+            if key != booking_key:
+                booking_key, said = key, 0
+            if not sim:
+                reminder_release()
+                state["start_reminder"] = None
+                continue
+            with _remind["lock"]:
+                if _remind["src"] is None:
+                    src = MSFSSource() if sim == "MSFS" else XPlaneSource(host=load_config().get("xplane_host") or "127.0.0.1", freq=1)
+                    try:
+                        src.connect()
+                    except Exception:
+                        time.sleep(25)          # the sim is still loading: try again later, quietly
+                        continue
+                    _remind["src"] = src
+                src = _remind["src"]
+                t = src.read()
+            if not t or not reminder_moving(t):
+                state["start_reminder"] = None
+                continue
+            state["start_reminder"] = {"since": state.get("start_reminder", {}) and state["start_reminder"].get("since") or time.time(),
+                                       "flight": bk.get("flight_number")}
+            if said < REMIND_MAX and time.time() - last_say >= REMIND_EVERY_S:
+                said, last_say = said + 1, time.time()
+                say(REMIND_SAY)
+                try:
+                    show_window()
+                except Exception:
+                    pass
+        except Exception as e:
+            print("Start reminder:", e)
+            reminder_release()
+            time.sleep(20)
 
 
 # ---------------------------------------------------------------- window, compact mode and tray icon
@@ -1876,7 +1975,7 @@ def main():
     else:
         refresh_hello()
     quiet_request_log()
-    for job in (pusher, sim_watch, chime_watch, window_supervisor, discord_presence):
+    for job in (pusher, sim_watch, chime_watch, window_supervisor, discord_presence, start_reminder_watch):
         threading.Thread(target=job, daemon=True).start()
     url = f"http://127.0.0.1:{PORT}/"
     threading.Thread(target=lambda: ui.run(host="127.0.0.1", port=PORT, threaded=True, use_reloader=False), daemon=True).start()
