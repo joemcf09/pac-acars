@@ -239,6 +239,16 @@ def register(app,context):
                 if con.execute('SELECT 1 FROM cargo_campaign_wrapups WHERE campaign_id=?',(cid,)).fetchone():return reply({'error':'This campaign has already closed and paid out.'},409)
                 con.execute('UPDATE cargo_campaigns SET patch=?,reward_cash=?,baseline_lbs=? WHERE id=?',(patch or None,reward,base,cid))
             return reply({'ok':True})
+        if action=='edit':
+            try:values=campaign_input(b,context['AIRPORTS'])
+            except ValueError as exc:return reply({'error':str(exc)},400)
+            with closing(db()) as con,con:
+                con.execute('BEGIN IMMEDIATE')
+                row=con.execute('SELECT state FROM cargo_campaigns WHERE id=?',(cid,)).fetchone()
+                if not row or row['state']=='discarded':return reply({'error':'Campaign not found.'},404)
+                if row['state']!='draft':return reply({'error':'Only drafts can be edited. Published campaigns keep their rules.'},409)
+                con.execute('UPDATE cargo_campaigns SET title=?,description=?,starts=?,ends=?,target_lbs=?,destinations=? WHERE id=?',(*values,cid))
+            return reply({'ok':True})
         if action not in ('publish','archive'):return reply({'error':'Choose publish or archive.'},400)
         with closing(db()) as con,con:
             con.execute('BEGIN IMMEDIATE')

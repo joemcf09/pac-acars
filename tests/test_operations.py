@@ -26,7 +26,14 @@ cid = r.json["id"]
 check("extras save", c.post(f"/api/staff/cargo-campaigns/{cid}", json={"action": "extras", "patch": "/static/patches/island-supply.png",
                                                                       "reward_cash": 5000, "baseline_lbs": 213500}).status_code == 200)
 check("bad patch link refused", c.post(f"/api/staff/cargo-campaigns/{cid}", json={"action": "extras", "patch": "javascript:x"}).status_code == 400)
+edit = {"action": "edit", "title": "Operation Island Supply", "description": "Relief flights to the islands", "start_date": today,
+        "end_date": today, "target_lbs": 300000, "destinations": ["MYNN", "TJSJ", "TNCM"]}
+check("a draft can be edited", c.post(f"/api/staff/cargo-campaigns/{cid}", json=edit).status_code == 200)
+with A.db() as con:
+    check("the edit is saved", con.execute("SELECT description FROM cargo_campaigns WHERE id=?", (cid,)).fetchone()[0] == "Relief flights to the islands")
+check("a bad edit is refused", c.post(f"/api/staff/cargo-campaigns/{cid}", json={**edit, "destinations": ["ZZZZ9"]}).status_code == 400)
 c.post(f"/api/staff/cargo-campaigns/{cid}", json={"action": "publish"})
+check("a published campaign can't be edited", c.post(f"/api/staff/cargo-campaigns/{cid}", json=edit).status_code == 409)
 now = time.time()
 with A.db() as con:
     con.execute("INSERT OR IGNORE INTO pilots (id, name, status) VALUES ('PAC0002','Alex B.','Active')")
