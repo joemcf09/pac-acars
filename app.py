@@ -3601,8 +3601,28 @@ def cargo_stations():
     return jsonify([dict(row) for row in rows])
 
 
+def release_idle_cargo():
+    """Waiting freight reserved by bookings nobody has flown in three days goes back on the shelf."""
+    try:
+        flying = {f.get("pilot_id") for f in live_flights(True) if f.get("pilot_id")}
+        with db() as con:
+            done = cargo_network.release_idle(con, all_bookings(), flying)
+            for pid, ids in done.items():
+                row = con.execute("SELECT data FROM bookings WHERE pilot_id=?", (pid,)).fetchone()
+                if not row:
+                    continue
+                b = json.loads(row["data"])
+                b["cargo_released_ids"] = sorted(set(b.get("cargo_released_ids") or []) | set(ids))
+                con.execute("UPDATE bookings SET data=? WHERE pilot_id=?", (json.dumps(b), pid))
+        return done
+    except Exception as e:      # must never break a page
+        app.logger.exception("idle cargo release: %s", e)
+        return None
+
+
 def stock_cargo_orders():
     """Top up waiting customer freight at the hubs and busy stations (at most every 30 minutes)."""
+    release_idle_cargo()
     try:
         with db() as con:
             return cargo_orders.tick(con, ROUTES.values(), FLEET, dispatch_pilot(), settings())

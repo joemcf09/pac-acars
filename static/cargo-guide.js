@@ -25,7 +25,7 @@ function renderCargoGuide() {
         <li><b>Arrange the load (optional).</b> On the ACARS page, <b>Load planner</b> lets you drag main-deck units between positions or press <b>Auto-load</b>, with a live bar showing whether the weight sits forward, centered or aft. Saving updates your release, so you'll sign it again.</li>
         <li><b>Fly it with PAC ACARS</b> and file your PIREP.</li>
       </ol>
-      <p class="muted">Nothing is reserved until you book. If you cancel the booking, any waiting freight you picked goes back to the station for someone else.</p>`],
+      <p class="muted">Nothing is reserved until you book. If you cancel the booking, any waiting freight you picked goes back to the station for someone else. The same happens if a booking sits unflown for three days: the waiting freight is released (your booking stays, and if you fly it later it simply files without that freight).</p>`],
     ["filing", "What happens when you file", `
       <p>When your PIREP is filed, every shipment on board is updated automatically:</p>
       <table>

@@ -79,6 +79,48 @@ with A.db() as con:
     n2 = con.execute("SELECT COUNT(*) FROM cargo_shipments WHERE current_station=? AND destination=?", (leg["origin"]["icao"], leg["destination"]["icao"])).fetchone()[0]
 check("reopening the load sheet doesn't keep adding freight", n2 == n1, (n1, n2))
 
+print("Freight on a booking nobody flies")
+row2 = next(r for r in A.cargo_network.transfer_options if False) if False else None
+with A.db() as con:
+    cand = con.execute("""SELECT * FROM cargo_shipments WHERE booking_key LIKE 'ORDER:%' AND status='AT_STATION' AND reserved_booking_key IS NULL
+        AND current_station='KCVG'""").fetchall()
+pick = None
+for r2 in cand:
+    rt = next(((r, a) for r in A.ROUTES.values() if r["origin"]["icao"] == "KCVG" and r["destination"]["icao"] == r2["destination"]
+               and r.get("category") == "Scheduled" for a in r["aircraft"] if A.FLEET.get(a, {}).get("max_payload_lbs", 0) >= r2["gross_weight_lbs"] * 2), None)
+    if rt:
+        pick = (r2, rt); break
+r2, (route2, ac2) = pick
+ls2 = c.post("/api/plan/loadsheet", json={"mission_id": route2["id"], "aircraft": ac2, "cargo_transfer_ids": [r2["id"]]}).json
+b2 = c.post("/api/booking", json={"mission_id": route2["id"], "aircraft": ac2, "manifest_seed": ls2["seed"], "cargo_transfer_ids": [r2["id"]], "zone_ack": True}).json
+with A.db() as con:
+    held = con.execute("SELECT reserved_booking_key FROM cargo_shipments WHERE id=?", (r2["id"],)).fetchone()[0]
+check("booking reserves the waiting freight", bool(held))
+A.release_idle_cargo()
+with A.db() as con:
+    still = con.execute("SELECT reserved_booking_key FROM cargo_shipments WHERE id=?", (r2["id"],)).fetchone()[0]
+check("a fresh booking keeps it", still == held)
+saved = A.cargo_network.release_idle.__defaults__
+A.cargo_network.release_idle.__defaults__ = ((), None, -1)       # pretend three days have passed
+A.release_idle_cargo()
+A.cargo_network.release_idle.__defaults__ = saved
+with A.db() as con:
+    f2 = con.execute("SELECT status, reserved_booking_key FROM cargo_shipments WHERE id=?", (r2["id"],)).fetchone()
+    h2 = [x[0] for x in con.execute("SELECT event_type FROM cargo_movements WHERE shipment_id=? ORDER BY id", (r2["id"],))]
+check("after three days idle it goes back on the shelf", f2["status"] == "AT_STATION" and f2["reserved_booking_key"] is None and h2[-1] == "TRANSFER_RELEASED", (dict(f2), h2))
+o2, d2 = route2["origin"]["icao"], route2["destination"]["icao"]
+c.post("/api/acars/app/start", json={"source": "MSFS", "requested_at": b2["requested_at"]})
+rec2 = FlightRecorder(c.get("/api/booking").json.get("booking") or b2)
+for s_ in fly(o2, rw[o2][0][0], d2, rw[d2][0][0], td_fpm=-150):
+    rec2.update(s_)
+c.post("/api/acars/app/complete", json={"record": rec2.export(), "requested_at": b2["requested_at"], "source": "MSFS"})
+fr = c.post("/api/pirep", json={"remarks": "late"})
+with A.db() as con:
+    f3 = con.execute("SELECT status, current_station FROM cargo_shipments WHERE id=?", (r2["id"],)).fetchone()
+    own = con.execute("SELECT COUNT(*) FROM cargo_shipments WHERE booking_key=? AND status LIKE 'DELIVERED%'", (f"PAC0001:{b2['requested_at']}",)).fetchone()[0]
+check("flying the old booking later still files", fr.status_code == 200 and own > 0, (fr.status_code, fr.json.get("error") if fr.is_json else None, own))
+check("and the released freight stays behind for someone else", f3["status"] == "AT_STATION" and f3["current_station"] == o2, dict(f3))
+
 print("Unclaimed orders")
 with A.db() as con:
     r = O.tick(con, A.ROUTES.values(), A.FLEET, A.dispatch_pilot(), A.settings(), now=time.time() + 8 * 86400, force=True)

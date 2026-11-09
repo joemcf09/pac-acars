@@ -161,7 +161,9 @@ def register_booking(con, booking, pilot_id):
     origin = (dispatch.get("origin") or {}).get("icao") or (booking.get("mission", {}).get("origin") or {}).get("icao") or ""
     destination = (dispatch.get("destination") or {}).get("icao") or (booking.get("mission", {}).get("destination") or {}).get("icao") or ""
     now = time.time()
-    selected_ids = set(booking.get("cargo_transfer_ids") or [])
+    released = set(booking.get("cargo_released_ids") or [])     # waiting freight handed back while this booking sat idle
+    listed = [s for s in listed if s.get("shipment_id") not in released]
+    selected_ids = set(booking.get("cargo_transfer_ids") or []) - released
     listed_transfer_ids = {shipment.get("shipment_id") for shipment in listed if shipment.get("transfer")}
     if selected_ids != listed_transfer_ids:
         raise ValueError("The selected transfer cargo does not match the dispatch manifest.")
@@ -289,7 +291,8 @@ def register_booking(con, booking, pilot_id):
 def record_flight(con, booking, pirep, pirep_id, pilot_id):
     registered = register_booking(con, booking, pilot_id)
     dispatch = booking.get("dispatch") or {}
-    shipments = dispatch.get("shipments") or []
+    released = set(booking.get("cargo_released_ids") or [])
+    shipments = [s for s in dispatch.get("shipments") or [] if s.get("shipment_id") not in released]
     if len(registered) != len(shipments):
         raise RuntimeError("Not every dispatch shipment has a persistent cargo record.")
     actual_station = str(pirep.get("arr") or "").upper()
@@ -322,6 +325,35 @@ def record_flight(con, booking, pirep, pirep_id, pilot_id):
         if inserted:
             con.execute("""UPDATE cargo_shipments SET current_station=?, status=?, reserved_booking_key=NULL,
                 reserved_previous_status=NULL, updated_at=? WHERE id=?""", (actual_station or previous_station, status, now, shipment_id))
+
+
+IDLE_RELEASE_S = 72 * 3600
+
+
+def release_idle(con, bookings, flying=(), now=None, idle_s=IDLE_RELEASE_S):
+    """Waiting freight a pilot picked for a flight they haven't flown in three days goes back on the shelf for
+    someone else. The booking itself stays: if the pilot flies it later, it files normally without that freight.
+    Returns {pilot_id: [shipment ids released]} so the caller can note it on each booking."""
+    now = now or time.time()
+    out = {}
+    for pilot_id, booking in bookings:
+        req = booking.get("requested_at")
+        if req is None or pilot_id in flying or now - float(req) < idle_s:
+            continue
+        key = f"{pilot_id}:{req}"
+        rows = con.execute("""SELECT id, current_station, reserved_previous_status FROM cargo_shipments
+            WHERE reserved_booking_key=? AND booking_key!=?""", (key, key)).fetchall()
+        for row in rows:
+            status = row["reserved_previous_status"] or "AT_STATION"
+            con.execute("""UPDATE cargo_shipments SET status=?, reserved_booking_key=NULL, reserved_previous_status=NULL,
+                updated_at=? WHERE id=? AND reserved_booking_key=?""", (status, now, row["id"], key))
+            con.execute("""INSERT OR IGNORE INTO cargo_movements (shipment_id, event_key, event_type, event_time, from_station,
+                to_station, pilot_id, flight_number, status, details) VALUES (?,?,?,?,?,?,?,?,?,?)""",
+                (row["id"], f"transfer-idle:{key}:{row['id']}", "TRANSFER_RELEASED", now, row["current_station"],
+                 row["current_station"], pilot_id, (booking.get("dispatch") or {}).get("flight"), status,
+                 json.dumps({"reason": "The booked flight wasn't flown within three days."})))
+            out.setdefault(pilot_id, []).append(row["id"])
+    return out
 
 
 def release_booking(con, booking, pilot_id):

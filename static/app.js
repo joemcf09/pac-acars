@@ -2488,6 +2488,7 @@ const CARGO_EVENT = {
     HELD_AT_STATION: `Diverted to ${e.to_station}, held there`, EXCEPTION: `Arrived ${e.to_station}: exception` }[e.status] || `Arrived ${e.to_station}`),
   ORDER_RECEIVED: e => `Order received at ${e.to_station}${e.details?.deadline ? `, due by ${cargoInventoryDate(e.details.deadline)}` : ""}`,
   ORDER_WITHDRAWN: e => `Not picked up in time: moved to another carrier`,
+  TRANSFER_RELEASED: e => `Back on the shelf at ${esc(e.from_station || "")}: the flight it was booked on sat unflown for three days`,
   FLIGHT_REJECTED: e => `Flight rejected, back at ${e.to_station}`,
   FLIGHT_REINSTATED: e => `Flight accepted after review, at ${e.to_station}`,
 };
