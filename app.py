@@ -1880,6 +1880,11 @@ def load_planner_page():
     return send_from_directory(app.static_folder, 'load-planner.html')
 
 
+@app.get('/load-planner-all')
+def load_planner_all_page():
+    return send_from_directory(app.static_folder, 'load-planner-all.html')
+
+
 @app.get('/load-planner-727')
 def load_planner_727_page():
     return send_from_directory(app.static_folder, 'load-planner-727.html')
@@ -1892,8 +1897,6 @@ def load_plan_api():
     booking = load_booking()
     if not booking:
         return jsonify(error='Book a supported freighter flight first.'), 404
-    if booking.get('aircraft') not in ('B738F', 'B722F'):
-        return jsonify(error='This planner supports B738F and B722F flights only.'), 400
     if not booking.get('dispatch'):
         return jsonify(error='Open your dispatch release first.'), 409
     changed = False

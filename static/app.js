@@ -4664,6 +4664,7 @@ function paperNote(b) {
     <button class="btn" style="color:#8b0000;background:#fff;border:2px solid #8b0000" type="button" onclick="importRevisedSimbrief(this)">Import revised SimBrief plan</button>
     ${b.aircraft === 'B738F' ? '<a class="btn" style="color:#8b0000;background:#fff;border:2px solid #8b0000" href="/load-planner" target="_blank" rel="noopener">737 load planner</a>' : ''}
     ${b.aircraft === 'B722F' ? '<a class="btn" style="color:#8b0000;background:#fff;border:2px solid #8b0000" href="/load-planner-727" target="_blank" rel="noopener">727 load planner</a>' : ''}
+    ${!['B738F', 'B722F'].includes(b.aircraft) && !(b.dispatch || {}).ferry ? '<a class="btn" style="color:#8b0000;background:#fff;border:2px solid #8b0000" href="/load-planner-all" target="_blank" rel="noopener">Load planner</a>' : ''}
   </section>`;
 }
 let revisedSimbriefBusy = false;

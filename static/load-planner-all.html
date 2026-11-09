@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Load planner · Pagani Air Cargo</title>
+  <link rel="stylesheet" href="/static/load-visualizer.css">
+  <style>
+    .deck{grid-template-columns:repeat(var(--n,12),minmax(94px,1fr))}
+    @media(max-width:800px){.deck{grid-template-columns:repeat(var(--n,12),94px)}}
+    .balance{background:#fff;border:1px solid #d6d9df;padding:18px 22px;margin:0 0 24px}
+    .balance h2{margin:3px 0 10px}
+    .gauge{position:relative;height:34px;background:linear-gradient(90deg,#f6d9d9 0%,#fbeccc 25%,#dff0e4 38%,#dff0e4 62%,#fbeccc 75%,#f6d9d9 100%);border:1px solid #bdc4ce}
+    .gauge .needle{position:absolute;top:-6px;bottom:-6px;width:4px;background:#20242b;transform:translateX(-2px);transition:left .25s}
+    .gauge .mid{position:absolute;top:0;bottom:0;left:50%;width:1px;background:#8f99a8}
+    .gauge-scale{display:flex;justify-content:space-between;font-size:11px;color:#687281;font-weight:700;margin-top:6px;text-transform:uppercase;letter-spacing:.5px}
+    .balance-read{font-size:15px;margin:10px 0 0}
+    .balance-read b.ok{color:#176b3c}.balance-read b.warn{color:#98620b}.balance-read b.bad{color:#b00000}
+    .slot.heavy .block{border-color:#315371;background:#eef4f9}
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand"><span class="brand-mark">PAC</span><span>Flight Operations <small>Load control</small></span></div>
+    <a href="/#acars">← Return to flight</a>
+  </header>
+  <main>
+    <div class="intro">
+      <div><p class="eyebrow" id="eyebrow">CARGO PLANNING</p><h1 id="title">Loading your booked flight…</h1>
+        <p class="lede">Drag units between main-deck positions, or use each unit's menu. The balance bar shows where the weight sits along the deck.</p></div>
+      <div class="intro-actions"><a class="button outline" href="/dispatch">Review dispatch release</a></div>
+    </div>
+
+    <section class="notice" aria-label="Planning scope"><strong>Planning view, not a weight-and-balance approval.</strong>
+      <span>The balance bar is PAC's own indicator: it treats main-deck positions as evenly spaced from nose to tail and shows where the cargo's weight is centered. It is not the aircraft's certified CG (%MAC). Use your simulator aircraft's loading tool for its CG, trim and limits.</span>
+    </section>
+
+    <section class="balance" aria-label="Main-deck balance">
+      <p class="eyebrow">LIVE BALANCE</p><h2>Where the main-deck weight sits</h2>
+      <div class="gauge" aria-hidden="true"><div class="mid"></div><div class="needle" id="needle" style="left:50%"></div></div>
+      <div class="gauge-scale"><span>Nose heavy</span><span>Centered</span><span>Tail heavy</span></div>
+      <p class="balance-read" id="balanceRead" role="status">—</p>
+    </section>
+
+    <section class="metrics" aria-label="Live manifest figures">
+      <div><span>Manifest cargo</span><strong id="cargoTotal">—</strong><small>unchanged by a move</small></div>
+      <div><span>Forward third</span><strong id="forwardTotal">—</strong><small>main deck</small></div>
+      <div><span>Middle third</span><strong id="centerTotal">—</strong><small>main deck</small></div>
+      <div><span>Aft third</span><strong id="aftTotal">—</strong><small>main deck</small></div>
+      <div><span>Lower deck and bulk</span><strong id="fixedTotal">—</strong><small>not movable here</small></div>
+    </section>
+
+    <section class="workspace" aria-labelledby="deckTitle">
+      <div class="section-heading"><div><p class="eyebrow">MAIN DECK · NOSE AT LEFT</p><h2 id="deckTitle">Position the load</h2>
+        <p>Drag a unit onto another position to move it there (or swap the two). Heavier units are shaded.</p></div>
+        <div class="tools"><button id="auto" disabled>Auto-load</button><button id="reset" class="ghost" disabled>Reset changes</button></div></div>
+      <p class="auto-note">Auto-load puts the heaviest units in the middle of the deck and works outward, alternating forward and aft, so the weight stays centered.</p>
+      <div id="deck" class="deck" aria-label="Main-deck cargo positions"></div>
+      <div id="fixedWrap" hidden><h3>Lower deck and bulk · fixed</h3><div id="fixedDeck" class="fixed-deck"></div></div>
+    </section>
+
+    <section class="save-panel"><div><strong id="planState">No changes to save</strong><p>Saving amends the release and clears its signature, so you'll sign it again. Importing a new OFP regenerates the manifest.</p></div>
+      <button id="save" disabled>Save and amend release</button></section>
+    <p id="status" role="status" aria-live="polite" class="status"></p>
+  </main>
+  <script src="/static/load-planner-all.js"></script>
+</body>
+</html>
