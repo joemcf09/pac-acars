@@ -315,6 +315,7 @@ function waybillHtml(m) {
 }
 
 function renderMissions() {
+  if (S.me?.id && !S.laneMap) loadLanes().then(() => { if (!$("#view-missions")?.hidden) renderMissions(); });
   loadFeaturedShipment();
   renderFeaturedShipment();
   loadBoardCampaigns();
@@ -2392,6 +2393,7 @@ async function loadCargo() {
     <div class="cgo-strip" id="cgoStrip" role="tablist" aria-label="Cargo views"></div>
     <section id="cgoSeasons" class="cgo-seasons" aria-label="Cargo seasons running now"></section>
     <section id="cgoWaiting" class="cgo-waiting" aria-label="Freight waiting at stations"></section>
+    <section id="cgoLanes" class="cgo-lanes" aria-label="Lane reputation"></section>
     <div class="cargo-filters">
       <label>Station<select id="cargoStation"><option value="ALL">All stations</option></select></label>
       <label class="cargo-search">Search<input id="cargoSearch" type="search" maxlength="80" placeholder="AWB, shipper, consignee or commodity"></label>
@@ -2417,6 +2419,16 @@ async function loadCargo() {
   const drawStrip = () => { $("#cgoStrip").innerHTML = views.map(([k, l, n, sub]) => `<button type="button" role="tab" data-cgo-view="${k}" aria-selected="${S.cargoView === k}" class="${k === "waiting" && c.overdue ? "warn" : ""}"><small>${l}</small><b>${fmt(n)}</b><span>${esc(sub)}</span></button>`).join(""); };
   drawStrip();
   const ago = h => h < 1 ? "under an hour" : h < 48 ? `${Math.round(h)} h` : `${Math.round(h / 24)} days`;
+  loadLanes(true).then(list => {
+    const el = $("#cgoLanes"); if (!el) return;
+    const weak = list.filter(L => L.tier === "Under review" || L.tier === "At risk"), strong = list.filter(L => L.tier === "Preferred" || L.tier === "Good").slice(0, 6);
+    const row = L => `<tr><td class="mono"><b>${esc(L.origin)}</b> → <b>${esc(L.destination)}</b> <small class="muted">${esc(L.city_from || "")} to ${esc(L.city_to || "")}</small></td>
+      <td><span class="tag ${({ Preferred: "lane-pref", Good: "lane-good", "Under review": "lane-review", "At risk": "lane-risk" })[L.tier]}">${esc(L.tier)}</span></td><td class="r mono">${L.score}</td>
+      <td class="r">${L.flights}</td><td class="r">${L.on_time}</td><td class="r">${L.late}</td><td class="r">${L.care_issues}</td></tr>`;
+    el.innerHTML = list.length ? `<h2>Lane reputation</h2><p class="muted" style="max-width:90ch">Shippers remember how PAC performs on each route. On-time, careful deliveries raise a lane's score; late flights, damaged or spoiled freight and failed flights lower it. Strong lanes get more customer orders. Scores start at 70 and cover the last 90 days.</p>
+      <div class="aar-wrap"><table class="aar-table"><thead><tr><th>Lane</th><th>Standing</th><th class="r">Score</th><th class="r">Flights</th><th class="r">On time</th><th class="r">Late</th><th class="r">Freight issues</th></tr></thead><tbody>
+      ${weak.length ? `<tr><td colspan="7"><b>Needs attention</b></td></tr>${weak.map(row).join("")}` : ""}${strong.length ? `<tr><td colspan="7"><b>Strongest lanes</b></td></tr>${strong.map(row).join("")}` : ""}</tbody></table></div>` : "";
+  });
   $("#cgoSeasons").innerHTML = (overview.seasons || []).length ? `<h2>In season now</h2><div class="cgo-season-grid">${overview.seasons.map(x => `<article class="cgo-season-card">
       <div class="kicker">Until ${esc(x.until)}</div><h3>${esc(x.name)}</h3><p>${esc(x.blurb)}</p>
       <p class="muted">${x.waiting ? `${fmt(x.waiting)} shipment${x.waiting === 1 ? "" : "s"} waiting: ${esc(x.cargo)}` : "New orders arrive as stations restock."}</p>
@@ -7290,12 +7302,24 @@ function boardAccent(m) {
   if (m.urgent) return 'urgent';
   return ({'Humanitarian':'relief','Express':'express','Heavy lift':'heavy','Medical':'medical','Medicine':'medical'})[m.category] || 'standard';
 }
+function laneTag(m) {
+  const L = S.laneMap?.[`${m.origin?.icao}>${m.destination?.icao}`];
+  if (!L || L.tier === "Good") return "";
+  const cls = { Preferred: "lane-pref", "Under review": "lane-review", "At risk": "lane-risk" }[L.tier];
+  return `<span class="tag ${cls}" title="Lane reputation ${L.score}/100 from ${L.flights} recent flight${L.flights === 1 ? "" : "s"}">${esc(L.tier)} lane · ${L.score}</span>`;
+}
+async function loadLanes(force) {
+  if (!S.me?.id || (S.laneMap && !force && Date.now() - (S.laneAt || 0) < 300000)) return S.laneList || [];
+  try { const d = await api("/api/lanes"); S.laneList = d.lanes; S.laneMap = Object.fromEntries(d.lanes.map(L => [`${L.origin}>${L.destination}`, L])); S.laneAt = Date.now(); }
+  catch (e) { S.laneMap = S.laneMap || {}; }
+  return S.laneList || [];
+}
 function boardCard(m) {
   return `<button type="button" class="waybill mb-card mb-accent-${boardAccent(m)}${zoneFor(m)?.level === "restricted" ? " wb-restricted" : ""}" data-id="${esc(m.id)}" aria-pressed="${S.selected?.id === m.id}">
     <span class="mb-card-top"><span class="mb-work-label">${m.urgent ? '<span class="mb-urgent-label">! URGENT</span>' : ''}${esc(boardSource(m))} · ${esc(m.short_heavy ? "Short-haul heavies" : m.category || 'Cargo')}</span><span>${esc(m.id)}</span></span>
     <span class="mb-route"><span><b>${esc(m.origin.icao)}</b><small>${esc(m.origin.city || m.origin.name)}</small></span><span aria-hidden="true">→</span><span><b>${esc(m.destination.icao)}</b><small>${esc(m.destination.city || m.destination.name)}</small></span></span>
     <strong class="mb-title">${esc(m.title)}</strong><span class="mb-cargo">${esc(m.cargo)}</span>
-    <span class="mb-tags">${zoneTag(m)}${m.short_heavy ? `<span class="tag dark">${fmt(m.distance_nm)} NM · Routine delivery</span>` : ""}${boardCampaignLabels(m)}${bonusTags(m)}${freshTags(m)}${m.tour || m.rotation ? `<span class="tag dark">Leg ${esc(m.leg)}/${esc(m.legs)}</span>` : ''}${m.handling ? `<span class="tag grey">${esc(m.handling.label)}</span>` : ''}${m.challenge ? `<span class="tag amber">${esc(m.challenge.label)}</span>` : ''}${m.urgent ? `<span class="tag amber">URGENT ×1.5 · deliver by ${zulu(m.deliver_by)}</span><span>Offer: <span class="countdown" data-countdown="${Number(m.expires)}"></span></span>` : ''}</span>
+    <span class="mb-tags">${laneTag(m)}${zoneTag(m)}${m.short_heavy ? `<span class="tag dark">${fmt(m.distance_nm)} NM · Routine delivery</span>` : ""}${boardCampaignLabels(m)}${bonusTags(m)}${freshTags(m)}${m.tour || m.rotation ? `<span class="tag dark">Leg ${esc(m.leg)}/${esc(m.legs)}</span>` : ''}${m.handling ? `<span class="tag grey">${esc(m.handling.label)}</span>` : ''}${m.challenge ? `<span class="tag amber">${esc(m.challenge.label)}</span>` : ''}${m.urgent ? `<span class="tag amber">URGENT ×1.5 · deliver by ${zulu(m.deliver_by)}</span><span>Offer: <span class="countdown" data-countdown="${Number(m.expires)}"></span></span>` : ''}</span>
     <span class="mb-facts"><span>Estimated block<b>${hm(m.target_block_min)}</b></span><span>Recommended types<b>${(m.aircraft || []).map(a=>esc(S.fleet[a]?.icao || a)).join(', ')}</b>${(() => { const ds = [...new Set((m.aircraft || []).map(divOf).filter(Boolean))]; return ds.length ? `<small class="mb-div">${ds.map(d => esc(divShort(d))).join(" · ")}</small>` : ""; })()}</span><span>Cargo load<b>${fmt(m.payload_lbs || 0)} lb</b></span><span>Reward<b>${fmt(m.reward || 0)} points${m.short_heavy ? ` · includes ${fmt(m.handling_points)} handling points` : ""}${m.contract_bonus ? ` · $${fmt(m.contract_bonus)} bonus` : m.ferry_bonus ? ` · $${fmt(m.ferry_bonus)} ferry bonus` : ''}</b></span></span>
     <span class="mb-status">${esc(boardStatus(m))}</span><span class="mb-card-bottom"><small>Check details before planning</small><b>Review flight →</b></span></button>`;
 }

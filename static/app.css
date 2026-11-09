@@ -1704,3 +1704,6 @@ html[data-theme="dark"] .journey-text-button{color:var(--steel)}
 .care-row ul{margin:6px 0 0 18px;padding:0;font-size:14px}
 .care-tag{display:inline-block;font-size:12px;font-weight:700;padding:2px 8px;border-radius:3px;background:#e3f2e8;color:#176b3c}
 .care-tag.watch{background:#fbeccc;color:#7a4e00}.care-tag.excursion{background:#f9dcdc;color:#a00000}
+.tag.lane-pref{background:#e3f2e8;color:#176b3c}.tag.lane-good{background:#eef1f5;color:#3a4250}
+.tag.lane-review{background:#fbeccc;color:#7a4e00}.tag.lane-risk{background:#f9dcdc;color:#a00000}
+.cgo-lanes h2{margin:22px 0 6px}

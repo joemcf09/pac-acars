@@ -32,6 +32,7 @@ import cargo_network
 import cargo_orders  # noqa: E402  (customer orders waiting at stations)
 import seasons  # noqa: E402  (real air cargo seasons)
 import cargo_care  # noqa: E402  (what sensitive freight felt on the flight)
+import lanes as lane_rep  # noqa: E402  (lane reputation)
 import debrief  # noqa: E402  (after-action review: planned vs actual, customer and dispatcher comments)
 import paperwork_release as releases
 import discord_post  # noqa: E402  (flights to a Discord channel)
@@ -3659,6 +3660,20 @@ def stock_cargo_orders():
     except Exception as e:      # stocking freight must never break a page
         app.logger.exception("cargo orders: %s", e)
         return None
+
+
+@app.get("/api/lanes")
+def lanes_api():
+    """Lane reputation for the Missions board and the Cargo inventory."""
+    if not auth.current():
+        return jsonify({"error": "Sign in to see lane reputation."}), 401
+    with db() as con:
+        reps = lane_rep.compute(con)
+    out = sorted(reps.values(), key=lambda L: (-L["score"], -L["flights"]))
+    for L in out:
+        L["city_from"] = (AIRPORTS.get(L["origin"]) or {}).get("city")
+        L["city_to"] = (AIRPORTS.get(L["destination"]) or {}).get("city")
+    return jsonify({"lanes": out, "base": lane_rep.BASE, "window_days": lane_rep.WINDOW_S // 86400})
 
 
 @app.get("/api/staff/cargo-stock")

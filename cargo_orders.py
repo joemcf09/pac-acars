@@ -18,6 +18,7 @@ import uuid
 
 import cargo_network
 import dispatch
+import lanes as lane_rep
 import seasons
 import shipments
 
@@ -169,6 +170,11 @@ def tick(con, routes, fleet, pilot, st, now=None, force=False):
     routes = list(routes)
     learn(routes)
     rng = random.Random(f"orders|{int(now // TICK_S)}")
+    try:
+        reps = lane_rep.compute(con, now)
+    except Exception as e:            # reputation shapes demand; it must never stop stocking
+        print("lane reputation:", e)
+        reps = {}
     for station in stations(routes, pol["stations"]):
         target = pol["hub_target"] if station in HUBS else pol["station_target"]
         need = target - _waiting(con, station)
@@ -178,7 +184,9 @@ def tick(con, routes, fleet, pilot, st, now=None, force=False):
         while need > 0 and out_routes and tries < target * 3:
             tries += 1
             try:
-                made = make_order(con, rng.choice(out_routes), fleet, pilot, rng, now)
+                pick = rng.choices(out_routes, weights=[lane_rep.weight(reps, station, (r.get("destination") or {}).get("icao"))
+                                                        for r in out_routes])[0]
+                made = make_order(con, pick, fleet, pilot, rng, now)
             except Exception as e:      # one bad route must never stop stocking the rest
                 print("cargo order:", station, e)
                 made = []

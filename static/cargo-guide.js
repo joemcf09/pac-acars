@@ -44,6 +44,9 @@ function renderCargoGuide() {
         <tr><th>Fragile and high-value</th><td>Electronics, wafers, art and valuables. A landing at 1.8 G or more, 2 G in flight, two bounces or repeated rough patches damages them; a firmer landing or one bounce means an inspection.</td></tr>
       </table>
       <p>It doesn't change your score or pay. The customer notices, though: their feedback says what they found.</p>`],
+    ["lanes", "Lane reputation", `
+      <p>Shippers remember how PAC performs on each route. Every lane (one airport to another) starts at <b>70</b>. Each accepted flight that carried freight on it in the last 90 days moves it: on time <b>+4</b>, late <b>−6</b>, damaged or spoiled freight <b>−8</b>, a failed flight <b>−10</b>. Flights in the last 30 days count double.</p>
+      <p>85 and up is a <b>Preferred lane</b>, 70 to 84 <b>Good</b>, 50 to 69 <b>Under review</b>, below 50 <b>At risk</b>. Preferred lanes get about twice the customer orders; at-risk lanes far fewer. You'll see the standing on Missions board cards and the full table on the Cargo inventory. It's shared: it never affects one pilot's score or pay.</p>`],
     ["inventory", "Reading the Cargo inventory", `
       <p>Operations › Cargo inventory is the airline's warehouse view.</p>
       <ul>
