@@ -28,6 +28,7 @@ import analysis
 import dispatch
 import shipments  # noqa: E402  (air waybills, acceptance and tracking)
 import cargo_network
+import cargo_orders  # noqa: E402  (customer orders waiting at stations)
 import debrief  # noqa: E402  (after-action review: planned vs actual, customer and dispatcher comments)
 import paperwork_release as releases
 import discord_post  # noqa: E402  (flights to a Discord channel)
@@ -170,7 +171,7 @@ DEFAULT_SETTINGS = {"pilot_name": "", "pilot_id": "PAC0001", "simbrief_username"
                     "discord_ch_flights": "flight-log", "discord_ch_news": "announcements", "discord_ch_welcome": "welcome",
                     "filing_icao": "PGC",
                     "vatsim_partner_section": False, "ivao_partner_section": False,   # the VATSIM logo on the home page: only once VATSIM has accepted PAC     # the ICAO code pilots file under on VATSIM and IVAO (PAC belongs to Polar Air Cargo)
-                    "discord_ch_dispatch": "dispatch", "discord_ch_notams": "notams", "discord_ch_honeypot": "do-not-post", "discord_ch_modlog": "", "conflict_zones_enabled": False, "conflict_zone_overrides": {}, "activity_rule_on": False, "activity_days": 45, "activity_remind_days": 7, "leave_max_days": 60, "activity_auto_inactive": False, "discord_dispatch_missions": True, "discord_dispatch_partners": True,
+                    "discord_ch_dispatch": "dispatch", "discord_ch_notams": "notams", "discord_ch_honeypot": "do-not-post", "discord_ch_modlog": "", "conflict_zones_enabled": False, "conflict_zone_overrides": {}, "activity_rule_on": False, "cargo_orders_enabled": True, "cargo_orders_hub_target": 6, "cargo_orders_station_target": 2, "cargo_orders_stations": 12, "activity_days": 45, "activity_remind_days": 7, "leave_max_days": 60, "activity_auto_inactive": False, "discord_dispatch_missions": True, "discord_dispatch_partners": True,
                     "discord_dispatch_urgent": True, "discord_dispatch_per_hour": 4,
                     "discord_recap_enabled": True, "discord_ch_recap": "", "discord_recap_last": "", "discord_ch_butter": "butter-board", "discord_butter_fpm": 100,
                     "discord_pilot_role": "PAC Pilot", "discord_staff_role": "PAC Staff", "discord_rank_roles": True,
@@ -2617,6 +2618,7 @@ def plan_loadsheet():
         transfer_rows, transfer_weight = cargo_transfer_selection(b, m, ac_code)
     except ValueError as e:
         return jsonify({"error": str(e)}), 409
+    stock_cargo_orders()
     with db() as con:
         transfer_options = cargo_network.transfer_options(con, m["origin"]["icao"], m["destination"]["icao"], ROUTES.values())
     fake = {"mission": m, "aircraft": ac_code, "ofp": None, "flight_number": m["id"], "requested_at": time.time(),
@@ -3567,20 +3569,31 @@ def logbook():
 def cargo_stations():
     with db() as con:
         rows = con.execute("""SELECT current_station AS icao, COUNT(*) AS shipments
-            FROM cargo_shipments GROUP BY current_station ORDER BY current_station""").fetchall()
+            FROM cargo_shipments WHERE status!='WITHDRAWN' GROUP BY current_station ORDER BY current_station""").fetchall()
     return jsonify([dict(row) for row in rows])
+
+
+def stock_cargo_orders():
+    """Top up waiting customer freight at the hubs and busy stations (at most every 30 minutes)."""
+    try:
+        with db() as con:
+            return cargo_orders.tick(con, ROUTES.values(), FLEET, dispatch_pilot(), settings())
+    except Exception as e:      # stocking freight must never break a page
+        app.logger.exception("cargo orders: %s", e)
+        return None
 
 
 @app.get("/api/cargo/overview")
 def cargo_overview():
     """The cargo operation at a glance: what's waiting where (and for which onward flight), what's in the air,
     what was delivered this week, and what has waited too long."""
+    stock_cargo_orders()
     now = time.time()
     week = now - 7 * 86400
     overdue_s = 72 * 3600              # freight waiting at a station more than three days
     with db() as con:
         waiting = con.execute("""SELECT current_station AS station, destination, COUNT(*) AS shipments,
-            SUM(gross_weight_lbs) AS weight_lbs, MIN(updated_at) AS oldest
+            SUM(gross_weight_lbs) AS weight_lbs, MIN(updated_at) AS oldest, MIN(json_extract(data,'$.deadline')) AS due
             FROM cargo_shipments WHERE status IN ('AT_STATION','HELD_AT_STATION')
             GROUP BY current_station, destination ORDER BY MIN(updated_at)""").fetchall()
         counts = {
@@ -3588,15 +3601,15 @@ def cargo_overview():
             "transit": con.execute("SELECT COUNT(*) FROM cargo_shipments WHERE status='BOOKED'").fetchone()[0],
             "delivered": con.execute("SELECT COUNT(*) FROM cargo_shipments WHERE status IN ('DELIVERED','DELIVERED_LATE') AND updated_at>=?",
                                      (week,)).fetchone()[0],
-            "overdue": con.execute("SELECT COUNT(*) FROM cargo_shipments WHERE status IN ('AT_STATION','HELD_AT_STATION') AND updated_at<?",
-                                   (now - overdue_s,)).fetchone()[0],
+            "overdue": con.execute("""SELECT COUNT(*) FROM cargo_shipments WHERE status IN ('AT_STATION','HELD_AT_STATION')
+                AND COALESCE(json_extract(data,'$.deadline'), updated_at + ?) < ?""", (overdue_s, now)).fetchone()[0],
             "exceptions": con.execute("SELECT COUNT(*) FROM cargo_shipments WHERE status='EXCEPTION'").fetchone()[0],
         }
     groups = []
     for w in waiting:
         direct = cargo_network.has_route(ROUTES.values(), w["station"], w["destination"])
         groups.append({**dict(w), "weight_lbs": round(w["weight_lbs"] or 0), "waiting_h": round((now - w["oldest"]) / 3600, 1),
-                       "overdue": now - w["oldest"] > overdue_s, "direct_route": bool(direct)})
+                       "overdue": (w["due"] or (w["oldest"] + overdue_s)) < now, "direct_route": bool(direct)})
     return jsonify({"counts": counts, "waiting": groups, "overdue_hours": overdue_s // 3600})
 
 
@@ -3607,7 +3620,7 @@ def cargo_shipments_api():
     query = " ".join((request.args.get("q") or "").split())[:80]
     if station and station != "ALL" and not re.fullmatch(r"[A-Z0-9]{3,4}", station):
         return jsonify({"error": "Enter a valid ICAO station code."}), 400
-    valid_statuses = {"BOOKED", "AT_STATION", "DELIVERED", "DELIVERED_LATE", "HELD_AT_STATION", "EXCEPTION"}
+    valid_statuses = {"BOOKED", "AT_STATION", "DELIVERED", "DELIVERED_LATE", "HELD_AT_STATION", "EXCEPTION", "WITHDRAWN"}
     if status and status != "ALL" and status not in valid_statuses:
         return jsonify({"error": "Choose a valid cargo status."}), 400
 
@@ -3645,7 +3658,8 @@ def cargo_shipments_api():
             s.shipper, s.consignee, s.commodity, s.pieces, s.gross_weight_lbs, s.chargeable_weight_kg,
             s.priority, s.handling, s.security_status, s.created_at, s.updated_at,
             m.event_type AS last_event, m.event_time AS last_event_time, m.flight_number AS last_flight,
-            m.pirep_id AS last_pirep, m.pilot_id AS last_pilot
+            m.pirep_id AS last_pirep, m.pilot_id AS last_pilot, json_extract(s.data,'$.deadline') AS deadline,
+            (s.booking_key LIKE 'ORDER:%') AS is_order
             FROM cargo_shipments s
             LEFT JOIN cargo_movements m ON m.id=(
                 SELECT m2.id FROM cargo_movements m2 WHERE m2.shipment_id=s.id ORDER BY m2.event_time DESC,m2.id DESC LIMIT 1

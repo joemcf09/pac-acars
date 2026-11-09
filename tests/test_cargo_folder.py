@@ -54,7 +54,7 @@ guest_cargo = A.app.test_client().get("/api/cargo/shipments")
 check("cargo inventory API requires sign-in", guest_cargo.status_code == 401)
 c.post("/api/auth/setup", json={"password": "Cargo-Folder-1"})
 c.post("/api/settings", json={"enforce_pilot_location": False, "enforce_airframes": False, "enforce_ranks": False,
-                              "require_type_ratings": False, "require_release_signature": False})
+                              "require_type_ratings": False, "require_release_signature": False, "cargo_orders_enabled": False})
 inventory_page = c.get("/")
 check("cargo inventory is linked from Operations navigation",
       inventory_page.status_code == 200 and b"Cargo inventory" in inventory_page.data

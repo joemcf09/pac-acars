@@ -1679,3 +1679,4 @@ html[data-theme="dark"] .journey-text-button{color:var(--steel)}
   .cgo-strip b{font-size:22px}
   .cgo-strip span{display:none}
 }
+.cgo-late{color:var(--red);font-weight:700}

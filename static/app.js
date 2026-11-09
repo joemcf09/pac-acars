@@ -2388,7 +2388,7 @@ async function loadCargo() {
       <label class="cgo-all" id="cgoAllWrap" hidden><input type="checkbox" id="cgoAll"> Older deliveries too</label>
     </div>
     <p class="muted cargo-results" id="cargoResults" role="status">Loading cargo…</p>
-    <div class="cgo-table-wrap"><table class="cgo-table"><thead><tr><th>Air waybill</th><th>Journey</th><th>Commodity</th><th class="r">Pieces · weight</th><th>Status</th><th>Since</th></tr></thead>
+    <div class="cgo-table-wrap"><table class="cgo-table"><thead><tr><th>Air waybill</th><th>Journey</th><th>Commodity</th><th class="r">Pieces · weight</th><th>Status</th><th>Due / since</th></tr></thead>
       <tbody id="cargoList"></tbody></table></div>
     <p class="muted cargo-note">Movements are recorded when a PIREP is filed. Shippers and consignees are real companies chosen to fit the route; the shipments are fictional.</p>`;
   const station = $("#cargoStation"), search = $("#cargoSearch");
@@ -2411,7 +2411,7 @@ async function loadCargo() {
     <div class="cgo-wait-grid">${overview.waiting.slice(0, 12).map(w => `<article class="cgo-wait ${w.overdue ? "overdue" : ""}">
       <div class="cgo-wait-route"><b>${esc(w.station)}</b><span aria-hidden="true">→</span><b>${esc(w.destination)}</b></div>
       <p>${fmt(w.shipments)} shipment${w.shipments === 1 ? "" : "s"} · ${fmt(w.weight_lbs)} lb</p>
-      <p class="muted">Waiting ${ago(w.waiting_h)}${w.overdue ? " · <b>overdue</b>" : ""}</p>
+      <p class="muted">${w.due ? `Due ${cargoInventoryDate(w.due)}` : `Waiting ${ago(w.waiting_h)}`}${w.overdue ? " · <b>overdue</b>" : ""}</p>
       ${w.direct_route ? `<button type="button" class="btn small" data-cgo-fly="${esc(w.station)}|${esc(w.destination)}">Find a flight →</button>` : `<span class="muted cgo-nodirect">No scheduled ${esc(w.station)}–${esc(w.destination)} route yet</span>`}
       <button type="button" class="linkish" data-cgo-show="${esc(w.station)}|${esc(w.destination)}">See the shipments</button></article>`).join("")}</div>` : "";
   $("#cgoWaiting").querySelectorAll("[data-cgo-fly]").forEach(b => b.onclick = () => {
@@ -2446,7 +2446,7 @@ async function loadCargo() {
           <td><span class="cgo-com">${esc(x.commodity || "—")}</span><small class="muted">${esc(x.shipper || "")} → ${esc(x.consignee || "")}</small></td>
           <td class="r mono">${fmt(x.pieces)} · ${fmt(x.gross_weight_lbs)} lb</td>
           <td><span class="cargo-status ${esc((x.status || "").toLowerCase())}">${esc(statusWord[x.status] || x.status)}</span></td>
-          <td class="cgo-when">${cargoInventoryDate(x.updated_at)}${x.last_flight ? `<small class="muted">${esc(x.last_flight)}</small>` : ""}</td></tr>`;
+          <td class="cgo-when">${x.deadline && (x.status === "AT_STATION" || x.status === "HELD_AT_STATION") ? `<span class="${x.deadline * 1000 < Date.now() ? "cgo-late" : ""}">Due ${cargoInventoryDate(x.deadline)}</span>` : cargoInventoryDate(x.updated_at)}${x.last_flight ? `<small class="muted">${esc(x.last_flight)}</small>` : x.is_order ? `<small class="muted">Customer order</small>` : ""}</td></tr>`;
       }).join("") || "";
       $("#cargoList").querySelectorAll(".cgo-row").forEach(tr => {
         const toggle = () => toggleCargoHistory(tr);
@@ -2475,6 +2475,8 @@ const CARGO_EVENT = {
   TRANSFER_CANCELLED: e => `Booking cancelled, waiting at ${e.to_station || "the station"} again`,
   FLIGHT_ARRIVAL: e => ({ DELIVERED: `Arrived ${e.to_station}, delivered`, DELIVERED_LATE: `Arrived ${e.to_station}, delivered late`, AT_STATION: `Arrived ${e.to_station}, waiting for its next leg`,
     HELD_AT_STATION: `Diverted to ${e.to_station}, held there`, EXCEPTION: `Arrived ${e.to_station}: exception` }[e.status] || `Arrived ${e.to_station}`),
+  ORDER_RECEIVED: e => `Order received at ${e.to_station}${e.details?.deadline ? `, due by ${cargoInventoryDate(e.details.deadline)}` : ""}`,
+  ORDER_WITHDRAWN: e => `Not picked up in time: moved to another carrier`,
   FLIGHT_REJECTED: e => `Flight rejected, back at ${e.to_station}`,
   FLIGHT_REINSTATED: e => `Flight accepted after review, at ${e.to_station}`,
 };

@@ -247,6 +247,7 @@ def route_through(d, routes, seed):
         if route.get("category") == "Scheduled"
         and (route.get("origin") or {}).get("icao") == arrival
         and (route.get("destination") or {}).get("icao") != arrival
+        and (route.get("destination") or {}).get("icao") != (d.get("origin") or {}).get("icao")   # never back where it came from
     }.values(), key=lambda a: a["icao"])
     if not onward:
         return d
