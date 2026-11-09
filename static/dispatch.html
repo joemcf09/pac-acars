@@ -409,8 +409,8 @@ function lirLines(d) {
 
 /* ---------------- cargo manifest and NOTOC ---------------- */
 function manifestLines(d) {
-  const out = [`<b>${esc(L("POS", 5) + L("ULD", 12) + L("AWB", 14) + R("PCS", 5) + R("WT LBS", 9) + "  " + L("SHC", 12) + "CONTENTS")}</b>`];
-  (d.positions || []).forEach(x => out.push(esc(L(x.pos, 5) + L(x.unit, 12) + L(x.awb, 14) + R(x.pieces, 5) + R(N(x.weight_lbs), 9) + "  " + L((x.shc || []).join(" "), 12) + L(U(x.contents), W - 59))));
+  const out = [`<b>${esc(L("POS", 9) + L("ULD", 12) + L("AWB", 14) + R("PCS", 5) + R("WT LBS", 9) + "  " + L("SHC", 12) + "CONTENTS")}</b>`];
+  (d.positions || []).forEach(x => out.push(esc(L(x.pos, 9) + L(x.unit, 12) + L(x.awb, 14) + R(x.pieces, 5) + R(N(x.weight_lbs), 9) + "  " + L((x.shc || []).join(" "), 12) + L(U(x.contents), W - 63))));
   out.push(rule("-"), esc(L(`TOTAL ${d.totals.units} ULD`, 31) + R(d.totals.pieces, 5) + R(N(d.totals.weight_lbs), 9) + `   MAIN ${N(d.totals.main_lbs)}  LOWER ${N(d.totals.lower_lbs)}`), "");
   out.push("<b>SPECIAL HANDLING CODES</b>");
   (d.shc || []).forEach(s => out.push(esc(L(s.code, 6) + U(s.name))));
