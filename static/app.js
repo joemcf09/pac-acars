@@ -724,9 +724,10 @@ function vatsimFilingPanel(m, aircraft, ofp) {
   const flightDate = scheduled.date || new Date().toISOString().slice(0, 10);
   const equipment = ofp.equipment || [ofp.equipment_category, ofp.equipment_navigation].filter(Boolean).join("-")
     + (ofp.equipment_transponder ? `/${ofp.equipment_transponder}` : "");
-  return `<div class="notice vatsim-filing" style="margin:12px 0"><b>Prepare VATSIM filing</b>
+  return `<div class="notice vatsim-filing" style="margin:12px 0"><b>File on VATSIM or IVAO</b>
     <p class="muted" style="margin:4px 0 10px;font-size:13px">PAC cannot file directly through VATSIM's documented API. File in your approved pilot client; copy these details to keep the PAC callsign and remarks when SimBrief's network filing omits them.</p>
-    <p style="margin:0 0 10px;font-size:13px"><a href="https://my.vatsim.net/pilots/flightplan" target="_blank" rel="noopener">Open VATSIM flight planning</a></p>
+    ${(ofp.prefile?.vatsim || ofp.prefile?.ivao) ? `<p style="margin:0 0 6px;font-size:13px"><b>One click:</b> open a flight plan already filled in from your SimBrief OFP (route, times and remarks). Check it, then send it.</p><div class="row" style="margin:0 0 10px">${ofp.prefile.vatsim ? `<a class="btn small" href="${esc(ofp.prefile.vatsim)}" target="_blank" rel="noopener">Prefile on VATSIM</a>` : ""}${ofp.prefile.ivao ? `<a class="btn small" href="${esc(ofp.prefile.ivao)}" target="_blank" rel="noopener">Prefile on IVAO</a>` : ""}</div>` : ""}
+    <p style="margin:0 0 10px;font-size:13px"><a href="https://my.vatsim.net/pilots/flightplan" target="_blank" rel="noopener">Open VATSIM flight planning</a> · <a href="https://fpl.ivao.aero" target="_blank" rel="noopener">Open IVAO flight planning</a></p>
     <button class="btn ghost small" type="button" data-vatsim-copy>Copy filing details</button>
     <details style="margin-top:8px"><summary>Build ICAO FPL for VATSIM import</summary>
       <p class="muted" style="font-size:13px;margin:6px 0">PAC prefills the equipment and surveillance codes from your SimBrief OFP. Confirm they match your aircraft, check the UTC departure time/date and flight rules/type, then review the message. Copy it into VATSIM's <b>Import ICAO FPL</b> box and click <b>Process</b>.</p>
@@ -2440,7 +2441,9 @@ async function loadCargo() {
       $("#cgoClearDest")?.addEventListener("click", () => { dest = ""; refresh(); });
       $("#cargoList").innerHTML = shown.map(x => {
         const via = x.current_station !== x.origin && x.current_station !== x.destination;
-        const journey = `<b>${esc(x.origin)}</b> → ${via || x.status === "AT_STATION" || x.status === "HELD_AT_STATION" ? `<b class="cgo-now" title="Where it is now">${esc(x.current_station)}</b> → ` : ""}<b>${esc(x.destination)}</b>`;
+        const atOrigin = x.current_station === x.origin;
+        const journey = atOrigin ? `<b class="cgo-now" title="Where it is now">${esc(x.origin)}</b> → <b>${esc(x.destination)}</b>`
+          : `<b>${esc(x.origin)}</b> → ${via || x.status === "AT_STATION" || x.status === "HELD_AT_STATION" ? `<b class="cgo-now" title="Where it is now">${esc(x.current_station)}</b> → ` : ""}<b>${esc(x.destination)}</b>`;
         return `<tr class="cgo-row" data-cargo-id="${esc(x.id)}" tabindex="0" aria-expanded="false">
           <td class="mono cgo-awb">${esc(x.awb)}</td><td class="mono">${journey}</td>
           <td><span class="cgo-com">${esc(x.commodity || "—")}</span><small class="muted">${esc(x.shipper || "")} → ${esc(x.consignee || "")}</small></td>

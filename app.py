@@ -396,7 +396,27 @@ def parse_ofp(raw: dict) -> dict:
         "ldw_lbs": round(num(wts.get("est_ldw")) * k),
         "est_block_min": round(num(times.get("est_block")) / 60), "est_enroute_min": round(num(times.get("est_time_enroute")) / 60),
         "route_points": route_pts,
+        "prefile": ofp_prefile(raw),
     }
+
+
+PREFILE_HOSTS = {"vatsim": ("my.vatsim.net",), "ivao": ("fpl.ivao.aero", "ivao.aero", "www.ivao.aero")}
+
+
+def ofp_prefile(raw):
+    """SimBrief's one-click network prefile links (they carry the OFP's route, times and remarks). Only links to the
+    networks' own sites are kept."""
+    out = {}
+    pf = raw.get("prefile") if isinstance(raw.get("prefile"), dict) else {}
+    for net, hosts in PREFILE_HOSTS.items():
+        link = (pf.get(net) or {}).get("link") if isinstance(pf.get(net), dict) else None
+        try:
+            u = urllib.parse.urlparse(str(link or ""))
+        except ValueError:
+            continue
+        if u.scheme == "https" and u.hostname in hosts:
+            out[net] = str(link)
+    return out
 
 
 def fetch_simbrief(s) -> dict:
