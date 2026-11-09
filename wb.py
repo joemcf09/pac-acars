@@ -203,3 +203,54 @@ def balance(code, positions, dow_lbs, takeoff_fuel_lbs, trip_fuel_lbs, flaps="fl
         "note": "Simulation paperwork: envelope, positions and trim from the AEI 737-800SF weight-and-balance data; basic aircraft "
                 "and fuel tanks from the PMDG 737-800BCF. Not an aircraft's approved weight-and-balance.",
     }
+
+
+def auto_assign(code, positions, dow_lbs, takeoff_fuel_lbs, trip_fuel_lbs, movable, target_pct=None):
+    """Auto-load: place the movable main-deck units so the takeoff CG lands near a target inside the envelope, with each
+    unit within its position limit. Returns {original position: new position}. Lower holds and P12 stay where they are."""
+    if not supported(code):
+        return None
+    m = Model(code)
+    pmap = POSITION_MAP[code]
+    units = [p for p in positions if p["pos"] in movable]
+    fixed = [p for p in positions if p["pos"] not in movable]
+    result = {p["pos"]: p["pos"] for p in fixed}
+    if not units:
+        return result
+    zfw = dow_lbs + sum(p["weight_lbs"] for p in positions)
+    total = zfw + takeoff_fuel_lbs
+    fwd, aft = m.limits("takeoff", total / LB_PER_KG)
+    target = target_pct if target_pct is not None else min(max(24.0, fwd + 4), aft - 4)
+    fixed_moment = dow_lbs * m.basic_arm + sum(p["weight_lbs"] * m.arms[pmap[p["pos"]]] for p in fixed) + m.fuel_moment(takeoff_fuel_lbs)
+    cap = {s: m.max_kg[pmap[s]] * LB_PER_KG for s in movable}
+    arm = {s: m.arms[pmap[s]] for s in movable}
+
+    def cost(assign):
+        mom = fixed_moment + sum(u["weight_lbs"] * arm[assign[u["pos"]]] for u in units)
+        over = sum(max(0, u["weight_lbs"] - cap[assign[u["pos"]]]) for u in units)
+        return abs(m.pct_mac(mom / total) - target) + over
+
+    goal_arm = m.arm_of(target)
+    slots = sorted(movable, key=lambda s: abs(arm[s] - goal_arm))
+    order = sorted(units, key=lambda u: -u["weight_lbs"])
+    assign = {u["pos"]: slots[i] for i, u in enumerate(order)}
+    best = cost(assign)
+    improved = True
+    while improved:
+        improved = False
+        for i, a in enumerate(units):
+            for b in units[i + 1:]:
+                trial = dict(assign)
+                trial[a["pos"]], trial[b["pos"]] = assign[b["pos"]], assign[a["pos"]]
+                c = cost(trial)
+                if c < best - 1e-9:
+                    assign, best, improved = trial, c, True
+            for s in movable:
+                if s not in set(assign.values()):
+                    trial = dict(assign)
+                    trial[a["pos"]] = s
+                    c = cost(trial)
+                    if c < best - 1e-9:
+                        assign, best, improved = trial, c, True
+    result.update(assign)
+    return result

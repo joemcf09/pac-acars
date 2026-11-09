@@ -1921,6 +1921,15 @@ def load_plan_api():
         body = request.get_json(silent=True)
         if not isinstance(body, dict):
             return jsonify(error='A load plan is required.'), 400
+        if body.get('auto'):      # auto-load to a target CG: returns a suggested arrangement, nothing is saved
+            bal = plan_balance(booking, booking['dispatch'])
+            if not bal or not bal.get('available'):
+                return jsonify(assignments=None)
+            zf, to, lw = bal['phases']
+            import wb
+            plan = wb.auto_assign(booking['aircraft'], booking['dispatch'].get('positions') or [], bal['dow_lbs'],
+                                  to['weight_lbs'] - zf['weight_lbs'], to['weight_lbs'] - lw['weight_lbs'], load_planner.main_positions(booking))
+            return jsonify(assignments=plan)
         if body.get('preview'):   # live CG while the pilot moves units: nothing is saved
             try:
                 trial = load_planner.rearrange(booking, body.get('assignments'))

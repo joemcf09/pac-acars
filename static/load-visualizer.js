@@ -76,7 +76,7 @@ if (typeof document !== 'undefined') (function () {
     const sums = distribution(plan.positions, assignments);
     $('cargoTotal').textContent = pounds(sums.total);
     $('forwardTotal').textContent = pounds(sums.forward);
-    $('centerTotal').textContent = pounds(sums.center);
+    if ($('centerTotal')) $('centerTotal').textContent = pounds(sums.center);
     $('aftTotal').textContent = pounds(sums.aft);
     $('fixedTotal').textContent = pounds(sums.fixed);
     renderDiagram();
@@ -138,8 +138,15 @@ if (typeof document !== 'undefined') (function () {
     assignments = moveAssignment(assignments, select.dataset.origin, select.value);
     render(); status(`Moved cargo to ${select.value}. Save to amend the release.`);
   });
-  $('auto').addEventListener('click', () => {
-    try { assignments = proposeAllocation(plan.positions); render(); status('Suggested distribution applied. Review it before saving.'); }
+  $('auto').addEventListener('click', async () => {
+    try {
+      if (plan.balance && plan.balance.available) {
+        const r = await fetch('/api/load-plan', {method:'POST', credentials:'same-origin', headers:{'Content-Type':'application/json'}, body:JSON.stringify({auto:true})});
+        const body = await r.json();
+        if (!r.ok || !body.assignments) throw Error(body.error || 'Auto-load is not available for this flight.');
+        assignments = body.assignments; render(); status('Auto-load applied: units placed for a takeoff CG near 24% MAC. Review it before saving.'); return;
+      }
+      assignments = proposeAllocation(plan.positions); render(); status('Suggested distribution applied. Review it before saving.'); }
     catch (err) { status(err.message, true); }
   });
   $('reset').addEventListener('click', () => { assignments = identityAssignments(plan.positions); render(); status('Changes reset to the saved manifest.'); });

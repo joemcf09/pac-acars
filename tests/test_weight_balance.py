@@ -80,5 +80,15 @@ ls = paper["loadsheet"]
 check("the release loadsheet uses the verified calculation", ls["cg_source"] == "calculated" and paper["balance"]["available"], ls["cg_source"])
 check("loadsheet CG equals the engine's", ls["mac_tow"] == paper["balance"]["phases"][1]["pct_mac"] and ls["mac_ldw"] == paper["balance"]["phases"][2]["pct_mac"])
 check("trim on the loadsheet names units and flaps", "UNITS (FLAPS" in ls["trim"], ls["trim"])
+
+# 4. auto-load to a target CG (PAC1150's real load)
+pac1150 = [{"pos": p, "weight_lbs": w} for p, w in zip(["M01","M02","M03","M04","M05","M07","M08","M09","M10"], [4640,2100,3820,4240,4230,5120,4220,6400,2380])] + [{"pos": "FWD BULK", "weight_lbs": 1850}]
+movable = [f"M{i:02d}" for i in range(1, 11)]
+plan = wb.auto_assign("B738F", pac1150, 87375, 10600, 4500, movable)
+moved = [{"pos": plan[u["pos"]], "weight_lbs": u["weight_lbs"]} for u in pac1150]
+ab = wb.balance("B738F", moved, 87375, 10600, 4500)
+check("auto-load keeps every unit and position unique", len(set(plan.values())) == len(plan) == len(pac1150) and plan["FWD BULK"] == "FWD BULK")
+check("auto-load lands the takeoff CG within 0.5% of 24% MAC", abs(ab["phases"][1]["pct_mac"] - 24.0) <= 0.5, ab["phases"][1]["pct_mac"])
+check("auto-load result is within limits", ab["ok"], ab["warnings"])
 print(); print("WEIGHT AND BALANCE TEST PASSED" if not failures else f"{len(failures)} failed: {failures}")
 sys.exit(1 if failures else 0)
