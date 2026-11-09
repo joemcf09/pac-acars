@@ -18,6 +18,7 @@ import uuid
 
 import cargo_network
 import dispatch
+import seasons
 import shipments
 
 ORDER_PILOT = "PAC-OPS"
@@ -79,13 +80,15 @@ def _truck_final(route, rng):
     return rng.choice(sorted(near)) if near else None
 
 
-def make_order(con, route, fleet, pilot, rng, now):
+def make_order(con, route, fleet, pilot, rng, now, season=None):
     """One or two consignments from a full paperwork run on this route, stored as waiting freight at its origin."""
     ac = [a for a in route.get("aircraft") or [] if a in fleet]
     if not ac:
         return []
     code = rng.choice(ac)
     seed = f"order-{uuid.uuid4().hex[:12]}"
+    if season:
+        route = dict(route, cargo=season["cargo"])      # the dispatcher builds that season's freight
     fake = {"mission": route, "aircraft": code, "ofp": None, "flight_number": route["id"], "requested_at": now,
             "airframe": None, "manifest_seed": seed}
     d = dispatch.generate(fake, fleet, pilot)
@@ -93,7 +96,7 @@ def make_order(con, route, fleet, pilot, rng, now):
         return []
     shipments.enrich(d)
     origin, dest = route["origin"]["icao"], route["destination"]["icao"]
-    final = _truck_final(route, rng)
+    final = None if season else _truck_final(route, rng)
     small_cap = min((fleet.get(a) or {}).get("max_payload_lbs") or 1e9 for a in ac)
     pool = [s for s in d["shipments"] if (s.get("weight_lbs") or 0) <= small_cap * 0.5 and (s.get("destination") or {}).get("icao") in (None, dest)]
     rng.shuffle(pool)
@@ -110,7 +113,8 @@ def make_order(con, route, fleet, pilot, rng, now):
         data = dict(s, awb=awb, cargo_source_awb=s["awb"], shipment_id=sid, unit_details=units, order=True,
                     deadline=deadline,
                     destination={"icao": final or dest, "city": None if final else route["destination"].get("city")},
-                    **({"truck_from": dest} if final else {}))
+                    **({"truck_from": dest} if final else {}),
+                    **({"season": season["id"], "season_name": season["name"]} if season else {}))
         a = s.get("awb_doc") or {}
         con.execute("""INSERT INTO cargo_shipments (id, awb, booking_key, source_awb, origin, destination, current_station, status,
             shipper, consignee, commodity, pieces, gross_weight_lbs, chargeable_weight_kg, priority, handling, security_status,
@@ -124,7 +128,8 @@ def make_order(con, route, fleet, pilot, rng, now):
             pilot_id, flight_number, status, details) VALUES (?,?,?,?,?,?,?,?,?,?)""",
             (sid, f"order:{sid}", "ORDER_RECEIVED", now, None, origin, ORDER_PILOT, None, "AT_STATION",
              json.dumps({"deadline": deadline, "service": s.get("service"), "forwarder": s.get("agent"),
-                         **({"truck_from": dest} if final else {})}, separators=(",", ":"))))
+                         **({"truck_from": dest} if final else {}),
+                         **({"season": season["name"]} if season else {})}, separators=(",", ":"))))
         made.append(awb)
     return made
 
@@ -179,7 +184,52 @@ def tick(con, routes, fleet, pilot, st, now=None, force=False):
                 made = []
             need -= len(made)
             out["created"] += len(made)
+    out["season"] = stock_seasons(con, routes, fleet, pilot, rng, now, pol)
     return out
+
+
+SEASON_TARGET = 6          # waiting orders per active season, across its lanes
+
+
+def stock_seasons(con, routes, fleet, pilot, rng, now, pol):
+    """While a real cargo season runs, forwarders book its freight on PAC's matching routes."""
+    made = 0
+    day = __import__("datetime").datetime.utcfromtimestamp(now).date()
+    for season in seasons.active(day):
+        lanes = seasons.routes_for(season, routes)
+        if not lanes:
+            continue
+        have = con.execute("""SELECT COUNT(*) FROM cargo_shipments WHERE booking_key LIKE 'ORDER:%' AND status='AT_STATION'
+            AND json_extract(data,'$.season')=?""", (season["id"],)).fetchone()[0]
+        tries = 0
+        while have < SEASON_TARGET and tries < SEASON_TARGET * 3:
+            tries += 1
+            try:
+                n = len(make_order(con, rng.choice(lanes), fleet, pilot, rng, now, season=season))
+            except Exception as e:
+                print("season order:", season["id"], e)
+                n = 0
+            have += n
+            made += n
+        announce(con, season, day, now)
+    return made
+
+
+def announce(con, season, day, now):
+    """One news post per season per year, when it opens."""
+    con.execute("CREATE TABLE IF NOT EXISTS cargo_seasons_announced (id TEXT NOT NULL, year INTEGER NOT NULL, PRIMARY KEY (id, year))")
+    start = seasons.starts(season, day)
+    if con.execute("SELECT 1 FROM cargo_seasons_announced WHERE id=? AND year=?", (season["id"], start.year)).fetchone():
+        return
+    con.execute("INSERT INTO cargo_seasons_announced (id, year) VALUES (?,?)", (season["id"], start.year))
+    try:
+        end = __import__("datetime").date(start.year + (1 if season["window"][1] < season["window"][0] else 0), *season["window"][1])
+        con.execute("INSERT INTO news (time, kind, title, body, important, expires, author) VALUES (?,?,?,?,?,?,?)",
+                    (now, "event", f"Cargo season: {season['name']}",
+                     f"{season['blurb']} Until {end.strftime('%B')} {end.day}, extra freight ({season['cargo']}) is waiting on PAC's routes. "
+                     "Find it on the Cargo inventory.", 0, now + 14 * 86400, "PAC Operations"))
+    except Exception as e:      # no news table in a bare test database: the season still runs
+        print("season news:", e)
 
 
 ROUTE_TOPUP_S = 2 * 3600

@@ -1694,3 +1694,8 @@ html[data-theme="dark"] .journey-text-button{color:var(--steel)}
 .cgo-note-form{display:flex;flex-direction:column;gap:6px;max-width:640px}
 .cgo-note-form textarea{font:inherit;padding:8px}
 .ls-note{display:block;background:#fff8e6;border-left:3px solid #d9a428;padding:4px 8px;margin-top:4px;color:#3d3420}
+.cgo-seasons h2{margin:18px 0 10px}
+.cgo-season-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px;margin-bottom:8px}
+.cgo-season-card{background:var(--white,#fff);border:1px solid var(--line,#d7dce3);border-top:4px solid #d9a428;padding:14px 18px}
+.cgo-season-card h3{margin:2px 0 6px;font-size:19px}.cgo-season-card p{margin:0 0 8px;font-size:14px}
+.tag.cgo-season{background:#fff3d6;color:#6b4a00}

@@ -163,6 +163,24 @@ with A.db() as con:
 check("flying it to the nearby airport delivers it by truck", f4["status"].startswith("DELIVERED") and f4["current_station"] == f4["destination"]
       and '"trucked_from"' in det, (dict(f4), det))
 
+print("Cargo seasons")
+import calendar as _cal
+nov9 = _cal.timegm((2026, 11, 9, 12, 0, 0))
+with A.db() as con:
+    rs = O.tick(con, A.ROUTES.values(), A.FLEET, A.dispatch_pilot(), A.settings(), now=nov9, force=True)
+    sea = con.execute("SELECT json_extract(data,'$.season') AS s, commodity, origin, destination FROM cargo_shipments WHERE json_extract(data,'$.season') IS NOT NULL").fetchall()
+    news = con.execute("SELECT title FROM news WHERE title LIKE 'Cargo season:%'").fetchall()
+ids = {r["s"] for r in sea}
+check("in early November, Beaujolais Nouveau and Peruvian berries are in season", {"beaujolais", "berries"} <= ids, ids)
+bj = [r for r in sea if r["s"] == "beaujolais"]
+check("Beaujolais orders carry wine out of France or Frankfurt/Brussels", bj and all(r["origin"][:2] in ("LF", "ED", "EB") for r in bj)
+      and any("wine" in (r["commodity"] or "").lower() for r in bj), [tuple(r) for r in bj[:3]])
+check("each season is announced once", sorted(n[0] for n in news) == ["Cargo season: Beaujolais Nouveau", "Cargo season: Peruvian blueberries and asparagus"], [n[0] for n in news])
+with A.db() as con:
+    O.tick(con, A.ROUTES.values(), A.FLEET, A.dispatch_pilot(), A.settings(), now=nov9 + 3600, force=True)
+    again = con.execute("SELECT COUNT(*) FROM news WHERE title LIKE 'Cargo season:%'").fetchone()[0]
+check("…and not again on the next restock", again == 2, again)
+
 print("Unclaimed orders")
 with A.db() as con:
     r = O.tick(con, A.ROUTES.values(), A.FLEET, A.dispatch_pilot(), A.settings(), now=time.time() + 8 * 86400, force=True)

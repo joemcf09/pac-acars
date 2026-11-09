@@ -83,6 +83,7 @@ POOLS = [
     (("helicopter",), [("Helicopter on skid frame, blades removed", ["BIG", "HEA"], None, 1), ("Rotor blades and spares", ["BIG"], None)]),
     (("tyre", "tire"), [("Mining-truck tires", ["BIG", "HEA"], None)]),
     (("stage", "lighting", "touring", "motorsport"), [("Touring production equipment", ["GEN"], None)]),
+    (("wine", "beaujolais", "champagne"), [("Beaujolais Nouveau wine, palletized", ["EAT"], None), ("Wine in insulated pallet covers", ["EAT", "CRT"], None)]),
 ]
 GENERAL = [("General cargo", ["GEN"], None), ("Consolidated freight", ["GEN"], None), ("Machinery spares", ["GEN"], None)]
 

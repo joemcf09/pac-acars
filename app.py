@@ -30,6 +30,7 @@ import dispatch
 import shipments  # noqa: E402  (air waybills, acceptance and tracking)
 import cargo_network
 import cargo_orders  # noqa: E402  (customer orders waiting at stations)
+import seasons  # noqa: E402  (real air cargo seasons)
 import debrief  # noqa: E402  (after-action review: planned vs actual, customer and dispatcher comments)
 import paperwork_release as releases
 import discord_post  # noqa: E402  (flights to a Discord channel)
@@ -3717,7 +3718,17 @@ def cargo_overview():
         groups.append({**dict(w), "weight_lbs": round(w["weight_lbs"] or 0), "waiting_h": round((now - w["oldest"]) / 3600, 1),
                        "overdue": (w["due"] or (w["oldest"] + overdue_s)) < now, "direct_route": bool(direct),
                        "fly_to": ([w["destination"]] if direct else []) + [x for x in fly_to if x != w["destination"]][:11]})
-    return jsonify({"counts": counts, "waiting": groups, "overdue_hours": overdue_s // 3600})
+    in_season = []
+    with db() as con:
+        for x in seasons.active():
+            rows = con.execute("""SELECT current_station AS s, destination AS d, COUNT(*) AS n FROM cargo_shipments
+                WHERE status IN ('AT_STATION','HELD_AT_STATION') AND reserved_booking_key IS NULL AND json_extract(data,'$.season')=?
+                GROUP BY current_station, destination ORDER BY n DESC""", (x["id"],)).fetchall()
+            (a, b) = x["window"]
+            end = f"{['', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][b[0]]} {b[1]}"
+            in_season.append({"id": x["id"], "name": x["name"], "blurb": x["blurb"], "cargo": x["cargo"], "until": end,
+                              "waiting": sum(r["n"] for r in rows), "lanes": [{"station": r["s"], "destination": r["d"], "n": r["n"]} for r in rows[:6]]})
+    return jsonify({"counts": counts, "waiting": groups, "overdue_hours": overdue_s // 3600, "seasons": in_season})
 
 
 @app.get("/api/cargo/shipments")
@@ -3766,7 +3777,7 @@ def cargo_shipments_api():
             s.priority, s.handling, s.security_status, s.created_at, s.updated_at,
             m.event_type AS last_event, m.event_time AS last_event_time, m.flight_number AS last_flight,
             m.pirep_id AS last_pirep, m.pilot_id AS last_pilot, json_extract(s.data,'$.deadline') AS deadline,
-            (s.booking_key LIKE 'ORDER:%') AS is_order
+            (s.booking_key LIKE 'ORDER:%') AS is_order, json_extract(s.data,'$.season_name') AS season_name
             FROM cargo_shipments s
             LEFT JOIN cargo_movements m ON m.id=(
                 SELECT m2.id FROM cargo_movements m2 WHERE m2.shipment_id=s.id ORDER BY m2.event_time DESC,m2.id DESC LIMIT 1

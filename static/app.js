@@ -2390,6 +2390,7 @@ async function loadCargo() {
   S.cargoView = S.cargoView || "waiting";
   root.innerHTML = `<div class="profile-bar"><h1>Cargo inventory</h1><span class="muted">Every PAC shipment keeps its air waybill from first pickup to final delivery, across pilots and flights. <a href="#cargoguide" onclick="show('cargoguide');return false">How cargo works →</a></span></div>
     <div class="cgo-strip" id="cgoStrip" role="tablist" aria-label="Cargo views"></div>
+    <section id="cgoSeasons" class="cgo-seasons" aria-label="Cargo seasons running now"></section>
     <section id="cgoWaiting" class="cgo-waiting" aria-label="Freight waiting at stations"></section>
     <div class="cargo-filters">
       <label>Station<select id="cargoStation"><option value="ALL">All stations</option></select></label>
@@ -2416,6 +2417,11 @@ async function loadCargo() {
   const drawStrip = () => { $("#cgoStrip").innerHTML = views.map(([k, l, n, sub]) => `<button type="button" role="tab" data-cgo-view="${k}" aria-selected="${S.cargoView === k}" class="${k === "waiting" && c.overdue ? "warn" : ""}"><small>${l}</small><b>${fmt(n)}</b><span>${esc(sub)}</span></button>`).join(""); };
   drawStrip();
   const ago = h => h < 1 ? "under an hour" : h < 48 ? `${Math.round(h)} h` : `${Math.round(h / 24)} days`;
+  $("#cgoSeasons").innerHTML = (overview.seasons || []).length ? `<h2>In season now</h2><div class="cgo-season-grid">${overview.seasons.map(x => `<article class="cgo-season-card">
+      <div class="kicker">Until ${esc(x.until)}</div><h3>${esc(x.name)}</h3><p>${esc(x.blurb)}</p>
+      <p class="muted">${x.waiting ? `${fmt(x.waiting)} shipment${x.waiting === 1 ? "" : "s"} waiting: ${esc(x.cargo)}` : "New orders arrive as stations restock."}</p>
+      ${x.lanes.length ? `<div class="row" style="gap:6px;flex-wrap:wrap">${x.lanes.map(l => `<button type="button" class="btn small ghost" data-cgo-fly="${esc(l.station)}|${esc(l.destination)}">${esc(l.station)} → ${esc(l.destination)} (${l.n})</button>`).join("")}</div>` : ""}
+    </article>`).join("")}</div>` : "";
   $("#cgoWaiting").innerHTML = overview.waiting.length ? `<h2>Freight waiting</h2><p class="muted">Cargo sitting at a station for its next leg. Fly it there and it's yours to deliver.</p>
     <div class="cgo-wait-grid">${overview.waiting.slice(0, 12).map(w => `<article class="cgo-wait ${w.overdue ? "overdue" : ""}">
       <div class="cgo-wait-route"><b>${esc(w.station)}</b><span aria-hidden="true">→</span><b>${esc(w.destination)}</b></div>
@@ -2423,7 +2429,7 @@ async function loadCargo() {
       <p class="muted">${w.due ? `Due ${cargoInventoryDate(w.due)}` : `Waiting ${ago(w.waiting_h)}`}${w.overdue ? " · <b>overdue</b>" : ""}</p>
       ${(w.fly_to || []).length ? `<button type="button" class="btn small" data-cgo-fly="${esc(w.station)}|${esc(w.destination)}|${esc(w.fly_to.join(","))}">Find a flight →</button>${w.direct_route ? "" : `<small class="muted" style="display:block;margin-top:4px">Fly to ${esc(w.fly_to.slice(0, 3).join(", "))}${w.fly_to.length > 3 ? "…" : ""}</small>`}` : `<span class="muted cgo-nodirect">No PAC flight reaches ${esc(w.destination)} from ${esc(w.station)} yet</span>`}
       <button type="button" class="linkish" data-cgo-show="${esc(w.station)}|${esc(w.destination)}">See the shipments</button></article>`).join("")}</div>` : "";
-  $("#cgoWaiting").querySelectorAll("[data-cgo-fly]").forEach(b => b.onclick = () => {
+  document.querySelectorAll("#cgoWaiting [data-cgo-fly], #cgoSeasons [data-cgo-fly]").forEach(b => b.onclick = () => {
     const [from, to, via] = b.dataset.cgoFly.split("|");
     resetMissionFilters(); Object.assign(S, { board: "all", parkedOrigin: from, shipmentDestinations: (via || to).split(","), shipmentFilterTitle: `Freight waiting at ${from} for ${to}` });
     show("missions");
@@ -2454,7 +2460,7 @@ async function loadCargo() {
           : `<b>${esc(x.origin)}</b> → ${via || x.status === "AT_STATION" || x.status === "HELD_AT_STATION" ? `<b class="cgo-now" title="Where it is now">${esc(x.current_station)}</b> → ` : ""}<b>${esc(x.destination)}</b>`;
         return `<tr class="cgo-row" data-cargo-id="${esc(x.id)}" tabindex="0" aria-expanded="false">
           <td class="mono cgo-awb">${esc(x.awb)}</td><td class="mono">${journey}</td>
-          <td><span class="cgo-com">${esc(x.commodity || "—")}</span><small class="muted">${esc(x.shipper || "")} → ${esc(x.consignee || "")}</small></td>
+          <td><span class="cgo-com">${esc(x.commodity || "—")}</span>${x.season_name ? ` <span class="tag cgo-season">${esc(x.season_name)}</span>` : ""}<small class="muted">${esc(x.shipper || "")} → ${esc(x.consignee || "")}</small></td>
           <td class="r mono">${fmt(x.pieces)} · ${fmt(x.gross_weight_lbs)} lb</td>
           <td><span class="cargo-status ${esc((x.status || "").toLowerCase())}">${esc(statusWord[x.status] || x.status)}</span></td>
           <td class="cgo-when">${x.deadline && (x.status === "AT_STATION" || x.status === "HELD_AT_STATION") ? `<span class="${x.deadline * 1000 < Date.now() ? "cgo-late" : ""}">Due ${cargoInventoryDate(x.deadline)}</span>` : cargoInventoryDate(x.updated_at)}${x.last_flight ? `<small class="muted">${esc(x.last_flight)}</small>` : x.is_order ? `<small class="muted">Customer order</small>` : ""}</td></tr>`;
