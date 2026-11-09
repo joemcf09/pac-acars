@@ -51,13 +51,13 @@ with A.app.test_request_context():
 with A.db() as con:
     o2 = next(r for r in con.execute("SELECT * FROM cargo_shipments WHERE booking_key LIKE 'ORDER:%' AND status='AT_STATION' AND claimed_by IS NULL"))
     con.execute("DELETE FROM cargo_shipments WHERE id!=? AND id!=? AND booking_key LIKE 'ORDER:%' AND claimed_by IS NULL AND id IN (SELECT id FROM cargo_shipments LIMIT 0)", (order["id"], o2["id"]))
-fn = A.app.view_functions["botlink.bot_claim"]
-with A.app.test_request_context(json={"discord_id": "12345", "awb": o2["awb"]}):
-    resp = fn(); body, code = (resp if isinstance(resp, tuple) else (resp, 200))
-check("/claim with a linked Discord account holds it", code == 200 and body.json["awb"] == o2["awb"], body.json)
-with A.app.test_request_context(json={"discord_id": "999", "awb": o2["awb"]}):
-    resp = fn(); body, code = (resp if isinstance(resp, tuple) else (resp, 200))
-check("/claim without a linked account explains how to link", code == 404 and "/link" in body.json["error"], body.json)
+bot = A.app.test_client()          # the bot isn't signed in: it uses its secret, like the real one on the server
+H = {"X-PAC-Bot": B.secret()}
+r = bot.post("/api/bot/claim", json={"discord_id": "12345", "awb": o2["awb"]}, headers=H)
+check("/claim with a linked Discord account holds it", r.status_code == 200 and r.json["awb"] == o2["awb"], (r.status_code, r.json))
+r = bot.post("/api/bot/claim", json={"discord_id": "999", "awb": o2["awb"]}, headers=H)
+check("/claim without a linked account explains how to link", r.status_code == 404 and "/link" in r.json["error"], r.json)
+check("/claim without the bot's secret is refused", bot.post("/api/bot/claim", json={"discord_id": "12345", "awb": o2["awb"]}).status_code == 404)
 print("Freight board")
 fi = B._freight_items
 with A.db() as con:
