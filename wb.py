@@ -209,18 +209,17 @@ def balance(code, positions, dow_lbs, takeoff_fuel_lbs, trip_fuel_lbs, flaps="fl
         "note": m.d.get("note") or ("Simulation paperwork: envelope, positions and trim from the AEI 737-800SF weight-and-balance data; basic aircraft "
                                     "and fuel tanks from the PMDG 737-800BCF. Not an aircraft's approved weight-and-balance."),
     }
-    main_order = sorted((pac for pac, real in pmap.items() if not real.startswith("LOWER")), key=lambda pac: m.arms[pmap[pac]])
-    out["loadmaster"] = loadmaster_score(out, positions, main_order)
+    out["loadmaster"] = loadmaster_score(out, positions, {pac: m.arms[real] for pac, real in pmap.items() if real in m.arms})
     return out
 
 
-def loadmaster_score(bal, positions, main_order=None):
+def loadmaster_score(bal, positions, main_order=None):  # main_order: {position: arm in inches}
     """How well the load is planned, 0-100, with the reasons. A teaching score for the pilot acting as loadmaster:
     40 inside the CG envelope at zero fuel, takeoff and landing (nothing else counts if it isn't)
     25 margin from the nearest limit (4% MAC or more earns it all)
     15 every unit and the main deck within their weight limits
     10 takeoff CG in the aft half of the envelope (less tail download, less fuel burn) while keeping 2% margin
-    10 main-deck units loaded without empty positions between them (restraint and a clean build-up)
+    10 the heaviest units near the wing, where the fuselage carries them best
     Never stops a flight."""
     if not bal or not bal.get("available"):
         return None
@@ -239,11 +238,20 @@ def loadmaster_score(bal, positions, main_order=None):
     aft_share = (to["pct_mac"] - to["fwd_limit"]) / span
     eff = 10 if aft_share >= 0.5 and to["margin"] >= 2 else round(10 * max(0.0, min(1.0, aft_share / 0.5)) * (1 if to["margin"] >= 2 else 0.5))
     items.append([f"Takeoff CG {to['pct_mac']}% MAC, {'aft' if aft_share >= 0.5 else 'forward'} half of the envelope", eff, 10])
-    order = main_order or []
-    loaded = [i for i, p in enumerate(order) if any(u["pos"] == p and u.get("weight_lbs") for u in positions)]
-    gaps = (loaded[-1] - loaded[0] + 1 - len(loaded)) if loaded else 0
-    items.append(["Main deck loaded without gaps" if not gaps else f"{gaps} empty main-deck position{'s' if gaps > 1 else ''} between units",
-                  10 if not gaps else max(0, 10 - 4 * gaps), 10])
+    # heavy units over the wing: the fuselage carries less bending load (real loading practice for cumulative limits)
+    arms, center = (main_order or {}), bal.get("mac") or {}
+    qc = (center.get("lemac_in") or 0) + 0.25 * (center.get("length_in") or 0)
+    placed = [(u["weight_lbs"], abs(arms[u["pos"]] - qc)) for u in positions if u.get("weight_lbs") and u["pos"] in arms]
+    pts, label = 10, "Heaviest units near the wing"
+    if len(placed) >= 3 and max(w for w, _ in placed) > 1.15 * min(w for w, _ in placed):
+        placed.sort(key=lambda x: -x[0])
+        heavy = placed[:max(1, len(placed) // 4)]
+        d_heavy = sum(d for _, d in heavy) / len(heavy)
+        d_all = sum(d for _, d in placed) / len(placed)
+        if d_heavy > d_all:
+            pts = round(10 * max(0.0, min(1.0, d_all / d_heavy)) ** 2)
+            label = "Heaviest units far from the wing: move them toward the middle of the hold"
+    items.append([label, pts, 10])
     score = sum(x[1] for x in items)
     grade = "Excellent" if score >= 90 else "Good" if score >= 75 else "Fair" if score >= 60 else "Needs work"
     return {"score": score, "grade": grade, "items": items}

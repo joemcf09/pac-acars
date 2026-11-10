@@ -46,7 +46,7 @@
       ${b.advice ? `<p class="cg-alert">${esc(b.advice)}</p>` : ''}${(b.warnings || []).map(w => `<p class="cg-alert">${esc(w)}</p>`).join('')}
       ${b.loadmaster ? `<details class="reference lm-score" open><summary><b>Loadmaster score ${b.loadmaster.score}/100 · ${esc(b.loadmaster.grade)}</b></summary>
         <ul>${b.loadmaster.items.map(i => `<li>${i[1] === i[2] ? '✓' : '·'} ${esc(i[0])} <b>${i[1]}/${i[2]}</b></li>`).join('')}</ul>
-        <p class="cg-legend">How well the load is planned: margin from the limits, an aft takeoff CG for less fuel burn, and no gaps on the main deck. Advice only, it doesn't affect your flight score.</p></details>` : ''}
+        <p class="cg-legend">How well the load is planned: margin from the limits, an aft takeoff CG for less fuel burn, and the heaviest units near the wing. Advice only, it doesn't affect your flight score.</p></details>` : ''}
       ${chart(b)}
       <p class="cg-legend"><span class="k zf"></span>Zero fuel <span class="k to"></span>Takeoff <span class="k lw"></span>Landing · shaded: takeoff envelope, dashed: zero fuel limits · DOW ${fmt(b.dow_lbs)} lb, DOI ${b.doi}</p>
       <details class="reference"><summary>Where these numbers come from</summary><p>${esc(b.note)}</p><ul>${b.sources.map(s => `<li>${esc(s)}</li>`).join('')}</ul></details>`;
