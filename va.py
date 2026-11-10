@@ -1703,9 +1703,36 @@ def career(pilot_id, con=None):
 
 
 # ---------------------------------------------------------------- airframes
+def heal_booked(con, now=None):
+    """An airframe marked Booked with no open booking holding it (the booking was cancelled, expired or replaced
+    without releasing it) goes back to Available. Ten minutes' grace so a booking being made right now is never touched."""
+    now = now or time.time()
+    held = set()
+    for (data,) in con.execute("SELECT data FROM bookings"):
+        try:
+            reg = (json.loads(data or "null") or {}).get("airframe")
+        except (TypeError, ValueError, AttributeError):
+            continue
+        if reg:
+            held.add(reg)
+    freed = []
+    for r in con.execute("SELECT reg FROM airframes WHERE status='Booked' AND COALESCE(updated,0) < ?", (now - 600,)).fetchall():
+        if r["reg"] not in held:
+            con.execute("UPDATE airframes SET status='Available', updated=? WHERE reg=? AND status='Booked'", (now, r["reg"]))
+            freed.append(r["reg"])
+    if freed:
+        print("Released airframes with no booking:", ", ".join(freed))
+    return freed
+
+
 def airframes(con=None):
     if con is None:
         enforce_overdue()
+        try:
+            with C["db"]() as hc:
+                heal_booked(hc)
+        except Exception as e:          # never let housekeeping break the fleet list
+            print("heal_booked:", e)
     own = con is None
     con = con or C["db"]()
     rows = [dict(r) for r in con.execute("SELECT * FROM airframes ORDER BY type, reg")]
