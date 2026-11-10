@@ -1731,3 +1731,7 @@ html[data-theme="dark"] .journey-text-button{color:var(--steel)}
 .aog-steps li.done{background:#e5f4e4;color:#176b3c}.aog-steps li.now{background:#fff1d6;color:#7a4b00;font-weight:600}
 
 .cgo-leg{display:block;font-family:inherit;margin-top:2px}
+
+/* air waybill numbers open the public tracking page */
+a.awb-track{color:inherit;text-decoration:underline;text-decoration-color:var(--line);text-underline-offset:3px}
+a.awb-track:hover{color:var(--red);text-decoration-color:var(--red)}

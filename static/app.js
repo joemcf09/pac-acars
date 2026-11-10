@@ -4,6 +4,8 @@ function displayPhoto(src, width = 800) {
 }
 const $ = s => document.querySelector(s);
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+// a PAC air waybill number opens its public tracking page (pac-va.com/track/901-10000123)
+const trackAwb = a => /^\d{3}-\d{8}$/.test(a || "") ? `<a class="mono awb-track" href="/track/${a}" target="_blank" rel="noopener" title="Open the public tracking page">${esc(a)}</a>` : esc(a);
 const fmt = n => n == null || isNaN(n) ? "–" : Math.round(n).toLocaleString("en-US");
 const hm = min => { if (min == null) return "–"; min = Math.round(min); return `${Math.floor(min/60)}h ${String(min%60).padStart(2,"0")}m`; };
 const hms = s => { s = Math.max(0, Math.round(s||0)); return `${String(Math.floor(s/3600)).padStart(2,"0")}:${String(Math.floor(s%3600/60)).padStart(2,"0")}:${String(s%60).padStart(2,"0")}`; };
@@ -1137,7 +1139,7 @@ function loadsheetHTML(ls, m) {
   </div>
   <div class="ls-pane" data-lspane="manifest" ${S.lsTab === "manifest" && units ? "" : "hidden"}>
   ${units ? `<div class="ls-man"><div class="ls-table-wrap"><table class="ls-table"><thead><tr><th>Pos</th><th>Unit</th><th>AWB</th><th>Contents</th><th>SHC</th><th class="r">Pcs</th><th class="r">Weight</th></tr></thead><tbody>
-    ${ls.positions.map(p => `<tr data-pos="${esc(p.pos)}"><td class="mono">${esc(p.pos)}</td><td class="mono">${esc(p.unit)}</td><td class="mono">${esc(p.awb)}</td><td>${esc(p.contents)}</td><td>${p.shc.map(c => `<span class="shc${c === p.dg ? " dg" : ""}">${esc(c)}</span>`).join(" ")}</td><td class="r">${fmt(p.pieces)}</td><td class="r">${fmt(p.weight_lbs)}</td></tr>`).join("")}
+    ${ls.positions.map(p => `<tr data-pos="${esc(p.pos)}"><td class="mono">${esc(p.pos)}</td><td class="mono">${esc(p.unit)}</td><td class="mono">${trackAwb(p.awb)}</td><td>${esc(p.contents)}</td><td>${p.shc.map(c => `<span class="shc${c === p.dg ? " dg" : ""}">${esc(c)}</span>`).join(" ")}</td><td class="r">${fmt(p.pieces)}</td><td class="r">${fmt(p.weight_lbs)}</td></tr>`).join("")}
     </tbody><tfoot><tr><td colspan="5">Total</td><td class="r">${fmt(ls.totals.pieces)}</td><td class="r">${fmt(ls.totals.weight_lbs)}</td></tr></tfoot></table></div></div>` : ""}
   </div>
   <div class="ls-pane" data-lspane="folder" ${S.lsTab === "folder" && units ? "" : "hidden"}>
@@ -1256,7 +1258,7 @@ function cargoFolderHTML(ls) {
   return `<div class="cf">
     <p class="muted ls-fine">The paperwork behind every shipment on this flight: the contract of carriage, how to handle it, what the warehouse checked before it reached your aircraft, and where it is now. Shippers and consignees are real companies that fit the cargo and the route; the shipments, values and references are fictional, for flight simulation, with no affiliation implied.</p>
     <div class="cf-bar"><label class="cf-pick">Air waybill <select data-cf-ship>${sh.map((x, j) => `<option value="${j}" ${j === i ? "selected" : ""}>${esc(x.awb)} · ${esc(x.shipper.name)} → ${esc(x.consignee.name)}</option>`).join("")}</select></label>
-      <span class="cf-sum">${s.pieces} pcs · ${cf1(s.awb_doc.kg)} kg · ${esc((s.shc || []).join(" ") || "GEN")} · ${esc(s.service)}</span></div>
+      <span class="cf-sum">${/^\d{3}-\d{8}$/.test(s.awb || "") ? `<a href="/track/${s.awb}" target="_blank" rel="noopener">Track ${esc(s.awb)}</a> · ` : ""}${s.pieces} pcs · ${cf1(s.awb_doc.kg)} kg · ${esc((s.shc || []).join(" ") || "GEN")} · ${esc(s.service)}</span></div>
     <div class="cf-tabs" role="tablist">${CF_TABS.map(([k, l]) => `<button type="button" role="tab" data-cf-tab="${k}" aria-selected="${k === tab}">${l}</button>`).join("")}</div>
     <pre class="cf-doc" tabindex="0">${esc(body)}</pre></div>`;
 }
@@ -2496,7 +2498,7 @@ async function loadCargo() {
         const journey = atOrigin ? `<b class="cgo-now" title="Where it is now">${esc(x.origin)}</b> → <b>${esc(x.destination)}</b>`
           : `<b>${esc(x.origin)}</b> → ${via || x.status === "AT_STATION" || x.status === "HELD_AT_STATION" ? `<b class="cgo-now" title="Where it is now">${esc(x.current_station)}</b> → ` : ""}<b>${esc(x.destination)}</b>`;
         return `<tr class="cgo-row" data-cargo-id="${esc(x.id)}" tabindex="0" aria-expanded="false">
-          <td class="mono cgo-awb">${esc(x.awb)}</td><td class="mono">${journey}${x.leg_nm ? `<small class="muted cgo-leg" title="Great-circle distance from where it is now, and a typical jet's block time">${fmt(x.leg_nm)} nm · about ${Math.floor(x.leg_block_min / 60)}h ${String(x.leg_block_min % 60).padStart(2, "0")}m</small>` : ""}</td>
+          <td class="mono cgo-awb">${trackAwb(x.awb)}</td><td class="mono">${journey}${x.leg_nm ? `<small class="muted cgo-leg" title="Great-circle distance from where it is now, and a typical jet's block time">${fmt(x.leg_nm)} nm · about ${Math.floor(x.leg_block_min / 60)}h ${String(x.leg_block_min % 60).padStart(2, "0")}m</small>` : ""}</td>
           <td><span class="cgo-com">${esc(x.commodity || "—")}</span>${x.season_name ? ` <span class="tag cgo-season">${esc(x.season_name)}</span>` : ""}<small class="muted">${esc(x.shipper || "")} → ${esc(x.consignee || "")}</small></td>
           <td class="r mono">${fmt(x.pieces)} · ${fmt(x.gross_weight_lbs)} lb</td>
           <td><span class="cargo-status ${esc((x.status || "").toLowerCase())}">${esc(statusWord[x.status] || x.status)}</span></td>
@@ -2504,7 +2506,7 @@ async function loadCargo() {
       }).join("") || "";
       $("#cargoList").querySelectorAll(".cgo-row").forEach(tr => {
         const toggle = () => toggleCargoHistory(tr);
-        tr.onclick = toggle; tr.onkeydown = e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); toggle(); } };
+        tr.onclick = e => { if (!e.target.closest("a")) toggle(); }; tr.onkeydown = e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); toggle(); } };
       });
     } catch (e) {
       if (request === requestNo) { $("#cargoResults").textContent = "Cargo inventory could not be loaded."; $("#cargoList").innerHTML = `<tr><td colspan="6"><p class="notice err">${esc(e.message)}</p></td></tr>`; }
@@ -2571,7 +2573,7 @@ async function toggleCargoHistory(tr) {
         <span><b>${esc((CARGO_EVENT[e.event_type] || (x => (x.event_type || "").replaceAll("_", " ").toLowerCase()))(e))}</b>
         ${e.pilot_id ? `<small class="muted">${esc(e.pilot_name || "")} ${esc(e.pilot_id)}</small>` : ""}
         ${e.pirep_id ? `<button type="button" class="linkish" data-pirep="${e.pirep_id}">PIREP</button>` : ""}</span></li>`).join("") || "<li class='muted'>No movements yet.</li>"}</ol>
-      <dl class="cgo-facts"><dt>Shipper</dt><dd>${esc(shipment.shipper)}</dd><dt>Consignee</dt><dd>${esc(shipment.consignee)}</dd>
+      <dl class="cgo-facts"><dt>Tracking</dt><dd>${trackAwb(shipment.awb)}</dd><dt>Shipper</dt><dd>${esc(shipment.shipper)}</dd><dt>Consignee</dt><dd>${esc(shipment.consignee)}</dd>
         ${d.agent ? `<dt>Forwarder</dt><dd>${esc(d.agent)}</dd>` : ""}<dt>Handling</dt><dd>${esc((shipment.handling || []).join(" · ") || (d.shc || []).join(" ") || "General")}</dd>
         ${a.chg_kg ? `<dt>Chargeable</dt><dd>${cf1(a.chg_kg)} kg</dd>` : ""}${a.temp ? `<dt>Temperature</dt><dd>${esc(a.temp)}</dd>` : ""}
         ${shipment.security_status ? `<dt>Security</dt><dd>${esc(shipment.security_status)}</dd>` : ""}</dl></div>
@@ -7713,7 +7715,7 @@ function pacAfterAction(db) {
     </tbody></table></div>` : ""}
     ${cargo.some(c => c.care) ? `<div class="care-box"><h4>How the sensitive freight rode</h4>${cargo.filter(c => c.care).map(c => `<div class="care-row"><div><span class="care-tag ${e(c.care.status)}">${e(c.care.label)}</span> <b>${e(c.contents)}</b> <small class="mono muted">${e(c.awb)}</small></div><ul>${c.care.log.map(l => `<li>${e(l)}</li>`).join("")}</ul></div>`).join("")}</div>` : ""}
     ${cargo.length ? `<details class="aar-cargo"><summary>Customer cargo results · ${e(db.on_time)} delivered on time</summary><div class="aar-wrap"><table class="aar-table"><thead><tr><th>Air waybill</th><th>Customer journey</th><th>Commodity</th><th class="r">Weight</th><th>Delivery</th><th class="r">Charges</th></tr></thead><tbody>
-      ${cargo.map(c => `<tr><td class="mono">${e(c.awb)}</td><td>${e(c.shipper)} → ${e(c.consignee)}</td><td>${e(c.contents)}</td><td class="r mono">${c.weight_lbs != null ? Number(c.weight_lbs).toLocaleString() + " lb" : "–"}</td><td><b class="${/LATE|NOT|HELD/.test(c.status) ? "aar-bad" : "aar-ok"}">${e(c.status)}</b>${c.delivered ? `<br><small class="mono">${e(c.delivered)}</small>` : ""}${c.care ? `<br><span class="care-tag ${e(c.care.status)}">${e(c.care.label)}</span>` : ""}</td><td class="r mono">${c.charges != null ? "$" + Number(c.charges).toLocaleString("en-US", { maximumFractionDigits: 0 }) : "–"}</td></tr>`).join("")}
+      ${cargo.map(c => `<tr><td class="mono">${trackAwb(c.awb)}</td><td>${e(c.shipper)} → ${e(c.consignee)}</td><td>${e(c.contents)}</td><td class="r mono">${c.weight_lbs != null ? Number(c.weight_lbs).toLocaleString() + " lb" : "–"}</td><td><b class="${/LATE|NOT|HELD/.test(c.status) ? "aar-bad" : "aar-ok"}">${e(c.status)}</b>${c.delivered ? `<br><small class="mono">${e(c.delivered)}</small>` : ""}${c.care ? `<br><span class="care-tag ${e(c.care.status)}">${e(c.care.label)}</span>` : ""}</td><td class="r mono">${c.charges != null ? "$" + Number(c.charges).toLocaleString("en-US", { maximumFractionDigits: 0 }) : "–"}</td></tr>`).join("")}
     </tbody></table></div></details>` : ""}
   </section>`;
 }

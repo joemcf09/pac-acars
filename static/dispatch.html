@@ -490,7 +490,7 @@ function awbLines(d, s, n) {
   const a = s.awb_doc; if (!a) return null;
   const ia = i => (d.paper.iata || {})[i] || i.slice(-3), o = d.origin.icao, de = d.destination.icao;
   const out = [];
-  out.push(`<b>${esc(L("AIR WAYBILL  /  CONTRACT OF CARRIAGE", 50) + R(`AWB ${s.awb}`, W - 50))}</b>`);
+  out.push(`<b>${esc(L("AIR WAYBILL  /  CONTRACT OF CARRIAGE", 50) + R(`AWB ${s.awb}`, W - 50)).replace(esc(s.awb), /^\d{3}-\d{8}$/.test(s.awb || "") ? `<a href="/track/${s.awb}" target="_blank" rel="noopener" title="Track this shipment">${esc(s.awb)}</a>` : esc(s.awb))}</b>`);
   out.push(esc(L(`NOT NEGOTIABLE. ISSUED BY ${a.carrier} (${a.code})`, 60) + R(`SHIPMENT ${n} OF ${d.shipments.length}`, W - 60)));
   out.push(rule("-"));
   out.push(...kv("SHIPPER", U(s.shipper.name)), ...kv("SHIPPER ADDRESS", a.shipper_addr));
