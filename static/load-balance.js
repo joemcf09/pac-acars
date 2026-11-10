@@ -10,11 +10,13 @@
     const env = b.envelope, kgToLb = 2.20462262;
     const all = [...env.takeoff.fwd, ...env.takeoff.aft];
     const wMin = Math.min(...all.map(p => p[0])) * kgToLb, wMax = Math.max(...all.map(p => p[0])) * kgToLb;
-    const x = pct => L + (pct / 40) * (W - L - R), y = lb => T + (1 - (lb - wMin) / (wMax - wMin)) * (H - T - B);
+    const xMax = Math.max(40, Math.ceil(Math.max(...all.map(p => p[1])) / 5) * 5 + 5);   // the whole envelope, with room to spare
+    const x = pct => L + (pct / xMax) * (W - L - R), y = lb => T + (1 - (lb - wMin) / (wMax - wMin)) * (H - T - B);
     const poly = e => [...e.fwd, ...[...e.aft].reverse()].map(p => `${x(p[1]).toFixed(1)},${y(p[0] * kgToLb).toFixed(1)}`).join(' ');
     let g = '';
-    for (let p = 0; p <= 40; p += 5) g += `<line x1="${x(p)}" x2="${x(p)}" y1="${T}" y2="${H - B}" class="cg-grid"/><text x="${x(p)}" y="${H - B + 16}" class="cg-ax" text-anchor="middle">${p}</text>`;
-    for (let lb = Math.ceil(wMin / 20000) * 20000; lb <= wMax; lb += 20000) g += `<line x1="${L}" x2="${W - R}" y1="${y(lb)}" y2="${y(lb)}" class="cg-grid"/><text x="${L - 6}" y="${y(lb) + 4}" class="cg-ax" text-anchor="end">${lb / 1000}k</text>`;
+    for (let p = 0; p <= xMax; p += 5) g += `<line x1="${x(p)}" x2="${x(p)}" y1="${T}" y2="${H - B}" class="cg-grid"/><text x="${x(p)}" y="${H - B + 16}" class="cg-ax" text-anchor="middle">${p}</text>`;
+    const step = (wMax - wMin) > 300000 ? 100000 : 20000;
+    for (let lb = Math.ceil(wMin / step) * step; lb <= wMax; lb += step) g += `<line x1="${L}" x2="${W - R}" y1="${y(lb)}" y2="${y(lb)}" class="cg-grid"/><text x="${L - 6}" y="${y(lb) + 4}" class="cg-ax" text-anchor="end">${lb / 1000}k</text>`;
     const dot = (ph, cls) => `<circle cx="${x(ph.pct_mac)}" cy="${y(ph.weight_lbs)}" r="6" class="${cls}"><title>${ph.name} ${ph.pct_mac}% MAC, ${fmt(ph.weight_lbs)} lb</title></circle>
       <text x="${x(ph.pct_mac) + 9}" y="${y(ph.weight_lbs) + 4}" class="cg-lbl">${ph.name}</text>`;
     const [zf, to, lw] = b.phases;

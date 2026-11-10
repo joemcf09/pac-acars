@@ -74,8 +74,12 @@ if (typeof document !== 'undefined') (function () {
     $('planState').textContent = d ? (plan.signed ? 'Unsaved changes · saving clears the release signature' : 'Unsaved changes') : 'No changes to save';
     // aircraft with weight-and-balance data: the real CG panel replaces PAC's simple balance bar
     const wb = plan.balance && plan.balance.available;
-    document.querySelectorAll('.balance, .notice[aria-label="Planning scope"]').forEach(el => { el.hidden = !!wb; });
-    if ($('wbNotice')) $('wbNotice').hidden = !wb;
+    document.querySelectorAll('.balance, .notice[aria-label="Planning scope"]').forEach(el => { el.style.display = wb ? 'none' : ''; });
+    if ($('wbNotice')) $('wbNotice').style.display = wb ? '' : 'none';
+    if (wb) {
+      const lede = document.querySelector('.lede'); if (lede) lede.textContent = 'Drag units between main-deck positions, or use each unit\'s menu. The center of gravity panel updates as you move them.';
+      const an = document.getElementById('autoNote'); if (an) an.textContent = 'Auto-load places the units for a takeoff CG near 24% MAC, inside the envelope and each position\'s limit. Review it before saving.';
+    }
     if (window.pacBalanceUpdate) window.pacBalanceUpdate(plan, asg, d);
   }
   async function load() {
