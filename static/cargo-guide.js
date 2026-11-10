@@ -1,3 +1,15 @@
+/* Illustrations (AI-generated artwork of PAC operations, checked for the aircraft details: 767-300F main-deck door
+   forward of the wing, 777F aft of it; AKEs go in the lower hold). Captions say they're illustrations. */
+const CG_ILL = {
+  idea: ["ill-777f-sunset", "A PAC 777F being loaded through its main-deck cargo door, which sits behind the wing on the 777F."],
+  sheds: ["ill-warehouse-buildup", "Build-up in the warehouse: freight is stacked on a pallet, wrapped, netted and weighed before it goes to the aircraft."],
+  planning: ["ill-767-main-deck-loading", "A netted pallet going up a high loader into a 767-300F, whose main-deck door is ahead of the wing."],
+  care: ["ill-main-deck-interior", "Pallets locked down on the main deck. Rollers move them into position; locks hold them in flight."],
+  paperwork: ["ill-ake-lower-hold", "An AKE (LD3) container going into the lower hold on a belly loader. Its sloped corner fits the curve of the fuselage."],
+};
+function cgFigure([file, caption]) {
+  return `<figure class="cg-fig"><img src="/static/illustrations/${file}.webp" alt="${caption}" loading="lazy" width="1600" height="900"><figcaption>Illustration · ${caption}</figcaption></figure>`;
+}
 /* The PAC Cargo Guide: how freight, the cargo inventory and flight planning fit together. Plain HTML, no API calls,
    so it also works for visitors who aren't signed in. Keep it in step with cargo_network.py, cargo_orders.py,
    dispatch.py and cargo_programs.py when those change. */
@@ -87,6 +99,6 @@ function renderCargoGuide() {
   ];
   $("#cargoGuideRoot").innerHTML = `<div class="profile-bar"><h1>PAC Cargo Guide</h1><span class="muted">How PAC's freight, the cargo inventory and flight planning fit together</span></div>
     <div class="handbook"><nav class="toc" aria-label="Cargo guide contents">${S_.map(([id, t]) => `<a href="#cg-${id}" data-cg="${id}">${t}</a>`).join("")}</nav>
-    <div class="hb-body">${S_.map(([id, t, body]) => `<section id="cg-${id}"><h2>${t}</h2>${body}</section>`).join("")}</div></div>`;
+    <div class="hb-body">${S_.map(([id, t, body]) => `<section id="cg-${id}"><h2>${t}</h2>${CG_ILL[id] ? cgFigure(CG_ILL[id]) : ""}${body}</section>`).join("")}</div></div>`;
   document.querySelectorAll("[data-cg]").forEach(a => a.onclick = e => { e.preventDefault(); $("#cg-" + a.dataset.cg).scrollIntoView({ behavior: "smooth" }); });
 }

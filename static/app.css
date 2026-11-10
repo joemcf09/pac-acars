@@ -1735,3 +1735,8 @@ html[data-theme="dark"] .journey-text-button{color:var(--steel)}
 /* air waybill numbers open the public tracking page */
 a.awb-track{color:inherit;text-decoration:underline;text-decoration-color:var(--line);text-underline-offset:3px}
 a.awb-track:hover{color:var(--red);text-decoration-color:var(--red)}
+
+/* cargo guide and page illustrations */
+.cg-fig{margin:4px 0 16px}
+.cg-fig img{display:block;width:100%;height:auto;aspect-ratio:16/9;object-fit:cover;border-radius:6px}
+.cg-fig figcaption{font-size:12.5px;color:var(--muted,#5E6470);margin-top:6px}
