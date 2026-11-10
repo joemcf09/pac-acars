@@ -3865,7 +3865,16 @@ def cargo_shipments_api():
             LEFT JOIN cargo_movements m ON m.id=(
                 SELECT m2.id FROM cargo_movements m2 WHERE m2.shipment_id=s.id ORDER BY m2.event_time DESC,m2.id DESC LIMIT 1
             )""" + clause + " ORDER BY s.updated_at DESC,s.awb LIMIT 300", params).fetchall()
-    return jsonify({"shipments": [dict(row) for row in rows], "total": total, "limit": 300})
+    out = []
+    for row in rows:
+        x = dict(row)
+        # what's left to fly: from where the shipment is now to its destination, with a typical jet's block time
+        here = x.get("current_station") or x.get("origin")
+        nm = _airport_nm(here, x.get("destination")) if here and here != x.get("destination") else None
+        x["leg_from"], x["leg_nm"] = here, round(nm) if nm else None
+        x["leg_block_min"] = round(25 + nm / 440 * 60) if nm else None
+        out.append(x)
+    return jsonify({"shipments": out, "total": total, "limit": 300})
 
 
 @app.get("/api/cargo/shipments/<shipment_id>")

@@ -2496,7 +2496,7 @@ async function loadCargo() {
         const journey = atOrigin ? `<b class="cgo-now" title="Where it is now">${esc(x.origin)}</b> → <b>${esc(x.destination)}</b>`
           : `<b>${esc(x.origin)}</b> → ${via || x.status === "AT_STATION" || x.status === "HELD_AT_STATION" ? `<b class="cgo-now" title="Where it is now">${esc(x.current_station)}</b> → ` : ""}<b>${esc(x.destination)}</b>`;
         return `<tr class="cgo-row" data-cargo-id="${esc(x.id)}" tabindex="0" aria-expanded="false">
-          <td class="mono cgo-awb">${esc(x.awb)}</td><td class="mono">${journey}</td>
+          <td class="mono cgo-awb">${esc(x.awb)}</td><td class="mono">${journey}${x.leg_nm ? `<small class="muted cgo-leg" title="Great-circle distance from where it is now, and a typical jet's block time">${fmt(x.leg_nm)} nm · about ${Math.floor(x.leg_block_min / 60)}h ${String(x.leg_block_min % 60).padStart(2, "0")}m</small>` : ""}</td>
           <td><span class="cgo-com">${esc(x.commodity || "—")}</span>${x.season_name ? ` <span class="tag cgo-season">${esc(x.season_name)}</span>` : ""}<small class="muted">${esc(x.shipper || "")} → ${esc(x.consignee || "")}</small></td>
           <td class="r mono">${fmt(x.pieces)} · ${fmt(x.gross_weight_lbs)} lb</td>
           <td><span class="cargo-status ${esc((x.status || "").toLowerCase())}">${esc(statusWord[x.status] || x.status)}</span></td>

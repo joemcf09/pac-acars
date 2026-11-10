@@ -1729,3 +1729,5 @@ html[data-theme="dark"] .journey-text-button{color:var(--steel)}
 .aog-steps{display:flex;gap:8px;list-style:none;padding:0;margin:10px 0;flex-wrap:wrap}
 .aog-steps li{flex:1 1 160px;padding:8px 10px;border-radius:6px;background:#f1f2f4;color:#5b6472;font-size:13px}
 .aog-steps li.done{background:#e5f4e4;color:#176b3c}.aog-steps li.now{background:#fff1d6;color:#7a4b00;font-weight:600}
+
+.cgo-leg{display:block;font-family:inherit;margin-top:2px}
