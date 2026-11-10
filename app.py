@@ -3945,6 +3945,21 @@ def cargo_shipment_detail(shipment_id):
     return jsonify({"shipment": shipment, "movements": history, "notes": note_list, "can_note": may_note, "claim": claim})
 
 
+import network_stats  # noqa: E402  (public network page)
+
+
+@app.get("/network")
+def network_page():
+    return send_from_directory(app.static_folder, "network.html")
+
+
+@app.get("/api/public/network")
+def network_api():
+    d = dict(network_stats.cached(db, AIRPORTS))
+    d["fleet_names"] = {t["aircraft"]: (FLEET.get(t["aircraft"]) or {}).get("name", t["aircraft"]) for t in d["types"]}
+    return jsonify(d)
+
+
 import cargo_track  # noqa: E402  (public air waybill tracking)
 
 

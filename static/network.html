@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cargo network · Pagani Air Cargo</title>
+<meta name="description" content="The Pagani Air Cargo network: freight flown in the last 30 days, the busiest lanes, and what's waiting at each station.">
+<meta property="og:title" content="The PAC cargo network">
+<meta property="og:image" content="/static/pac-share.jpg">
+<link rel="icon" href="/static/favicon.png">
+<link rel="stylesheet" href="/static/fonts/fonts.css">
+<link rel="stylesheet" href="/static/vendor/leaflet/leaflet.css">
+<style>
+:root{--red:#C80000;--red-deep:#9A0000;--red-wash:#FBEAEA;--ink:#1E2126;--steel:#5E6470;--line:#D9DCE1;--paper:#F3F4F6;--white:#fff;
+  --ok:#17693C;--ok-wash:#E3F4EA;--warn:#7A5600;--warn-wash:#FFF1CC;--font:"Saira",system-ui,-apple-system,"Segoe UI",sans-serif;--mono:"IBM Plex Mono",ui-monospace,Consolas,monospace}
+*{box-sizing:border-box}html,body{margin:0}
+body{font-family:var(--font);font-stretch:95%;color:var(--ink);background:var(--paper);font-size:15px;line-height:1.45}
+header{background:var(--red);color:#fff;height:64px;display:flex;align-items:center;gap:14px;padding:0 24px}
+header img{height:26px;display:block}
+header span{font-stretch:115%;font-weight:500;font-size:14px;opacity:.9;border-left:1px solid rgba(255,255,255,.45);padding-left:14px}
+header a{margin-left:auto;color:#fff;text-decoration:none;font-weight:600;font-size:14px;opacity:.9}
+header a:hover{opacity:1;text-decoration:underline}
+main{max-width:920px;margin:0 auto;padding:32px 20px 56px}
+h1{font-stretch:120%;font-weight:700;font-size:30px;line-height:1.1;margin:0 0 6px}
+.lede{color:var(--steel);margin:0 0 20px}
+form{display:flex;gap:10px;flex-wrap:wrap}
+input{flex:1;min-width:220px;font:600 18px var(--mono);letter-spacing:.04em;padding:12px 14px;border:2px solid var(--line);border-radius:4px;background:#fff;color:var(--ink)}
+input:focus{outline:none;border-color:var(--red)}
+button{font:700 15px var(--font);background:var(--red);color:#fff;border:2px solid var(--red);border-radius:4px;padding:0 22px;cursor:pointer;min-height:48px}
+button:hover{background:var(--red-deep);border-color:var(--red-deep)}
+.msg{margin-top:18px;padding:14px 16px;border-radius:4px;background:var(--red-wash);color:var(--red-deep);font-weight:600}
+.card{background:#fff;border:1px solid var(--line);border-radius:6px;margin-top:22px;overflow:hidden}
+.head{padding:20px 22px;border-bottom:1px solid var(--line);display:flex;flex-wrap:wrap;gap:12px 24px;align-items:flex-start;justify-content:space-between}
+.eyebrow{font-size:12px;font-weight:700;letter-spacing:.12em;color:var(--steel);text-transform:uppercase}
+.awb{font:600 26px var(--mono);letter-spacing:.03em}
+.pill{display:inline-block;font-weight:700;font-size:14px;padding:6px 12px;border-radius:999px;background:var(--warn-wash);color:var(--warn)}
+.pill.done{background:var(--ok-wash);color:var(--ok)}.pill.bad{background:var(--red-wash);color:var(--red-deep)}
+
+main{max-width:1100px}
+.kpis{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:10px;margin:20px 0}
+@media (max-width:900px){.kpis{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.kpi{background:#fff;border:1px solid var(--line);border-radius:6px;padding:14px}
+.kpi b{display:block;font-stretch:110%;font-size:22px;line-height:1.15;white-space:nowrap}
+.kpi span{color:var(--steel);font-size:13px}
+.grid{display:grid;grid-template-columns:1.4fr 1fr;gap:16px}
+@media (max-width:820px){.grid{grid-template-columns:1fr}}
+.panel{background:#fff;border:1px solid var(--line);border-radius:6px;padding:16px 18px;margin-bottom:16px}
+.panel h2{font-stretch:115%;font-size:18px;margin:0 0 4px}
+.panel p.sub{color:var(--steel);font-size:13px;margin:0 0 10px}
+#map{height:380px;border-radius:4px;background:#dfe6ec}
+.bar{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 12px;padding:7px 0;border-top:1px solid var(--line);font-size:14px}
+.bar:first-of-type{border-top:0}
+.bar .track{grid-column:1/-1;height:6px;background:var(--paper);border-radius:3px;overflow:hidden}
+.bar .track i{display:block;height:100%;background:var(--red)}
+.bar .muted,.muted{color:var(--steel)}
+.mono{font-family:var(--mono)}
+.empty{color:var(--steel);font-size:14px;padding:8px 0}
+</style>
+</head>
+<body>
+<header><img src="/static/pac-wordmark-white.png" alt="PAC"><span>Cargo network</span><a href="/">pac-va.com</a></header>
+<main>
+  <h1>The PAC cargo network</h1>
+  <p class="lede" id="lede">What PAC pilots flew in the last 30 days, and what's waiting for the next flight.</p>
+  <div class="kpis" id="kpis"></div>
+  <div class="grid">
+    <div>
+      <section class="panel"><h2>Busiest lanes</h2><p class="sub">Freight flown on each route, last 30 days. Line width shows the weight.</p><div id="map"></div><div id="lanes" style="margin-top:10px"></div></section>
+    </div>
+    <div>
+      <section class="panel"><h2>Waiting for a flight</h2><p class="sub">Shipments sitting at a station right now. Book a flight from there to move them.</p><div id="waiting"></div></section>
+      <section class="panel"><h2>What we carried</h2><p class="sub">Delivered in the last 30 days, by weight.</p><div id="goods"></div></section>
+      <section class="panel"><h2>Busiest stations</h2><p class="sub">Departures and arrivals, last 30 days.</p><div id="stations"></div></section>
+      <section class="panel"><h2>Most flown types</h2><div id="types"></div></section>
+    </div>
+  </div>
+  <p class="fine">Pagani Air Cargo is a virtual airline for flight simulation. Freight, shippers and consignees are simulated. Figures update every few minutes. <a href="/track" style="color:inherit">Track a shipment</a></p>
+</main>
+<script src="/static/vendor/leaflet/leaflet.js"></script>
+<script>
+const $=s=>document.querySelector(s);
+const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const n=v=>(+v||0).toLocaleString("en-US");
+const t=lbs=>(lbs/2204.62).toLocaleString("en-US",{maximumFractionDigits:lbs>=22046?0:1});
+function bars(el,rows,label,value,valueText){
+  if(!rows.length){$(el).innerHTML=`<div class="empty">Nothing yet.</div>`;return}
+  const max=Math.max(...rows.map(value))||1;
+  $(el).innerHTML=rows.map(r=>`<div class="bar"><span>${label(r)}</span><span class="mono">${valueText(r)}</span><span class="track"><i style="width:${Math.max(3,value(r)/max*100)}%"></i></span></div>`).join("");
+}
+(async()=>{
+  let d;try{d=await (await fetch("/api/public/network")).json()}catch(e){$("#lede").textContent="Couldn't load the network figures. Try again in a moment.";return}
+  const k=[[n(d.flights),"flights"],[t(d.freight_lbs)+" t",`freight flown (${n(d.freight_lbs)} lb)`],[n(d.distance_nm)+" nm","flown"],[n(d.block_hours),"block hours"],[n(d.pilots),"pilots flying"],
+    [d.on_time_pct==null?"–":d.on_time_pct+"%",`on time (${n(d.delivered)} shipments delivered)`],[n(d.waiting_shipments),`shipments waiting (${t(d.waiting_lbs)} t)`]];
+  $("#kpis").innerHTML=k.map(([v,l])=>`<div class="kpi"><b>${v}</b><span>${esc(l)}</span></div>`).join("");
+  bars("#lanes",d.lanes,r=>`<b>${esc(r.from.icao)} → ${esc(r.to.icao)}</b> <span class="muted">${esc(r.from.city)} to ${esc(r.to.city)} · ${r.flights} flight${r.flights>1?"s":""}</span>`,r=>r.lbs,r=>t(r.lbs)+" t");
+  bars("#waiting",d.waiting,r=>`<b>${esc(r.icao)}</b> <span class="muted">${esc(r.city)} · ${r.shipments} shipment${r.shipments>1?"s":""}</span>`,r=>r.lbs,r=>n(r.lbs)+" lb");
+  bars("#goods",d.goods,r=>`${esc(r.commodity)} <span class="muted">· ${r.shipments}</span>`,r=>r.lbs,r=>n(r.lbs)+" lb");
+  bars("#stations",d.stations,r=>`<b>${esc(r.icao)}</b> <span class="muted">${esc(r.city)}</span>`,r=>r.movements,r=>n(r.movements));
+  bars("#types",d.types,r=>esc((d.fleet_names||{})[r.aircraft]||r.aircraft),r=>r.flights,r=>n(r.flights)+" flights");
+  if(window.L){
+    const map=L.map("map",{scrollWheelZoom:false,worldCopyJump:true}).setView([30,0],2);
+    L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:10,attribution:"&copy; OpenStreetMap contributors"}).addTo(map);
+    const max=Math.max(1,...d.lanes.map(l=>l.lbs)),pts=[];
+    d.lanes.forEach(l=>{if(l.from.lat==null||l.to.lat==null)return;let lon2=l.to.lon;if(lon2-l.from.lon>180)lon2-=360;if(l.from.lon-lon2>180)lon2+=360;
+      const a=[l.from.lat,l.from.lon],b=[l.to.lat,lon2];pts.push(a,b);
+      L.polyline([a,b],{color:"#C80000",weight:2+6*l.lbs/max,opacity:.75}).bindTooltip(`${l.from.icao} → ${l.to.icao}: ${t(l.lbs)} t`).addTo(map);
+      [a,b].forEach(p=>L.circleMarker(p,{radius:4,color:"#1E2126",weight:1,fillColor:"#fff",fillOpacity:1}).addTo(map))});
+    if(pts.length)map.fitBounds(pts,{padding:[30,30],maxZoom:6});
+  }
+})();
+</script>
+</body>
+</html>

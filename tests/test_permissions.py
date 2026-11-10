@@ -48,7 +48,7 @@ PUBLIC_OK = {
     "/academy", "/academy/", "/academy/<path:name>", "/robots.txt", "/sitemap.xml", "/api/conflict-zones",
     "/api/conflict-zones/map", "/media/image", "/api/partner-photos", "/api/partner-photo/<key>/<ac>", "/load-planner",
     "/load-planner-all", "/load-planner-727", "/api/va/config", "/api/public/roster", "/api/public/group-flight",
-    "/api/group-flight.ics", "/track", "/track/<path:awb>", "/api/public/track/<path:awb>",   # air waybill tracking is public (test_tracking.py)
+    "/api/group-flight.ics", "/track", "/track/<path:awb>", "/api/public/track/<path:awb>", "/network", "/api/public/network",   # air waybill tracking is public (test_tracking.py)
     "/", "/api/acars/app/download", "/api/bootstrap", "/api/fleet", "/api/fleet/<code>/photo", "/api/gallery",
              # liveries are on the public Fleet page; an uploaded file still needs a sign-in (checked in test_liveries.py)
              "/api/fleet/liveries", "/api/fleet/liveries/<lid>/preview", "/api/fleet/liveries/<lid>/download",
