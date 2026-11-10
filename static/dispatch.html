@@ -305,7 +305,9 @@ async function weatherLines(d) {
   out.push("<b>NOTAMS</b>");
   const nt = d.paper.notams || [], yy = String(new Date().getUTCFullYear()).slice(2);
   if (!nt.length) out.push("COMPANY NOTAMS  NIL");
-  nt.forEach((n, i) => { out.push(esc(`CO NOTAM ${String(n.id || i + 1).padStart(4, "0")}/${yy}  ${U(n.title)}`)); wrap(n.body || "", W, 4).forEach(l => out.push(esc(l))); });
+  // company NOTAMs are often written for Discord: print them as plain teletype text (no **bold**, emoji or symbols)
+  const plain = t => String(t || "").replace(/\*\*|__|~~|`/g, "").replace(/[\u{1F000}-\u{1FAFF}\u{2600}-\u{27BF}\u{FE0F}\u{200D}]/gu, "").replace(/\s*[•·]\s*/g, ". ").replace(/[ \t]{2,}/g, " ").trim();
+  nt.forEach((n, i) => { out.push(esc(`CO NOTAM ${String(n.id || i + 1).padStart(4, "0")}/${yy}  ${U(plain(n.title))}`)); wrap(U(plain(n.body)), W, 4).forEach(l => out.push(esc(l))); });
   out.push("", ...wrap("SEE IMPORTED BRIEFING PAGES FOR SIMBRIEF NOTAMS WHEN AVAILABLE. PRINT SCOPE MAY EXCLUDE EN-ROUTE NOTAMS. CHECK CURRENT BRIEFING BEFORE DEPARTURE.", W).map(esc));
   return out;
 }
