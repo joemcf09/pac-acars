@@ -439,6 +439,7 @@ def paperwork(d, fleet, booking=None, notams=None, captain_rank=None, airports=N
         int(round(v)) for v in (dow, zfw, tof, tow, trip, law, taxi, block, underload, min_release, contingency, mzfw, mlw, mtow, max_pl))
     return {
         "limits": {"mzfw": mzfw, "mtow": mtow, "mlw": mlw, "max_payload": max_pl},
+        "min_rwy_ft": ac.get("min_rwy_ft"),
         "loadsheet": {"dow": dow, "payload": payload, "zfw": zfw, "tof": tof, "tow": tow, "trip": trip, "law": law, "taxi": taxi, "block": block,
                       "underload": underload, "doi": doi, "dli": dli, "lizfw": lizfw, "litow": litow, "mac_zfw": mac_zfw, "mac_tow": mac_tow,
                       "mac_ldw": mac_ldw, "lildw": lildw, "trim": trim, "crew": crew, "edno": "01", "cg_source": cg_source},

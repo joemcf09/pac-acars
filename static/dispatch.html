@@ -290,7 +290,7 @@ async function weatherLines(d) {
   const ids = [d.origin.icao, d.destination.icao, d.alternate?.icao].filter(Boolean);
   const out = [`<b>${esc(L("WEATHER BRIEFING", 44) + R("SOURCE AVIATIONWEATHER.GOV", W - 44))}</b>`, ""];
   let w = {};
-  try { const res = await fetch("/api/weather?taf=1&ids=" + ids.join(",")); w = await res.json(); if (!res.ok) throw new Error(w.error); }
+  try { const res = await fetch("/api/weather?taf=1&rwy=1&min_rwy_ft=" + (d.paper?.min_rwy_ft || "") + "&ids=" + ids.join(",")); w = await res.json(); if (!res.ok) throw new Error(w.error); }
   catch (e) { out.push(...wrap("WEATHER NOT AVAILABLE AT TIME OF PRINT. OBTAIN CURRENT REPORTS BEFORE DEPARTURE.", W).map(esc), ""); w = {}; }
   [["DEPARTURE", d.origin.icao], ["DESTINATION", d.destination.icao], ["ALTERNATE", d.alternate?.icao]].filter(x => x[1]).forEach(([role, icao]) => {
     const x = w[icao] || {};
@@ -299,6 +299,7 @@ async function weatherLines(d) {
     const taf = x.taf?.lines || [];
     if (!taf.length) out.push("FT  NIL");
     taf.forEach((ln, i) => wrap(ln, W, i ? 6 : 4).forEach((l, j) => out.push(esc(i === 0 && j === 0 ? "FT  " + l.trimStart() : l))));
+    out.push(...runwayWindLines(x.runway_wind));
     out.push("");
   });
   out.push("<b>NOTAMS</b>");
@@ -307,6 +308,23 @@ async function weatherLines(d) {
   nt.forEach((n, i) => { out.push(esc(`CO NOTAM ${String(n.id || i + 1).padStart(4, "0")}/${yy}  ${U(n.title)}`)); wrap(n.body || "", W, 4).forEach(l => out.push(esc(l))); });
   out.push("", ...wrap("SEE IMPORTED BRIEFING PAGES FOR SIMBRIEF NOTAMS WHEN AVAILABLE. PRINT SCOPE MAY EXCLUDE EN-ROUTE NOTAMS. CHECK CURRENT BRIEFING BEFORE DEPARTURE.", W).map(esc));
   return out;
+}
+
+/* runway wind analysis from the METAR: head/tailwind and crosswind for each runway, gusts included */
+function runwayWindLines(rw) {
+  if (!rw || !rw.ends?.length) return [];
+  const out = ["", "    RUNWAY WIND (FROM THE METAR ABOVE, GUSTS INCLUDED)"];
+  if (rw.calm) { out.push("    WIND CALM: ANY RUNWAY. USE THE RUNWAY IN USE."); return out.map(esc); }
+  if (rw.variable) { out.push("    WIND VARIABLE: NO FAVORED RUNWAY. CHECK ATIS FOR THE RUNWAY IN USE."); return out.map(esc); }
+  out.push("    " + L("RWY", 6) + L("LENGTH", 10) + L("HEAD/TAIL", 14) + L("CROSS", 12) + "NOTE");
+  rw.ends.slice(0, 8).forEach(e => {
+    const ht = e.head >= 0 ? `H ${e.head}` : `T ${-e.head}`, g = e.gust_head !== e.head ? `/${e.gust_head >= 0 ? "H" : "T"}${Math.abs(e.gust_head)}` : "";
+    const xw = e.cross ? `${e.cross_side} ${e.cross}${e.gust_cross !== e.cross ? "/" + e.gust_cross : ""}` : "0";
+    out.push("    " + L(e.runway, 6) + L((e.length_ft || 0).toLocaleString("en-US"), 10) + L(ht + g, 14) + L(xw, 12) +
+             (e.favored ? "FAVORED BY WIND" : U((e.notes || []).join(", "))));
+  });
+  out.push("    KT. H HEADWIND, T TAILWIND, L/R CROSSWIND FROM THE LEFT/RIGHT. CHECK YOUR AIRCRAFT'S LIMITS AND THE RUNWAY IN USE ON THE ATIS.");
+  return out.flatMap(l => l.length > W ? wrap(l, W, 4) : [l]).map(esc);
 }
 
 /* Imported reports are escaped text; no supplier HTML is executed. */

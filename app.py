@@ -3439,6 +3439,12 @@ def weather_api():
     try:
         m = weather.metars(ids)
         out = {i.upper(): {"metar": m.get(i.upper())} for i in ids}
+        if request.args.get("rwy"):           # runway wind analysis for the briefing
+            import runway_wind
+            need = int(num(request.args.get("min_rwy_ft")) or 0)
+            for i in out:
+                met = out[i]["metar"] or {}
+                out[i]["runway_wind"] = runway_wind.analyse(analysis.runways(DATA).get(i, []), met.get("wind"), need)
         if request.args.get("taf"):
             for i in list(out)[:4]:
                 try:
