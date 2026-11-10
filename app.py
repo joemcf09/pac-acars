@@ -3911,6 +3911,33 @@ def cargo_shipment_detail(shipment_id):
     return jsonify({"shipment": shipment, "movements": history, "notes": note_list, "can_note": may_note, "claim": claim})
 
 
+import cargo_track  # noqa: E402  (public air waybill tracking)
+
+
+@app.get("/track")
+@app.get("/track/<path:awb>")
+def track_page(awb=None):
+    """The public tracking page: pac-va.com/track/901-10000123 can be shared with anyone."""
+    return send_from_directory(app.static_folder, "track.html")
+
+
+@app.get("/api/public/track/<path:awb>")
+def track_api(awb):
+    if not cargo_track.normalize(awb):
+        return jsonify({"error": "That isn't an air waybill number. PAC numbers look like 901-10000123."}), 400
+    with db() as con:
+        rec = cargo_track.lookup(con, awb)
+    if not rec:
+        return jsonify({"error": "No PAC shipment has that air waybill number."}), 404
+    names = {}
+    for code in {rec["origin"], rec["destination"], rec["station"], *(e["station"] for e in rec["events"])}:
+        a = AIRPORTS.get(code or "") or {}
+        if code:
+            names[code] = a.get("city") or a.get("name") or code
+    rec["places"] = names
+    return jsonify(rec)
+
+
 @app.post("/api/cargo/shipments/<shipment_id>/notes")
 def cargo_shipment_note(shipment_id):
     """A handover note for the next pilot, on freight this pilot flew in and left at a station."""

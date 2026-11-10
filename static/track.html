@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Track a shipment · Pagani Air Cargo</title>
+<meta name="description" content="Track a Pagani Air Cargo air waybill: where the shipment is now and every flight it has taken.">
+<meta property="og:title" content="Track a shipment · Pagani Air Cargo">
+<meta property="og:image" content="/static/pac-share.jpg">
+<link rel="icon" href="/static/favicon.png">
+<link rel="stylesheet" href="/static/fonts/fonts.css">
+<style>
+:root{--red:#C80000;--red-deep:#9A0000;--red-wash:#FBEAEA;--ink:#1E2126;--steel:#5E6470;--line:#D9DCE1;--paper:#F3F4F6;--white:#fff;
+  --ok:#17693C;--ok-wash:#E3F4EA;--warn:#7A5600;--warn-wash:#FFF1CC;--font:"Saira",system-ui,-apple-system,"Segoe UI",sans-serif;--mono:"IBM Plex Mono",ui-monospace,Consolas,monospace}
+*{box-sizing:border-box}html,body{margin:0}
+body{font-family:var(--font);font-stretch:95%;color:var(--ink);background:var(--paper);font-size:15px;line-height:1.45}
+header{background:var(--red);color:#fff;height:64px;display:flex;align-items:center;gap:14px;padding:0 24px}
+header img{height:26px;display:block}
+header span{font-stretch:115%;font-weight:500;font-size:14px;opacity:.9;border-left:1px solid rgba(255,255,255,.45);padding-left:14px}
+header a{margin-left:auto;color:#fff;text-decoration:none;font-weight:600;font-size:14px;opacity:.9}
+header a:hover{opacity:1;text-decoration:underline}
+main{max-width:920px;margin:0 auto;padding:32px 20px 56px}
+h1{font-stretch:120%;font-weight:700;font-size:30px;line-height:1.1;margin:0 0 6px}
+.lede{color:var(--steel);margin:0 0 20px}
+form{display:flex;gap:10px;flex-wrap:wrap}
+input{flex:1;min-width:220px;font:600 18px var(--mono);letter-spacing:.04em;padding:12px 14px;border:2px solid var(--line);border-radius:4px;background:#fff;color:var(--ink)}
+input:focus{outline:none;border-color:var(--red)}
+button{font:700 15px var(--font);background:var(--red);color:#fff;border:2px solid var(--red);border-radius:4px;padding:0 22px;cursor:pointer;min-height:48px}
+button:hover{background:var(--red-deep);border-color:var(--red-deep)}
+.msg{margin-top:18px;padding:14px 16px;border-radius:4px;background:var(--red-wash);color:var(--red-deep);font-weight:600}
+.card{background:#fff;border:1px solid var(--line);border-radius:6px;margin-top:22px;overflow:hidden}
+.head{padding:20px 22px;border-bottom:1px solid var(--line);display:flex;flex-wrap:wrap;gap:12px 24px;align-items:flex-start;justify-content:space-between}
+.eyebrow{font-size:12px;font-weight:700;letter-spacing:.12em;color:var(--steel);text-transform:uppercase}
+.awb{font:600 26px var(--mono);letter-spacing:.03em}
+.pill{display:inline-block;font-weight:700;font-size:14px;padding:6px 12px;border-radius:999px;background:var(--warn-wash);color:var(--warn)}
+.pill.done{background:var(--ok-wash);color:var(--ok)}.pill.bad{background:var(--red-wash);color:var(--red-deep)}
+.route{display:grid;grid-template-columns:1fr auto 1fr;gap:12px;align-items:center;padding:22px}
+.route .end b{display:block;font-stretch:120%;font-size:32px;line-height:1;font-weight:700}
+.route .end span{color:var(--steel);font-size:14px}
+.route .end.to{text-align:right}
+.route .mid{color:var(--steel);font-size:13px;text-align:center;min-width:120px}
+.route .mid .line{height:2px;background:var(--line);position:relative;margin:6px 0}
+.route .mid .line i{position:absolute;top:-4px;width:10px;height:10px;border-radius:50%;background:var(--red);transform:translateX(-50%)}
+.facts{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));border-top:1px solid var(--line)}
+.facts div{padding:14px 22px;border-right:1px solid var(--line)}
+.facts div:last-child{border-right:0}
+.facts b{display:block;font-size:16px}
+.shc{display:inline-block;font:600 12px var(--mono);border:1px solid var(--line);border-radius:3px;padding:1px 6px;margin:2px 4px 0 0}
+.hist{padding:8px 22px 18px}
+.hist h2{font-stretch:115%;font-size:18px;margin:14px 0 8px}
+.ev{display:grid;grid-template-columns:62px 1fr auto;gap:4px 14px;padding:12px 0;border-top:1px solid var(--line)}
+.ev:first-of-type{border-top:0}
+.code{font:600 14px var(--mono);background:var(--ink);color:#fff;border-radius:3px;text-align:center;padding:3px 0;align-self:start}
+.code.DLV{background:var(--ok)}.code.DIS{background:var(--red)}.code.DEP,.code.ARR{background:#2D4F7C}
+.ev b{display:block}.ev .note{color:var(--steel);font-size:14px}
+.ev time{font:400 13px var(--mono);color:var(--steel);text-align:right;white-space:nowrap}
+.legend{margin-top:24px;color:var(--steel);font-size:13px}
+.legend span{display:inline-block;margin:0 14px 6px 0}.legend code{font:600 12px var(--mono);color:var(--ink)}
+.fine{margin-top:18px;color:var(--steel);font-size:12px}
+@media (max-width:560px){.route{grid-template-columns:1fr 1fr}.route .mid{display:none}.route .end b{font-size:26px}
+  .ev{grid-template-columns:52px 1fr}.ev time{grid-column:2;text-align:left}header span{display:none}}
+</style>
+</head>
+<body>
+<header><img src="/static/pac-wordmark-white.png" alt="PAC"><span>Cargo tracking</span><a href="/">pac-va.com</a></header>
+<main>
+  <h1>Track a shipment</h1>
+  <p class="lede">Enter a PAC air waybill number to see where the shipment is and every flight it has taken.</p>
+  <form id="f"><input id="q" placeholder="901-10000123" autocomplete="off" inputmode="numeric" aria-label="Air waybill number"><button>Track</button></form>
+  <div id="out"></div>
+  <p class="legend" id="legend"></p>
+  <p class="fine">Pagani Air Cargo is a virtual airline for flight simulation. Shipments, shippers and consignees are simulated. Times are UTC.</p>
+</main>
+<script>
+const CODES={RCS:"Received from shipper",BKD:"Booked on flight",DEP:"Departed",ARR:"Arrived",RCF:"Received from flight",DLV:"Delivered",DIS:"Discrepancy"};
+const $=s=>document.querySelector(s);
+const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const when=t=>{if(!t)return"";const d=new Date(t*1000);return d.toISOString().slice(0,10)+" "+d.toISOString().slice(11,16)+"Z"};
+$("#legend").innerHTML=Object.entries(CODES).map(([k,v])=>`<span><code>${k}</code> ${v}</span>`).join("");
+function norm(s){const d=String(s).replace(/\D/g,"");return d.length===11?d.slice(0,3)+"-"+d.slice(3):null}
+async function track(awb,push){
+  const n=norm(awb);const out=$("#out");
+  if(!n){out.innerHTML=`<div class="msg">PAC air waybill numbers have 11 digits, like 901-10000123.</div>`;return}
+  $("#q").value=n;if(push)history.pushState(null,"","/track/"+n);
+  out.innerHTML=`<p class="lede" style="margin-top:18px">Looking up ${n}…</p>`;
+  let r,j;try{r=await fetch("/api/public/track/"+n);j=await r.json()}catch(e){out.innerHTML=`<div class="msg">Couldn't reach PAC. Try again in a moment.</div>`;return}
+  if(!r.ok){out.innerHTML=`<div class="msg">${esc(j.error||"Not found.")}</div>`;return}
+  const P=j.places||{},city=c=>esc(P[c]||c);
+  const cls=/DELIVERED/.test(j.status)?"done":/EXCEPTION|WITHDRAWN/.test(j.status)?"bad":"";
+  const there=j.status.startsWith("DELIVERED");
+  const pos=there?100:j.station===j.origin?0:50;
+  const ev=[...j.events].reverse();
+  out.innerHTML=`<section class="card">
+   <div class="head"><div><div class="eyebrow">Air waybill</div><div class="awb">${esc(j.awb)}</div></div>
+     <div style="text-align:right"><div class="eyebrow">Status</div><span class="pill ${cls}">${esc(j.status_text)}</span>
+     ${!there&&j.station?`<div class="lede" style="margin:6px 0 0;font-size:14px">Now at <b>${esc(j.station)}</b> ${city(j.station)}</div>`:""}</div></div>
+   <div class="route"><div class="end"><b>${esc(j.origin)}</b><span>${city(j.origin)}</span></div>
+     <div class="mid">${there?"Delivered":"In the network"}<div class="line"><i style="left:${pos}%"></i></div>${j.deadline?"Deliver by "+when(j.deadline):""}</div>
+     <div class="end to"><b>${esc(j.destination)}</b><span>${city(j.destination)}</span></div></div>
+   <div class="facts"><div><span class="eyebrow">Goods</span><b>${esc(j.goods)}</b></div>
+     <div><span class="eyebrow">Pieces</span><b>${esc(j.pieces)}</b></div>
+     <div><span class="eyebrow">Weight</span><b>${(+j.weight_kg).toLocaleString("en-US")} kg</b><span class="lede" style="font-size:13px">${(+j.weight_lbs).toLocaleString("en-US")} lb</span></div>
+     ${j.handling.length?`<div><span class="eyebrow">Special handling</span><br>${j.handling.map(c=>`<span class="shc">${esc(c)}</span>`).join("")}</div>`:""}
+     ${j.season?`<div><span class="eyebrow">Season</span><b>${esc(j.season)}</b></div>`:""}</div>
+   <div class="hist"><h2>Shipment history</h2>
+     ${ev.map(e=>`<div class="ev"><span class="code ${e.code}" title="${esc(e.label)}">${e.code}</span>
+       <div><b>${esc(e.label)}${e.flight?" · "+esc(e.flight):""} · ${esc(e.station||"")} ${e.station?city(e.station):""}</b>${e.note?`<span class="note">${esc(e.note)}</span>`:""}</div>
+       <time>${when(e.time)}</time></div>`).join("")||`<p class="lede">No movements yet.</p>`}</div></section>`;
+}
+$("#f").addEventListener("submit",e=>{e.preventDefault();track($("#q").value,true)});
+const fromUrl=decodeURIComponent(location.pathname.replace(/^\/track\/?/,""));
+if(fromUrl)track(fromUrl,false);
+window.addEventListener("popstate",()=>{const a=location.pathname.replace(/^\/track\/?/,"");if(a)track(a,false);else $("#out").innerHTML=""});
+</script>
+</body>
+</html>

@@ -28,7 +28,7 @@ INVITE_DAYS = 7
 PUBLIC_GET = ("/api/group/", "/api/conflict-zones", "/api/bootstrap", "/api/va/home", "/api/va/board", "/api/fleet", "/api/news", "/api/gallery",
               "/api/profile/photo", "/api/acars/app/download", "/api/auth/", "/api/live",
               "/api/bot/",   # the Discord bot's own API checks its secret itself (botlink.py)
-              "/api/partner-photos", "/api/partner-photo/", "/api/public/roster", "/api/public/group-flight",
+              "/api/partner-photos", "/api/partner-photo/", "/api/public/roster", "/api/public/group-flight", "/api/public/track/",
               "/api/group-flight.ics")   # credited Commons photos on landing cards
 PUBLIC_POST = ("/api/applications", "/api/auth/setup", "/api/auth/login", "/api/auth/accept", "/api/auth/token", "/api/auth/logout",
                "/api/bot/link", "/api/bot/unlink", "/api/bot/weekly/posted", "/api/bot/activity/reminded", "/api/bot/claim")   # the bot API checks its own secret (botlink.py)
