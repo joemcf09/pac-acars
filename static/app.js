@@ -4638,6 +4638,7 @@ async function openDetail(id) {
     ${integrityNote(d.integrity)}
     ${d.online ? `<div class="muted" style="font-size:14px">${d.online.share >= 0.6 ? `Flown online on ${esc(d.online.network)}${d.online.callsign ? " as " + esc(d.online.callsign) : ""}.` : `Seen on ${esc(d.online.network || "the network")} for ${Math.round((d.online.share || 0) * 100)}% of the flight (60% earns the online bonus).`}</div>` : ""}
     <h3 style="margin:8px 0 0;font-size:18px">Landing</h3>
+    ${d.landing ? `<p class="muted" style="font-size:13px;margin:2px 0 0">How the touchdown was measured: ${d.landing.rate_source === "sim_touchdown" ? `the simulator's touchdown rate (${esc(d.landing.touchdown_fpm)} fpm)` : d.landing.rate_source === "first_contact" ? "the first wheel contact (vertical speed)" : "the vertical speed indicator just before contact"}${d.landing.vs_rate_fpm != null ? ` · vertical speed indicator ${esc(d.landing.vs_rate_fpm)} fpm` : ""}${d.landing.contact_gap_s != null ? ` · last sample ${esc(d.landing.contact_gap_s)} s before contact` : ""} · ${esc(p.source || "")}</p>` : ""}
     ${landingSection("cardDetail", c)}
     <div id="glideChart"></div>
     ${approachChart(d.landing_analysis)}
