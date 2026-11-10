@@ -20,13 +20,19 @@ body { font-family: var(--mono); color: var(--ink); }
 .bar .sp { flex: 1; }
 .bar a, .bar button, #barTitle { white-space: nowrap; }
 #barTitle { overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.bar label { display: flex; align-items: center; white-space: nowrap; }
+.bar select { font: 600 13px "Segoe UI", system-ui, sans-serif; margin-left: 4px; max-width: 220px; }
 .bar a, .bar button { font: 600 14px "Segoe UI", system-ui, sans-serif; color: #fff; text-decoration: none; padding: 7px 14px; border: 1px solid rgba(255,255,255,.35); background: none; cursor: pointer; }
 .bar .primary { background: #C80000; border-color: #C80000; }
 .bar .quiet { border-color: transparent; color: #C9CED6; }
 
+/* air waybill numbers link to tracking; on paper they print like the rest of the text */
+.page pre a { color: inherit; text-decoration: underline dotted; }
+@media print { .page pre a { text-decoration: none; } }
+
 /* the sheets */
 #doc { padding: 26px 0 60px; display: flex; flex-direction: column; align-items: center; gap: 26px; }
-.page { width: 210mm; height: 297mm; background: var(--paper); padding: 12mm 12mm 10mm; display: flex; flex-direction: column;
+.page { scroll-margin-top: 64px; width: 210mm; height: 297mm; background: var(--paper); padding: 12mm 12mm 10mm; display: flex; flex-direction: column;
         box-shadow: 0 2px 10px rgba(0,0,0,.35); position: relative; }
 .head { display: flex; justify-content: space-between; align-items: flex-start; gap: 8mm; }
 .head img.logo { height: 7.5mm; filter: invert(1) contrast(1.4); margin-top: 1mm; }
@@ -81,6 +87,7 @@ dialog.sign .msg { color: #C80000; font-size: 14px; min-height: 1em; margin: 6px
   <a href="/#acars">Back to ACARS</a>
   <span class="signed" id="signedTag" hidden></span>
   <button class="primary" id="signBtn" hidden>Sign release</button>
+  <label>Jump to <select id="jumpTo" aria-label="Jump to a section of the release"><option value="">Section…</option></select></label>
   <label>NOTAM print scope <select id="notamScope"><option value="airports">Airports</option><option value="all">All imported</option><option value="none">Omit imported NOTAMs</option></select></label>
   <button class="primary" id="printBtn" onclick="print()">Print / save as PDF</button></div>
 <div class="amended" id="amended" hidden>Your SimBrief plan changed the fuel and weights, so this is an amended release. Review it and sign again.</div>
@@ -142,7 +149,7 @@ function renderPages(d) {
   const p = d.paper, now = new Date(), iso = now.toISOString();
   const pr = `${iso.substr(8, 2)}${MON[now.getUTCMonth()]}${iso.substr(2, 2)} ${iso.substr(11, 2)}${iso.substr(14, 2)}Z`;
   const occ = p.iata[d.origin.icao] || "CVG";
-  $("#doc").innerHTML = PAGES.map((pg, i) => `<section class="page">
+  $("#doc").innerHTML = PAGES.map((pg, i) => `<section class="page" id="pg${i}">
     <div class="copy">CAPTAIN COPY</div>
     <div class="head"><img class="logo" src="/static/pac-wordmark-white.png" alt="Pagani Air Cargo">
       <div class="ids"><b>PAGANI AIR CARGO</b><br>OPERATIONS CONTROL CENTER CVG<br>${esc(pg.title)}</div>
@@ -152,6 +159,21 @@ ${rule("=")}</pre>
     <div class="body"><pre class="t">${pg.lines.join("\n")}</pre></div>
     <pre class="t foot">${rule("-")}
 ${esc(L(`PRINTED ${pr}  OCC-${occ}/T14`, 36) + L("FOR FLIGHT SIMULATION USE ONLY", 32) + R(`PAGE ${i + 1} OF ${PAGES.length}`, W - 68))}</pre></section>`).join("");
+  jumpMenu();
+}
+
+/* the "Jump to" menu in the toolbar: one entry per section (continuation pages are skipped), air waybills grouped */
+function jumpMenu() {
+  const sel = $("#jumpTo"); if (!sel) return;
+  const opts = [], awbs = [];
+  PAGES.forEach((pg, i) => {
+    if (/\(CONT\)$/.test(pg.title)) return;
+    const name = pg.title.charAt(0) + pg.title.slice(1).toLowerCase().replace("(notoc)", "(NOTOC)").replace(/\bnotams\b/, "NOTAMs");
+    if (pg.title.startsWith("AIR WAYBILL ")) awbs.push(`<option value="${i}">AWB ${esc(pg.title.slice(12))} · page ${i + 1}</option>`);
+    else opts.push(`<option value="${i}">${esc(name)} · page ${i + 1}</option>`);
+  });
+  sel.innerHTML = `<option value="">Section…</option>${opts.join("")}${awbs.length ? `<optgroup label="Air waybills">${awbs.join("")}</optgroup>` : ""}`;
+  sel.onchange = () => { const pg = document.getElementById("pg" + sel.value); if (pg) pg.scrollIntoView({ behavior: "smooth", block: "start" }); sel.value = ""; };
 }
 
 /* ---------------- page 1: dispatch release ---------------- */
@@ -462,7 +484,7 @@ function shipmentLines(d) {
   out.push(...wrap(`${sh.length} SHIPMENT${sh.length > 1 ? "S" : ""} ON THIS FLIGHT. EACH AIR WAYBILL BELOW MATCHES THE UNITS ON THE CARGO MANIFEST. PLANNED RELEASE TIMES ALLOW FOR CUSTOMS AND BREAKDOWN AT ${d.destination.icao}.`, W).map(esc), "");
   sh.forEach((s, i) => {
     const blk = [];
-    blk.push(`<b>${esc(L(`SHIPMENT ${s.no} OF ${sh.length}`, 22) + L(`AWB ${s.awb}`, 24) + R(`SERVICE ${U(s.service)}`, W - 46))}</b>`);
+    blk.push(`<b>${esc(L(`SHIPMENT ${s.no} OF ${sh.length}`, 22) + L(`AWB ${s.awb}`, 24) + R(`SERVICE ${U(s.service)}`, W - 46)).replace(esc(s.awb), /^\d{3}-\d{8}$/.test(s.awb || "") ? `<a href="/track/${s.awb}" target="_blank" rel="noopener" title="Track this shipment">${esc(s.awb)}</a>` : esc(s.awb))}</b>`);
     blk.push(esc(L("SHIPPER", 11) + U(`${s.shipper.name}`).slice(0, W - 11)));
     blk.push(esc(L("CONSIGNEE", 11) + U(`${s.consignee.name}`).slice(0, W - 11)));
     blk.push(esc(L("AGENT", 11) + L(U(s.agent || "DIRECT"), 40) + L("NOTIFY", 8) + U(s.notify || "")));
