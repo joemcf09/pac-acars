@@ -93,3 +93,26 @@ def register(app, context):
                           'discord':safe(discord),'backups':safe(lambda:backup_health(context['BACKUP_DIR'],now))})
         response.headers['Cache-Control']='private, no-store'
         return response
+
+
+    @app.get('/healthz')
+    def healthz():
+        """For an outside monitor (UptimeRobot): 200 "OK" when the mission worker, mission boards, Discord bot and backups are
+        healthy, 503 naming what isn't. Public, so it says only which part has a problem, never any data."""
+        import botlink
+        now=time.time()
+        problems=[]
+        def check(name, fn):
+            try:
+                if fn().get('level') in ('warning','unknown'):problems.append(name)
+            except (OSError,ValueError,TypeError,KeyError,sqlite3.Error):problems.append(name)
+        check('mission worker',lambda:worker_health(context['DATA'],now))
+        check('mission boards',lambda:board_health(context['DB_PATH'],now))
+        def bot():   # looser than the staff page (30 s): a monitor checking every 5 minutes shouldn't alarm on a short blip
+            if not botlink.enabled():return {'level':'ok'}
+            elapsed=age(now,timestamp(botlink._seen.get('poll')))
+            return {'level':'ok' if elapsed is not None and elapsed<180 else 'warning'}
+        check('discord bot',bot)
+        check('backups',lambda:backup_health(context['BACKUP_DIR'],now))
+        body,code=('OK',200) if not problems else ('PROBLEM: '+', '.join(problems),503)
+        return body,code,{'Content-Type':'text/plain; charset=utf-8','Cache-Control':'no-store'}
