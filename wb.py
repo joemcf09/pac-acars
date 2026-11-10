@@ -192,7 +192,7 @@ def balance(code, positions, dow_lbs, takeoff_fuel_lbs, trip_fuel_lbs, flaps="fl
         advice = (f"CG {bad['pct_mac']}% MAC at {bad['name']} is {'forward' if bad['pct_mac'] < bad['fwd_limit'] else 'aft'} of the "
                   f"{bad['fwd_limit' if bad['pct_mac'] < bad['fwd_limit'] else 'aft_limit']}% limit. Move about {lbs:,.0f} lb "
                   f"{'aft' if shift > 0 else 'forward'} by four positions, or use Auto-load.")
-    return {
+    out = {
         "available": True, "aircraft": code, "model": m.d["name"], "provisional": m.provisional,
         "dow_lbs": round(dow_lbs), "doi": round(m.index(dow_kg, m.basic_arm), 1),
         "phases": phases, "ok": all(ph["ok"] for ph in phases) and not warnings, "within_envelope": all(ph["ok"] for ph in phases),
@@ -209,6 +209,44 @@ def balance(code, positions, dow_lbs, takeoff_fuel_lbs, trip_fuel_lbs, flaps="fl
         "note": m.d.get("note") or ("Simulation paperwork: envelope, positions and trim from the AEI 737-800SF weight-and-balance data; basic aircraft "
                                     "and fuel tanks from the PMDG 737-800BCF. Not an aircraft's approved weight-and-balance."),
     }
+    main_order = sorted((pac for pac, real in pmap.items() if not real.startswith("LOWER")), key=lambda pac: m.arms[pmap[pac]])
+    out["loadmaster"] = loadmaster_score(out, positions, main_order)
+    return out
+
+
+def loadmaster_score(bal, positions, main_order=None):
+    """How well the load is planned, 0-100, with the reasons. A teaching score for the pilot acting as loadmaster:
+    40 inside the CG envelope at zero fuel, takeoff and landing (nothing else counts if it isn't)
+    25 margin from the nearest limit (4% MAC or more earns it all)
+    15 every unit and the main deck within their weight limits
+    10 takeoff CG in the aft half of the envelope (less tail download, less fuel burn) while keeping 2% margin
+    10 main-deck units loaded without empty positions between them (restraint and a clean build-up)
+    Never stops a flight."""
+    if not bal or not bal.get("available"):
+        return None
+    items = []
+    phases = bal["phases"]
+    if not all(ph["ok"] for ph in phases):
+        bad = next(ph for ph in phases if not ph["ok"])
+        return {"score": 0, "grade": "Out of limits", "items": [[f"CG outside the envelope at {bad['name']}", 0, 40]]}
+    items.append(["CG inside the envelope at zero fuel, takeoff and landing", 40, 40])
+    margin = min(ph["margin"] for ph in phases)
+    items.append([f"Margin from the nearest limit: {margin:.1f}% MAC", round(25 * max(0.0, min(1.0, margin / 4.0))), 25])
+    w = bal.get("warnings") or []
+    items.append(["Units and main deck within their weight limits" if not w else f"Weight limit exceeded: {w[0]}", 0 if w else 15, 15])
+    to = phases[1]
+    span = max(0.1, to["aft_limit"] - to["fwd_limit"])
+    aft_share = (to["pct_mac"] - to["fwd_limit"]) / span
+    eff = 10 if aft_share >= 0.5 and to["margin"] >= 2 else round(10 * max(0.0, min(1.0, aft_share / 0.5)) * (1 if to["margin"] >= 2 else 0.5))
+    items.append([f"Takeoff CG {to['pct_mac']}% MAC, {'aft' if aft_share >= 0.5 else 'forward'} half of the envelope", eff, 10])
+    order = main_order or []
+    loaded = [i for i, p in enumerate(order) if any(u["pos"] == p and u.get("weight_lbs") for u in positions)]
+    gaps = (loaded[-1] - loaded[0] + 1 - len(loaded)) if loaded else 0
+    items.append(["Main deck loaded without gaps" if not gaps else f"{gaps} empty main-deck position{'s' if gaps > 1 else ''} between units",
+                  10 if not gaps else max(0, 10 - 4 * gaps), 10])
+    score = sum(x[1] for x in items)
+    grade = "Excellent" if score >= 90 else "Good" if score >= 75 else "Fair" if score >= 60 else "Needs work"
+    return {"score": score, "grade": grade, "items": items}
 
 
 def auto_assign(code, positions, dow_lbs, takeoff_fuel_lbs, trip_fuel_lbs, movable, target_pct=None):
