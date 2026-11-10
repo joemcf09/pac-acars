@@ -1,6 +1,17 @@
 PAC ACARS - CHANGELOG
 =====================
 
+1.1.7 hotfix 1 (November 2026)
+------------------------------
+Fixed: X-Plane landing rates on sloping runways
+- On X-Plane, the landing rate is now measured against the ground: how fast
+  the height above the runway was shrinking in the last half second before
+  the wheels touched. X-Plane's vertical speed is measured against sea
+  level, so on a runway that slopes (many X-Plane airports do) a soft
+  landing could read several hundred fpm too hard.
+- MSFS is unchanged (its touchdown value is already measured against the
+  ground).
+
 1.1.7 (November 2026)
 ---------------------
 New: starts by itself

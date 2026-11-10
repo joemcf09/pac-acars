@@ -70,6 +70,25 @@ def _flag(v):
     return None if v is None else float(v) > 0.5
 
 
+def ground_rate_fpm(hist):
+    """Sink rate toward the ground (fpm, positive down) from [(time, height above ground in m)], over the last ~0.5 s
+    before the wheels touched. None if there aren't enough samples to say."""
+    if len(hist) < 3:
+        return None
+    t_end = hist[-1][0]
+    win = [x for x in hist if t_end - x[0] <= 0.6]
+    if len(win) < 3 or win[-1][0] - win[0][0] < 0.15:
+        return None
+    n = len(win)
+    mt = sum(x[0] for x in win) / n
+    mh = sum(x[1] for x in win) / n
+    den = sum((x[0] - mt) ** 2 for x in win)
+    if den <= 0:
+        return None
+    slope = sum((x[0] - mt) * (x[1] - mh) for x in win) / den      # m/s, negative when descending
+    return max(0.0, -slope * 196.850394)
+
+
 def gc_distance_nm(lat1, lon1, lat2, lon2):
     r = 3440.065
     p1, p2 = math.radians(lat1), math.radians(lat2)
@@ -371,13 +390,22 @@ class XPlaneSource:
                     self.values[self.DATAREFS[idx][0]] = val
             # X-Plane has no touchdown-rate value like MSFS, so catch it here, packet by packet: the true vertical
             # speed in the last packet before the wheels touched (what in-sim landing tools measure).
-            vy = self.values.get("vy_ms")
-            if vy is not None:
-                if self.values.get("on_ground", 1.0) <= 0.5:
+            # 1.1.7 hotfix 1: the rate is measured against the ground, from how fast the height above the ground shrank in the
+            # last half second. X-Plane's vertical speeds are against sea level, so on a runway that slopes (common in
+            # X-Plane scenery) they read hundreds of fpm too hard. The sea-level rate is kept only as a fallback.
+            vy, agl, now_rx = self.values.get("vy_ms"), self.values.get("agl_m"), time.time()
+            if self.values.get("on_ground", 1.0) <= 0.5:
+                if vy is not None:
                     self._air_vy = vy * 196.850394
-                elif self._air_vy is not None:
-                    self._td = (-abs(self._air_vy), time.time())
-                    self._air_vy = None
+                if agl is not None:
+                    self._agl_hist = [x for x in getattr(self, "_agl_hist", []) if now_rx - x[0] <= 1.0] + [(now_rx, agl)]
+            elif self._air_vy is not None or getattr(self, "_agl_hist", None):
+                rate = ground_rate_fpm(self._agl_hist) if getattr(self, "_agl_hist", None) else None
+                if rate is None and self._air_vy is not None:
+                    rate = abs(self._air_vy)
+                if rate is not None:
+                    self._td = (-abs(rate), now_rx)
+                self._air_vy, self._agl_hist = None, []
         return got
 
     def read(self):
