@@ -3063,10 +3063,10 @@ async function loadSiCard() {
   const when = t => t ? new Date(t * 1000).toLocaleString([], { dateStyle: "medium", timeStyle: "short" }) : "";
   el.innerHTML = `<h2>SayIntentions.AI <span class="tag">Alliance partner</span></h2>
     <div class="dl-row"><div><b>AI ATC that knows you fly for PAC</b>
-      <p>File in SimBrief with airline <b>PAC</b> and ATC calls you <b>PAGANI</b>.${s.ready ? ` Your company dispatcher${s.frequency ? ` on <b>${esc(s.frequency)}</b>` : ""}, cabin crew and co-pilot are briefed on your PAC flight whenever you book or change one.` : ""}</p>
+      <p>File in SimBrief with airline <b>PGI</b> and ATC calls you <b>PAGANI</b>.${s.ready ? ` Your company dispatcher${s.frequency ? ` on <b>${esc(s.frequency)}</b>` : ""}, cabin crew and co-pilot are briefed on your PAC flight whenever you book or change one.` : ""}</p>
       ${s.coupon ? `<p>PAC pilots get <b>10% off SayIntentions.AI Premium</b> with code <code class="si-code">${esc(s.coupon)}</code> <button class="btn ghost small" type="button" id="siCopy">Copy</button></p>` : ""}
       <ol class="si-steps"><li>In the SayIntentions pilot portal, open your account settings and choose <b>Pagani Air Cargo</b> as your virtual airline.</li>
-        <li>Plan every PAC flight in SimBrief with airline <b>PAC</b>.</li>
+        <li>Plan every PAC flight in SimBrief with airline <b>PGI</b>.</li>
         ${s.ready ? `<li>Fly with PAC ACARS running: it links your SayIntentions account by itself. Or paste your SayIntentions API key below (it's on your SayIntentions account page).</li>` : ""}</ol>
       ${s.ready ? `<p class="si-status ${s.key_set ? (s.ok === false ? "bad" : "good") : ""}">${!s.key_set ? "Not linked yet."
         : s.ok === false ? `Linked, but the last briefing didn't go through: ${esc(s.error || "")}`
