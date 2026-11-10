@@ -198,7 +198,6 @@ def generate(booking, fleet, pilot, now=None):
                 p["pos"] = plan.get(p["pos"], p["pos"])
             for g in dgs:
                 g["pos"] = plan.get(g["pos"], g["pos"])
-            positions.sort(key=lambda p: (not p["pos"].startswith("M"), p["pos"]))
 
     # times
     req = booking.get("requested_at") or (now or dt.datetime.now(dt.timezone.utc).timestamp())
@@ -412,7 +411,7 @@ def paperwork(d, fleet, booking=None, notams=None, captain_rank=None, airports=N
         mac_zfw, mac_tow, mac_ldw = zf["pct_mac"], to["pct_mac"], lw["pct_mac"]
         doi, lizfw, litow, lildw = bal["doi"], zf["index"], to["index"], lw["index"]
         dli = lizfw
-        trim = f"{bal['trim_units']:.2f} UNITS (FLAPS {bal['trim_flaps']})"
+        trim = f"{bal['trim_units']:.2f} UNITS (FLAPS {bal['trim_flaps']})" if bal.get("trim_units") is not None else "FROM FMC (TAKEOFF REF)"
         cg_source = "provisional" if bal.get("provisional") else "calculated"
     else:
         mac_ldw, lildw = None, None

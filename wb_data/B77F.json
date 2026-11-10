@@ -1,0 +1,414 @@
+{
+ "type": "B77F",
+ "name": "Boeing 777F",
+ "units": {
+  "weight": "kg",
+  "arm": "in (PAC frame: inches aft of PMDG's datum)"
+ },
+ "sources": {
+  "wb_report": "Read from the PMDG 777F tablet's Performance Envelope chart (screenshot by PAC0001, 2026-11-09), perspective-corrected. Approximate: about +/-0.5% MAC and +/-5,000 lb. Check: its top edges read 767,500 / 575,000 / 546,500 lb against the certified 766,800 / 575,000 / 547,000 lb.",
+  "tcds": "EASA TCDS IM.A.003 Boeing 777: MAC 278.5 in and certified weights: https://www.easa.europa.eu/en/downloads/7521/en",
+  "pmdg": "PMDG 777F for MSFS 2024: flight_model.cfg and legacy.cfg (files supplied by PAC0001, 2026-11-09)"
+ },
+ "geometry": {
+  "mac_in": 278.5,
+  "lemac_in": 46.6,
+  "ref_station_in": 116.2,
+  "index_c": 200000,
+  "index_k": 50,
+  "source": "MAC from the TCDS; leading edge of MAC placed by the FMC calibration in PMDG's frame. Index constants are PAC's own (Boeing's 777F constants are not public)."
+ },
+ "max_weights_kg": {
+  "taxi": 348722,
+  "takeoff": 347815,
+  "landing": 260816,
+  "zero_fuel": 248115
+ },
+ "envelope_pct_mac": {
+  "source": "Read from the PMDG 777F tablet's Performance Envelope chart (screenshot by PAC0001, 2026-11-09), perspective-corrected. Approximate: about +/-0.5% MAC and +/-5,000 lb. Check: its top edges read 767,500 / 575,000 / 546,500 lb against the certified 766,800 / 575,000 / 547,000 lb.",
+  "takeoff": {
+   "fwd": [
+    [
+     136078,
+     14.0
+    ],
+    [
+     207292,
+     14.0
+    ],
+    [
+     222260,
+     14.7
+    ],
+    [
+     327040,
+     17.9
+    ],
+    [
+     347905,
+     20.5
+    ]
+   ],
+   "aft": [
+    [
+     136078,
+     23.1
+    ],
+    [
+     156943,
+     34.9
+    ],
+    [
+     276238,
+     44.0
+    ],
+    [
+     320236,
+     41.3
+    ],
+    [
+     347905,
+     36.7
+    ]
+   ]
+  },
+  "landing": {
+   "fwd": [
+    [
+     136078,
+     14.0
+    ],
+    [
+     207292,
+     14.0
+    ],
+    [
+     222260,
+     14.7
+    ],
+    [
+     260816,
+     15.9
+    ]
+   ],
+   "aft": [
+    [
+     136078,
+     23.1
+    ],
+    [
+     156943,
+     34.9
+    ],
+    [
+     170551,
+     39.1
+    ],
+    [
+     213188,
+     44.0
+    ],
+    [
+     260816,
+     44.0
+    ]
+   ]
+  },
+  "zero_fuel": {
+   "fwd": [
+    [
+     136078,
+     14.0
+    ],
+    [
+     207292,
+     14.0
+    ],
+    [
+     222260,
+     14.7
+    ],
+    [
+     248115,
+     15.5
+    ]
+   ],
+   "aft": [
+    [
+     136078,
+     23.1
+    ],
+    [
+     156943,
+     34.9
+    ],
+    [
+     170551,
+     39.1
+    ],
+    [
+     213188,
+     44.0
+    ],
+    [
+     248115,
+     43.9
+    ]
+   ]
+  }
+ },
+ "main_deck": {
+  "source": "APPROXIMATE: 27 main-deck positions (Atlas Air 777F data sheet) spaced evenly along PMDG's main-deck loading span (+58 to -66 ft). Real 777F position stations are not public.",
+  "combined_max_kg": 102013,
+  "positions": [
+   {
+    "pos": "M1",
+    "arm": -696.0,
+    "max_kg": 6804,
+    "uld": "96x125"
+   },
+   {
+    "pos": "M2",
+    "arm": -638.8,
+    "max_kg": 6804,
+    "uld": "96x125"
+   },
+   {
+    "pos": "M3",
+    "arm": -581.5,
+    "max_kg": 6804,
+    "uld": "96x125"
+   },
+   {
+    "pos": "M4",
+    "arm": -524.3,
+    "max_kg": 6804,
+    "uld": "96x125"
+   },
+   {
+    "pos": "M5",
+    "arm": -467.1,
+    "max_kg": 6804,
+    "uld": "96x125"
+   },
+   {
+    "pos": "M6",
+    "arm": -409.8,
+    "max_kg": 6804,
+    "uld": "96x125"
+   },
+   {
+    "pos": "M7",
+    "arm": -352.6,
+    "max_kg": 6804,
+    "uld": "96x125"
+   },
+   {
+    "pos": "M8",
+    "arm": -295.4,
+    "max_kg": 6804,
+    "uld": "96x125"
+   },
+   {
+    "pos": "M9",
+    "arm": -238.2,
+    "max_kg": 6804,
+    "uld": "96x125"
+   },
+   {
+    "pos": "M10",
+    "arm": -180.9,
+    "max_kg": 6804,
+    "uld": "96x125"
+   },
+   {
+    "pos": "M11",
+    "arm": -123.7,
+    "max_kg": 6804,
+    "uld": "96x125"
+   },
+   {
+    "pos": "M12",
+    "arm": -66.5,
+    "max_kg": 6804,
+    "uld": "96x125"
+   },
+   {
+    "pos": "M13",
+    "arm": -9.2,
+    "max_kg": 6804,
+    "uld": "96x125"
+   },
+   {
+    "pos": "M14",
+    "arm": 48.0,
+    "max_kg": 6804,
+    "uld": "96x125"
+   },
+   {
+    "pos": "M15",
+    "arm": 105.2,
+    "max_kg": 6804,
+    "uld": "96x125"
+   },
+   {
+    "pos": "M16",
+    "arm": 162.5,
+    "max_kg": 6804,
+    "uld": "96x125"
+   },
+   {
+    "pos": "M17",
+    "arm": 219.7,
+    "max_kg": 6804,
+    "uld": "96x125"
+   },
+   {
+    "pos": "M18",
+    "arm": 276.9,
+    "max_kg": 6804,
+    "uld": "96x125"
+   },
+   {
+    "pos": "M19",
+    "arm": 334.2,
+    "max_kg": 6804,
+    "uld": "96x125"
+   },
+   {
+    "pos": "M20",
+    "arm": 391.4,
+    "max_kg": 6804,
+    "uld": "96x125"
+   },
+   {
+    "pos": "M21",
+    "arm": 448.6,
+    "max_kg": 6804,
+    "uld": "96x125"
+   },
+   {
+    "pos": "M22",
+    "arm": 505.8,
+    "max_kg": 6804,
+    "uld": "96x125"
+   },
+   {
+    "pos": "M23",
+    "arm": 563.1,
+    "max_kg": 6804,
+    "uld": "96x125"
+   },
+   {
+    "pos": "M24",
+    "arm": 620.3,
+    "max_kg": 6804,
+    "uld": "96x125"
+   },
+   {
+    "pos": "M25",
+    "arm": 677.5,
+    "max_kg": 6804,
+    "uld": "96x125"
+   },
+   {
+    "pos": "M26",
+    "arm": 734.8,
+    "max_kg": 6804,
+    "uld": "96x125"
+   },
+   {
+    "pos": "M27",
+    "arm": 792.0,
+    "max_kg": 6804,
+    "uld": "96x125"
+   }
+  ]
+ },
+ "lower_holds": {
+  "source": "PMDG 777F lower hold stations and capacities",
+  "holds": [
+   {
+    "hold": "1",
+    "arm": -365.4,
+    "max_kg": 10438
+   },
+   {
+    "hold": "2",
+    "arm": -365.4,
+    "max_kg": 10439
+   },
+   {
+    "hold": "3",
+    "arm": 582.2,
+    "max_kg": 17420
+   },
+   {
+    "hold": "4",
+    "arm": 946.6,
+    "max_kg": 2948
+   }
+  ]
+ },
+ "pmdg_msfs": {
+  "source": "PMDG 777F for MSFS 2024: flight_model.cfg and legacy.cfg (files supplied by PAC0001, 2026-11-09)",
+  "ba_offset_in": 0.0,
+  "datum_note": "PAC frame for the 777F: arm (in) = -12 * PMDG x (ft).",
+  "empty_weight_lbs": 318300,
+  "empty_cg_ft": -9.28,
+  "stations_lbs_ft": {
+   "pilot": [
+    190,
+    75.0
+   ],
+   "copilot": [
+    190,
+    75.0
+   ]
+  },
+  "fuel_gal_ft": {
+   "center": [
+    27290,
+    -2.287
+   ],
+   "left_main": [
+    10300,
+    -11.495
+   ],
+   "right_main": [
+    10300,
+    -11.495
+   ]
+  }
+ },
+ "calibration": {
+  "status": "provisional",
+  "basic_pct_mac": 22.81,
+  "main_tank_arm_in": 137.9,
+  "center_tank_arm_in": 27.4,
+  "readings": [
+   {
+    "fuel_lbs": 20091,
+    "gw_lbs": 338771,
+    "fmc_cg_pct": 23
+   },
+   {
+    "fuel_lbs": 80000,
+    "gw_lbs": 398680,
+    "fmc_cg_pct": 25
+   },
+   {
+    "fuel_lbs": 200000,
+    "gw_lbs": 518680,
+    "fmc_cg_pct": 22
+   }
+  ],
+  "note": "Basic aircraft and fuel verified against the PMDG FMC; envelope approximate from the tablet chart; main-deck positions approximate. Kept provisional (the release is not blocked) until real position stations are found."
+ },
+ "trim_units": null,
+ "missing": [
+  "Real main-deck position stations",
+  "Takeoff stabilizer trim table (shown by the aircraft's FMC)"
+ ],
+ "note": "Simulation paperwork, approximate: envelope read from the PMDG 777F tablet; empty aircraft and fuel tanks verified against the PMDG 777F FMC; main-deck positions spaced evenly (real 777F stations are not public). Not an aircraft's approved weight-and-balance."
+}

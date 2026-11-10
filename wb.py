@@ -17,8 +17,10 @@ _DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "wb_data")
 _CACHE = {}
 
 # PAC fleet code -> data file, and PAC's position names -> the data file's positions
-FILES = {"B738F": "B738"}
-POSITION_MAP = {"B738F": {**{f"M{i:02d}": f"M{i}" for i in range(1, 11)}, "M12": "P12",
+FILES = {"B738F": "B738", "B77F": "B77F"}
+POSITION_MAP = {"B77F": {**{f"M{i:02d}": f"M{i}" for i in range(1, 28)}, **{f"L{i}": "LOWER_FWD" for i in range(1, 6)},
+                          **{f"L{i}": "LOWER_AFT" for i in range(6, 11)}},
+                "B738F": {**{f"M{i:02d}": f"M{i}" for i in range(1, 11)}, "M12": "P12",
                           "FWD BULK": "LOWER_FWD", "AFT BULK": "LOWER_AFT"}}
 
 
@@ -118,6 +120,8 @@ class Model:
         return _interp(env["fwd"], weight_kg), _interp(env["aft"], weight_kg)
 
     def trim(self, weight_kg, pct, flaps="flaps_1_5"):
+        if not self.d.get("trim_units"):
+            return None
         t = self.d["trim_units"][flaps]
         cols = t["pct_mac"]
         rows = [(w, _interp(list(zip(cols, vals)), pct)) for w, vals in t["rows"]]
@@ -174,7 +178,7 @@ def balance(code, positions, dow_lbs, takeoff_fuel_lbs, trip_fuel_lbs, flaps="fl
     dow_kg = dow_lbs / LB_PER_KG
     to = phases[1]
     min_tow_kg = 50802
-    if tow / LB_PER_KG < min_tow_kg and any(not pmap[p["pos"]].startswith("LOWER") and pmap[p["pos"]] not in ("M5", "M6", "M7")
+    if code == "B738F" and tow / LB_PER_KG < min_tow_kg and any(not pmap[p["pos"]].startswith("LOWER") and pmap[p["pos"]] not in ("M5", "M6", "M7")
                                               for p in positions):
         warnings.append("Takeoff weight is under 50,802 kg (112,000 lb): main-deck cargo may only be in M05 to M07.")
     advice = None
@@ -182,7 +186,8 @@ def balance(code, positions, dow_lbs, takeoff_fuel_lbs, trip_fuel_lbs, flaps="fl
     if bad:
         target = bad["fwd_limit"] + 1.0 if bad["pct_mac"] < bad["fwd_limit"] else bad["aft_limit"] - 1.0
         shift = (m.arm_of(target) - bad["arm_in"]) * bad["weight_lbs"]       # lb-in the cargo must move
-        span = 4 * 97.0                                                        # about four positions fore/aft
+        main_arms = sorted(p["arm"] for p in m.d["main_deck"]["positions"])
+        span = 4 * (main_arms[-1] - main_arms[0]) / max(1, len(main_arms) - 1)   # about four positions fore/aft
         lbs = abs(shift) / span
         advice = (f"CG {bad['pct_mac']}% MAC at {bad['name']} is {'forward' if bad['pct_mac'] < bad['fwd_limit'] else 'aft'} of the "
                   f"{bad['fwd_limit' if bad['pct_mac'] < bad['fwd_limit'] else 'aft_limit']}% limit. Move about {lbs:,.0f} lb "
@@ -192,16 +197,17 @@ def balance(code, positions, dow_lbs, takeoff_fuel_lbs, trip_fuel_lbs, flaps="fl
         "dow_lbs": round(dow_lbs), "doi": round(m.index(dow_kg, m.basic_arm), 1),
         "phases": phases, "ok": all(ph["ok"] for ph in phases) and not warnings, "within_envelope": all(ph["ok"] for ph in phases),
         "warnings": warnings, "advice": advice,
-        "trim_units": round(m.trim(tow / LB_PER_KG, to["pct_mac"], flaps), 2), "trim_flaps": "1 or 5" if flaps == "flaps_1_5" else "10, 15 or 25",
+        "trim_units": (lambda t: round(t, 2) if t is not None else None)(m.trim(tow / LB_PER_KG, to["pct_mac"], flaps)),
+        "trim_flaps": ("1 or 5" if flaps == "flaps_1_5" else "10, 15 or 25") if m.d.get("trim_units") else None,
         "envelope": {ph: m.d["envelope_pct_mac"][ph] for ph in ("zero_fuel", "takeoff", "landing")},
         "arms": {k: round(v, 2) for k, v in m.arms.items()}, "position_map": pmap,
         "max_lbs": {k: round(v * LB_PER_KG) for k, v in m.max_kg.items()},
         "mac": {"length_in": m.mac, "lemac_in": m.lemac},
         "sources": [m.d["sources"]["wb_report"], m.d["sources"]["tcds"], m.d["pmdg_msfs"]["source"]],
-        "provisional_note": ("The empty aircraft and fuel tank figures are awaiting the simulator calibration, "
+        "provisional_note": (((m.d.get("calibration") or {}).get("note")) or "The empty aircraft and fuel tank figures are awaiting the simulator calibration, "
                              "so CG values may be off by several percent. Envelope, positions and trim tables are final.") if m.provisional else None,
-        "note": "Simulation paperwork: envelope, positions and trim from the AEI 737-800SF weight-and-balance data; basic aircraft "
-                "and fuel tanks from the PMDG 737-800BCF. Not an aircraft's approved weight-and-balance.",
+        "note": m.d.get("note") or ("Simulation paperwork: envelope, positions and trim from the AEI 737-800SF weight-and-balance data; basic aircraft "
+                                    "and fuel tanks from the PMDG 737-800BCF. Not an aircraft's approved weight-and-balance."),
     }
 
 

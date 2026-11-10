@@ -99,5 +99,23 @@ check("the release keeps the preliminary load sheet's positions, whatever the OF
 pb = dispatch.paperwork(r1, FLEET)["balance"]
 check("a new 737 release starts near the target CG and within limits", pb["ok"] and 21 <= pb["phases"][1]["pct_mac"] <= 27, pb["phases"][1]["pct_mac"])
 check("dangerous goods follow their unit to its planned position", all(any(p["pos"] == g["pos"] and p["awb"] == g["awb"] for p in r1["positions"]) for g in r1["dg"]))
+
+# 6. 777F: approximate data, checked against the PMDG FMC and the certified weights
+m7 = wb.Model("B77F"); d7 = wb.data("B77F")
+for rd in d7["calibration"]["readings"]:
+    w_, c_ = m7.fuel_split(rd["fuel_lbs"])
+    pct = m7.pct_mac((m7.basic_lbs * m7.basic_arm + w_ * m7.main_arm + c_ * m7.center_arm) / (m7.basic_lbs + rd["fuel_lbs"]))
+    check(f"777F reproduces the PMDG FMC CG at {rd['fuel_lbs']:,} lb fuel ({rd['fmc_cg_pct']}%, whole percent)", round(pct) == rd["fmc_cg_pct"], round(pct, 2))
+tops = {ph: max(p[0] for p in d7["envelope_pct_mac"][ph]["fwd"]) for ph in ("takeoff", "landing", "zero_fuel")}
+check("777F envelope tops match the certified MTOW / MLW / MZFW within 1%", all(abs(tops[ph] - d7["max_weights_kg"][k]) / d7["max_weights_kg"][k] < 0.01
+      for ph, k in (("takeoff", "takeoff"), ("landing", "landing"), ("zero_fuel", "zero_fuel"))), tops)
+F7 = {"B77F": {"max_payload_lbs": 224900, "mtow_lbs": 766800, "name": "777F", "fuel_burn_pph": 16000}}
+m77 = dict(mission, payload_lbs=200000, target_block_min=500)
+r7 = dispatch.generate({"flight_number": "PAC7701", "requested_at": 1794200000, "aircraft": "B77F", "mission": m77, "ofp": {"payload_lbs": 200000}}, F7, "T")
+p7 = dispatch.paperwork(r7, F7)
+check("a 777F release is planned within limits", p7["balance"]["ok"], p7["balance"]["phases"])
+check("777F is labeled approximate (provisional) and never blocks signing", p7["balance"]["provisional"] and p7["loadsheet"]["cg_source"] == "provisional")
+check("777F trim comes from the FMC (no public trim table)", p7["balance"]["trim_units"] is None and "FMC" in p7["loadsheet"]["trim"])
+check("777F notes name its own sources, not the 737's", "777F" in p7["balance"]["note"] and "737" not in p7["balance"]["note"])
 print(); print("WEIGHT AND BALANCE TEST PASSED" if not failures else f"{len(failures)} failed: {failures}")
 sys.exit(1 if failures else 0)

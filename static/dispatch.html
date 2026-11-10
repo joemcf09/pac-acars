@@ -352,8 +352,8 @@ function loadsheetLines(d) {
   out.push(esc(L("TAKE OFF WEIGHT ACTUAL", 24) + R(N(ls.tow), 8) + "  MAX " + R(N(lim.mtow), 8) + "  " + lf(1) + "  ADJ"));
   out.push(esc(L("TRIP FUEL", 21) + R(N(ls.trip), 8)));
   out.push(esc(L("LANDING WEIGHT ACTUAL", 24) + R(N(ls.law), 8) + "  MAX " + R(N(lim.mlw), 8) + "  " + lf(2) + "  ADJ"), "");
-  out.push(`<b>${ls.cg_source === "calculated" ? "CG / TRIM CALCULATED FROM 737-800SF W&amp;B DATA (SIMULATION PAPERWORK)"
-    : ls.cg_source === "provisional" ? "CG / TRIM CALCULATED: PROVISIONAL, AWAITING SIM CALIBRATION" : "SIMULATION ESTIMATES: CG / TRIM NOT AIRCRAFT-VALIDATED"}</b>`);
+  out.push(`<b>${ls.cg_source === "calculated" ? "CG / TRIM CALCULATED FROM DOCUMENTED W&amp;B DATA (SIMULATION PAPERWORK)"
+    : ls.cg_source === "provisional" ? "CG CALCULATED FROM APPROXIMATE DATA (SIMULATION PAPERWORK)" : "SIMULATION ESTIMATES: CG / TRIM NOT AIRCRAFT-VALIDATED"}</b>`);
   out.push(`<b>${esc(L("BALANCE AND SEATING CONDITIONS", 42) + "LAST MINUTE CHANGES")}</b>`);
   out.push(esc(L(`DOI   ${ls.doi.toFixed(1)}    DLI   ${ls.dli.toFixed(1)}`, 42) + "DEST  SPEC  CL/CPT  + -  WEIGHT"));
   out.push(esc(L(`LIZFW ${ls.lizfw.toFixed(1)}    LITOW ${ls.litow.toFixed(1)}`, 42) + "....  ....  ......  .    ......"));
@@ -380,7 +380,7 @@ function lirLines(d) {
   out.push(esc(L("FROM/TO", 10) + L("FLIGHT", 12) + L("A/C REG", 11) + L("TYPE", 9) + L("DATE", 11) + L("STD", 7) + "EDNO " + (p.loadsheet.edno || "01")));
   out.push(esc(L(`${ia(d.origin.icao)} ${ia(d.destination.icao)}`, 10) + L(d.flight, 12) + L(d.tail, 11) + L(d.aircraft, 9) + L(d.date.replace(/ /g, ""), 11) + L(d.std, 7)), "");
   out.push(esc(`PLANNED LOAD  ${d.totals.units} ULD  ${d.totals.pieces} PCS  ${N(d.totals.weight_lbs)} LBS   MAIN ${N(d.totals.main_lbs)}  LOWER ${N(d.totals.lower_lbs)}`));
-  if (bal) out.push(esc(`PLANNED CG  ZFW ${bal.phases[0].pct_mac}%  TOW ${bal.phases[1].pct_mac}%  LW ${bal.phases[2].pct_mac}% MAC   TRIM ${bal.trim_units.toFixed(2)}`));
+  if (bal) out.push(esc(`PLANNED CG  ZFW ${bal.phases[0].pct_mac}%  TOW ${bal.phases[1].pct_mac}%  LW ${bal.phases[2].pct_mac}% MAC   TRIM ${bal.trim_units != null ? bal.trim_units.toFixed(2) : "FROM FMC"}`));
   out.push(rule("*"), "<b>LOADING INSTRUCTION</b>");
   out.push(`<b>${esc(L("POS", 9) + R("MAX LBS", 8) + "  " + L("ULD", 13) + L("DEST", 6) + L("SHC", 13) + R("WT LBS", 8) + "  " + "REPORT")}</b>`);
   const all = [...(deck.main || []), ...(deck.lower || [])], said = new Set();
@@ -410,7 +410,8 @@ function lirLines(d) {
 /* ---------------- cargo manifest and NOTOC ---------------- */
 function manifestLines(d) {
   const out = [`<b>${esc(L("POS", 9) + L("ULD", 12) + L("AWB", 14) + R("PCS", 5) + R("WT LBS", 9) + "  " + L("SHC", 12) + "CONTENTS")}</b>`];
-  (d.positions || []).forEach(x => out.push(esc(L(x.pos, 9) + L(x.unit, 12) + L(x.awb, 14) + R(x.pieces, 5) + R(N(x.weight_lbs), 9) + "  " + L((x.shc || []).join(" "), 12) + L(U(x.contents), W - 63))));
+  const order = [...((d.deck || {}).main || []), ...((d.deck || {}).lower || [])];
+  [...(d.positions || [])].sort((a, b) => (order.indexOf(a.pos) + 1 || 999) - (order.indexOf(b.pos) + 1 || 999)).forEach(x => out.push(esc(L(x.pos, 9) + L(x.unit, 12) + L(x.awb, 14) + R(x.pieces, 5) + R(N(x.weight_lbs), 9) + "  " + L((x.shc || []).join(" "), 12) + L(U(x.contents), W - 63))));
   out.push(rule("-"), esc(L(`TOTAL ${d.totals.units} ULD`, 35) + R(d.totals.pieces, 5) + R(N(d.totals.weight_lbs), 9) + `   MAIN ${N(d.totals.main_lbs)}  LOWER ${N(d.totals.lower_lbs)}`), "");
   out.push("<b>SPECIAL HANDLING CODES</b>");
   (d.shc || []).forEach(s => out.push(esc(L(s.code, 6) + U(s.name))));
