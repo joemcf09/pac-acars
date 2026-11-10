@@ -89,7 +89,7 @@ def _hm(minutes):
 def _airline_block(st):
     notes = (st.get("si_notes") or "").strip()
     return "\n".join(x for x in [
-        "Virtual airline: Pagani Air Cargo (PAC), a cargo airline. ICAO PAC, radio callsign PAGANI.",
+        "Virtual airline: Pagani Air Cargo (PAC), a cargo airline. ICAO PGI, radio callsign PAGANI.",
         "Slogan: \"Move the Impossible!\"",
         "Main hub: Cincinnati/Northern Kentucky International (KCVG). Operations Control is in Cincinnati.",
         "What PAC flies: humanitarian relief, cold-chain medicine, AOG aircraft parts, heavy lift, premium and live "
@@ -102,7 +102,7 @@ def _airline_block(st):
 
 
 SOPS = """PAC standard operating procedures:
-- Every flight is planned in SimBrief with ICAO PAC and flown from stand to stand: PAC's assigned stand where there is one, otherwise a cargo stand on the cargo ramp, never a passenger gate.
+- Every flight is planned in SimBrief with ICAO PGI and flown from stand to stand: PAC's assigned stand where there is one, otherwise a cargo stand on the cargo ramp, never a passenger gate.
 - 250 kt or less below 10,000 ft. Stable approach by 1,000 ft above the runway.
 - Target a landing softer than 400 fpm with no bounce. PAC ACARS records the flight and scores it automatically.
 - On-time delivery matters: the block time target is in the briefing. Late deliveries earn less.
