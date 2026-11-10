@@ -4946,10 +4946,10 @@ function networkPartners(h) {
   // each network's logo shows only once staff switch it on, after that network has accepted PAC (Staff › Site and rules › Flying online)
   const n = h.network_logos || {};
   const nets = [n.show && n.vatsim ? { name: "VATSIM", href: "https://www.vatsim.net", logo: n.vatsim } : null,
-                n.ivao_show && n.ivao ? { name: "IVAO", href: "https://ivao.aero", logo: n.ivao } : null].filter(Boolean);
+                n.ivao_show && n.ivao ? { name: "IVAO", href: "https://us.ivao.aero/pilots/virtual-airlines", logo: n.ivao } : null].filter(Boolean);
   if (!nets.length) return "";
   return `<div class="section-h" id="network-partners"><div><div class="kicker">Network partners</div><h2>Fly online with ${nets.map(x => x.name).join(" and ")}</h2>
-      <p>Live air traffic control from real people, all over the world, free to join. PAC flights file as <b>${esc(filingIcao())}</b>, spoken “Pagani”.</p></div></div>
+      <p>${nets.some(x => x.name === "IVAO") ? `PAC is an <a href="https://us.ivao.aero/pilots/virtual-airlines" target="_blank" rel="noopener"><b>IVAO Certified Virtual Airline</b></a> (IVAO United States). ` : ""}Live air traffic control from real people, all over the world, free to join. PAC flights file as <b>${esc(filingIcao())}</b>, spoken “Pagani”.</p></div></div>
     <div class="net-partners">${nets.map(x => `<a class="net-logo" href="${x.href}" target="_blank" rel="noopener"><img src="${esc(x.logo)}" alt="${x.name}"></a>`).join("")}</div>`;
 }
 async function fillHomeCampaigns() {

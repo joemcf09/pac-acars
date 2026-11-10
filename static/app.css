@@ -1260,9 +1260,9 @@ header .btn,header button.btn,#openSettings,#signOutBtn,#signInBtn{white-space:n
 /* ============ Network partners (home page) ============ */
 .net-partners{display:flex;flex-wrap:wrap;gap:14px;align-items:center}
 /* VATSIM's brand guide: clear space round the logo equal to the height of its "I" (about 58% of the logo's height) */
-.net-logo{display:inline-flex;align-items:center;justify-content:center;background:#fff;border:1px solid var(--line);border-radius:4px;padding:28px}
+.net-logo{display:inline-flex;align-items:center;justify-content:center;background:#fff;border:0;border-radius:4px;padding:28px}  /* no border: IVAO's brand rules don't allow boxing the logo */
 .net-logo img{display:block;height:48px;width:auto;max-width:100%}
-a.net-logo:hover{border-color:var(--red)}
+a.net-logo:hover{opacity:.85}
 @media (max-width:640px){.net-logo{padding:24px}.net-logo img{height:40px}}
 
 /* ============ Directory badges (under the stats band on Home) ============ */
