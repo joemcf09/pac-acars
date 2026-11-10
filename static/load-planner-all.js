@@ -72,6 +72,11 @@ if (typeof document !== 'undefined') (function () {
     const d = dirty();
     $('save').disabled = !d; $('reset').disabled = !d; $('auto').disabled = false;
     $('planState').textContent = d ? (plan.signed ? 'Unsaved changes · saving clears the release signature' : 'Unsaved changes') : 'No changes to save';
+    // aircraft with weight-and-balance data: the real CG panel replaces PAC's simple balance bar
+    const wb = plan.balance && plan.balance.available;
+    document.querySelectorAll('.balance, .notice[aria-label="Planning scope"]').forEach(el => { el.hidden = !!wb; });
+    if ($('wbNotice')) $('wbNotice').hidden = !wb;
+    if (window.pacBalanceUpdate) window.pacBalanceUpdate(plan, asg, d);
   }
   async function load() {
     status('Loading your manifest…');
@@ -92,7 +97,16 @@ if (typeof document !== 'undefined') (function () {
     try { asg = move(asg, e.dataTransfer.getData('text/plain'), s.dataset.pos, MAIN); render(); status(`Moved to ${s.dataset.pos}. Save to amend the release.`); } catch (err) { status(err.message, true); } });
   $('deck').addEventListener('change', e => { const sel = e.target.closest('select[data-origin]'); if (!sel) return;
     asg = move(asg, sel.dataset.origin, sel.value, MAIN); render(); status(`Moved to ${sel.value}. Save to amend the release.`); });
-  $('auto').onclick = () => { asg = autoLoad(plan.positions, MAIN); render(); status('Auto-load applied. Review it, then save.'); };
+  $('auto').onclick = async () => {
+    if (plan.balance && plan.balance.available) {   // CG-aware auto-load from the weight-and-balance engine
+      try {
+        const r = await fetch('/api/load-plan', { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ auto: true }) });
+        const b = await r.json();
+        if (r.ok && b.assignments) { asg = b.assignments; render(); status('Auto-load applied: placed for a takeoff CG near 24% MAC, inside the envelope. Review it, then save.'); return; }
+      } catch (e) { /* fall back to centering */ }
+    }
+    asg = autoLoad(plan.positions, MAIN); render(); status('Auto-load applied. Review it, then save.');
+  };
   $('reset').onclick = () => { asg = Object.fromEntries(plan.positions.map(p => [p.pos, p.pos])); render(); status('Back to the saved manifest.'); };
   $('save').onclick = async () => {
     $('save').disabled = true; status('Saving…');

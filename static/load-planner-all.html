@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Load planner · Pagani Air Cargo</title>
   <link rel="stylesheet" href="/static/load-visualizer.css">
+  <link rel="stylesheet" href="/static/load-balance.css?v=b77f-20261109">
   <style>
     .deck{grid-template-columns:repeat(var(--n,12),minmax(94px,1fr))}
     @media(max-width:800px){.deck{grid-template-columns:repeat(var(--n,12),94px)}}
@@ -35,6 +36,10 @@
       <span>The balance bar is PAC's own indicator: it treats main-deck positions as evenly spaced from nose to tail and shows where the cargo's weight is centered. It is not the aircraft's certified CG (%MAC). Use your simulator aircraft's loading tool for its CG, trim and limits.</span>
     </section>
 
+    <section class="notice" id="wbNotice" hidden><strong>Simulation paperwork, not an aircraft's approved weight-and-balance.</strong>
+      <span>The center of gravity below comes from PAC's weight-and-balance data for this aircraft. Open "Where these numbers come from" to see how exact each part is.</span></section>
+    <section id="cgPanel" class="cg-panel" style="background:#fff;border:1px solid #d6d9df;padding:20px 24px;margin:18px 0" aria-label="Center of gravity" hidden></section>
+
     <section class="balance" aria-label="Main-deck balance">
       <p class="eyebrow">LIVE BALANCE</p><h2>Where the main-deck weight sits</h2>
       <div class="gauge" aria-hidden="true"><div class="mid"></div><div class="needle" id="needle" style="left:50%"></div></div>
@@ -63,6 +68,7 @@
       <button id="save" disabled>Save and amend release</button></section>
     <p id="status" role="status" aria-live="polite" class="status"></p>
   </main>
-  <script src="/static/load-planner-all.js"></script>
+  <script src="/static/load-balance.js?v=b77f-20261109"></script>
+  <script src="/static/load-planner-all.js?v=b77f-20261109"></script>
 </body>
 </html>
