@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import datetime as dt
 import random
+import re
 
 AWB_PREFIX = "901"
 
@@ -93,6 +94,15 @@ def awb(rng):
     return f"{AWB_PREFIX}-{serial}{serial % 7}"
 
 
+def aog_pool(cargo):
+    """An AOG recovery flight carries the repair kit itself: one item per part of the kit on the mission
+    ("main landing gear shock strut assemblies, gear change tooling and jacks, structural repair kit")."""
+    items = [x.strip() for x in re.split(r",\s*", str(cargo or "")) if x.strip()]
+    heavy = ("strut", "engine", "jack", "gear", "apu", "flap", "stabilizer", "rudder")
+    return [(x[0].upper() + x[1:], ["AOG", "HEA"] if any(h in x.lower() for h in heavy) else ["AOG"], None) for x in items] or \
+        [("Aircraft spares", ["AOG"], None)]
+
+
 def pool_for(cargo, category):
     text = f"{cargo} {category}".lower()
     pool = []
@@ -126,7 +136,8 @@ def generate(booking, fleet, pilot, now=None):
     lower = ([f"L{i + 1}" for i in range(deck["lower"])] if deck["luld"] != "BULK" else ["FWD BULK", "AFT BULK"][:deck["lower"]])
     positions, dgs = [], []
     if payload > 0:
-        pool = pool_for(m.get("cargo", ""), m.get("category", ""))
+        aog = bool(m.get("aog_case"))
+        pool = aog_pool(m.get("cargo")) if aog else pool_for(m.get("cargo", ""), m.get("category", ""))
         words = set(str(m.get("cargo", "")).lower().replace(",", " ").split())
         pool.sort(key=lambda it: -len(words & set(it[0].lower().replace(",", " ").split())))
         cap_total = deck["main"] * deck["cap"] + len(lower) * deck["lcap"]
@@ -155,6 +166,10 @@ def generate(booking, fleet, pilot, now=None):
             wts[-1] += drift
         used = {}
         def pick(first):
+            if aog:                       # the kit, in order: every part of it gets on board
+                k = used.get("_aog", 0)
+                used["_aog"] = k + 1
+                return pool[k % len(pool)]
             order = ([pool[0]] if first or rng.random() < 0.6 else []) + rng.sample(pool, len(pool)) + [p for p in pool if len(p) < 4]
             for it in order:
                 limit = it[3] if len(it) > 3 else None
@@ -213,7 +228,7 @@ def generate(booking, fleet, pilot, now=None):
     d = {
         "version": 1, "ferry": ferry,
         "flight": booking["flight_number"], "mission_id": m["id"], "mission_title": m["title"], "category": m.get("category"),
-        "priority": m.get("priority"), "briefing": m.get("briefing", ""), "cargo": m.get("cargo", ""), "scenario": m.get("scenario"),
+        "priority": m.get("priority"), "briefing": m.get("briefing", ""), "cargo": m.get("cargo", ""), "scenario": m.get("scenario"), "aog_case": m.get("aog_case"),
         "date": std.strftime("%d %b %Y").upper(), "std": std.strftime("%H%MZ"), "sta": sta.strftime("%H%MZ"), "block_min": block,
         "aircraft": code, "aircraft_name": ac.get("name", code), "icao": ac.get("icao", ""), "tail": booking.get("airframe") or booking.get("partner_reg") or ofp.get("registration") or ("Partner aircraft" if m.get("contract") else "—"),
         "origin": m["origin"], "destination": m["destination"], "alternate": ofp.get("alternate"),

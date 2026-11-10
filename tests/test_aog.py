@@ -46,6 +46,18 @@ check("a recovery mission is posted from a PAC hub", ev["mission"] and ev["missi
 m, st = va.urgent_by_id(ev["mission"])
 check("the mission is an open urgent request to the stranded aircraft", st == "open" and m["destination"]["icao"] == station and m["aog_case"] == case["id"])
 check("its cargo is the recovery kit", m["payload_lbs"] == aog.kit_for("hard_landing", code)["weight_lbs"] and "NDT" in m["cargo"])
+c.post("/api/settings", json={"enforce_pilot_location": False, "enforce_airframes": False, "enforce_ranks": False,
+                              "require_type_ratings": False, "cargo_orders_enabled": False})
+ls = c.post("/api/plan/loadsheet", json={"mission_id": ev["mission"], "aircraft": m["aircraft"][0]}).get_json() or {}
+contents = {p["contents"] for p in ls.get("positions") or []}
+kit_parts = {x.strip()[0].upper() + x.strip()[1:] for x in m["cargo"].split(",")}
+check("the load sheet carries the repair kit itself, every part of it", contents and contents <= kit_parts and len(contents) == min(len(kit_parts), len(ls.get("positions") or [])),
+      (contents, kit_parts, ls.get("error")))
+check("every unit is marked AOG", all("AOG" in p["shc"] for p in ls.get("positions") or []))
+sh = ls.get("shipments") or []
+check("PAC Engineering ships it to PAC's own AOG team", sh and all(s["shipper"]["name"] == "PAC Engineering Stores" and s["consignee"]["name"].startswith("PAC AOG Team") for s in sh),
+      [(s["shipper"], s["consignee"]) for s in sh])
+check("the story names the grounded aircraft", sh and "N901PC" in (sh[0].get("story") or ""), sh and sh[0].get("story"))
 check("the aircraft is grounded", {a["reg"]: a for a in va.airframes()}["N901PC"]["status"] == "Maintenance")
 check("the fleet list shows the AOG case", ({a["reg"]: a for a in va.airframes()}["N901PC"]["aog"] or {}).get("status") == "awaiting_parts")
 with A.db() as con:

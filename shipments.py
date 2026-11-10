@@ -17,6 +17,7 @@ from __future__ import annotations
 import datetime as dt
 import json
 import random
+import re
 from pathlib import Path
 
 import companies
@@ -182,13 +183,15 @@ def add(d):
     used_shippers, customer = set(), {}
     shipments = []
     for n, (contents, units) in enumerate(chunks):
-        sec = sector_for(contents)
+        sec = "aog" if d.get("aog_case") else sector_for(contents)
         if sec == "general" and ms in ("humanitarian", "pharma", "resupply", "polar", "energy", "mining"):
             sec = ms                     # a plain description on a relief or supply flight still belongs to that customer
         elif ms in ("humanitarian", "nutrition") and sec in ("electronics", "general", "energy", "resupply"):
             sec = "humanitarian"         # satellite phones, generators and the like on a relief flight are relief stock
         # Real companies that do this business where the flight starts and ends (companies.py); the shipment is fictional.
-        if sec in ONE_CUSTOMER and sec in customer:
+        if d.get("aog_case"):            # PAC's own grounded aircraft: PAC Engineering ships its own kit to its own team
+            shipper, consignee = "PAC Engineering Stores", f"PAC AOG Team {dcity}"
+        elif sec in ONE_CUSTOMER and sec in customer:
             shipper, consignee = customer[sec]
         else:
             shipper = companies.pick(companies.SHIPPERS, sec, octry, oreg, rng, used_shippers, ocity, o)
@@ -202,7 +205,10 @@ def add(d):
         used_shippers.add(shipper)
         fwd = companies.forwarder(sec, rng, (oreg, dreg))
         story = f"{shipper} is shipping {contents[0].lower() + contents[1:]} from {ocity} to {consignee} in {dcity}."
-        if sec == "aog":
+        if d.get("aog_case"):
+            reg = (re.search(r"\b(N\d{3}[A-Z]{2})\b", d.get("mission_title") or "") or [None, "PAC's aircraft"])[1]
+            story = f"PAC Engineering is flying {contents[0].lower() + contents[1:]} from {ocity} to the AOG team in {dcity} to get {reg} back in service."
+        elif sec == "aog":
             story = f"{shipper} is rushing {contents[0].lower() + contents[1:]} to {consignee} in {dcity} to get a grounded aircraft back in service."
         elif sec in ("humanitarian", "nutrition"):
             story = f"{shipper} is moving {contents[0].lower() + contents[1:]} from {ocity} to {consignee} for distribution in and around {dcity}."
