@@ -5369,7 +5369,7 @@ function renderPiracy() {
     ${sec("What PAC does about it", `<ul>
       <li>Posts that break this policy are removed.</li>
       <li>A first offense gets a written warning. A second offense, or any distribution of pirated software, means removal from PAC, and PAC won't accept a new application.</li>
-      <li>Flights flown with pirated software aren't accepted.</li>
+      <li>PAC can't see what software is installed on your computer, so this policy works on trust and reports. If PAC learns that a flight was flown with pirated software (a screenshot, a post, a report), that flight isn't accepted.</li>
       <li>If a developer or rights holder tells PAC about an infringement, PAC acts on it promptly and, where a network partnership requires it, reports it to that network in writing.</li></ul>`)}
     ${sec("Freeware and paid add-ons", `<p>Freeware is welcome, downloaded from its author or an official library. Paid add-ons must come from the developer or an authorized store. Liveries made by PAC for an aircraft are only for owners of that aircraft.</p>`)}
     ${sec("Reporting", `<p>If you see piracy in PAC's community, email <a href="mailto:${mail}">${mail}</a> or message a staff member on Discord. Reports are handled privately.</p>`)}
