@@ -71,6 +71,10 @@ def events(shipment, movements, block_min=None):
                 out.append(_ev("DIS", t, to or frm, fl, "Exception on arrival"))
         elif kind == "FLIGHT_REJECTED":
             out.append(_ev("DIS", t, to, fl, "Flight record not accepted; shipment returned to " + str(to)))
+        elif kind == "FLIGHT_NOT_CREDITED":
+            out.append(_ev("RCF", t, to, None, "Offloaded and inspected where the aircraft landed"))
+            if status in ("DELIVERED", "DELIVERED_LATE"):
+                out.append(_ev("DLV", t, to, None, "Released to the consignee after inspection"))
         elif kind == "FLIGHT_REINSTATED":
             out.append(_ev("ARR", t, to, fl, "Flight record accepted"))
     out.sort(key=lambda e: e["time"])

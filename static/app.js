@@ -2536,6 +2536,7 @@ const CARGO_EVENT = {
   CLAIMED: e => `Held for ${e.pilot_name || e.pilot_id || "a pilot"}'s next flight (24 hours)`,
   TRANSFER_RELEASED: e => `Back on the shelf at ${esc(e.from_station || "")}: the flight it was booked on sat unflown for three days`,
   FLIGHT_REJECTED: e => `Flight rejected, back at ${e.to_station}`,
+  FLIGHT_NOT_CREDITED: e => `Flight not credited; cargo offloaded and inspected at ${e.to_station}`,
   FLIGHT_REINSTATED: e => `Flight accepted after review, at ${e.to_station}`,
 };
 
@@ -5758,10 +5759,12 @@ function staffReviews() {
       <input placeholder="${r.manual ? "Required: reason for your decision (5+ characters)" : "Note to the pilot (optional)"}" data-note="${r.id}" aria-label="Review note">
       ${r.manual && r.review_status === "Pending" ? `<label style="display:flex;gap:6px;align-items:center;font-size:13px"><input type="checkbox" data-complete="${r.id}"> Deliver the booked cargo and move the aircraft and pilot to ${esc(r.arr)}</label>` : ""}
       ${(r.manual ? r.review_status === "Pending" : r.review_status !== "Accepted") ? `<button class="btn small" data-review="${r.id}" data-act="accept">Accept</button>` : ""}
-      ${(r.manual ? r.review_status === "Pending" : r.review_status !== "Rejected") ? `<button class="btn ghost small" data-review="${r.id}" data-act="reject">Reject</button>` : ""}</div></div>`).join("")
+      ${r.manual ? (r.review_status === "Pending" ? `<button class="btn ghost small" data-review="${r.id}" data-act="reject">Reject</button>` : "")
+        : `<label style="display:flex;gap:6px;align-items:center;font-size:13px" title="Untick only if the flight didn't really happen; the cargo then goes back to ${esc(r.dep)}"><input type="checkbox" data-keep="${r.id}" checked> If rejected, the cargo stays at ${esc(r.arr)} (flown, not credited)</label>
+          <button class="btn ghost small" data-review="${r.id}" data-act="reject">${r.review_status === "Rejected" ? "Update rejection" : "Reject"}</button>`}</div></div>`).join("")
     : `<div class="empty">No PIREPs filed yet.</div>`;
   document.querySelectorAll("[data-review]").forEach(b => b.onclick = async () => {
-    try { await api("/api/staff/reviews/" + b.dataset.review, { method: "POST", body: { action: b.dataset.act, note: document.querySelector(`[data-note="${b.dataset.review}"]`).value, complete_flight: !!document.querySelector(`[data-complete="${b.dataset.review}"]`)?.checked } });
+    try { await api("/api/staff/reviews/" + b.dataset.review, { method: "POST", body: { action: b.dataset.act, note: document.querySelector(`[data-note="${b.dataset.review}"]`).value, complete_flight: !!document.querySelector(`[data-complete="${b.dataset.review}"]`)?.checked, keep_cargo: document.querySelector(`[data-keep="${b.dataset.review}"]`)?.checked ?? true } });
     toast(b.dataset.act === "accept" ? "PIREP accepted." : "PIREP rejected."); loadStaff(); } catch(e) { toast(e.message); }
   });
   document.querySelectorAll("[data-open-pirep]").forEach(b => b.onclick = () => openDetail(b.dataset.openPirep));

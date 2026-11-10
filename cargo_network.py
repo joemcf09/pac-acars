@@ -425,38 +425,53 @@ def release_booking(con, booking, pilot_id):
              (booking.get("dispatch") or {}).get("flight"), status, "{}"))
 
 
-def set_flight_outcome(con, pirep_id, accepted):
-    """A rejected flight didn't really carry its cargo: each shipment goes back to waiting where it was loaded.
-    If staff later accept the flight, the arrival is restored. Only shipments whose latest arrival is this flight
-    change (cargo that has since flown on is left alone), and every change is a logged movement, applied once."""
+def set_flight_outcome(con, pirep_id, accepted, keep_cargo=False):
+    """What a staff decision on a flight means for the cargo it carried.
+
+    Accepted: the arrival stands (restored if the flight had been rejected).
+    Rejected, keep_cargo=False: the flight didn't really happen (a restricted zone, a bogus report), so each shipment goes
+      back to waiting where it was loaded.
+    Rejected, keep_cargo=True: the flight happened but doesn't count for the pilot (a deliberate or very hard landing).
+      As at a real airline, the freight is offloaded and inspected where the aircraft landed and carries on from there.
+    Only shipments whose latest arrival is this flight change (cargo that has since flown on is left alone), and every
+    change is a logged movement, applied once."""
     moved = 0
-    arrivals = con.execute("""SELECT shipment_id, from_station, to_station, status, flight_number, pilot_id FROM cargo_movements
-        WHERE pirep_id=? AND event_type='FLIGHT_ARRIVAL'""", (pirep_id,)).fetchall()
+    arrivals = con.execute("""SELECT m.shipment_id, m.from_station, m.to_station, m.status, m.flight_number, m.pilot_id,
+        s.destination FROM cargo_movements m JOIN cargo_shipments s ON s.id=m.shipment_id
+        WHERE m.pirep_id=? AND m.event_type='FLIGHT_ARRIVAL'""", (pirep_id,)).fetchall()
     now = time.time()
+    want = "FLIGHT_REINSTATED" if accepted else ("FLIGHT_NOT_CREDITED" if keep_cargo else "FLIGHT_REJECTED")
+    outcomes = ("FLIGHT_REJECTED", "FLIGHT_REINSTATED", "FLIGHT_NOT_CREDITED")
     for a in arrivals:
         latest = con.execute("""SELECT pirep_id FROM cargo_movements WHERE shipment_id=? AND event_type='FLIGHT_ARRIVAL'
             ORDER BY event_time DESC, id DESC LIMIT 1""", (a["shipment_id"],)).fetchone()
         if not latest or latest["pirep_id"] != pirep_id:
             continue
-        last = con.execute("""SELECT event_type FROM cargo_movements WHERE shipment_id=? AND pirep_id=?
-            AND event_type IN ('FLIGHT_REJECTED','FLIGHT_REINSTATED') ORDER BY id DESC LIMIT 1""",
-                           (a["shipment_id"], pirep_id)).fetchone()
-        rejected_now = bool(last and last["event_type"] == "FLIGHT_REJECTED")
-        if accepted == (not rejected_now):
+        q = ",".join("?" * len(outcomes))
+        last = con.execute(f"""SELECT event_type FROM cargo_movements WHERE shipment_id=? AND pirep_id=?
+            AND event_type IN ({q}) ORDER BY id DESC LIMIT 1""", (a["shipment_id"], pirep_id, *outcomes)).fetchone()
+        current = last["event_type"] if last else "FLIGHT_REINSTATED"       # a fresh arrival counts as standing
+        if current == want:
             continue                       # already in the right state
-        n = con.execute("SELECT COUNT(*) FROM cargo_movements WHERE shipment_id=? AND pirep_id=? AND event_type IN ('FLIGHT_REJECTED','FLIGHT_REINSTATED')",
-                        (a["shipment_id"], pirep_id)).fetchone()[0]
-        if accepted:
-            kind, station, status = "FLIGHT_REINSTATED", a["to_station"], a["status"]
+        n = con.execute(f"SELECT COUNT(*) FROM cargo_movements WHERE shipment_id=? AND pirep_id=? AND event_type IN ({q})",
+                        (a["shipment_id"], pirep_id, *outcomes)).fetchone()[0]
+        if want == "FLIGHT_REINSTATED":
+            station, status, frm = a["to_station"], a["status"], a["from_station"]
+            reason = "PIREP accepted by staff"
+        elif want == "FLIGHT_REJECTED":
+            station, status, frm = a["from_station"], "AT_STATION", a["to_station"]
+            reason = "PIREP rejected: the flight doesn't count, so the cargo wasn't carried"
         else:
-            kind, station, status = "FLIGHT_REJECTED", a["from_station"], "AT_STATION"
+            station, frm = a["to_station"], a["to_station"]
+            status = a["status"]
+            if status in ("EXCEPTION", "HELD_AT_STATION", "BOOKED"):
+                status = "DELIVERED" if station == a["destination"] else "AT_STATION"
+            reason = "Flight not credited to the pilot; the cargo was offloaded and inspected where the aircraft landed"
         con.execute("""INSERT OR IGNORE INTO cargo_movements
             (shipment_id, event_key, event_type, event_time, from_station, to_station, pilot_id, flight_number, pirep_id, status, details)
             VALUES (?,?,?,?,?,?,?,?,?,?,?)""",
-            (a["shipment_id"], f"pirep-outcome:{pirep_id}:{a['shipment_id']}:{n}", kind, now,
-             a["to_station"] if not accepted else a["from_station"], station, a["pilot_id"], a["flight_number"], pirep_id, status,
-             json.dumps({"reason": "PIREP accepted by staff" if accepted else "PIREP rejected: the flight doesn't count, so the cargo wasn't carried"},
-                        separators=(",", ":"))))
+            (a["shipment_id"], f"pirep-outcome:{pirep_id}:{a['shipment_id']}:{n}", want, now, frm, station, a["pilot_id"],
+             a["flight_number"], pirep_id, status, json.dumps({"reason": reason}, separators=(",", ":"))))
         con.execute("UPDATE cargo_shipments SET current_station=?, status=?, updated_at=? WHERE id=?",
                     (station, status, now, a["shipment_id"]))
         moved += 1

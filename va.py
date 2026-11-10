@@ -2915,7 +2915,8 @@ def staff_review(pid):
                     ("Accepted" if action == "accept" else "Rejected", C["clean_text"](b.get("note"), 500), time.time(), pid))
         try:
             import cargo_network
-            cargo_network.set_flight_outcome(con, pid, accepted=(action == "accept"))
+            cargo_network.set_flight_outcome(con, pid, accepted=(action == "accept"),
+                                             keep_cargo=bool(b.get("keep_cargo", True)))
         except Exception as e:      # cargo bookkeeping must never block a review
             print("cargo outcome:", e)
     if action == "accept":

@@ -253,14 +253,24 @@ if transfer_row:
                                                (transfer_row["id"],)).fetchone()[0]
                 check("replaying the onward PIREP does not duplicate its movement", replay_count == 2, replay_count)
 
-                print("A rejected flight doesn't carry its cargo")
+                print("A rejected flight that was flown: the cargo stays where it landed")
                 state = lambda: A.db().execute("SELECT current_station, status FROM cargo_shipments WHERE id=?",
                                                (transfer_row["id"],)).fetchone()
-                r = c.post(f"/api/staff/reviews/{second_pirep['id']}", json={"action": "reject", "note": "test"})
+                r = c.post(f"/api/staff/reviews/{second_pirep['id']}", json={"action": "reject", "note": "hard landing"})
+                kept = state()
+                check("rejected but flown (the default): cargo stays delivered where the aircraft landed",
+                      r.status_code == 200 and kept["current_station"] == route["destination"]["icao"]
+                      and kept["status"] in ("DELIVERED", "DELIVERED_LATE"), dict(kept))
+                trk = c.get("/api/public/track/" + transfer_row["awb"]).get_json() or {}
+                check("tracking shows the inspection after the flight wasn't credited",
+                      any(e["code"] == "RCF" and "inspected" in e["note"] for e in trk.get("events", [])), trk.get("events"))
+
+                print("A rejected flight that didn't really happen doesn't carry its cargo")
+                r = c.post(f"/api/staff/reviews/{second_pirep['id']}", json={"action": "reject", "note": "test", "keep_cargo": False})
                 after = state()
                 check("staff rejecting the onward flight returns the cargo to where it was loaded",
                       r.status_code == 200 and after["current_station"] == p["arr"] and after["status"] == "AT_STATION", dict(after))
-                c.post(f"/api/staff/reviews/{second_pirep['id']}", json={"action": "reject", "note": "again"})
+                c.post(f"/api/staff/reviews/{second_pirep['id']}", json={"action": "reject", "note": "again", "keep_cargo": False})
                 with A.db() as con:
                     n_rej = con.execute("SELECT COUNT(*) FROM cargo_movements WHERE shipment_id=? AND event_type='FLIGHT_REJECTED'",
                                         (transfer_row["id"],)).fetchone()[0]
