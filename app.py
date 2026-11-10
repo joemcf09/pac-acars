@@ -3248,10 +3248,41 @@ def acars_app_ofp():
     return jsonify({"ok": True, "ofp": ofp, "warnings": warnings})
 
 
+def log_abort(booking, info, where):
+    """ACARS 1.1.7: an aborted flight leaves a line for staff (who, which flight, how far it got, and the pilot's reason).
+    Nothing else changes: the booking stays, and nothing is filed or scored."""
+    if not booking:
+        return
+    m = booking.get("mission") or {}
+    try:
+        with db() as con:
+            con.execute("""CREATE TABLE IF NOT EXISTS acars_aborts (id INTEGER PRIMARY KEY AUTOINCREMENT, at REAL, pilot_id TEXT,
+                flight TEXT, aircraft TEXT, dep TEXT, arr TEXT, phase TEXT, flown_nm INTEGER, reason TEXT, source TEXT, auto_started INTEGER)""")
+            con.execute("""INSERT INTO acars_aborts (at, pilot_id, flight, aircraft, dep, arr, phase, flown_nm, reason, source, auto_started)
+                VALUES (?,?,?,?,?,?,?,?,?,?,?)""",
+                (time.time(), va.current_pilot_id(), booking.get("flight_number"), booking.get("aircraft"),
+                 (m.get("origin") or {}).get("icao"), (m.get("destination") or {}).get("icao"),
+                 clean_text(info.get("phase"), 30) or None, int(num(info.get("flown_nm")) or 0),
+                 clean_text(info.get("reason"), 300) or None, clean_text(info.get("source") or where, 30), 1 if info.get("auto_started") else 0))
+    except Exception as e:              # a log line must never stop an abort
+        print("abort log:", e)
+
+
+def recent_aborts(days=14, limit=25):
+    try:
+        with db() as con:
+            rows = con.execute("""SELECT a.*, p.name AS pilot FROM acars_aborts a LEFT JOIN pilots p ON p.id=a.pilot_id
+                WHERE a.at > ? ORDER BY a.at DESC LIMIT ?""", (time.time() - days * 86400, limit)).fetchall()
+        return [dict(r) for r in rows]
+    except Exception:
+        return []
+
+
 @app.post("/api/acars/app/abort")
 @releases.serialized
 def acars_app_abort():
     booking = load_booking()
+    log_abort(booking, request.get_json(silent=True) or {}, "PAC ACARS")
     if booking and booking.pop("release_start", None):
         save_booking(booking)
     state.update(remote=None, remote_status=None)
@@ -3263,6 +3294,9 @@ def acars_app_abort():
 @releases.serialized
 def acars_stop():
     booking = load_booking()
+    if state.get("remote") or state.get("recorder"):
+        rec = state.get("recorder")
+        log_abort(booking, {"phase": getattr(rec, "phase", None), "flown_nm": getattr(rec, "distance_nm", 0)} if rec else {}, "website")
     if booking and booking.pop("release_start", None):
         save_booking(booking)
     stop_tracking()
@@ -4023,7 +4057,7 @@ def logbook_delete(pid):
 
 
 va.init({"db": db, "settings": settings, "FLEET": FLEET, "MISSIONS": MISSIONS, "ROUTES": ROUTES, "AIRPORTS": AIRPORTS, "PARTNERS": PARTNERS,
-         "airport_obj": airport_obj, "gc_distance_nm": gc_distance_nm, "load_profile": load_profile, "clean_text": clean_text,
+         "airport_obj": airport_obj, "gc_distance_nm": gc_distance_nm, "load_profile": load_profile, "clean_text": clean_text, "recent_aborts": recent_aborts,
          "num": num, "load_json": load_json, "save_json": save_json, "DATA": DATA, "acars_downloads": lambda: acars_downloads()})
 app.register_blueprint(va.bp)
 import group  # noqa: E402  (Pagani Aviation Group hub feed and PRA division)

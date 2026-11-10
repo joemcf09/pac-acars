@@ -253,6 +253,7 @@ html[data-design="loadsheet"] #map{border-radius:0}
       <label class="full" style="display:flex;gap:8px;align-items:center;color:var(--text)"><input type="checkbox" id="cfgTray" style="width:auto"> Minimize and close to the tray while a flight is tracked</label>
       <label class="full" style="display:flex;gap:8px;align-items:center;color:var(--text)"><input type="checkbox" id="cfgCoach" style="width:auto"> SOP coach: reminders from PAC's standard procedures (beacon, lights, stable approach)</label>
       <label class="full" style="display:flex;gap:8px;align-items:center;color:var(--text)"><input type="checkbox" id="cfgDiscord" style="width:auto"> Show my PAC flight in my Discord status</label>
+      <label class="full" style="display:flex;gap:8px;align-items:center;color:var(--text)"><input type="checkbox" id="cfgAuto" style="width:auto"> Start tracking by itself when I start the engines at the departure airport (MSFS or X-Plane)</label>
       <label class="full" style="display:flex;gap:8px;align-items:center;color:var(--text)"><input type="checkbox" id="cfgRemind" style="width:auto"> Alarm ("Start the flight tracker immediately", on a loop) if I push back or taxi with a flight booked but not started</label>
       <div class="full" style="display:flex;gap:8px;align-items:center"><button class="btn ghost" type="button" id="testAlarm">Preview alarm</button><span class="small muted">Plays the call-out once.</span></div>
       <div class="full"><label for="cfgWin">Window (after a restart of PAC ACARS)</label><select id="cfgWin">
@@ -602,7 +603,7 @@ function render() {
   if (!cfgLoaded) { $("#cfgXp").value = cfg.xplane_host || ""; $("#cfgDemo").value = cfg.demo_speedup || 60; $("#cfgTop").checked = !!cfg.always_on_top; $("#source").value = cfg.source || "MSFS";
     $("#cfgWin").value = cfg.window_mode || "auto";
     $("#cfgDesign").value = cfg.design || "loadsheet";
-    $("#cfgChime").checked = cfg.chime !== false; $("#cfgVol").value = cfg.chime_volume ?? 0.5; $("#cfgTray").checked = cfg.close_to_tray !== false; $("#cfgCoach").checked = cfg.sop_coach !== false; $("#cfgDiscord").checked = cfg.discord_status !== false; $("#cfgRemind").checked = cfg.start_reminder !== false; $("#ver").textContent = `PAC ACARS ${verLabel(S.version)}`; cfgLoaded = true; }
+    $("#cfgChime").checked = cfg.chime !== false; $("#cfgVol").value = cfg.chime_volume ?? 0.5; $("#cfgTray").checked = cfg.close_to_tray !== false; $("#cfgCoach").checked = cfg.sop_coach !== false; $("#cfgDiscord").checked = cfg.discord_status !== false; $("#cfgRemind").checked = cfg.start_reminder !== false; $("#cfgAuto").checked = cfg.auto_start !== false; $("#ver").textContent = `PAC ACARS ${verLabel(S.version)}`; cfgLoaded = true; }
   if (S.auth_needed && !st) {
     if (!$("#appSignin")) {
       $("#flightCard").innerHTML = `<form id="appSignin" class="mform"><b class="full" style="font-size:16px">Sign in to PAC</b>
@@ -759,7 +760,9 @@ $("#signOutApp").onclick = async () => { try { await api("/api/logout", {}); not
 $("#resumeBtn").onclick = () => start(true);
 $("#stopBtn").onclick = async () => {
   if (S.practice) { await api("/api/practice/stop", {}); lastLogLen = 0; note("Landing practice finished. Your debriefs stay below until you start a flight."); poll(); return; }
-  if (!confirm("Abort this flight? Nothing will be filed.")) return; await api("/api/stop", {}); lastLogLen = 0; note("Flight aborted."); poll(); };
+  if (!confirm("Abort this flight? Nothing will be filed.")) return;
+  let why = ""; try { why = prompt("Why are you stopping? (optional: sim crash, wrong aircraft, out of time...)", "") || ""; } catch (e) { why = ""; }
+  await api("/api/stop", { reason: why }); lastLogLen = 0; note("Flight aborted."); poll(); };
 $("#practiceBtn").onclick = () => busy($("#practiceBtn"), "Starting…", async () => {
   try { await api("/api/practice/start", { source: $("#source").value }); lastLogLen = 0; note("Landing practice started. Every landing gets a debrief; nothing is filed.", "ok"); poll(); }
   catch (e) { note(esc(e.message), "err"); } });
@@ -771,7 +774,7 @@ $("#cfgSave").onclick = async () => { if ($("#cfgSave").disabled) return; $("#cf
   const before = (S.config || {}).server; let r;
   try { r = await api("/api/config", { server: $("#cfgServer").value.trim(), xplane_host: $("#cfgXp").value.trim(), demo_speedup: +$("#cfgDemo").value || 60, always_on_top: $("#cfgTop").checked,
   window_mode: $("#cfgWin").value, design: $("#cfgDesign").value, chime: $("#cfgChime").checked, chime_volume: +$("#cfgVol").value, close_to_tray: $("#cfgTray").checked,
-  sop_coach: $("#cfgCoach").checked, discord_status: $("#cfgDiscord").checked, start_reminder: $("#cfgRemind").checked }); } catch (e) { note(esc(e.message), "err"); return; }
+  sop_coach: $("#cfgCoach").checked, discord_status: $("#cfgDiscord").checked, start_reminder: $("#cfgRemind").checked, auto_start: $("#cfgAuto").checked }); } catch (e) { note(esc(e.message), "err"); return; }
   note(r.config.server !== before ? `Settings saved. PAC ACARS now uses ${esc(r.config.server)}: sign in there.` : "Settings saved.", "ok"); shownServer = null; refresh(); };
 
 const ATA = [[5, "Inspections"], [21, "Air conditioning / pressurization"], [22, "Autoflight"], [23, "Communications"], [24, "Electrical"], [26, "Fire protection"],

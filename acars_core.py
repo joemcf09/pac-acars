@@ -72,6 +72,32 @@ def _now(rec):
     return rec.last.t if rec.last else time.time()
 
 
+def loadsheet_cg(bk):
+    """The planned take-off CG from the signed release: (%MAC, how PAC got it) or (None, None)."""
+    d = (bk or {}).get("dispatch") or {}
+    ls = (((d.get("signed_snapshot") or {}).get("paper") or d.get("paper") or {}).get("loadsheet")) or {}
+    try:
+        return float(ls["mac_tow"]), ls.get("cg_source") or "estimate"
+    except (KeyError, TypeError, ValueError):
+        return None, None
+
+
+def cg_check(bk, sim_cg):
+    """1.1.7: at OUT, compare the CG the simulator has with the loadsheet's take-off CG. A big difference usually means
+    the payload in the sim (EFB, fuel and payload page) doesn't match the release. Advice only: it never scores."""
+    plan, source = loadsheet_cg(bk)
+    if plan is None or sim_cg is None:
+        return None
+    diff = sim_cg - plan
+    head = f"PAC OCC  CG CHECK  SIM {sim_cg:.1f}% MAC  LOADSHEET MACTOW {plan:.1f}%"
+    if source == "estimate":
+        return f"{head}  (LOADSHEET CG IS A PAC ESTIMATE FOR THIS TYPE)"
+    if abs(diff) <= 1.5:
+        return f"{head}  MATCHES"
+    return (f"{head}  DIFFERS {abs(diff):.1f}% {'AFT' if diff > 0 else 'FWD'}. "
+            "CHECK THE PAYLOAD AND FUEL IN THE SIM MATCH THE RELEASE, THEN SET TRIM FROM THE FMC.")
+
+
 def weather_job(rec, jobs, lock, nearest_airport=None):
     """Background jobs raised by the recorder: loadsheet at OUT, stand and weather at top of descent, wind at touchdown."""
     try:
@@ -83,6 +109,9 @@ def weather_job(rec, jobs, lock, nearest_airport=None):
             with lock:
                 rec.msg(_now(rec), f"PAC OCC  LOADSHEET FINAL {bk.get('flight_number', '')}  PAYLOAD {f(ofp.get('payload_lbs') or m_.get('payload_lbs'))}  "
                                    f"ZFW {f(ofp.get('zfw_lbs'))}  TOW {f(ofp.get('tow_lbs'))}  FOB {f(rec.last.fuel_lbs if rec.last else None)}", "ul")
+                cg = cg_check(bk, rec.last.cg_pct if rec.last else None)
+                if cg:
+                    rec.msg(_now(rec), cg, "ul")
         if "tod" in jobs:
             with lock:
                 arr = bk.get("arr_stand") or {}

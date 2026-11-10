@@ -5763,6 +5763,14 @@ function staffReviews() {
         : `<label style="display:flex;gap:6px;align-items:center;font-size:13px" title="Untick only if the flight didn't really happen; the cargo then goes back to ${esc(r.dep)}"><input type="checkbox" data-keep="${r.id}" checked> If rejected, the cargo stays at ${esc(r.arr)} (flown, not credited)</label>
           <button class="btn ghost small" data-review="${r.id}" data-act="reject">${r.review_status === "Rejected" ? "Update rejection" : "Reject"}</button>`}</div></div>`).join("")
     : `<div class="empty">No PIREPs filed yet.</div>`;
+  const ab = S.staff.aborts || [];   // ACARS 1.1.7: flights pilots aborted in the last 14 days
+  if (ab.length) $("#staffBody").insertAdjacentHTML("beforeend", `<h3 style="margin:24px 0 6px">Aborted flights · last 14 days</h3>
+    <p class="muted" style="font-size:13px;margin:0 0 8px">Nothing was filed for these. Many aborts on one flight or by one pilot can point to a sim, ACARS or planning problem worth a word.</p>
+    <table class="staff-table"><thead><tr><th>When</th><th>Pilot</th><th>Flight</th><th>Route</th><th>Got to</th><th>Reason</th></tr></thead><tbody>${ab.map(a => `<tr>
+      <td class="mono">${new Date(a.at * 1000).toISOString().substr(5, 11).replace("T", " ")}Z</td><td>${esc(a.pilot || a.pilot_id || "")}</td>
+      <td>${esc(a.flight || "")} <span class="muted">${esc(a.aircraft || "")}</span></td><td>${esc(a.dep || "")}–${esc(a.arr || "")}</td>
+      <td>${esc((a.phase || "before start").replace(/_/g, " ").toLowerCase())}${a.flown_nm ? ` · ${fmt(a.flown_nm)} nm` : ""}${a.auto_started ? ` <span class="tag grey">auto-started</span>` : ""}</td>
+      <td>${esc(a.reason || "—")} <span class="muted">(${esc(a.source || "")})</span></td></tr>`).join("")}</tbody></table>`);
   document.querySelectorAll("[data-review]").forEach(b => b.onclick = async () => {
     try { await api("/api/staff/reviews/" + b.dataset.review, { method: "POST", body: { action: b.dataset.act, note: document.querySelector(`[data-note="${b.dataset.review}"]`).value, complete_flight: !!document.querySelector(`[data-complete="${b.dataset.review}"]`)?.checked, keep_cargo: document.querySelector(`[data-keep="${b.dataset.review}"]`)?.checked ?? true } });
     toast(b.dataset.act === "accept" ? "PIREP accepted." : "PIREP rejected."); loadStaff(); } catch(e) { toast(e.message); }
@@ -7380,7 +7388,7 @@ async function loadLanes(force) {
 }
 function boardCard(m) {
   return `<button type="button" class="waybill mb-card mb-accent-${boardAccent(m)}${zoneFor(m)?.level === "restricted" ? " wb-restricted" : ""}" data-id="${esc(m.id)}" aria-pressed="${S.selected?.id === m.id}">
-    <span class="mb-card-top"><span class="mb-work-label">${m.urgent ? '<span class="mb-urgent-label">! URGENT</span>' : ''}${esc(boardSource(m))} · ${esc(m.short_heavy ? "Short-haul heavies" : m.category || 'Cargo')}</span><span>${esc(m.id)}</span></span>
+    <span class="mb-card-top"><span class="mb-work-label">${m.urgent ? '<span class="mb-urgent-label">! URGENT</span>' : ''}${esc([...new Set([m.urgent && m.urgent_kind ? m.urgent_kind : boardSource(m), m.short_heavy ? "Short-haul heavies" : m.category || 'Cargo'])].join(" · "))}</span><span>${esc(m.id)}</span></span>
     <span class="mb-route"><span><b>${esc(m.origin.icao)}</b><small>${esc(m.origin.city || m.origin.name)}</small></span><span aria-hidden="true">→</span><span><b>${esc(m.destination.icao)}</b><small>${esc(m.destination.city || m.destination.name)}</small></span></span>
     <strong class="mb-title">${esc(m.title)}</strong><span class="mb-cargo">${esc(m.cargo)}</span>
     <span class="mb-tags">${shedTag(m)}${laneTag(m)}${zoneTag(m)}${m.short_heavy ? `<span class="tag dark">${fmt(m.distance_nm)} NM · Routine delivery</span>` : ""}${boardCampaignLabels(m)}${bonusTags(m)}${freshTags(m)}${m.tour || m.rotation ? `<span class="tag dark">Leg ${esc(m.leg)}/${esc(m.legs)}</span>` : ''}${m.handling ? `<span class="tag grey">${esc(m.handling.label)}</span>` : ''}${m.challenge ? `<span class="tag amber">${esc(m.challenge.label)}</span>` : ''}${m.urgent ? `<span class="tag amber">URGENT ×1.5 · deliver by ${zulu(m.deliver_by)}</span><span>Offer: <span class="countdown" data-countdown="${Number(m.expires)}"></span></span>` : ''}</span>

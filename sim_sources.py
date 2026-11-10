@@ -59,6 +59,7 @@ class Telemetry:
     nav_lights: bool | None = None
     taxi_light: bool | None = None
     num_engines: int | None = None    # engines the loaded aircraft has (to spot the wrong aircraft)
+    cg_pct: float | None = None       # 1.1.7: center of gravity, % of the mean aerodynamic chord (MSFS only)
 
     def to_dict(self):
         return asdict(self)
@@ -143,8 +144,9 @@ class MSFSSource:
         "nav_lt": ("LIGHT NAV", "bool"),
         "taxi_lt": ("LIGHT TAXI", "bool"),
         "n_eng": ("NUMBER OF ENGINES", "number"),
+        "cg": ("CG PERCENT", "percent"),          # 1.1.7: checked against the loadsheet at OUT
     }
-    OPTIONAL = ("bank", "beacon", "landing_lt", "strobe", "nav_lt", "taxi_lt", "n_eng")
+    OPTIONAL = ("bank", "beacon", "landing_lt", "strobe", "nav_lt", "taxi_lt", "n_eng", "cg")
     # Near the ground (landing) only these are re-read each sample; the rest reuse their last value. Each
     # SimConnect request costs ~20 ms, so reading all ~37 took ~0.8 s and the touchdown fell between samples.
     FAST = ("lat", "lon", "agl", "ias", "gs", "vs", "on_ground", "g", "td", "hdg", "pitch")
@@ -259,6 +261,7 @@ class MSFSSource:
             beacon=_flag(v["beacon"]), landing_lights=_flag(v["landing_lt"]), strobe=_flag(v["strobe"]),
             nav_lights=_flag(v["nav_lt"]), taxi_light=_flag(v["taxi_lt"]),
             num_engines=int(v["n_eng"]) if v["n_eng"] else None,
+            cg_pct=round(float(v["cg"]), 1) if v.get("cg") is not None and 0 < float(v["cg"]) < 100 else None,
         )
 
     def close(self):

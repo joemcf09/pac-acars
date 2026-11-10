@@ -90,7 +90,7 @@ import acars_core  # noqa: E402
 from sim_sources import DemoSource, MSFSSource, XPlaneSource, gc_distance_nm  # noqa: E402
 from tracker import FlightRecorder, TrackerThread  # noqa: E402
 
-VERSION = "1.1.6"   # major.minor.patch, plus a fourth number for hotfixes (shown as "1.1.2 hotfix 1")
+VERSION = "1.1.7"   # major.minor.patch, plus a fourth number for hotfixes (shown as "1.1.2 hotfix 1")
 PORT = int(os.environ.get("PAC_ACARS_PORT", "5070"))  # not 5060: browsers block that port (SIP)
 CONFIG_PATH = USER_DIR / "config.json"
 STATE_PATH = USER_DIR / "flight_state.pkl"
@@ -111,7 +111,7 @@ SITE = (os.environ.get("PAC_SITE", "").strip().rstrip("/") or _built_site()
         or (OFFICIAL_SITE if FROZEN else "http://127.0.0.1:5050"))
 DEFAULTS = {"server": SITE, "source": "MSFS", "xplane_host": "127.0.0.1", "demo_speedup": 60, "always_on_top": True,
             "win_w": 460, "win_h": 640, "chime": True, "chime_volume": 0.5, "close_to_tray": True,
-            "sop_coach": True, "discord_status": True, "start_reminder": True}
+            "sop_coach": True, "discord_status": True, "start_reminder": True, "auto_start": True}
 # Discord Rich Presence: the PAC application's ID from discord.com/developers (public, not a secret).
 # The website can also send one (Staff settings: discord_app_id), which wins.
 DISCORD_APP_ID = ""
@@ -421,9 +421,20 @@ def hand_over(force=False):
     return r
 
 
+def si_gate(data):
+    """1.1.7: the gate SayIntentions ATC assigned, from flight.json (a name, or a dict with a name), or None."""
+    for box in (data.get("flight_details") or {}, data.get("current_flight") or {}, data):
+        g = box.get("assigned_gate") if isinstance(box, dict) else None
+        if isinstance(g, dict):
+            g = g.get("name") or g.get("gate") or g.get("id")
+        if g and str(g).strip() and str(g).strip().lower() not in ("none", "null", "0"):
+            return str(g).strip().upper()[:16]
+    return None
+
+
 def si_flight_json():
     """SayIntentions.AI writes the pilot's API key and current flight to %LOCALAPPDATA%\\SayIntentionsAI\\flight.json.
-    Returns (api_key, modified time) or (None, None)."""
+    Returns (api_key, modified time) or (None, None). Also notes the gate SayIntentions assigned (state["si_gate"])."""
     base = os.environ.get("LOCALAPPDATA") or os.path.join(os.path.expanduser("~"), "AppData", "Local")
     path = Path(os.environ.get("PAC_SI_FLIGHT_JSON") or os.path.join(base, "SayIntentionsAI", "flight.json"))
     try:
@@ -432,6 +443,15 @@ def si_flight_json():
     except (OSError, ValueError):
         return None, None
     key = ((data.get("flight_details") or {}).get("api_key") or data.get("api_key") or "").strip()
+    gate = si_gate(data) if isinstance(data, dict) else None
+    if gate != state.get("si_gate"):
+        state["si_gate"] = gate
+        rec, th = state.get("rec"), state.get("thread")
+        if gate and rec is not None and th and th.is_alive():
+            try:
+                rec.msg(rec.last.t if rec.last else time.time(), f"SAYINTENTIONS  ATC ASSIGNED GATE {gate}", "ul")
+            except Exception as e:
+                print("SayIntentions gate:", e)
     return (key or None), mtime
 
 
@@ -1060,7 +1080,7 @@ def api_config():
             cfg = load_config()
         b = {k: v for k, v in b.items() if k != "server"}
     for k in ("source", "xplane_host", "demo_speedup", "always_on_top", "chime", "chime_volume", "close_to_tray", "window_mode", "design",
-              "sop_coach", "discord_status", "start_reminder"):
+              "sop_coach", "discord_status", "start_reminder", "auto_start"):
         if k in b:
             cfg[k] = b[k]
     save_config(cfg)
@@ -1070,17 +1090,23 @@ def api_config():
 
 @ui.post("/api/start")
 def api_start():
+    out, code = start_tracking(request.json or {})
+    return jsonify(out), code
+
+
+def start_tracking(b):
+    """Start (or resume) tracking the booked flight. Returns (reply, HTTP status). Used by the Start button and by
+    1.1.7's auto-start."""
     reminder_release()
     state["finished_saved"] = False
     if state.get("thread") and state["thread"].is_alive():
-        return jsonify({"error": "Already tracking."}), 409
+        return {"error": "Already tracking."}, 409
     hello = refresh_hello()
     if not hello:
-        return jsonify({"error": state["server_error"]}), 503
+        return {"error": state["server_error"]}, 503
     booking = hello.get("booking")
     if not booking:
-        return jsonify({"error": "No flight is booked. Book one on the PAC website, then press Refresh."}), 400
-    b = request.json or {}
+        return {"error": "No flight is booked. Book one on the PAC website, then press Refresh."}, 400
     cfg = load_config()
     name = b.get("source") or cfg["source"]
     cfg["source"] = name
@@ -1089,13 +1115,13 @@ def api_start():
     cands = saved_candidates(booking)
     if cands and not b.get("resume") and not b.get("discard_saved"):
         c = cands[0]
-        return jsonify({"error": f"This flight is already under way: it was saved in {c['phase'].replace('_', ' ').lower()} at "
+        return ({"error": f"This flight is already under way: it was saved in {c['phase'].replace('_', ' ').lower()} at "
                                  f"{time.strftime('%H:%M', time.localtime(c['at']))}. Press Resume flight to carry on, or Abort to discard it.",
                         "saved": c}), 409
     resume_rec = None
     if b.get("resume") and cands:
         if name == "Demo":
-            return jsonify({"error": "Demo flights can't be resumed. Choose MSFS or X-Plane."}), 400
+            return ({"error": "Demo flights can't be resumed. Choose MSFS or X-Plane."}), 400
         if cands[0]["where"] == "PAC website":
             try:
                 cp = server("GET", "/api/acars/app/checkpoint", timeout=20)
@@ -1107,7 +1133,7 @@ def api_start():
             if saved and saved["recorder"].booking.get("requested_at") == booking.get("requested_at"):
                 resume_rec = saved["recorder"]
         if resume_rec is None:
-            return jsonify({"error": "The saved flight couldn't be loaded. Abort it and start again from the stand."}), 400
+            return ({"error": "The saved flight couldn't be loaded. Abort it and start again from the stand."}), 400
     resuming = resume_rec is not None
     if name in ("MSFS", "X-Plane"):  # remember what this aircraft type is flown in
         cfg = load_config()
@@ -1125,7 +1151,7 @@ def api_start():
     try:
         r = server("POST", "/api/acars/app/start", {"source": name, "requested_at": booking.get("requested_at")})
     except ServerError as e:
-        return jsonify({"error": str(e)}), 409
+        return ({"error": str(e)}), 409
     if resuming:
         rec = resume_rec
         rec.booking = booking
@@ -1145,18 +1171,28 @@ def api_start():
                  debriefs=list(state.get("debriefs") or []) if resuming else [],
                  acked=sum(1 for m in rec.messages if m.get("kind") in UPLINK_KINDS) if resuming else 0)
     th.start()
-    return jsonify({"ok": True, "warning": r.get("warning"), "resumed": resuming})
+    return {"ok": True, "warning": r.get("warning"), "resumed": resuming}, 200
 
 
 @ui.post("/api/stop")
 def api_stop():
     if state.get("practice"):
         return api_practice_stop()
+    rec = state.get("rec")
+    info = {"reason": str((request.json or {}).get("reason") or "")[:300], "source": state.get("source")}
+    try:      # 1.1.7: PAC logs aborted flights (phase, distance flown, the pilot's reason) for staff
+        if rec is not None:
+            info.update(phase=getattr(rec, "phase", None), flown_nm=round(getattr(rec, "distance_nm", 0) or 0),
+                        out=(rec.oooi or {}).get("out"), off=(rec.oooi or {}).get("off"),
+                        auto_started=bool(state.get("auto_started")))
+    except Exception:
+        pass
     stop_thread()
     try:
-        server("POST", "/api/acars/app/abort", {})
+        server("POST", "/api/acars/app/abort", info)
     except ServerError:
         pass
+    state["auto_started"] = None
     clear_state()
     state.update(rec=None, booking=None, handed_over=False, draft=None)
     refresh_hello()
@@ -1356,7 +1392,8 @@ def reminder_release():
 
 def reminder_should_watch():
     """A flight is booked, a simulator is running, and PAC ACARS is not recording it."""
-    if load_config().get("start_reminder") is False or state.get("practice") or state.get("handed_over"):
+    cfg = load_config()
+    if (cfg.get("start_reminder") is False and cfg.get("auto_start") is False) or state.get("practice") or state.get("handed_over"):
         return None
     th = state.get("thread")
     if th and th.is_alive():
@@ -1372,6 +1409,39 @@ def reminder_moving(t):
     if not t.on_ground:
         return (t.agl_ft or 0) > 50
     return bool(t.engines_running) and ((t.gs or 0) > 3 or t.parking_brake is False)
+
+
+def auto_start_ready(t, booking):
+    """1.1.7 auto-start: on the ground at the departure airport (within 3 nm) with engines running or rolling.
+    Airborne, or somewhere else, the alarm asks the pilot instead: a flight can't start mid-air."""
+    if not t.on_ground or not (bool(t.engines_running) or (t.gs or 0) > 3):
+        return False
+    o = ((booking.get("ofp") or {}).get("origin") or (booking.get("mission") or {}).get("origin") or {})
+    try:
+        return gc_distance_nm(t.lat, t.lon, float(o["lat"]), float(o["lon"])) <= 3.0
+    except (KeyError, TypeError, ValueError):
+        return False
+
+
+def try_auto_start(sim, t):
+    """Starts tracking by itself. Returns True if it did; otherwise the reason is shown and the alarm takes over."""
+    bk = (state.get("hello") or {}).get("booking") or {}
+    if load_config().get("auto_start") is False or not auto_start_ready(t, bk):
+        return False
+    if time.time() - state.get("auto_start_tried", 0) < 60:
+        return False                          # it just failed: don't retry every 3 seconds
+    state["auto_start_tried"] = time.time()
+    print(f"Auto-start: {bk.get('flight_number')} engines running at the departure airport. Starting tracking in {sim}.")
+    out, code = start_tracking({"source": sim})
+    if code == 200:
+        state["auto_started"] = {"at": time.time(), "flight": bk.get("flight_number")}
+        rec = state.get("rec")
+        if rec is not None:
+            rec.msg(time.time(), "ACARS STARTED AUTOMATICALLY  ENGINES RUNNING AT DEPARTURE", "phase")
+        return True
+    state["auto_start_error"] = out.get("error")
+    print("Auto-start didn't start:", out.get("error"))
+    return False
 
 
 def start_reminder_watch():
@@ -1403,7 +1473,9 @@ def start_reminder_watch():
                 _remind["logged"] = time.time()
                 print(f"Start reminder: engines {'on' if t.engines_running else 'off'}, brake {'set' if t.parking_brake else 'off'}, "
                       f"{t.gs or 0:.0f} kt, {'on ground' if t.on_ground else 'airborne'}")
-            if t and reminder_moving(t):
+            if t and try_auto_start(sim, t):
+                continue
+            if t and reminder_moving(t) and load_config().get("start_reminder") is not False:
                 bk = (state.get("hello") or {}).get("booking") or {}
                 print("Start reminder: aircraft is moving and not tracked. Alarm on.")
                 state["start_reminder"] = {"since": time.time(), "flight": bk.get("flight_number")}

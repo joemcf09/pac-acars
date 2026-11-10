@@ -1,6 +1,30 @@
 PAC ACARS - CHANGELOG
 =====================
 
+1.1.7 (November 2026)
+---------------------
+New: starts by itself
+- With a flight booked, PAC ACARS now starts tracking on its own when you
+  start the engines at the departure airport (MSFS or X-Plane). The log
+  says "ACARS STARTED AUTOMATICALLY". If the aircraft is somewhere else or
+  already in the air, the "Start the flight tracker" alarm asks you instead.
+  Turn it off in Settings if you prefer to press Start yourself.
+
+New: SayIntentions gate
+- When SayIntentions.AI ATC assigns you a gate, it appears in the ACARS log
+  ("SAYINTENTIONS ATC ASSIGNED GATE B12").
+
+New: CG check (MSFS)
+- At pushback, PAC ACARS compares the center of gravity in the simulator
+  with the take-off CG on your loadsheet. If they differ by more than 1.5%
+  MAC, it tells you to check the payload and fuel in the sim match your
+  release. Advice only: it never affects your score. X-Plane doesn't report
+  CG as %MAC, so the check is skipped there.
+
+Changed: aborting a flight
+- Abort now asks (optionally) why you're stopping. PAC staff see aborted
+  flights and the reason, which helps spot sim or ACARS problems.
+
 1.1.6 (November 2026)
 ---------------------
 Fixed: X-Plane landing rates

@@ -46,7 +46,9 @@ def sign_in_and_key():
     key = post("/api/auth/token", {"pilot_id": "PAC0001", "password": "test-password-123", "label": "test"})["token"]
     cfg = Path("acars_client/config.json")
     c = json.loads(cfg.read_text()) if cfg.exists() else {}
-    c.update(token=key, pilot={"id": "PAC0001", "name": "Test"})
+    import re as _re  # the "What's new" dialog only shows after an update: mark this version as seen so it stays out of the way
+    ver = _re.search(r'^VERSION = "([^"]+)"', Path("acars_client/client.py").read_text(), _re.M).group(1)
+    c.update(token=key, pilot={"id": "PAC0001", "name": "Test"}, seen_version=ver)
     cfg.write_text(json.dumps(c))
 
 
