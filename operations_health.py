@@ -73,6 +73,39 @@ def backup_health(folder, now):
             'note':'Completion does not verify restore integrity or an off-server copy. Deployment backups are separate.'}
 
 
+def vatsim_flights(db, prefix, now, days=60):
+    """PAC flights flown on VATSIM under PAC's own callsign prefix in the last `days`: what VATSIM's Virtual Airline
+    Associate audit counts (50 flights by 10 pilots in 60 days, PGI callsigns). A flight counts when PAC ACARS saw the
+    pilot connected to VATSIM for at least 60% of its checks with a callsign starting with the prefix."""
+    with closing(sqlite3.connect(Path(db).resolve().as_uri()+'?mode=ro',uri=True,timeout=2)) as c:
+        rows=c.execute("""SELECT filed_at, pilot_id, dep, arr, flight_number, json_extract(detail,'$.online') FROM pireps
+            WHERE filed_at>? AND COALESCE(demo,0)=0 AND COALESCE(review_status,'')!='Rejected'""",(now-days*86400,)).fetchall()
+    total=len(rows);out=[]
+    for filed,pilot,dep,arr,fn,on in rows:
+        try:on=json.loads(on) if on else None
+        except ValueError:on=None
+        if not on or on.get('network')!='VATSIM' or (on.get('share') or 0)<0.6:continue
+        cs=str(on.get('callsign') or '').upper()
+        out.append({'date':time.strftime('%Y-%m-%d',time.gmtime(filed)),'callsign':cs,'dep':dep,'arr':arr,'pilot':pilot,
+                    'counts':cs.startswith(prefix.upper())})
+    return total,out
+
+
+def vatsim_readiness(db, prefix, now):
+    total,flights=vatsim_flights(db,prefix,now)
+    ok=[f for f in flights if f['counts']]
+    pilots=len({f['pilot'] for f in ok})
+    share=round(100*len(ok)/total) if total else 0
+    ready=len(ok)>=50 and pilots>=10
+    wrong=len(flights)-len(ok)
+    msg=('Meets VATSIM\'s Virtual Airline Associate activity requirement. You can apply at my.vatsim.net.' if ready else
+         f'VATSIM needs 50 flights by 10 pilots in 60 days under {prefix} callsigns: {max(0,50-len(ok))} flights and {max(0,10-pilots)} pilots to go.')
+    if not ready and share>80:msg+=f' {share}% of PAC\'s flights are on VATSIM: over 80%, VATSIM may waive the activity numbers, so it\'s worth asking when you apply.'
+    if wrong:msg+=f' {wrong} VATSIM flight{"s" if wrong>1 else ""} used another callsign and don\'t count: file as {prefix}.'
+    return {'level':'ok' if ready else 'notice','message':msg,'counts':{'VATSIM flights':len(ok),'Pilots':pilots,
+            'Online share':f'{share}%','Other callsigns':wrong}}
+
+
 def register(app, context):
     @app.get('/api/staff/operations-health')
     def health():
@@ -90,7 +123,8 @@ def register(app, context):
                     'last_seen':last,'age_seconds':elapsed,'note':'Heartbeat indicates communication with PAC; it does not prove Discord message delivery.'}
         response=jsonify({'checked_at':now,'worker':safe(lambda:worker_health(context['DATA'],now)),
                           'boards':safe(lambda:board_health(context['DB_PATH'],now)),
-                          'discord':safe(discord),'backups':safe(lambda:backup_health(context['BACKUP_DIR'],now))})
+                          'discord':safe(discord),'backups':safe(lambda:backup_health(context['BACKUP_DIR'],now)),
+                          'vatsim':safe(lambda:vatsim_readiness(context['DB_PATH'],context['filing_icao'](),now))})
         response.headers['Cache-Control']='private, no-store'
         return response
 
@@ -116,3 +150,14 @@ def register(app, context):
         check('backups',lambda:backup_health(context['BACKUP_DIR'],now))
         body,code=('OK',200) if not problems else ('PROBLEM: '+', '.join(problems),503)
         return body,code,{'Content-Type':'text/plain; charset=utf-8','Cache-Control':'no-store'}
+
+
+    @app.get('/api/staff/vatsim-flights.csv')
+    def vatsim_csv():
+        """The flight list VATSIM's audit asks for: callsign, origin, destination and date (no pilot names)."""
+        import auth
+        who=auth.current()
+        if not who or not who.get('staff'):return jsonify({'error':'Staff access required.'}),403
+        _,flights=vatsim_flights(context['DB_PATH'],context['filing_icao'](),time.time())
+        lines=['callsign,origin,destination,date']+[f"{f['callsign']},{f['dep']},{f['arr']},{f['date']}" for f in flights if f['counts']]
+        return '\n'.join(lines)+'\n',200,{'Content-Type':'text/csv; charset=utf-8','Content-Disposition':'attachment; filename="pac-vatsim-flights.csv"'}

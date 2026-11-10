@@ -36,7 +36,7 @@ let toastT;
 function toast(msg, ms = 5200) { const t = $("#toast"); t.textContent = msg; t.hidden = false; clearTimeout(toastT); toastT = setTimeout(() => t.hidden = true, ms); }
 
 /* ---------------- navigation ---------------- */
-const PUBLIC_VIEWS = ["home", "fleet", "handbook", "cargoguide", "gallery", "privacy", "roster"];   // "live" joins when staff make the live map public
+const PUBLIC_VIEWS = ["home", "fleet", "handbook", "cargoguide", "gallery", "privacy", "piracy", "roster"];   // "live" joins when staff make the live map public
 function show(view) {
   if (view === "reports" && location.hash !== "#reports") captureReportContext();
   if (/^career\/(overview|qualifications|wallet|activities|awards)$/.test(view)) {
@@ -72,6 +72,7 @@ function show(view) {
   if (view === "handbook") loadHandbook();
   if (view === "cargoguide") renderCargoGuide();
   if (view === "privacy") renderPrivacy();
+  if (view === "piracy") renderPiracy();
   if (view === "roster") loadRoster();
   if (view === "staff") loadStaff();
   if (view === "reports") loadProblemReports();
@@ -4948,7 +4949,7 @@ function networkPartners(h) {
   const nets = [n.show && n.vatsim ? { name: "VATSIM", href: "https://www.vatsim.net", logo: n.vatsim } : null,
                 n.ivao_show && n.ivao ? { name: "IVAO", href: "https://us.ivao.aero/pilots/virtual-airlines", logo: n.ivao } : null].filter(Boolean);
   if (!nets.length) return "";
-  return `<div class="section-h" id="network-partners"><div><div class="kicker">Network partners</div><h2>Fly online with ${nets.map(x => x.name).join(" and ")}</h2>
+  return `<div class="section-h" id="network-partners"><div><div class="kicker">Online networks</div><h2>Fly online with ${nets.map(x => x.name).join(" and ")}</h2>
       <p>${nets.some(x => x.name === "IVAO") ? `PAC is an <a href="https://us.ivao.aero/pilots/virtual-airlines" target="_blank" rel="noopener"><b>IVAO Certified Virtual Airline</b></a> (IVAO United States). ` : ""}Live air traffic control from real people, all over the world, free to join. PAC flights file as <b>${esc(filingIcao())}</b>, spoken “Pagani”.</p></div></div>
     <div class="net-partners">${nets.map(x => `<a class="net-logo" href="${x.href}" target="_blank" rel="noopener"><img src="${esc(x.logo)}" alt="${x.name}"></a>`).join("")}</div>`;
 }
@@ -5331,7 +5332,7 @@ function siteFooter(site) {
       <div class="sf-brand"><img src="/static/pac-wordmark-white.png" alt="Pagani Air Cargo" width="120">
         <p>Pagani Air Cargo is a virtual airline for flight simulation. It is a free, non-commercial hobby community: it is not a real airline, carries no real cargo, and is not affiliated with any real-world airline or aviation company.</p></div>
       <div class="sf-links" role="navigation" aria-label="Pilots"><h3>Pilots</h3><a href="#apply" onclick="show('home');setTimeout(()=>$('#apply')?.scrollIntoView({behavior:'smooth'}),100);return false">Apply to fly</a><a href="#handbook" onclick="show('handbook');return false">Pilot handbook</a><a href="#fleet" onclick="show('fleet');return false">The fleet</a><a href="#gallery" onclick="show('gallery');return false">Gallery</a><a href="#roster" onclick="show('roster');return false">Roster &amp; flight log</a>${S.me ? `<a href="#downloads" onclick="show('downloads');return false">Downloads</a>` : ""}</div>
-      <div class="sf-links" role="navigation" aria-label="Contact"><h3>Contact</h3><a href="mailto:${mail}">${mail}</a>${discord ? `<a href="${esc(discord)}" target="_blank" rel="noopener">PAC on Discord</a>` : ""}<a href="#privacy" onclick="show('privacy');return false">Privacy policy</a></div>
+      <div class="sf-links" role="navigation" aria-label="Contact"><h3>Contact</h3><a href="mailto:${mail}">${mail}</a>${discord ? `<a href="${esc(discord)}" target="_blank" rel="noopener">PAC on Discord</a>` : ""}<a href="#privacy" onclick="show('privacy');return false">Privacy policy</a><a href="#piracy" onclick="show('piracy');return false">Anti-piracy policy</a></div>
       <div class="sf-small"><h3>Credits</h3><p>Weather: NOAA Aviation Weather Center. Maps: &copy; OpenStreetMap contributors and Esri. Radar: RainViewer. Flight planning: SimBrief by Navigraph. Partner aircraft photos: Wikimedia Commons, credited on each card.</p></div>
     </div>
     <p class="sf-legal">Airline names, logos and aircraft types belong to their owners; partner operations are simulated and imply no endorsement. For flight simulation only: not for real-world navigation or flight planning.</p>
@@ -5354,6 +5355,27 @@ async function loadRoster() {
       <div class="ro-wrap"><table class="ro-table"><thead><tr><th>Date</th><th>Flight</th><th>Pilot</th><th>From</th><th>To</th><th>Aircraft</th><th class="num">Block</th><th>Status</th></tr></thead>
       <tbody>${d.flights.map(f => `<tr><td>${new Date(f.filed_at * 1000).toISOString().slice(0, 10)}</td><td><b>${esc(f.flight_number)}</b></td><td>${f.pilot_id ? `${esc(f.pilot_id)} · ` : ""}${esc(f.pilot)}</td><td>${esc(f.dep)}</td><td>${esc(f.arr)}</td><td title="${esc(f.aircraft_name)}">${esc(S.fleet?.[f.aircraft]?.icao || f.aircraft)}</td><td class="num">${hm(f.block_min)}</td><td>${esc(f.status)}</td></tr>`).join("") || `<tr><td colspan="8" class="muted">No flights yet.</td></tr>`}</tbody></table></div></section>`;
 }
+/* Anti-piracy policy (VATSIM's virtual airline policy section 8.11 asks every VA to have and enforce one) */
+function renderPiracy() {
+  const mail = esc(contactEmail());
+  const sec = (t, b) => `<section><h2>${t}</h2>${b}</section>`;
+  $("#piracyRoot").innerHTML = `<div class="profile-bar"><h1>Anti-piracy policy</h1><span class="muted">Last updated November 10, 2026</span></div>
+  <div class="privacy">
+    <p class="lead">Pagani Air Cargo flies only with legally obtained software. Pirated simulators, aircraft, scenery and add-ons hurt the developers who make flight simulation possible, and they have no place at PAC.</p>
+    ${sec("What's not allowed", `<ul>
+      <li>Using, sharing, requesting or linking to pirated or cracked software: simulators, aircraft, scenery, utilities or any other add-on.</li>
+      <li>Sharing license keys, account logins or files you don't have the right to share, in PAC's Discord, website, forums or direct messages.</li>
+      <li>Asking other members for help with software that was obtained illegally.</li></ul>`)}
+    ${sec("What PAC does about it", `<ul>
+      <li>Posts that break this policy are removed.</li>
+      <li>A first offense gets a written warning. A second offense, or any distribution of pirated software, means removal from PAC, and PAC won't accept a new application.</li>
+      <li>Flights flown with pirated software aren't accepted.</li>
+      <li>If a developer or rights holder tells PAC about an infringement, PAC acts on it promptly and, where a network partnership requires it, reports it to that network in writing.</li></ul>`)}
+    ${sec("Freeware and paid add-ons", `<p>Freeware is welcome, downloaded from its author or an official library. Paid add-ons must come from the developer or an authorized store. Liveries made by PAC for an aircraft are only for owners of that aircraft.</p>`)}
+    ${sec("Reporting", `<p>If you see piracy in PAC's community, email <a href="mailto:${mail}">${mail}</a> or message a staff member on Discord. Reports are handled privately.</p>`)}
+  </div>`;
+}
+
 function renderPrivacy() {
   const mail = esc(contactEmail());
   const sec = (t, b) => `<section><h2>${t}</h2>${b}</section>`;
@@ -6101,8 +6123,8 @@ function staffSite() {
       <div class="row" style="align-items:flex-end;gap:10px;margin:0 0 6px"><div class="field" style="margin:0"><label for="filingIcao">Network ICAO code</label><input id="filingIcao" maxlength="3" value="${esc(filingIcao())}" style="width:90px;text-transform:uppercase"></div>
         <button class="btn small" type="button" id="filingSave">Save</button></div>
       <h3 style="margin:14px 0 4px;font-size:15px">VATSIM logo</h3>
-      <p class="muted" style="font-size:13px;margin:0 0 8px">Once VATSIM accepts PAC as a Virtual Airline Associate or Partner, its policy asks for the VATSIM logo on the home page, linked to www.vatsim.net. PAC includes the official full-color logo from VATSIM's public logo pack, ready to show unaltered in a <b>Network partners</b> section. Keep it switched off until VATSIM has accepted PAC: showing it before then suggests a partnership PAC doesn't have. If VATSIM updates its logo, download the new pack from <a href="https://vats.im/logo" target="_blank" rel="noopener">vats.im/logo</a> and upload the no-tagline version (PNG, WebP or SVG) here.</p>
-      <label class="switch-row" style="margin:0 0 8px"><input type="checkbox" id="vatsimShow" ${S.settings?.vatsim_partner_section ? "checked" : ""}><span><b>Show the VATSIM partner section on the home page</b><br><span class="muted" style="font-size:13px">Only once VATSIM has accepted PAC.</span></span></label>
+      <p class="muted" style="font-size:13px;margin:0 0 8px">VATSIM's virtual airline policy (section 8.4) requires the VATSIM logo on the home page, linked to www.vatsim.net, <b>before</b> you apply, so switch this on when you're getting ready to apply. The home page section is titled "Online networks" and says only that PAC pilots fly there, so it doesn't claim a partnership PAC doesn't have yet. PAC includes the official full-color logo from VATSIM's public logo pack. If VATSIM updates its logo, download the new pack from <a href="https://vats.im/logo" target="_blank" rel="noopener">vats.im/logo</a> and upload the no-tagline version (PNG, WebP or SVG) here.</p>
+      <label class="switch-row" style="margin:0 0 8px"><input type="checkbox" id="vatsimShow" ${S.settings?.vatsim_partner_section ? "checked" : ""}><span><b>Show the VATSIM partner section on the home page</b><br><span class="muted" style="font-size:13px">Required by VATSIM before applying.</span></span></label>
       <div class="row" id="netLogoBox" style="align-items:center;gap:12px;margin:0 0 6px"></div>
       <h3 style="margin:14px 0 4px;font-size:15px">IVAO logo</h3>
       <p class="muted" style="font-size:13px;margin:0 0 8px">IVAO asks certified virtual airlines to show the IVAO Virtual Airline logo they provide on the home page, linked to ivao.aero. Upload the file IVAO sends you (PNG, WebP or SVG), then switch the section on once IVAO has accepted PAC. Use it exactly as provided: no recoloring, cropping or added background.</p>
@@ -7240,6 +7262,7 @@ async function staffOperationsHealth() {
       card('Mission worker',d.worker,`<dl><dt>Last successful refresh</dt><dd>${esc(when(d.worker.last_success_at))} · ${esc(ago(d.worker.age_seconds))}</dd><dt>Last run duration</dt><dd>${d.worker.duration_seconds == null ? 'Not recorded' : esc(d.worker.duration_seconds) + ' seconds'}</dd></dl>`) +
       card('Mission boards',d.boards,d.boards.counts ? `<div class="ops-counts">${Object.entries(d.boards.counts).map(([label,count]) => `<div><strong>${esc(count)}</strong><span>${esc(label)}</span></div>`).join('')}</div>` : '') +
       card('Discord bot',d.discord,`<p>Last heartbeat: ${esc(when(d.discord.last_seen))} · ${esc(ago(d.discord.age_seconds))}</p>`) +
+      (d.vatsim ? card('VATSIM listing readiness',d.vatsim,`${d.vatsim.counts ? `<div class="ops-counts">${Object.entries(d.vatsim.counts).map(([label,count]) => `<div><strong>${esc(count)}</strong><span>${esc(label)}</span></div>`).join('')}</div>` : ''}<p><a href="/api/staff/vatsim-flights.csv">Download the flight list for VATSIM</a> (callsign, origin, destination, date)</p>`) : '') +
       card('Application backups',d.backups,`<p>${esc(d.backups.name || 'No backup recorded')}</p><p>${esc(ago(d.backups.age_seconds))}</p>`) + '</div><p class="muted">Refreshes only when you open this tab or select Refresh status. No services are restarted and no missions or backups are created by this panel.</p>';
     $('#opsRefresh').onclick = staffOperationsHealth;
   } catch (e) {
