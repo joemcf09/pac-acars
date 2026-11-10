@@ -31,7 +31,7 @@ SHC_NAMES = {
     "ICE": "Dry ice", "ELI": "Lithium ion batteries (Section II)", "RLI": "Lithium ion batteries (fully regulated)", "HEA": "Heavy cargo",
     "VAL": "Valuable cargo", "AVI": "Live animals", "EAT": "Foodstuffs", "MAL": "Mail", "COU": "Courier / express", "RMD": "Miscellaneous dangerous goods",
     "RNG": "Non-flammable gas", "RCM": "Corrosive", "AOG": "Aircraft on ground spares", "HUM": "Humanitarian aid", "PEF": "Flowers",
-    "PES": "Fish and seafood", "BIG": "Outsized", "ECC": "E-commerce", "RFL": "Flammable liquid",
+    "PES": "Fish and seafood", "BIG": "Outsized", "ECC": "E-commerce", "RFL": "Flammable liquid", "RRY": "Radioactive material",
 }
 
 # (keywords, contents, SHC codes, dangerous goods entry or None)
@@ -45,13 +45,14 @@ DG = {
     "rli0": {"un": "UN3480", "name": "Lithium ion batteries", "cls": "9", "imp": "RLI", "unit": "kg", "qty": (200, 2400)},
     "gas": {"un": "UN1066", "name": "Nitrogen, compressed", "cls": "2.2", "imp": "RNG", "unit": "L", "qty": (600, 2400)},
     "corr": {"un": "UN1760", "name": "Corrosive liquid, n.o.s.", "cls": "8", "imp": "RCM", "unit": "L", "qty": (60, 400)},
+    "rry": {"un": "UN2915", "name": "Radioactive material, Type A package", "cls": "7", "imp": "RRY", "unit": "TI", "qty": (1, 3)},
     "id8000": {"un": "ID8000", "name": "Consumer commodity", "cls": "9", "imp": "RMD", "unit": "kg", "qty": (5, 40)},
 }
 
 POOLS = [
-    (("vaccine", "pharma", "plasma", "blood"),
+    (("vaccine", "pharma", "plasma", "blood", "insulin", "biologic", "clinical"),
      [("Pharmaceuticals, +2/+8 °C active containers", ["PIL", "COL"], "ice"), ("Medical consumables", ["GEN"], None)]),
-    (("hospital", "surgical", "oxygen"),
+    (("hospital", "surgical", "oxygen", "medical supplies"),
      [("Field hospital modules", ["HUM", "BIG"], None), ("Surgical instruments", ["GEN"], None),
       ("Oxygen cylinders", ["GEN"], "oxy", 2)]),
     (("relief", "humanitarian", "tent", "tarp", "shelter", "rescue", "water", "generator", "roofing", "resupply", "food"),
@@ -66,24 +67,36 @@ POOLS = [
      [("Express parcels", ["COU"], None), ("E-commerce parcels", ["ECC"], "id8000"), ("Mail bags", ["MAL"], None)]),
     (("flower", "rose", "carnation", "bulb"),
      [("Fresh-cut flowers", ["PEF", "PER", "COL"], None)]),
-    (("seafood", "salmon", "fish", "shrimp", "perch", "crayfish"),
+    (("seafood", "salmon", "fish", "shrimp", "perch", "crayfish", "tuna", "crab", "lobster"),
      [("Fresh seafood on ice", ["PES", "PER", "COL"], "ice")]),
-    (("fruit", "cherries", "asparagus", "blueberries", "avocados", "kiwifruit", "produce", "perishable", "citrus", "grapes", "meat", "beef", "dairy", "vegetables"),
+    (("fruit", "cherries", "asparagus", "blueberries", "avocados", "kiwifruit", "produce", "perishable", "citrus", "grapes", "meat", "beef", "dairy", "vegetables", "mango", "durian"),
      [("Fresh produce", ["PER", "EAT", "COL"], None), ("Chilled meat and dairy", ["PER", "EAT", "COL"], "ice")]),
     (("transformer", "machinery", "heavy", "oil", "mining", "equipment", "construction", "energy", "industrial"),
      [("Industrial machinery", ["HEA"], None), ("Oil and gas equipment", ["HEA"], None), ("Spare parts", ["GEN"], "paint")]),
     (("automotive", "auto parts", "show car", "car parts"),
      [("Automotive components", ["GEN"], "acid"), ("Show cars in climate-controlled crates", ["VAL", "BIG"], None, 3)]),
-    (("fashion", "garment", "apparel", "textile", "luxury", "retail"),
+    (("fashion", "garment", "apparel", "textile", "luxury", "retail", "designer", "runway"),
      [("Garments on hangers", ["GEN"], None), ("Luxury goods", ["VAL"], None), ("Retail stock", ["GEN"], None)]),
-    (("livestock", "cattle", "heifer", "rhino", "zoo"), [("Live animals", ["AVI"], None)]),
+    # live animals: the mission's own words go on the manifest (racehorses, chicks, bees, tortoises...), never generic freight
+    (("racehorse", "horse", "thoroughbred", "equine"), [("{cargo}", ["AVI"], None), ("Tack, feed and grooms' equipment", ["GEN"], None, 1)]),
+    (("livestock", "cattle", "heifer", "rhino", "zoo", "sheep", "goat", "chick", "bee", "tortoise", "bird", "wildlife", "animal"),
+     [("{cargo}", ["AVI"], None)]),
+    (("isotope",), [("Medical isotopes in shielded containers", ["RRY"], "rry", 99)]),
+    (("artwork", "museum", "painting", "sculpture"), [("Artworks in climate-controlled crates, escorted", ["VAL"], None)]),
+    (("satellite in", "communications satellite"), [("Satellite in a clean-room container", ["BIG", "HEA", "VAL"], None, 1),
+                                                    ("Satellite ground support equipment", ["GEN"], None)]),
+    (("wind turbine", "gearbox", "blade hub"), [("Wind turbine gearbox", ["HEA", "BIG"], None, 1), ("Blade hub assembly", ["HEA", "BIG"], None, 1),
+                                                ("Turbine spares", ["GEN"], None)]),
+    (("paints and resins", "flammable liquid"), [("Paints and resins", ["RFL"], "paint", 99)]),
+    (("laboratory", "reagent"), [("Containerized field laboratory", ["BIG"], None, 1), ("Test reagents", ["PIL", "COL"], "ice")]),
+    (("diamond", "jewelry", "precious metal"), [("{cargo}, escorted", ["VAL"], None)]),
     (("lithium", "battery packs", "un3480"), [("Lithium ion batteries", ["RLI"], "rli0", 99)]),
     (("corrosive", "chemicals"), [("Oil-field chemicals", ["RCM"], "corr", 99)]),
     (("industrial gases", "cylinders"), [("Industrial gas cylinders", ["RNG"], "gas", 99)]),
     (("bullion", "banknote"), [("Valuable cargo, escorted", ["VAL"], None)]),
     (("helicopter",), [("Helicopter on skid frame, blades removed", ["BIG", "HEA"], None, 1), ("Rotor blades and spares", ["BIG"], None)]),
     (("tyre", "tire"), [("Mining-truck tires", ["BIG", "HEA"], None)]),
-    (("stage", "lighting", "touring", "motorsport"), [("Touring production equipment", ["GEN"], None)]),
+    (("stage", "staging", "lighting", "touring", "motorsport", "concert", "backline", "team gear"), [("{cargo}", ["GEN"], None)]),
     (("wine", "beaujolais", "champagne"), [("Beaujolais Nouveau wine, palletized", ["EAT"], None), ("Wine in insulated pallet covers", ["EAT", "CRT"], None)]),
 ]
 GENERAL = [("General cargo", ["GEN"], None), ("Consolidated freight", ["GEN"], None), ("Machinery spares", ["GEN"], None)]
@@ -104,12 +117,16 @@ def aog_pool(cargo):
 
 
 def pool_for(cargo, category):
+    """What the units on a flight hold. Keyword pools give realistic items and handling codes; when nothing matches, the
+    mission's own cargo goes on the manifest (never unrelated general freight: racehorses aren't Haier for Costco)."""
     text = f"{cargo} {category}".lower()
+    what = str(cargo or "").strip()
+    what = (what[0].upper() + what[1:]) if what else "General cargo"
     pool = []
     for keys, items in POOLS:
         if any(k in text for k in keys):
-            pool += items
-    return pool or GENERAL
+            pool += [(it[0].replace("{cargo}", what),) + tuple(it[1:]) for it in items]
+    return pool or ([(what, ["GEN"], None)] if cargo and str(cargo).strip() else GENERAL)
 
 
 def generate(booking, fleet, pilot, now=None):
@@ -123,7 +140,7 @@ def generate(booking, fleet, pilot, now=None):
     # a preliminary load sheet hands its seed to the booking, so the release keeps the same units, positions and waybills
     seed = booking.get("manifest_seed") or f"{booking['flight_number']}|{booking.get('requested_at')}"
     rng = random.Random(seed)
-    ferry = m.get("category") == "Ferry" or str(m.get("cargo", "")).startswith("Ferry")
+    ferry = m.get("category") == "Ferry" or str(m.get("cargo", "")).startswith(("Ferry", "Positioning")) or "(no cargo)" in str(m.get("cargo", ""))
     payload_target = int(ofp.get("payload_lbs") or min(m["payload_lbs"], ac.get("max_payload_lbs", m["payload_lbs"])))
     if booking.get("cargo_transfer_ids"):
         payload_target = min(payload_target, int(m.get("payload_lbs") or 0), int(ac.get("max_payload_lbs") or 0))
