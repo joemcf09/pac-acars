@@ -198,5 +198,8 @@ def build(p, booking, rec=None, fleet=None):
             break
     if not take:
         take.append("Everything ran to plan. Keep this standard for the next one.")
+    import people
+    who = people.aboard(m, {c for x in cargo for c in x.get("shc") or []})
     return {"v": 1, "planned_actual": rows, "customer": customer, "dispatcher": dispatcher, "takeaways": take, "cargo": cargo,
+            "people": people.debrief_note(who, rate, p.get("landing_g"), p.get("bounces")),
             "on_time": None if not cargo else f"{sum(c['status'] == 'DELIVERED' for c in cargo)} / {len(cargo)}"}
