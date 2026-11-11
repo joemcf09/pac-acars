@@ -1888,7 +1888,7 @@ def enrich_pirep(p, booking, rec):
             if prog["next"] == m["id"] and prog["completed"] + 1 == prog["total"]:
                 r = next(r for r in ROTATIONS if r["id"] == m["rotation"])
                 bonuses.append([f"Rotation complete: {r['name']}", r["bonus"], "tour"])
-    if m.get("urgent") and p["status"] != "Failed" and not p.get("demo"):
+    if m.get("urgent") and not m.get("relief") and p["status"] != "Failed" and not p.get("demo"):   # relief flights earn no bonus
         on_time = bool(rec.oooi.get("in")) and rec.oooi["in"] <= m["deliver_by"] and p["status"] != "Diverted"
         p["urgent_on_time"] = on_time
         p["urgent"] = {"deliver_by": m["deliver_by"], "on_time": on_time}

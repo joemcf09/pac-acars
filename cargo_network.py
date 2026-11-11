@@ -57,6 +57,10 @@ def migrate(con):
         con.execute("ALTER TABLE cargo_shipments ADD COLUMN claimed_by TEXT")
     if "claimed_until" not in columns:
         con.execute("ALTER TABLE cargo_shipments ADD COLUMN claimed_until REAL")
+    # HUM is the IATA code for human remains. PAC once used it for humanitarian aid: take it off stored relief freight.
+    for row in con.execute("SELECT id, handling FROM cargo_shipments WHERE handling LIKE '%\"HUM\"%'").fetchall():
+        codes = [c for c in json.loads(row["handling"] or "[]") if c != "HUM"] or ["GEN"]
+        con.execute("UPDATE cargo_shipments SET handling=? WHERE id=?", (json.dumps(codes), row["id"]))
 
 
 def has_route(routes, origin, destination):

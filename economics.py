@@ -23,7 +23,7 @@ THREE_CREW = {"B722F", "B742F"}
 # Contract markup over the planned cost of the job, by kind of work
 MARKUP = {"Humanitarian": 1.06, "Scheduled": 1.12, "Express": 1.16, "Medical": 1.18, "Heavy lift": 1.20, "Premium": 1.24, "Sports & events": 1.22,
           "Urgent": 1.35, "Charter": 1.15, "Tour": 1.10, "Checkride": 1.03, "Ferry": 0.0}
-URGENT_KIND_MARKUP = {"Relief": 1.12}
+URGENT_KIND_MARKUP = {"Relief": 1.12, "Humanitarian relief": 1.12}
 
 
 def markup(mission):

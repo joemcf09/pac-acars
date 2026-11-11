@@ -1169,7 +1169,7 @@ const CF_KEYW = 24;
 const cfLine = (k, v) => { const pad = " ".repeat(CF_KEYW); const parts = String(v ?? "-").split("\n"); return parts.map((x, i) => (i ? pad : (k + "").toUpperCase().padEnd(CF_KEYW)) + x).join("\n"); };
 const cf2 = v => Number(v || 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const cf1 = v => Number(v || 0).toLocaleString("en-US", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
-const CF_SHC = { GEN: "General cargo", HUM: "Humanitarian relief", PER: "Perishable", PIL: "Pharmaceuticals", COL: "Cool goods", PES: "Fish and seafood", PEF: "Flowers",
+const CF_SHC = { GEN: "General cargo", HUM: "Human remains", PER: "Perishable", PIL: "Pharmaceuticals", COL: "Cool goods", PES: "Fish and seafood", PEF: "Flowers",
   ICE: "Dry ice", AVI: "Live animals", VAL: "Valuable cargo", AOG: "Aircraft on ground (parts)", HEA: "Heavy cargo (150 kg or more per piece)", BIG: "Outsize cargo",
   RLI: "Lithium-ion batteries", RCM: "Corrosive", RNG: "Non-flammable gas", RFL: "Flammable liquid", RMD: "Miscellaneous dangerous goods", CAO: "Cargo aircraft only",
   EAT: "Foodstuffs", CRT: "Controlled room temperature", MAL: "Mail", XPS: "Express", ELI: "Lithium-ion batteries in equipment", ELM: "Lithium metal batteries in equipment",
@@ -5023,7 +5023,7 @@ async function renderHome(h, st) {
   <div class="two-col">${h.events.map(e => `<div class="event-card"><h3>${esc(e.name)} <span class="tag">×${e.multiplier} points</span></h3><div class="when">${fmtDate(e.start)} – ${fmtDate(e.end)}</div><p style="margin:8px 0 0">${esc(e.description)}</p></div>`).join("")}</div>` : ""}
 
   ${(S.urgent || []).length ? `<div class="section-h"><div><div class="kicker">Needs a crew now</div><h2>Urgent requests</h2></div><button class="btn ghost small" onclick="S.board='urgent';show('missions')">All urgent requests</button></div>
-  <div class="urgent-cards">${S.urgent.map(m => `<div class="urgent-card"><div class="muted" style="font-size:12px;letter-spacing:.08em">${esc(m.urgent_kind.toUpperCase())} · ${esc(m.id)}</div>
+  <div class="urgent-cards">${S.urgent.map(m => m.relief ? reliefCard(m) : `<div class="urgent-card"><div class="muted" style="font-size:12px;letter-spacing:.08em">${esc(m.urgent_kind.toUpperCase())} · ${esc(m.id)}</div>
     <h3>${esc(m.title)}</h3><div class="rt">${m.origin.icao} → ${m.destination.icao}</div>
     <div class="muted" style="font-size:13px">${esc(S.fleet[m.aircraft[0]]?.name || "")} ${esc(m.suggested_airframe || "")} · ${fmt(m.payload_lbs)} lb</div>
     <div style="font-size:13px">Offer expires in <span class="countdown" data-countdown="${m.expires}"></span> · deliver by ${zulu(m.deliver_by)}</div>
@@ -5642,13 +5642,13 @@ function renderStaff() {
   const d = S.staff;
   const pendingReviews = d.reviews.filter(r => r.review_status === "Pending").length;
   const pendingApps = d.applications.filter(a => a.status === "Pending").length;
-  const tabs = [["reports", "Problem reports", 0], ["health", "Operations health", 0], ["campaigns", "Cargo campaigns", 0], ["cargostock", "Cargo stock", 0], ["reviews", "PIREP review", pendingReviews], ["applications", "Applications", pendingApps], ["transfers", "Transfer hours", d.transfer_pending || 0], ["activity", "Activity", d.activity_overdue || 0], ["roster", "Roster", 0],
+  const tabs = [["reports", "Problem reports", 0], ["health", "Operations health", 0], ["campaigns", "Cargo campaigns", 0], ["relief", "Relief missions", 0], ["cargostock", "Cargo stock", 0], ["reviews", "PIREP review", pendingReviews], ["applications", "Applications", pendingApps], ["transfers", "Transfer hours", d.transfer_pending || 0], ["activity", "Activity", d.activity_overdue || 0], ["roster", "Roster", 0],
     ["news", "News", 0], ["mx", "Maintenance", d.airframes.reduce((n, a) => n + (a.open_items || []).length, 0)], ["types", "Fleet types", 0], ["pphotos", "Partner photos", 0], ["airframes", "Airframes", d.airframes.filter(a => ["Maintenance", "Inspection", "A-check due", "Damaged"].includes(a.status)).length], ["events", "Events", 0], ["site", "Site and rules", 0]];
   $("#staffRoot").innerHTML = `<div class="profile-bar"><h1>Staff</h1><span class="muted">Running the airline. Only staff accounts can see this area.</span></div>
     <div class="staff-tabs" role="tablist">${tabs.map(([k, t, n]) => `<button role="tab" data-st="${k}" aria-selected="${S.staffTab === k}">${t}${n ? `<span class="count">${n}</span>` : ""}</button>`).join("")}</div>
     <div id="staffBody"></div>`;
   document.querySelectorAll("[data-st]").forEach(b => b.onclick = () => { S.staffTab = b.dataset.st; renderStaff(); });
-  ({ reports: staffProblemReports, health: staffOperationsHealth, campaigns: staffCargoCampaigns, cargostock: staffCargoStock, reviews: staffReviews, applications: staffApps, transfers: staffTransfers, activity: staffActivity, roster: staffRoster, news: staffNews, mx: staffMx, types: staffTypes, pphotos: staffPartnerPhotos, airframes: staffAirframes, events: staffEvents, site: staffSite })[S.staffTab]();
+  ({ reports: staffProblemReports, health: staffOperationsHealth, campaigns: staffCargoCampaigns, relief: staffRelief, cargostock: staffCargoStock, reviews: staffReviews, applications: staffApps, transfers: staffTransfers, activity: staffActivity, roster: staffRoster, news: staffNews, mx: staffMx, types: staffTypes, pphotos: staffPartnerPhotos, airframes: staffAirframes, events: staffEvents, site: staffSite })[S.staffTab]();
 }
 /* Staff › Activity: every pilot's next-flight-due date, who is on leave and who is overdue */
 async function staffCargoStock() {
@@ -7426,7 +7426,7 @@ async function loadLanes(force) {
 }
 function boardCard(m) {
   return `<button type="button" class="waybill mb-card mb-accent-${boardAccent(m)}${zoneFor(m)?.level === "restricted" ? " wb-restricted" : ""}" data-id="${esc(m.id)}" aria-pressed="${S.selected?.id === m.id}">
-    <span class="mb-card-top"><span class="mb-work-label">${m.urgent ? '<span class="mb-urgent-label">! URGENT</span>' : ''}${esc([...new Set([m.urgent && m.urgent_kind ? m.urgent_kind : boardSource(m), m.short_heavy ? "Short-haul heavies" : m.category || 'Cargo'])].join(" · "))}</span><span>${esc(m.id)}</span></span>
+    <span class="mb-card-top"><span class="mb-work-label">${m.relief ? '<span class="relief-label">HUMANITARIAN RELIEF</span>' : m.urgent ? '<span class="mb-urgent-label">! URGENT</span>' : ''}${esc([...new Set([m.urgent && m.urgent_kind ? m.urgent_kind : boardSource(m), m.short_heavy ? "Short-haul heavies" : m.category || 'Cargo'])].join(" · "))}</span><span>${esc(m.id)}</span></span>
     <span class="mb-route"><span><b>${esc(m.origin.icao)}</b><small>${esc(m.origin.city || m.origin.name)}</small></span><span aria-hidden="true">→</span><span><b>${esc(m.destination.icao)}</b><small>${esc(m.destination.city || m.destination.name)}</small></span></span>
     <strong class="mb-title">${esc(m.title)}</strong><span class="mb-cargo">${esc(m.cargo)}</span>
     <span class="mb-tags">${shedTag(m)}${laneTag(m)}${zoneTag(m)}${m.short_heavy ? `<span class="tag dark">${fmt(m.distance_nm)} NM · Routine delivery</span>` : ""}${boardCampaignLabels(m)}${bonusTags(m)}${freshTags(m)}${m.tour || m.rotation ? `<span class="tag dark">Leg ${esc(m.leg)}/${esc(m.legs)}</span>` : ''}${m.handling ? `<span class="tag grey">${esc(m.handling.label)}</span>` : ''}${m.challenge ? `<span class="tag amber">${esc(m.challenge.label)}</span>` : ''}${m.urgent ? `<span class="tag amber">URGENT ×1.5 · deliver by ${zulu(m.deliver_by)}</span><span>Offer: <span class="countdown" data-countdown="${Number(m.expires)}"></span></span>` : ''}</span>
@@ -7623,6 +7623,7 @@ function preparationPanel(b, st, available) {
 }
 async function refreshPreparation(){try{await refreshCore();await loadMe();await refreshReleaseGate();await loadBids();}catch(e){toast(e.message)}}
 function missionCargoBrief(m){
+  if(m.relief)return reliefBrief(m);
   const purpose={Humanitarian:'Relief cargo supports the teams receiving it at the destination.',Medical:'Medical cargo supports care and supply continuity at the destination.',Medicine:'Medical cargo supports care and supply continuity at the destination.',Express:'Express cargo supports time-sensitive connections and deliveries.', 'Heavy lift':'Outsize and heavy cargo needs an aircraft and load plan suited to the shipment.',AOG:'Aircraft parts help a receiving maintenance team return an aircraft to service.'};
   const date=t=>new Date(t*1000).toLocaleString('en-US',{timeZone:'UTC',dateStyle:'medium',timeStyle:'short'})+' UTC';
   const deadline=Number(m.deliver_by)>0?`Arrive by ${date(m.deliver_by)}`:'No fixed delivery deadline listed';
@@ -8345,7 +8346,10 @@ async function loadHappeningNow(root, d) {
   const [gf, net] = await Promise.all([api("/api/public/group-flight").catch(() => null), api("/api/public/network").catch(() => null)]);
   if (!root.isConnected) return;
   const items = [];
-  const urgent = S.urgent || [];
+  let urgent = S.urgent || [];
+  const relief = urgent.filter(m => m.relief);
+  if (relief.length) items.push(["RELIEF", esc(relief[0].title), `Based on a real disaster: ${esc(relief[0].relief.event)}. No bonus rewards.`, "Read the briefing", "S.board='urgent';show('missions')"]);
+  urgent = urgent.filter(m => !m.relief);
   const aog = urgent.filter(m => /aog/i.test(m.urgent_kind || ""));
   if (aog.length) items.push(["AOG", `${aog.length} aircraft grounded`, `${aog.map(m => esc(m.destination.icao)).join(", ")} waiting for parts and engineers.`, "Fly a recovery", "S.board='urgent';show('missions')"]);
   if (urgent.length > aog.length) items.push(["URGENT", `${urgent.length - aog.length} urgent request${urgent.length - aog.length > 1 ? "s" : ""}`, "Time-critical freight with bonus points.", "See urgent flights", "S.board='urgent';show('missions')"]);
@@ -8437,4 +8441,92 @@ function fillJoinGroupFlight(d) {
     <p>Fly together online, or any time that weekend. New pilots welcome.</p>
     <button class="btn ghost small" type="button" onclick="show('groupflight')">See the briefing</button>`;
   box.hidden = false;
+}
+
+/* ================= Humanitarian relief missions (real disasters, staff-approved) =================
+   Calm styling on purpose: no red, no countdowns, no bonus. The notice and the real sources always come first. */
+function reliefCard(m) {
+  return `<div class="urgent-card relief-card"><span class="relief-label">HUMANITARIAN RELIEF</span>
+    <h3>${esc(m.title)}</h3><div class="rt">${esc(m.origin.icao)} → ${esc(m.destination.icao)}</div>
+    <div class="muted" style="font-size:13px">${esc(S.fleet[m.aircraft[0]]?.name || "")} · ${fmt(m.payload_lbs)} lb</div>
+    <div style="font-size:13px">Based on a real disaster. Flown in respect for those affected; no bonus rewards.</div>
+    <button class="btn ghost small" style="align-self:flex-start;position:relative;z-index:1" onclick="flyMission('${esc(m.id)}')">Read the briefing</button></div>`;
+}
+function reliefBrief(m) {
+  const r = m.relief, day = t => new Date(t * 1000).toLocaleDateString("en-US", { timeZone: "UTC", day: "numeric", month: "short", year: "numeric" });
+  return `<section class="px-cargo relief-brief">
+    <div class="relief-notice"><h3>About this mission</h3><p>${esc(r.notice)}</p>
+      <p>Please fly it with respect. If you want to help for real, see the links below. Pagani Air Cargo is a flight simulation community; no real cargo is carried.</p></div>
+    <span class="relief-label">HUMANITARIAN RELIEF · ${esc(m.id)}</span>
+    <h3>${esc(m.title)}</h3><p>${esc(m.briefing)}</p>
+    <div class="relief-facts"><div><small>Event</small><b>${esc(r.type)}</b></div><div><small>Alert level</small><b>${esc(r.alert)} (GDACS)</b></div>
+      <div><small>Began</small><b>${esc(day(r.start))}</b></div><div><small>Area</small><b>${esc(r.country || "–")}</b></div></div>
+    ${r.severity ? `<p class="muted" style="font-size:14px">${esc(r.severity)}</p>` : ""}
+    <p class="muted" style="font-size:14px">Source: <a href="${esc(r.source)}" target="_blank" rel="noopener">GDACS alert</a>. PAC only repeats what the source says; follow the link for the full picture.</p>
+    <table class="relief-cargo"><thead><tr><th>Cargo</th><th class="r">Pieces</th><th class="r">Weight</th><th>Code</th></tr></thead><tbody>
+      ${r.items.map(i => `<tr><td><b>${esc(i.item)}</b><small>${esc(i.why)}</small></td><td class="r mono">${esc(i.pieces)}</td><td class="r mono">${fmt(i.kg)} kg</td><td class="mono">${esc(i.code)}</td></tr>`).join("")}
+    </tbody></table>
+    <p class="muted" style="font-size:13px">Shipper: humanitarian response depot, ${esc(r.depot_city)} (simulated). No dangerous goods on this flight.</p>
+    <div class="relief-ops">${r.ops.map(([k, v]) => `<div><small>${esc(k)}</small><span>${esc(v)}</span></div>`).join("")}</div>
+    <div class="relief-notice"><h3>Scoring and pay</h3><p>Flown and scored like any PAC flight, at normal pay. <b>No bonus points.</b> Booking closes ${esc(day(m.expires))}, or sooner when the real airlift winds down.</p></div>
+    <div class="relief-help"><h3>How to help for real</h3><p>These organizations are responding. PAC isn't affiliated with them and receives nothing; the links go straight to them.</p>
+      <ul>${r.help.map(([t, u]) => `<li><a href="${esc(u)}" target="_blank" rel="noopener">${esc(t)}</a></li>`).join("")}</ul></div></section>`;
+}
+async function staffRelief() {
+  const body = $("#staffBody");
+  body.innerHTML = `<p class="muted">Checking disaster alerts…</p>`;
+  let d;
+  try { d = await api("/api/staff/relief"); } catch (e) { body.innerHTML = `<div class="notice err">${esc(e.message)}</div>`; return; }
+  const when = t => t ? new Date(t * 1000).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }) : "never";
+  const tag = { draft: '<span class="tag amber">Waiting for review</span>', later: '<span class="tag amber">Remind later</span>', posted: '<span class="tag green">Posted</span>',
+    held: '<span class="tag">Held</span>', dismissed: '<span class="tag dark">Dismissed</span>', closed: '<span class="tag dark">Closed</span>' };
+  const checks = [["facts", "The facts match the linked source, and nothing is exaggerated or guessed."],
+    ["tone", "The wording is calm and respectful: no hype, nothing that makes it sound exciting."],
+    ["links", "The “How to help” links go to real, active appeals."],
+    ["timing", "It's the right time to post. For a very recent event, waiting a day or two is fine."]];
+  const draftHTML = x => {
+    const open = x.status === "draft" || x.status === "later";
+    return `<details class="relief-draft" ${open && x === d.drafts.find(y => y.status === "draft" || y.status === "later") ? "open" : ""}>
+    <summary><b>${esc(x.label || x.title)}</b> <span class="muted mono">· ${esc(x.alert)} · drafted ${esc(when(x.created))}</span> ${tag[x.status] || ""}</summary>
+    <div class="relief-draft-body">
+      ${x.held ? `<p><b>Held:</b> ${esc(x.reason)}</p>` : `
+      <div class="relief-facts"><div><small>Route</small><b class="mono">${esc(x.origin)} → ${esc(x.destination)}</b></div><div><small>Distance</small><b>${fmt(x.distance_nm)} nm</b></div>
+        <div><small>Aircraft</small><b>${esc(S.fleet[x.aircraft]?.name || x.aircraft)}</b></div><div><small>Payload</small><b>${fmt(x.payload_kg)} kg</b></div></div>
+      <p class="muted" style="font-size:14px">From the humanitarian depot at ${esc(x.depot_city)} to ${esc(x.dest_name || x.dest_city)}, ${fmt(x.event_to_airport_nm)} nm from the event. ${esc(x.severity || "")}</p>
+      <p style="font-size:14px">Cargo: ${x.cargo.map(i => `${esc(i.item)} (${esc(i.pieces)})`).join(" · ")}</p>`}
+      <p style="font-size:14px">Source: <a href="${esc(x.report_url)}" target="_blank" rel="noopener">GDACS alert</a>${x.mission_id ? ` · Mission <b class="mono">${esc(x.mission_id)}</b>` : ""}${x.status === "later" && x.post_after ? ` · Remind after ${esc(when(x.post_after))}` : ""}</p>
+      ${open ? `<form class="relief-form" data-id="${esc(x.id)}">
+        <label>Aircraft <select name="aircraft">${(x.aircraft_options || []).map(t => `<option value="${esc(t)}" ${t === x.aircraft ? "selected" : ""}>${esc(S.fleet[t]?.name || t)}</option>`).join("")}</select></label>
+        <label>Note added to the briefing (optional)<textarea name="note" rows="2" maxlength="600">${esc(x.note || "")}</textarea></label>
+        <fieldset><legend>How to help links (title | https:// link, one per line)</legend><textarea name="help" rows="3">${esc(x.help.map(h => h.join(" | ")).join("\n"))}</textarea></fieldset>
+        <button class="btn ghost small" type="button" data-act="edit">Save changes</button>
+        <fieldset class="relief-checks"><legend>Before you post: all four must be ticked</legend>${checks.map(([k, t]) => `<label><input type="checkbox" name="${k}"> ${t}</label>`).join("")}</fieldset>
+        <div class="row" style="gap:10px;flex-wrap:wrap"><button class="btn small" type="button" data-act="post" disabled>Post mission</button>
+          <button class="btn ghost small" type="button" data-act="later">Remind me in 24 hours</button><button class="btn ghost small" type="button" data-act="dismiss">Dismiss</button></div>
+        <p class="muted" style="font-size:13px">Dismissed drafts never come back for the same event.</p></form>`
+      : x.status === "posted" ? `<button class="btn ghost small" type="button" data-close="${esc(x.id)}">Close this mission now</button>` : ""}
+    </div></details>`;
+  };
+  body.innerHTML = `<p class="muted" style="max-width:90ch">Drafts come from real <a href="https://www.gdacs.org/" target="_blank" rel="noopener">GDACS</a> alerts at Orange or Red level for earthquakes, tropical cyclones, floods and volcanoes from the last two weeks. Nothing is posted until you review it. Events in PAC's conflict zones are held. Last checked: ${esc(when(d.fetched))}.</p>
+    ${d.error ? `<div class="notice err">Couldn't reach GDACS on the last check (${esc(d.error)}). It tries again within the hour.</div>` : ""}
+    ${d.drafts.length ? d.drafts.map(draftHTML).join("") : `<p>No drafts. When a serious disaster is reported, a draft appears here for you to review.</p>`}`;
+  const send = async (id, act, payload) => {
+    try { await api(`/api/staff/relief/${encodeURIComponent(id)}/${act}`, { method: "POST", body: payload || {} }); return true; } catch (e) { toast(e.message); return false; }
+  };
+  body.querySelectorAll(".relief-form").forEach(f => {
+    const id = f.dataset.id, post = f.querySelector('[data-act="post"]');
+    const ready = () => { post.disabled = !checks.every(([k]) => f[k].checked); };
+    checks.forEach(([k]) => f[k].onchange = ready);
+    const edits = () => ({ aircraft: f.aircraft.value, note: f.note.value,
+      help: f.help.value.split("\n").map(l => l.split("|").map(x => x.trim())).filter(p => p.length >= 2).map(p => [p[0], p.slice(1).join("|")]) });
+    f.querySelector('[data-act="edit"]').onclick = async () => { if (await send(id, "edit", edits())) { toast("Draft saved."); staffRelief(); } };
+    post.onclick = async () => {
+      if (!(await send(id, "edit", edits()))) return;
+      const checksOn = Object.fromEntries(checks.map(([k]) => [k, f[k].checked]));
+      if (await send(id, "post", { checks: checksOn })) { toast("Relief mission posted."); staffRelief(); }
+    };
+    f.querySelector('[data-act="later"]').onclick = async () => { if (await send(id, "later", { hours: 24 })) { toast("We'll keep it for later."); staffRelief(); } };
+    f.querySelector('[data-act="dismiss"]').onclick = async () => { if (await send(id, "dismiss")) { toast("Dismissed."); staffRelief(); } };
+  });
+  body.querySelectorAll("[data-close]").forEach(b => b.onclick = async () => { if (await send(b.dataset.close, "close")) { toast("Mission closed."); staffRelief(); } });
 }

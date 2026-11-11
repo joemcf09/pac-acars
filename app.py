@@ -4193,6 +4193,8 @@ import pilot_dashboard
 pilot_dashboard.register(app, globals())
 import operations_health
 operations_health.register(app, globals())
+import relief
+relief.register(app, globals())
 import rotation_planner
 rotation_planner.register(app, globals())
 import cargo_programs

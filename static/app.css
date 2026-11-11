@@ -1829,3 +1829,34 @@ html[data-design="loadsheet"] .fleet-chips button{border-radius:0}
 .ill-tag{position:absolute;right:12px;bottom:10px;z-index:2;font:600 11px var(--font);letter-spacing:.06em;color:#fff;background:rgba(0,0,0,.55);padding:3px 8px;border-radius:3px}
 .story-fig{position:relative;margin:0;min-width:0}.story-fig img{display:block;width:100%;height:100%;object-fit:cover}
 .hero.hero-slim img.bg{object-position:50% 78%}
+
+/* ---- Humanitarian relief: calm navy, never urgent red ---- */
+.relief-label{display:inline-block;font:600 11px var(--mono);letter-spacing:.08em;background:#D7E3F1;color:#1F2E40;padding:2px 8px;border-radius:3px}
+.urgent-card.relief-card{background:var(--white);color:var(--ink);border:1px solid #B9C7D8;border-left:6px solid #2D4F7C}
+.urgent-card.relief-card::after{display:none}
+.urgent-card.relief-card .muted{color:var(--steel)}
+.urgent-card.relief-card .relief-label{align-self:flex-start}
+.relief-brief .relief-notice{background:#F5F8FB;border:1px solid #B9C7D8;border-radius:6px;padding:16px 18px;margin:0 0 16px;color:#1E2126}
+.relief-brief .relief-notice h3{margin:0 0 6px;font-size:17px}
+.relief-brief .relief-notice p{margin:0 0 8px;line-height:1.55}
+.relief-facts{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin:12px 0}
+.relief-facts small,.relief-ops small{display:block;font:600 11px var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--steel)}
+.relief-cargo{width:100%;border-collapse:collapse;margin:10px 0;font-size:14px}
+.relief-cargo th{font:600 11px var(--mono);letter-spacing:.08em;color:var(--steel);text-align:left;padding:6px 8px;border-bottom:2px solid var(--ink)}
+.relief-cargo th.r,.relief-cargo td.r{text-align:right}
+.relief-cargo td{padding:8px;border-bottom:1px solid var(--line);vertical-align:top}
+.relief-cargo td small{display:block;color:var(--steel)}
+.relief-ops{display:grid;gap:8px;margin:12px 0}
+.relief-ops div{display:grid;grid-template-columns:90px 1fr;gap:10px;font-size:14px;line-height:1.45}
+.relief-help{border-top:4px solid #2D4F7C;padding-top:12px;margin-top:16px}
+.relief-help h3{margin:0 0 6px;font-size:17px}
+.relief-draft{background:var(--white);border:1px solid var(--line);border-radius:6px;padding:12px 16px;margin:0 0 10px}
+.relief-draft summary{cursor:pointer;display:flex;gap:8px;align-items:center;flex-wrap:wrap;min-height:32px}
+.relief-draft-body{padding-top:10px}
+.relief-form{display:grid;gap:10px;max-width:760px}
+.relief-form textarea,.relief-form select{width:100%}
+.relief-checks{border:1px solid #B9C7D8;border-radius:6px;padding:10px 14px;display:grid;gap:8px}
+.relief-checks label{display:flex;gap:8px;align-items:flex-start;font-size:14px;line-height:1.45}
+html[data-theme="dark"] .relief-brief .relief-notice{background:#1E2733;border-color:#3A4A5E;color:var(--ink)}
+html[data-design="loadsheet"] :is(.relief-draft,.relief-notice,.relief-checks){border-radius:0}
+.now-relief{background:#D7E3F1;color:#1F2E40}
