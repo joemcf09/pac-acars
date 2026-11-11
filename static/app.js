@@ -2095,6 +2095,7 @@ async function openAirframe(reg) {
           <div><span>Now at</span><b>${esc(a.location)}</b><small>${esc(a.status)}</small></div>
           <div><span>Hours / cycles</span><b>${esch(a.hours || 0)} / ${a.cycles || 0}</b></div>
           <div><span>A-check due in</span><b>${esch(Math.max(0, a.check_due_in))} h</b></div>
+          <div><span>Heavy check due in</span><b>${a.heavy_due_in == null ? "–" : esch(Math.max(0, a.heavy_due_in)) + " h"}</b></div>
           <div><span>Flights</span><b>${h.flights.length}</b></div>
           <div><span>Profit earned</span><b class="${moneyCls(h.profit)}">${money(h.profit)}</b></div>
           <div><span>Last flown by</span><b>${esc(h.flights[h.flights.length - 1]?.pilot || "–")}</b><small>${esc(a.last_flight || "")}</small></div>
@@ -5611,6 +5612,7 @@ function renderHandbook(cfg) {
       <p>Pending and rejected flights stay in your logbook, but only accepted flights count towards hours, rank, points, awards and leaderboards.</p>`],
     ["airframes", "Airframes and maintenance", `<ul><li>A landing firmer than ${Math.abs(rv.hard_landing_fpm)} fpm grounds the airframe for a hard-landing inspection until staff release it.</li>
       <li>Every ${cfg.a_check_hours} flight hours the airframe is due an A-check and is grounded until staff sign it off.</li>
+      <li>Every 6,000 flight hours it's due a heavy (C) check. That's done only at the maintenance base in Cincinnati: the aircraft can fly just one more flight, a ferry to KCVG (it shows on the mission board), then spends about three weeks in the hangar.</li>
       <li>A landing below −1,000 fpm damages the airframe. It stays out of service until staff return it.</li>
       <li>Staff manage the fleet: they add and remove airframes, and add, edit or retire aircraft types. Retired types can't be booked.</li></ul>`],
     ["events", "Events, featured routes and tours", `<ul><li><b>Events</b> such as Relief Week multiply the points on matching flights while they run.</li>
@@ -5645,7 +5647,7 @@ function renderStaff() {
   const pendingReviews = d.reviews.filter(r => r.review_status === "Pending").length;
   const pendingApps = d.applications.filter(a => a.status === "Pending").length;
   const tabs = [["reports", "Problem reports", 0], ["health", "Operations health", 0], ["campaigns", "Cargo campaigns", 0], ["relief", "Relief missions", 0], ["cargostock", "Cargo stock", 0], ["reviews", "PIREP review", pendingReviews], ["applications", "Applications", pendingApps], ["transfers", "Transfer hours", d.transfer_pending || 0], ["activity", "Activity", d.activity_overdue || 0], ["roster", "Roster", 0],
-    ["news", "News", 0], ["mx", "Maintenance", d.airframes.reduce((n, a) => n + (a.open_items || []).length, 0)], ["types", "Fleet types", 0], ["pphotos", "Partner photos", 0], ["airframes", "Airframes", d.airframes.filter(a => ["Maintenance", "Inspection", "A-check due", "Damaged"].includes(a.status)).length], ["events", "Events", 0], ["site", "Site and rules", 0]];
+    ["news", "News", 0], ["mx", "Maintenance", d.airframes.reduce((n, a) => n + (a.open_items || []).length, 0)], ["types", "Fleet types", 0], ["pphotos", "Partner photos", 0], ["airframes", "Airframes", d.airframes.filter(a => ["Maintenance", "Inspection", "A-check due", "Heavy check due", "Heavy check", "Damaged"].includes(a.status)).length], ["events", "Events", 0], ["site", "Site and rules", 0]];
   $("#staffRoot").innerHTML = `<div class="profile-bar"><h1>Staff</h1><span class="muted">Running the airline. Only staff accounts can see this area.</span></div>
     <div class="staff-tabs" role="tablist">${tabs.map(([k, t, n]) => `<button role="tab" data-st="${k}" aria-selected="${S.staffTab === k}">${t}${n ? `<span class="count">${n}</span>` : ""}</button>`).join("")}</div>
     <div id="staffBody"></div>`;
@@ -6031,7 +6033,7 @@ async function staffTypes(editCode) {
     } catch (err) { toast(err.message); }
   };
 }
-const AF_STATUS = ["Available", "Maintenance", "Inspection", "A-check due", "Damaged", "Stored"];
+const AF_STATUS = ["Available", "Maintenance", "Inspection", "A-check due", "Heavy check due", "Heavy check", "Damaged", "Stored"];
 function staffAirframes() {
   const types = fleetCodes();
   $("#staffBody").innerHTML = `<form class="form-card" id="afAdd"><div class="field"><label for="af_reg">Registration</label><input id="af_reg" name="reg" placeholder="N805PC" required></div>
@@ -6376,7 +6378,7 @@ function fleetSheet(k) {
       <div><span>Type in service since</span><b>${a.entered_service || "–"}</b></div>
       <div><span>Simulator</span><b>${esc(a.sim || "MSFS")}</b><small>${a.sim_model ? esc(a.sim_model) + " · " : ""}SimBrief ${esc(a.simbrief_type)}</small></div>
     </div>
-    <div class="af-list">${(S.airframes || []).filter(x => x.type === k).map(x => `<span class="af-chip ${["Maintenance", "Inspection", "A-check due", "Damaged"].includes(x.status) ? "grounded" : x.status === "Booked" ? "booked" : ""}" data-af="${x.reg}" role="button" tabindex="0" title="Open ${x.reg}'s history"><b>${x.reg}</b> at ${x.location} · ${esc(reservationSummary(x))} · ${esch(x.hours || 0)} h, ${x.cycles || 0} cycles${(x.open_items || []).length ? ` <span class="af-mx">${x.open_items.length} MX</span>` : ""}${x.aog ? ` <span class="af-mx" style="background:#b00000;color:#fff">AOG</span>` : ""}</span>`).join("") || `<span class="muted" style="font-size:13px">No airframes. Add them in Staff › Airframes.</span>`}</div>
+    <div class="af-list">${(S.airframes || []).filter(x => x.type === k).map(x => `<span class="af-chip ${["Maintenance", "Inspection", "A-check due", "Heavy check due", "Heavy check", "Damaged"].includes(x.status) ? "grounded" : x.status === "Booked" ? "booked" : ""}" data-af="${x.reg}" role="button" tabindex="0" title="Open ${x.reg}'s history"><b>${x.reg}</b> at ${x.location} · ${esc(reservationSummary(x))} · ${esch(x.hours || 0)} h, ${x.cycles || 0} cycles${(x.open_items || []).length ? ` <span class="af-mx">${x.open_items.length} MX</span>` : ""}${x.aog ? ` <span class="af-mx" style="background:#b00000;color:#fff">AOG</span>` : ""}</span>`).join("") || `<span class="muted" style="font-size:13px">No airframes. Add them in Staff › Airframes.</span>`}</div>
     ${liverySection(k)}
     <div class="ac-stats">
       <div><span>PAC flights</span><b>${fmt(st.flights)}</b></div>

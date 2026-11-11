@@ -262,6 +262,8 @@ def migrate(con):
         con.execute("ALTER TABLE pilots ADD COLUMN prefs TEXT")  # each pilot's own settings (VATSIM CID, map style…)
     if "stand" not in {r[1] for r in con.execute("PRAGMA table_info(airframes)")}:
         con.execute("ALTER TABLE airframes ADD COLUMN stand TEXT")  # where the aircraft is parked, so it departs from there
+    import heavy_check
+    heavy_check.migrate(con)
     con.execute("""CREATE TABLE IF NOT EXISTS events (id TEXT PRIMARY KEY, data TEXT)""")
     con.execute("""CREATE TABLE IF NOT EXISTS maint (id INTEGER PRIMARY KEY AUTOINCREMENT, reg TEXT, ata INTEGER, description TEXT,
         severity TEXT, category TEXT, due REAL, status TEXT DEFAULT 'open', source TEXT, reported_by TEXT, flight TEXT, pirep_id INTEGER,
@@ -901,6 +903,12 @@ def refresh_jobs_today(here=None):
             for oc in origins:
                 o = C["airport_obj"](oc)
                 j = o and _cargo_job(rng, o, stations, big, used, con)
+                if j:
+                    new.append(j)
+            import heavy_check
+            for fr in [dict(r) for r in con.execute("SELECT reg, type, location FROM airframes WHERE status=? AND location!=?",
+                                                    (heavy_check.DUE, heavy_check.MX_BASE))]:
+                j = heavy_check.ferry_job(fr, C["airport_obj"], C["gc_distance_nm"], C["FLEET"], _next_job_id(con, used), _day_end(), FERRY_BONUS)
                 if j:
                     new.append(j)
             frames = [dict(r) for r in con.execute("SELECT reg, type, location FROM airframes WHERE status='Available'")]
@@ -1760,6 +1768,7 @@ def airframes(con=None):
         con.close()
     for r in rows:
         r["check_due_in"] = round(A_CHECK_HOURS - (r["hours_since_check"] or 0), 1)
+        r["heavy_due_in"] = round(__import__("heavy_check").HEAVY_CHECK_HOURS - (r.get("hours_since_heavy") or 0))
         a = C["AIRPORTS"].get(r["location"])
         r["lat"], r["lon"] = (a["lat"], a["lon"]) if a else (None, None)
     return rows
@@ -1836,7 +1845,8 @@ def check_booking(m, ac, reg, st):
             row = dict(row)
             if row["type"] != ac:
                 return f"{reg} is a {C['FLEET'][row['type']]['name']}, not a {C['FLEET'][ac]['name']}.", None
-            if row["status"] != "Available":
+            import heavy_check
+            if row["status"] != "Available" and not heavy_check.may_book(row, m):
                 return f"{reg} is not available ({row['status'].lower()}).", None
             if st.get("enforce_airframes", True) and row["location"] != m["origin"]["icao"]:
                 return f"{reg} is at {row['location']}, not {m['origin']['icao']}. Pick an aircraft that's there or ferry one in.", None
@@ -2009,11 +2019,17 @@ def after_file(p, booking, rec, pirep_id):
                         status, note = "Inspection", f"Hard landing inspection after {p['flight_number']} ({touch})"
                     elif since >= A_CHECK_HOURS:
                         status, note = "A-check due", f"A-check due at {since:.0f} hours since last check"
+                    import heavy_check
+                    since_heavy = (row["hours_since_heavy"] or 0) + hrs if "hours_since_heavy" in row.keys() else 0
+                    heavy = heavy_check.after_flight(since_heavy, loc, status)
+                    heavy_until = None
+                    if heavy:
+                        status, note, heavy_until = heavy
                     arr_st = (booking.get("arr_stand") or {})
                     parked = arr_st.get("stand") if arr_st.get("icao") == loc else None
                     con.execute("""UPDATE airframes SET location=?, status=?, hours=hours+?, cycles=cycles+1, hours_since_check=?,
-                        last_flight=?, last_pilot=?, updated=?, note=?, stand=? WHERE reg=?""",
-                                (loc, status, hrs, since, p["flight_number"], pid, time.time(), note, parked, reg))
+                        last_flight=?, last_pilot=?, updated=?, note=?, stand=?, hours_since_heavy=?, heavy_until=? WHERE reg=?""",
+                                (loc, status, hrs, since, p["flight_number"], pid, time.time(), note, parked, since_heavy, heavy_until, reg))
                     auto = {"Damaged": (5, note), "Inspection": (53 if "Tail strike" in (note or "") else 5, note), "A-check due": (5, note)}
                     if status in auto:
                         iid = create_item(con, reg, auto[status][0], auto[status][1], "grounding", source="acars", flight=p["flight_number"], pirep_id=pirep_id)
@@ -3295,6 +3311,8 @@ def enforce_overdue():
         import aog
         with C["db"]() as con:
             events = [("aog_resolved", e) for e in aog.tick(con, now)]
+            import heavy_check
+            heavy_check.tick(con, now)
     except Exception as e:
         print("AOG tick:", e)
     _emit_bot(events)
