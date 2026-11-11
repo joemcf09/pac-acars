@@ -210,6 +210,8 @@ def dispatch_card(item, site):
     places = f"{o['city']} to {d['city']}" if o.get("city") and d.get("city") else ""
     if item["kind"] == "freight":
         title = f"{'🌸' if item.get('season') else '📦'} Freight waiting · {item['id']} · {item['title']}"
+    elif item["kind"] == "urgent" and item.get("relief"):     # calm on purpose: a real disaster, not a race
+        title = f"Humanitarian relief · {item['id']} · {item['title']}"
     elif item["kind"] == "urgent":
         title = f"🚨 Urgent · {item['id']} · {item['title']}"
     elif item["kind"] == "partner":
@@ -237,7 +239,9 @@ def dispatch_card(item, site):
         fields.append(("Deliver by", f"<t:{int(item['deliver_by'])}:t> (<t:{int(item['deliver_by'])}:R>)"))
     if item.get("expires"):
         fields.append(("Book by", f"<t:{int(item['expires'])}:R>"))
-    colour = DISPATCH_COLOURS.get(item["kind"]) or DISPATCH_COLOURS.get(item.get("priority"), 0x5E6470)
+    if item.get("relief"):
+        desc = (f"Based on a real disaster: {item.get('event')}. Flown in respect for those affected; no bonus rewards.\n" + desc)[:600]
+    colour = 0x2D4F7C if item.get("relief") else DISPATCH_COLOURS.get(item["kind"]) or DISPATCH_COLOURS.get(item.get("priority"), 0x5E6470)
     return {"title": title[:250], "description": desc, "colour": colour, "fields": fields,
             "url": f"{site.rstrip('/')}/#{'cargo' if item['kind'] == 'freight' else 'missions'}"}
 

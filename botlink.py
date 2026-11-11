@@ -228,6 +228,8 @@ def _work_item(kind, m, created):
         out.update(operator=op.get("name", ""), callsign=f"{op.get('callsign', '')} {num}".strip(), bonus=m.get("contract_bonus") or 0)
     if kind == "urgent":
         out.update(deliver_by=m.get("deliver_by"), airframe=m.get("suggested_airframe", ""))
+        if m.get("relief"):
+            out.update(relief=True, event=m["relief"].get("event", ""), deliver_by=None)
     return out
 
 
