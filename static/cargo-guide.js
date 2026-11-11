@@ -4,7 +4,7 @@ const CG_ILL = {
   idea: ["ill-777f-sunset", "A PAC 777F being loaded through its main-deck cargo door, which sits behind the wing on the 777F."],
   sheds: ["ill-warehouse-buildup", "Build-up in the warehouse: freight is stacked on a pallet, wrapped, netted and weighed before it goes to the aircraft."],
   planning: ["ill-767-main-deck-loading", "A netted pallet going up a high loader into a 767-300F, whose main-deck door is ahead of the wing."],
-  care: ["ill-main-deck-interior", "Pallets locked down on the main deck. Rollers move them into position; locks hold them in flight."],
+  care: ["ill-cold-chain", "A pharma cold room: active temperature-controlled containers are checked and logged before they go out to the aircraft. Pharmaceuticals usually travel at +2 to +8 °C."],
   paperwork: ["ill-ake-lower-hold", "An AKE (LD3) container going into the lower hold on a belly loader. Its sloped corner fits the curve of the fuselage."],
 };
 function cgFigure([file, caption]) {

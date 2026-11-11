@@ -4977,7 +4977,7 @@ async function renderHome(h, st) {
   const [news, shots] = await Promise.all([loadNews(), api("/api/gallery?limit=8").catch(() => [])]);
   $("#homeRoot").innerHTML = `
   <section class="hero${S.me ? " hero-slim" : ""}">
-    <img class="bg" fetchpriority="high" decoding="async" src="${S.me ? esc(displayPhoto(heroAc.photo, 1600)) : "/static/illustrations/ill-777f-sunset.webp"}" alt="">
+    <img class="bg" fetchpriority="high" decoding="async" src="/static/illustrations/${S.me ? "ill-briefing-room" : "ill-ramp-night"}.webp" alt=""><span class="ill-tag">Illustration</span>
     <div class="hero-in">
       ${live ? `<div class="live-pill"><i></i>${esc(S.booking?.flight_number || "")} in the air · ${esc(st.phase_label)}</div>` : ""}
       <img class="wm" src="/static/pac-wordmark-white.png" alt="Pagani Air Cargo">
@@ -5062,7 +5062,7 @@ async function renderHome(h, st) {
   </div>
 
   <div class="section-h"><div><div class="kicker">Our story</div><h2>Why PAC exists</h2></div></div>
-  <article class="founder pac-story"><img src="/static/pac-story-sunset.png" alt="PAC freighter flying above sunlit clouds at sunset" loading="lazy" width="1893" height="1079">
+  <article class="founder pac-story"><figure class="story-fig"><img src="/static/illustrations/ill-hq-dusk.webp" alt="Illustration of the PAC headquarters and freight terminal at KCVG at dusk, with PAC freighters on the apron" loading="lazy" width="1600" height="900"><span class="ill-tag">Illustration</span></figure>
     <div><blockquote>${esc(site.story)}</blockquote></div></article>
 
   ${Object.keys(S.partners || {}).length ? `<div class="section-h"><div><div class="kicker">Partners</div><h2>Flying alongside the biggest names in cargo</h2><p>When these operators are short of qualified captains, they hire PAC pilots to fly their aircraft. PAC crews also ride their freighters on partner jumpseat agreements.</p></div><button class="btn ghost small" onclick="S.board='partners';show('missions')">Partner crew requests</button></div>
@@ -8312,7 +8312,7 @@ function whyPacHTML() {
     ["Fly online", "IVAO certified and flying on VATSIM as PGI. A weekly group flight anyone can join.", "This week's group flight", "show('groupflight')"]];
   return `<section class="why-pac" aria-label="Why fly for PAC">
     ${S.me ? "" : `<div class="section-h"><div><div class="kicker">Why PAC</div><h2>A cargo airline that takes the freight seriously</h2></div></div>
-    <div class="why-grid">${pillars.map(([h, p, l, go], i) => `<article class="why-card"><img class="why-img" src="/static/illustrations/${["ill-warehouse-buildup", "ill-767-main-deck-loading", "ill-main-deck-interior", "ill-ake-lower-hold"][i]}.webp" alt="" loading="lazy"><span class="why-n">0${i + 1}</span><h3>${h}</h3><p>${p}</p><button class="why-link" type="button" onclick="${go}">${l} →</button></article>`).join("")}</div>`}
+    <div class="why-grid">${pillars.map(([h, p, l, go], i) => `<article class="why-card"><img class="why-img" src="/static/illustrations/${["ill-warehouse-buildup", "ill-767-main-deck-loading", "ill-hangar-777f", "ill-ake-lower-hold"][i]}.webp" alt="" loading="lazy"><span class="why-n">0${i + 1}</span><h3>${h}</h3><p>${p}</p><button class="why-link" type="button" onclick="${go}">${l} →</button></article>`).join("")}</div>`}
     <form class="track-strip" onsubmit="event.preventDefault();const v=this.awb.value.replace(/\\D/g,'');if(v)location.href='/track/'+v">
       <div><div class="kicker">Track a shipment</div><b>Where's my freight?</b></div>
       <input name="awb" inputmode="numeric" autocomplete="off" placeholder="901-10000123" aria-label="Air waybill number">
