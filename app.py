@@ -3765,7 +3765,10 @@ def lanes_api():
     for L in out:
         L["city_from"] = (AIRPORTS.get(L["origin"]) or {}).get("city")
         L["city_to"] = (AIRPORTS.get(L["destination"]) or {}).get("city")
-    return jsonify({"lanes": out, "base": lane_rep.BASE, "window_days": lane_rep.WINDOW_S // 86400})
+    import accounts
+    with db() as con:
+        acc = sorted(accounts.compute(con).values(), key=lambda a: (-a["shipments"], -a["score"]))
+    return jsonify({"lanes": out, "base": lane_rep.BASE, "window_days": lane_rep.WINDOW_S // 86400, "accounts": acc[:30]})
 
 
 @app.get("/api/staff/cargo-stock")

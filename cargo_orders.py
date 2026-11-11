@@ -19,6 +19,7 @@ import uuid
 import cargo_network
 import dispatch
 import lanes as lane_rep
+import accounts
 import seasons
 import warehouses
 import shipments
@@ -108,6 +109,8 @@ def make_order(con, route, fleet, pilot, rng, now, season=None):
                  for p in d.get("positions") or [] if p.get("awb") == s["awb"]]
         if not units:
             continue
+        if not accounts.keeps_order(s["shipper"]["name"], rng):
+            continue        # an unhappy account booked this one with another carrier
         awb = cargo_network._next_awb(con, set())
         sid = uuid.uuid4().hex
         hours = SERVICE_HOURS.get(s.get("service"), 72) + rng.choice((0, 12, 24))
@@ -173,6 +176,7 @@ def tick(con, routes, fleet, pilot, st, now=None, force=False):
     rng = random.Random(f"orders|{int(now // TICK_S)}")
     try:
         reps = lane_rep.compute(con, now)
+        accounts.refresh(con, now)
     except Exception as e:            # reputation shapes demand; it must never stop stocking
         print("lane reputation:", e)
         reps = {}
