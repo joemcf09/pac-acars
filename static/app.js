@@ -8412,8 +8412,10 @@ function homeLayout() {
     row.innerHTML = fleetCodes().map(k => `<button type="button" onclick="show('fleet')">${esc(S.fleet[k].name.replace(/^(Boeing|Airbus|McDonnell Douglas) /, ""))}</button>`).join("");
     lgrid.replaceWith(row); liv.els[liv.els.indexOf(lgrid)] = row;
   }
-  const final = put(["hero", "proof-band", "why-pac", "live from the ops center", "the network", "the liveries", "join",
+  const final = put(["hero", "proof-band", "why-pac", "live from the ops center", "the network", "online networks", "the liveries", "join",
     "our story", "career path", "partners", "community", "join the crew", "dir-badges", "stat-band", "site-foot"]).filter(g => !drop.has(g.key));
+  const footIdx = final.findIndex(g => g.key === "site-foot");
+  if (footIdx > -1) final.push(final.splice(footIdx, 1)[0]);
   final.forEach(g => g.els.forEach(el => root.append(el)));
   const foot = root.querySelector(".site-foot");
   if (track && foot) { track.classList.add("track-foot"); foot.before(track); }
