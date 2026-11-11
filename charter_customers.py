@@ -14,6 +14,9 @@ def apply(mission,spec):
     if not c or not shipment: raise ValueError('Choose a valid customer and shipment.')
     if mission['category']=='Ferry': raise ValueError('Customer shipments require cargo. Choose Independent charter for a ferry.')
     mission['charter'].update(customer_id=key,shipment_id=shipment['id'])
+    # the shipment decides what is carried (the cargo picker may still hold an earlier choice)
+    was=mission['cargo']; mission['cargo']=shipment['cargo']; mission['charter']['cargo']=shipment['cargo']
+    mission['briefing']=mission['briefing'].replace(f"{was}, ",f"{shipment['cargo']}, ",1)
     mission['customer']={'id':key,'name':c['name'],'logo':c['logo'],'simulated':True}
     mission['title']=c['name']+' · '+shipment['title']+': '+mission['origin']['icao']+' to '+mission['destination']['icao']
     mission['briefing']='Fictional PAC customer assignment. '+shipment['brief']+' '+mission['briefing']+' PAC operates this flight; no affiliation, sponsorship or endorsement is implied.'

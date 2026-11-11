@@ -861,6 +861,8 @@ def build_charter(spec):
     warnings = []
     if dist > ac["range_nm"]:
         warnings.append(f"{dist:,.0f} nm is beyond the {ac['name']}'s typical range of {ac['range_nm']:,} nm. Plan a lighter load or a fuel stop.")
+    if dist < 100 and not ferry:
+        warnings.append(f"{o['icao']} to {d['icao']} is only {dist:,.0f} nm. Real freight this short goes by truck (road feeder service), not by air.")
     for a in (o, d):
         if a["rwy_ft"] and a["rwy_ft"] < ac["min_rwy_ft"]:
             warnings.append(f"{a['icao']}'s longest runway is {a['rwy_ft']:,} ft; the {ac['name']} normally needs {ac['min_rwy_ft']:,} ft. Check performance.")

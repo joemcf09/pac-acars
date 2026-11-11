@@ -566,7 +566,7 @@ function renderCharterForm() {
       <div class="field"><label for="ch_pl">Cargo weight (lb)</label><input id="ch_pl" type="number" min="0" step="any" value="${esc(c.payload_lbs)}" placeholder="Up to ${fmt(f.max_payload_lbs)}"></div>
     </div>
     <div class="grid2">
-      <div class="field"><label for="ch_cargo">Cargo</label><select id="ch_cargo">${S.cargoTypes.map(t => `<option ${t === c.cargo ? "selected" : ""}>${esc(t)}</option>`).join("")}<option value="__other" ${knownCargo ? "" : "selected"}>Something else…</option></select>
+      ${c.customer_id ? `<div class="field"><label>Cargo</label><input value="${esc(c.cargo)}" readonly aria-readonly="true"><small class="muted">Set by the customer's shipment. Choose Independent charter to carry something else.</small></div>` : ""}<div class="field" ${c.customer_id ? "hidden" : ""}><label for="ch_cargo">Cargo</label><select id="ch_cargo">${S.cargoTypes.map(t => `<option ${t === c.cargo ? "selected" : ""}>${esc(t)}</option>`).join("")}<option value="__other" ${knownCargo ? "" : "selected"}>Something else…</option></select>
         <input id="ch_cargo_other" placeholder="Describe the cargo" value="${knownCargo ? "" : esc(c.cargo)}" style="margin-top:6px" ${knownCargo ? "hidden" : ""}></div>
       <div class="field"><label for="ch_pr">Priority</label><select id="ch_pr">${["Standard", "High", "Critical"].map(p => `<option ${p === c.priority ? "selected" : ""}>${p}</option>`).join("")}</select></div>
     </div>
