@@ -1778,3 +1778,27 @@ a.awb-track:hover{color:var(--red);text-decoration-color:var(--red)}
 html[data-design="loadsheet"] :is(.why-card,.track-strip,.start-here,.start-steps li,.now-item){border-radius:0}
 @media(max-width:980px){.why-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:600px){.why-grid{grid-template-columns:1fr}.track-strip{grid-template-columns:1fr}.start-steps li{grid-template-columns:28px minmax(0,1fr)}.start-steps li>:last-child{grid-column:2;justify-self:start}.start-here{padding:18px}}
+
+/* ---- Home redesign: proof band, slim pilot hero, join block, track strip in the footer ---- */
+.proof-band{width:100vw;margin-left:calc(50% - 50vw);background:var(--panel-dark);color:#fff}
+.proof-in{max-width:1180px;margin:0 auto;display:grid;grid-template-columns:repeat(4,minmax(0,1fr))}
+.proof-in>div{padding:26px 24px;border-right:1px solid #363B44;display:flex;flex-direction:column;gap:2px}
+.proof-in>div:last-child{border-right:0}
+.proof-in span{font-size:13px;color:#B9BFC8}
+.proof-in b{font-size:40px;font-weight:800;line-height:1.1}.proof-in small{font-size:20px;font-weight:600}
+.hero.hero-slim{min-height:260px}
+.hero.hero-slim h1{font-size:38px;max-width:none}
+.home-join{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:18px;margin:48px 0 8px}
+.join-gf{background:var(--white);color:var(--ink);border:1px solid var(--line);border-top:4px solid var(--red);border-radius:6px;padding:28px;display:flex;flex-direction:column;gap:8px}
+.join-gf h3{margin:0;font-size:26px}.join-gf p{margin:0;color:var(--steel);line-height:1.5}
+.join-route{font:600 15px var(--mono);color:var(--steel)}
+.join-gf .btn{align-self:flex-start;margin-top:6px}
+.join-cta{background:var(--red);color:#fff;border-radius:6px;padding:28px;display:flex;flex-direction:column;justify-content:center;gap:10px}
+.join-cta h3{margin:0;font-size:32px;line-height:1.1;font-weight:800;color:#fff}.join-cta p{margin:0;font-size:17px;color:#FFE5E5}
+.join-cta .btn.ghost{color:#fff;border-color:rgba(255,255,255,.75);background:transparent}
+.track-strip.track-foot{margin-top:40px}
+html[data-design="loadsheet"] :is(.join-gf,.join-cta){border-radius:0}
+@media(max-width:760px){.proof-in{grid-template-columns:repeat(2,minmax(0,1fr))}.proof-in>div:nth-child(2){border-right:0}.proof-in>div{border-bottom:1px solid #363B44}.proof-in b{font-size:30px}.hero.hero-slim h1{font-size:28px}}
+.join-cta .btn.light{background:#fff;color:var(--red);border-color:#fff}
+.home-visitor .livery-grid>:nth-child(n+4){display:none}
+.hero.hero-slim .wm{display:none}.hero.hero-slim{min-height:300px}

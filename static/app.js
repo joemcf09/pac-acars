@@ -4976,21 +4976,28 @@ async function renderHome(h, st) {
   const routeCount = ic => S.routes.filter(r => r.origin.icao === ic || r.destination.icao === ic).length;
   const [news, shots] = await Promise.all([loadNews(), api("/api/gallery?limit=8").catch(() => [])]);
   $("#homeRoot").innerHTML = `
-  <section class="hero">
+  <section class="hero${S.me ? " hero-slim" : ""}">
     <img class="bg" fetchpriority="high" decoding="async" src="${esc(displayPhoto(heroAc.photo, 1600))}" alt="">
     <div class="hero-in">
       ${live ? `<div class="live-pill"><i></i>${esc(S.booking?.flight_number || "")} in the air · ${esc(st.phase_label)}</div>` : ""}
       <img class="wm" src="/static/pac-wordmark-white.png" alt="Pagani Air Cargo">
-      <h1>${esc(site.tagline)}</h1>
-      <p>${esc(site.intro)}</p>
-      <div class="row">${S.me ? "" : `<a class="btn light" href="#apply" id="heroApply">Apply to fly</a>`}<button class="btn ghost" onclick="show('fleet')">Meet the fleet</button><button class="btn ghost" onclick="show('missions')">Book a flight</button></div>
+      ${S.me ? `<h1>Welcome back, ${esc(S.me.name)}</h1>
+      <p>Your briefing, your bookings and what needs a crew today are on your dashboard.</p>
+      <div class="row"><button class="btn light" onclick="show('dashboard')">Go to your dashboard</button><button class="btn ghost" onclick="show('missions')">Book a flight</button></div>`
+      : `<h1>Real freight. Real paperwork. Real consequences.</h1>
+      <p>Pagani Air Cargo is a cargo-only virtual airline for Microsoft Flight Simulator and X-Plane. Every load has a waybill, a deadline and somewhere to be.</p>
+      <div class="row"><a class="btn light" href="#apply" id="heroApply">Apply to fly</a>${PUBLIC_VIEWS.includes("live") ? `<button class="btn ghost" onclick="show('live')">Watch a flight live</button>` : `<button class="btn ghost" onclick="location.href='/network'">See the cargo network</button>`}<button class="btn ghost" onclick="show('fleet')">Meet the fleet</button></div>`}
     </div>
   </section>
-  <section class="stat-band"><div class="stat-band-in">
+  ${S.me ? "" : `<section class="proof-band"><div class="proof-in">
+    <div><span>Pilots</span><b>${fmt(t.pilots)}</b></div>
+    ${t.flights ? `<div><span>Flights flown</span><b>${fmt(t.flights)}</b></div><div><span>Freight delivered</span><b>${fmtLbShort(t.cargo)} <small>lb</small></b></div>` : `<div><span>Routes</span><b>${fmt(t.routes)}</b></div><div><span>Stations</span><b>${fmt(t.stations)}</b></div>`}
+    <div><span>Freighter types</span><b>${Object.keys(S.fleet).length}</b></div></div></section>`}
+  <section class="stat-band"${S.me ? "" : " hidden"}><div class="stat-band-in">
     <div><span>Pilots</span><b>${fmt(t.pilots)}</b></div>
     ${t.flights ? `<div><span>Flights flown</span><b>${fmt(t.flights)}</b></div>
     <div><span>Block hours</span><b>${esch(t.hours)}</b></div>
-    <div><span>Cargo delivered</span><b>${fmt(t.cargo / 1000)}k lb</b></div>` : `<div><span>Aircraft types</span><b>${Object.keys(S.fleet).length}</b></div><div><span>Main hub</span><b>KCVG</b></div><div><span>Simulators</span><b>MSFS · XP</b></div>`}
+    <div><span>Cargo delivered</span><b>${fmtLbShort(t.cargo)} lb</b></div>` : `<div><span>Aircraft types</span><b>${Object.keys(S.fleet).length}</b></div><div><span>Main hub</span><b>KCVG</b></div><div><span>Simulators</span><b>MSFS · XP</b></div>`}
     <div><span>Routes</span><b>${fmt(t.routes)}</b></div>
     <div><span>Stations</span><b>${fmt(t.stations)}</b></div>
     <div><span>Aircraft</span><b>${fmt(t.airframes)}</b></div>
@@ -5092,12 +5099,13 @@ async function renderHome(h, st) {
     </form>
   </div>
   ${siteFooter(site)}`;
+  homeLayout();
   fillHomeCampaigns(); buildBoard($("#fbDep")); buildBoard($("#fbArr")); refreshBoard(); tickClock(); tickCountdowns();
   bindShots($("#homeRoot"), shots, () => loadHome());
   const hero = $("#homeRoot .hero");
   gfHomeStrip();
   const notices = news.filter(n => n.kind === 'notam');
-  if (hero && notices.length) hero.insertAdjacentHTML('afterend', `<section class="home-notices" aria-label="Latest company notices"><div class="home-notices-heading"><b>Latest notices</b><span>${notices.length} company notice${notices.length===1?'':'s'} · Select a title to read</span></div>${notices.map(n=>`<details${n.important?' class="notice-important"':''}><summary>${n.important?'<span class="notice-priority">Important</span>':''}${esc(n.title)}</summary><div class="home-notice-body">${esc(n.body || 'No further details.')}<small>${esc(n.author || 'PAC Operations')}${n.time?' · '+new Date(n.time*1000).toLocaleDateString('en-US'):''}</small></div></details>`).join('')}</section>`);
+  if (S.me && hero && notices.length) hero.insertAdjacentHTML('afterend', `<section class="home-notices" aria-label="Latest company notices"><div class="home-notices-heading"><b>Latest notices</b><span>${notices.length} company notice${notices.length===1?'':'s'} · Select a title to read</span></div>${notices.map(n=>`<details${n.important?' class="notice-important"':''}><summary>${n.important?'<span class="notice-priority">Important</span>':''}${esc(n.title)}</summary><div class="home-notice-body">${esc(n.body || 'No further details.')}<small>${esc(n.author || 'PAC Operations')}${n.time?' · '+new Date(n.time*1000).toLocaleDateString('en-US'):''}</small></div></details>`).join('')}</section>`);
   if (hero && S.me) hero.insertAdjacentHTML('afterend', `<section class="home-next" id="homeNext">${homeNextHTML(st)}</section>`);
   if (hero && S.me && !S.me.activity) loadMe().then(() => { const hn = $("#homeNext"); if (hn) hn.innerHTML = homeNextHTML(st); }).catch(() => {});
   if ($("#heroApply")) $("#heroApply").onclick = e => { e.preventDefault(); $("#apply").scrollIntoView({ behavior: "smooth" }); };
@@ -8148,7 +8156,8 @@ async function gfHomeStrip() {
     const d = S.groupFlight && S.groupFlight._at > Date.now() - 60000 ? S.groupFlight : await api("/api/public/group-flight");
     S.groupFlight = { ...d, _at: Date.now() };
     const hero = $("#homeRoot .hero");
-    if (!d.enabled || !hero || $("#gfStrip")) return;
+    if (!S.me) fillJoinGroupFlight(d);
+    if (!d.enabled || !hero || !S.me || $("#gfStrip")) return;
     const e = d.event;
     hero.insertAdjacentHTML("afterend", `<a id="gfStrip" class="gf-strip" href="#groupflight"><span class="kicker">Weekly group flight · optional</span><b>${esc(e.dep.icao)} → ${esc(e.arr.icao)} · ${esc(e.title)}</b><span>${esc(gfWhen(e.start, { weekday: "long", hour: "numeric", minute: "2-digit", timeZoneName: "short" }))} · ${gfCountdown(e.start)} · fly it any time this weekend</span><span class="gf-strip-go">Details ›</span></a>`);
     $("#gfStrip").onclick = ev => { ev.preventDefault(); show("groupflight"); };
@@ -8345,4 +8354,58 @@ async function loadHappeningNow(root, d) {
   else if (net?.waiting?.length) { const w = net.waiting[0]; items.push(["FREIGHT", `${fmt(w.lbs)} lb waiting at ${esc(w.icao)}`, `The most freight sitting anywhere in the network right now.`, "Cargo network", "location.href='/network'"]); }
   if (gf?.enabled && gf.event) items.push(["GROUP", esc(gf.event.title || "Weekly group flight"), `${esc(gfWhen(gf.event.start, { weekday: "long", hour: "numeric", minute: "2-digit" }))} your time. ${esc(gf.schedule || "")}`, "Sign up", "show('groupflight')"]);
   root.innerHTML = `<div class="kicker">Happening now</div><h3>What needs a crew</h3>${items.length ? `<div class="now-grid">${items.map(([tag, h, p, l, go]) => `<div class="now-item"><span class="now-tag now-${tag.toLowerCase()}">${tag}</span><b>${h}</b><small>${p}</small><button class="why-link" type="button" onclick="${go}">${l} →</button></div>`).join("")}</div>` : `<p>All quiet: no urgent flights or waiting freight right now. A good time to fly a scheduled route.</p>`}`;
+}
+
+
+/* ================= Home page layout (Nov 2026 redesign) =================
+   The template renders every section; this puts them in order. Visitors get a short page that tells the story
+   (hero, proof numbers, why PAC, PAC flying now, the fleet, join in); pilots get the slim welcome bar with notices
+   and company news first, then everything else as before. */
+function fmtLbShort(n) { n = Number(n) || 0; return n >= 1e6 ? (n / 1e6).toFixed(1).replace(/\.0$/, "") + "M" : n >= 1e3 ? fmt(Math.round(n / 1e3)) + "k" : fmt(n); }
+function homeLayout() {
+  const root = $("#homeRoot"); if (!root) return;
+  const groups = [], byKey = {};
+  const solo = el => el.matches(".hero,.stat-band,.proof-band,.dir-badges,.why-pac,.site-foot,#homeCampaigns,.home-notices,.gf-strip");
+  let cur = null;
+  [...root.children].forEach(el => {
+    if (solo(el) || el.classList.contains("section-h") || !cur) {
+      const key = el.classList.contains("section-h") ? (el.querySelector(".kicker")?.textContent || "").trim().toLowerCase()
+        : el.id === "homeCampaigns" ? "campaigns" : (el.className.split(" ")[0] || el.tagName.toLowerCase());
+      cur = { key, els: [el] }; groups.push(cur); byKey[key] = cur;
+      if (solo(el)) cur = null;
+    } else cur.els.push(el);
+  });
+  const put = keys => { const seen = new Set(); const out = [];
+    keys.forEach(k => { const g = byKey[k]; if (g && !seen.has(g)) { seen.add(g); out.push(g); } });
+    groups.forEach(g => { if (!seen.has(g)) out.push(g); }); return out; };
+  root.classList.remove("home-visitor");
+  if (S.me) {
+    put(["hero", "company news"]).forEach(g => g.els.forEach(el => root.append(el)));
+    return;
+  }
+  root.classList.add("home-visitor");
+  const drop = new Set(["company news", "from the flight deck", "campaigns", "on now", "needs a crew now", "operations"]);
+  groups.filter(g => drop.has(g.key)).forEach(g => g.els.forEach(el => el.remove()));
+  const join = document.createElement("section"); join.className = "home-join"; join.setAttribute("aria-label", "Join in");
+  join.innerHTML = `<div class="join-gf" id="joinGf" hidden></div>
+    <div class="join-cta"><h3>Ready for your first load?</h3><p>Free to join. Start in the 737, work up to the 747-8F.</p>
+    <div class="row"><a class="btn light" href="#apply" onclick="document.getElementById('apply')?.scrollIntoView({behavior:'smooth'});return false">Apply to fly</a><button class="btn ghost" type="button" onclick="location.href='/academy/'">Try PAC Academy</button></div></div>`;
+  byKey.join = { key: "join", els: [join] };
+  const track = root.querySelector(".track-strip");
+  groups.push(byKey.join);
+  const final = put(["hero", "proof-band", "why-pac", "live from the ops center", "the network", "the liveries", "join",
+    "our story", "career path", "partners", "community", "join the crew", "dir-badges", "stat-band", "site-foot"]).filter(g => !drop.has(g.key));
+  final.forEach(g => g.els.forEach(el => { if (el.isConnected || g.key === "join") root.append(el); }));
+  const foot = root.querySelector(".site-foot");
+  if (track && foot) { track.classList.add("track-foot"); foot.before(track); }
+}
+function fillJoinGroupFlight(d) {
+  const box = $("#joinGf"); if (!box) return;
+  if (!d || !d.enabled || !d.event) { box.hidden = true; return; }
+  const e = d.event;
+  box.innerHTML = `<div class="kicker">This week's group flight</div><h3>${esc(e.title)}</h3>
+    <div class="join-route">${esc(e.dep.icao)} → ${esc(e.arr.icao)} · ${esc(gfWhen(e.start, { weekday: "long", hour: "numeric", minute: "2-digit", timeZoneName: "short" }))}</div>
+    <p>Fly together online, or any time that weekend. New pilots welcome.</p>
+    <button class="btn ghost small" type="button" onclick="show('groupflight')">See the briefing</button>`;
+  box.hidden = false;
 }

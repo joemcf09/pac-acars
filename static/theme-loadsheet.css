@@ -275,3 +275,7 @@ html[data-design="loadsheet"] .recap-head span { text-transform: none; letter-sp
 @media (prefers-reduced-motion: reduce) {
   html[data-design="loadsheet"] * { transition: none !important; }
 }
+/* home redesign: the proof band spans the content area like the stat band */
+html[data-design="loadsheet"] .proof-band { width: auto; margin-left: 0; }
+html[data-design="loadsheet"] .proof-band .proof-in > div { font-family: var(--font); }
+html[data-design="loadsheet"] .proof-band span { font: 600 12px var(--mono); letter-spacing: .1em; text-transform: uppercase; }
