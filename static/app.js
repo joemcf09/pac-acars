@@ -4996,6 +4996,7 @@ async function renderHome(h, st) {
     <div><span>Aircraft</span><b>${fmt(t.airframes)}</b></div>
   </div></section>
   ${directoryBadges()}
+  ${whyPacHTML()}
 
   ${news.length ? `<div class="section-h"><div><div class="kicker">Company news</div><h2>What's happening at PAC</h2></div></div>${newsCards(news)}` : ""}
 
@@ -7164,7 +7165,7 @@ async function loadPilotBriefing() {
     const departures = d.departures.filter(r => !homeIds.has(r.id));
     const leg = r => `<button class="brief-route" type="button" data-brief-flight="${esc(r.id)}"><span><b>${esc(r.origin.icao)} <span aria-hidden="true">→</span> ${esc(r.destination.icao)}</b><small>${esc(r.id)} · ${esc(hm(r.minutes))} · ${esc(r.aircraft)}</small></span><span class="brief-availability">${r.available ? 'Review flight →' : 'Aircraft unavailable'}</span></button>`;
     root.innerHTML = `<div class="brief-heading"><div><div class="kicker">Pilot dashboard</div><h2>Welcome aboard, ${esc(d.pilot.name)}</h2><p>${esc(d.pilot.id)} · ${esc(d.pilot.rank)}</p></div><button class="btn ghost small" type="button" data-brief-refresh>Refresh briefing</button></div>
-    ${pilotWelcomeHTML()}
+    ${startHereHTML(d)}
     <div class="brief-overview"><div><span>Current station</span><strong>${esc(d.location.icao)}</strong><small>${esc(d.location.name || '')}</small></div><div><span>Home hub</span><strong>${esc(d.hub.icao)}</strong><small>${d.at_home ? 'You’re at home base' : 'Return options below'}</small></div><div><span>Total flight hours</span><strong>${esc(d.pilot.hours)}</strong><small>PAC and credited transfer hours</small></div></div>
     <div class="brief-grid"><article class="brief-card"><div class="kicker">Next on your checklist</div><h3>${d.booking ? 'Your flight is booked' : d.checkride_needed ? 'Ready for your checkride?' : 'Ready for your next flight?'}</h3>
     ${d.booking ? `<p><b>${esc(d.booking.flight_number)}</b> · ${esc(d.booking.aircraft)} ${esc(d.booking.registration || '')}</p><button class="btn" type="button" data-brief-view="bids">Review flight & release →</button>` : d.checkride_needed ? '<p>Complete your checkride to progress through your PAC career.</p><button class="btn" type="button" data-brief-view="career/qualifications">View checkride and qualifications</button>' : '<p>Review a departure below, or explore the full mission board.</p><button class="btn" type="button" data-brief-view="missions">Explore missions</button>'}
@@ -7172,7 +7173,7 @@ async function loadPilotBriefing() {
     <article class="brief-card"><div class="kicker">Get back to base</div><h3>${d.at_home ? 'You’re home at ' + esc(d.hub.icao) : esc(d.location.icao) + ' → ' + esc(d.hub.icao)}</h3>${d.at_home ? '<p>Explore departures from your current station to plan your next trip.</p>' : d.home_options.length ? d.home_options.map(legs => `<div class="brief-connection">${legs.map(leg).join('')}${legs.length > 1 ? '<small>Two sectors. Review each leg separately; onward aircraft availability may change.</small>' : ''}</div>`).join('') : '<p>No direct or one-stop scheduled option matches your current qualifications and aircraft requirements.</p><button class="btn ghost small" type="button" data-brief-view="missions">Explore other missions</button>'}<p class="brief-note">Suggestions are not reservations. Aircraft, location and qualification checks apply when booking.</p></article></div>
     <article class="brief-card brief-departures"><div class="kicker">Departures from ${esc(d.location.icao)}</div><h3>Where will you fly next?</h3>${departures.length ? `<div class="brief-departure-grid">${departures.map(leg).join('')}</div><p class="brief-note">Showing ${departures.length} additional scheduled departures. Return options are listed above.</p>` : '<p>No additional matching departures. Review the return options above or explore the mission board.</p>'}</article>`;
     root.querySelector('[data-brief-refresh]').onclick = loadPilotBriefing;
-    const crewPanel=document.createElement('section');crewPanel.className='brief-card';root.querySelector('.brief-overview').after(crewPanel);loadDashboardCrew(crewPanel);
+    const now=document.createElement('section');now.className='brief-card now-card';root.querySelector('.brief-overview').after(now);loadHappeningNow(now,d);const crewPanel=document.createElement('section');crewPanel.className='brief-card';now.after(crewPanel);loadDashboardCrew(crewPanel);
     const planner = document.createElement('section');
     planner.className = 'brief-card rotation-planner';
     root.querySelector('.brief-departures').before(planner);
@@ -8290,4 +8291,58 @@ function liveViewSwitch() {
   bar.insertAdjacentHTML("beforeend", `<div class="seg-switch" id="liveViewSwitch" role="group" aria-label="Map view"><button type="button" data-liveview="flat" aria-pressed="true">Flat map</button><button type="button" data-liveview="globe" aria-pressed="false">Globe</button></div>`);
   $(".live-wrap").insertAdjacentHTML("afterbegin", `<div id="liveGlobe" class="live-map live-globe" hidden></div>`);
   document.querySelectorAll("[data-liveview]").forEach(b => b.onclick = () => setLiveView(b.dataset.liveview));
+}
+
+
+/* ================= Home: why PAC + track a shipment; Dashboard: start-here checklist + happening now ================= */
+function whyPacHTML() {
+  const pillars = [
+    ["Real paperwork", "Every flight gets a dispatch release: load sheet with CG, NOTOC, cargo manifest with IATA codes, weather and runway wind.", "Read the cargo guide", "show('cargoguide')"],
+    ["Cargo that stays put", "Shipments move station to station across flights. Track any air waybill, and see the whole network live.", "See the network", "location.href='/network'"],
+    ["Real consequences", "A hard landing or tail strike grounds the aircraft where it is. Then a PAC crew flies in the repair kit.", "How scoring works", "show('handbook')"],
+    ["Fly online", "IVAO certified and flying on VATSIM as PGI. A weekly group flight anyone can join.", "This week's group flight", "show('groupflight')"]];
+  return `<section class="why-pac" aria-label="Why fly for PAC">
+    ${S.me ? "" : `<div class="section-h"><div><div class="kicker">Why PAC</div><h2>A cargo airline that takes the freight seriously</h2></div></div>
+    <div class="why-grid">${pillars.map(([h, p, l, go], i) => `<article class="why-card"><span class="why-n">0${i + 1}</span><h3>${h}</h3><p>${p}</p><button class="why-link" type="button" onclick="${go}">${l} →</button></article>`).join("")}</div>`}
+    <form class="track-strip" onsubmit="event.preventDefault();const v=this.awb.value.replace(/\\D/g,'');if(v)location.href='/track/'+v">
+      <div><div class="kicker">Track a shipment</div><b>Where's my freight?</b></div>
+      <input name="awb" inputmode="numeric" autocomplete="off" placeholder="901-10000123" aria-label="Air waybill number">
+      <button class="btn">Track</button>
+    </form></section>`;
+}
+
+function startHereHTML(d) {
+  let acars = false;
+  try { acars = localStorage.getItem("pac-start-acars-" + S.me?.id) === "1"; } catch (_) {}
+  const filed = (d.flights_filed || 0) > 0;
+  const steps = [
+    ["Pass your line checkride", !d.checkride_needed, "Your first graded flight, in the 737-800.", "Checkride", "show('career/qualifications')"],
+    ["Install PAC ACARS and print the cheat sheets", acars || filed, "PAC ACARS tracks and scores your flight. The Quick-Reference Pack has everything on six pages.", "Downloads", "markStartAcars();show('downloads')"],
+    ["Book your first flight", !!d.booking || filed, "Pick a short hop from where you are. The dispatch release comes with it.", "Missions", "show('missions')"],
+    ["Fly it and file your PIREP", filed, "Park, brakes set, engines off, then File PIREP in ACARS.", "Gate-to-gate checklist", "show('downloads')"]];
+  const done = steps.filter(s => s[1]).length;
+  if (done === steps.length) return pilotWelcomeHTML();
+  return `<section class="start-here" aria-label="Start here">
+    <div class="start-head"><div><span class="kicker">Start here</span><h3>Your first PAC flight, step by step</h3></div>
+      <div class="start-meter" role="img" aria-label="${done} of ${steps.length} steps done"><b>${done}/${steps.length}</b><span><i style="width:${done / steps.length * 100}%"></i></span></div></div>
+    <ol class="start-steps">${steps.map(([t, ok, p, l, go]) => `<li class="${ok ? "done" : ""}"><span class="start-tick" aria-hidden="true">${ok ? "✓" : ""}</span>
+      <div><b>${t}</b><small>${p}</small></div>${ok ? `<span class="start-ok">Done</span>` : `<button class="btn ghost small" type="button" onclick="${go}">${l}</button>`}</li>`).join("")}</ol>
+    <div class="row"><button class="btn small" type="button" onclick="openPilotGuide()">Full first-flight guide</button><button class="btn ghost small" type="button" onclick="location.href='/academy/'">PAC Academy</button></div></section>`;
+}
+function markStartAcars() { try { localStorage.setItem("pac-start-acars-" + S.me?.id, "1"); } catch (_) {} }
+
+async function loadHappeningNow(root, d) {
+  root.innerHTML = `<div class="kicker">Happening now</div><h3>What needs a crew</h3><p class="muted" role="status">Checking the network…</p>`;
+  const [gf, net] = await Promise.all([api("/api/public/group-flight").catch(() => null), api("/api/public/network").catch(() => null)]);
+  if (!root.isConnected) return;
+  const items = [];
+  const urgent = S.urgent || [];
+  const aog = urgent.filter(m => /aog/i.test(m.urgent_kind || ""));
+  if (aog.length) items.push(["AOG", `${aog.length} aircraft grounded`, `${aog.map(m => esc(m.destination.icao)).join(", ")} waiting for parts and engineers.`, "Fly a recovery", "S.board='urgent';show('missions')"]);
+  if (urgent.length > aog.length) items.push(["URGENT", `${urgent.length - aog.length} urgent request${urgent.length - aog.length > 1 ? "s" : ""}`, "Time-critical freight with bonus points.", "See urgent flights", "S.board='urgent';show('missions')"]);
+  const here = (net?.waiting || []).find(w => w.icao === d.location.icao);
+  if (here) items.push(["FREIGHT", `${fmt(here.lbs)} lb waiting at ${esc(here.icao)}`, `${here.shipments} shipment${here.shipments > 1 ? "s" : ""} ready to move from where you are.`, "Find a flight", "show('missions')"]);
+  else if (net?.waiting?.length) { const w = net.waiting[0]; items.push(["FREIGHT", `${fmt(w.lbs)} lb waiting at ${esc(w.icao)}`, `The most freight sitting anywhere in the network right now.`, "Cargo network", "location.href='/network'"]); }
+  if (gf?.enabled && gf.event) items.push(["GROUP", esc(gf.event.title || "Weekly group flight"), `${esc(gfWhen(gf.event.start, { weekday: "long", hour: "numeric", minute: "2-digit" }))} your time. ${esc(gf.schedule || "")}`, "Sign up", "show('groupflight')"]);
+  root.innerHTML = `<div class="kicker">Happening now</div><h3>What needs a crew</h3>${items.length ? `<div class="now-grid">${items.map(([tag, h, p, l, go]) => `<div class="now-item"><span class="now-tag now-${tag.toLowerCase()}">${tag}</span><b>${h}</b><small>${p}</small><button class="why-link" type="button" onclick="${go}">${l} →</button></div>`).join("")}</div>` : `<p>All quiet: no urgent flights or waiting freight right now. A good time to fly a scheduled route.</p>`}`;
 }

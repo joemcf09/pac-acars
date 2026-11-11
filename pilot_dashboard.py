@@ -63,6 +63,7 @@ def register(app, context):
             rated = set(va.type_ratings(pid))
             direct_types = set(va.rated_types(pid))
             passes = shop.expiries(pid, con)
+            filed = con.execute("SELECT COUNT(*) FROM pireps WHERE pilot_id=? AND COALESCE(demo,0)=0", (pid,)).fetchone()[0]
             fleet_pass = car["rank_index"] > 0 and any(passes.get(k, 0) > time.time() for k in shop.TIMED)
         settings = context["settings"]()
         fleet = context["FLEET"]
@@ -79,6 +80,6 @@ def register(app, context):
                             "checkride_needed": pilot.get("checkride") not in ("Passed", "Waived") and not direct_types,
                             "checkride_id": va.CHECKRIDE_ID,
                             "eligible_types": sorted(eligible), "departures": departures, "departure_count": count,
-                            "home_options": home, "at_home": here == hub})
+                            "home_options": home, "at_home": here == hub, "flights_filed": filed})
         response.headers["Cache-Control"] = "private, no-store"
         return response

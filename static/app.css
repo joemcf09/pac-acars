@@ -1740,3 +1740,41 @@ a.awb-track:hover{color:var(--red);text-decoration-color:var(--red)}
 .cg-fig{margin:4px 0 16px}
 .cg-fig img{display:block;width:100%;height:auto;aspect-ratio:16/9;object-fit:cover;border-radius:6px}
 .cg-fig figcaption{font-size:12.5px;color:var(--muted,#5E6470);margin-top:6px}
+
+/* ---- Why PAC, track strip (home) · Start here, Happening now (dashboard). Colors from theme variables: works in both designs, light and dark ---- */
+.why-pac{margin:8px 0 0}
+.why-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:16px}
+.why-card{background:var(--white);color:var(--ink);border:1px solid var(--line);border-top:3px solid var(--red);border-radius:6px;padding:20px 20px 16px;display:flex;flex-direction:column;gap:6px}
+.why-n{font:600 13px var(--mono);color:var(--red)}
+.why-card h3{margin:0;font-size:19px}
+.why-card p{margin:0;color:var(--steel);font-size:14px;line-height:1.5;flex-grow:1}
+.why-link{align-self:flex-start;background:none;border:0;padding:8px 0 0;font:700 14px var(--font);color:var(--red);cursor:pointer;min-height:44px}
+.why-link:hover{text-decoration:underline}
+.track-strip{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:14px;align-items:center;margin:20px 0 4px;padding:16px 20px;background:var(--panel-dark);color:#fff;border-radius:6px;border-left:4px solid var(--red)}
+.track-strip .kicker{color:#C9CED6}.track-strip b{font-size:18px}
+.track-strip input{font:600 17px var(--mono);letter-spacing:.04em;padding:11px 14px;border:2px solid #3A4049;border-radius:4px;background:#14171B;color:#fff;min-width:0}
+.track-strip input:focus{outline:none;border-color:var(--red)}
+.start-here{background:var(--white);color:var(--ink);border:1px solid var(--line);border-top:4px solid var(--red);border-radius:7px;padding:22px 24px;margin:18px 0 24px}
+.start-head{display:flex;justify-content:space-between;align-items:flex-end;gap:20px;flex-wrap:wrap}
+.start-head h3{margin:4px 0 0;font-size:22px}
+.start-meter{display:flex;align-items:center;gap:10px;min-width:180px}
+.start-meter b{font:600 15px var(--mono)}
+.start-meter span{flex:1;height:8px;background:var(--paper);border:1px solid var(--line);border-radius:999px;overflow:hidden}
+.start-meter i{display:block;height:100%;background:var(--red)}
+.start-steps{list-style:none;margin:16px 0;padding:0;display:grid;gap:8px}
+.start-steps li{display:grid;grid-template-columns:28px minmax(0,1fr) auto;gap:12px;align-items:center;padding:12px 14px;border:1px solid var(--line);border-radius:6px}
+.start-steps li.done{background:var(--ok-wash)}
+.start-steps li.done b{color:var(--ok-ink)}
+.start-tick{width:26px;height:26px;border-radius:50%;border:2px solid var(--line);display:flex;align-items:center;justify-content:center;font-weight:800;color:#fff}
+.start-steps li.done .start-tick{background:var(--ok-ink);border-color:var(--ok-ink)}
+.start-steps b{display:block}.start-steps small{color:var(--steel);line-height:1.45}
+.start-ok{font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--ok-ink)}
+.now-card{margin-bottom:24px}
+.now-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}
+.now-item{display:flex;flex-direction:column;gap:4px;padding:14px 16px;border:1px solid var(--line);border-radius:6px;background:var(--paper)}
+.now-item small{color:var(--steel);line-height:1.45}
+.now-tag{align-self:flex-start;font:600 11px var(--mono);letter-spacing:.08em;padding:2px 8px;border-radius:3px;background:var(--ink);color:var(--white)}
+.now-aog{background:var(--red);color:#fff}.now-urgent{background:var(--warn-wash);color:var(--warn-ink)}.now-freight{background:#2D4F7C;color:#fff}.now-group{background:var(--ok-ink);color:#fff}
+html[data-design="loadsheet"] :is(.why-card,.track-strip,.start-here,.start-steps li,.now-item){border-radius:0}
+@media(max-width:980px){.why-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:600px){.why-grid{grid-template-columns:1fr}.track-strip{grid-template-columns:1fr}.start-steps li{grid-template-columns:28px minmax(0,1fr)}.start-steps li>:last-child{grid-column:2;justify-self:start}.start-here{padding:18px}}
