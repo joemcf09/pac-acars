@@ -421,6 +421,12 @@ def paperwork(d, fleet, booking=None, notams=None, captain_rank=None, airports=N
     tof = block - taxi
     tow = int(w.get("tow_lbs") or (zfw + tof))
     law = int(w.get("ldw_lbs") or (tow - trip))
+    # supernumeraries (grooms, attendants, couriers, AOG engineers) fly as extra crew: like real freighter
+    # operators, PAC adds their standard weight to the dry operating weight, not to the cargo payload
+    import people
+    aboard = people.aboard((booking or {}).get("mission"), {c for p in d.get("positions") or [] for c in p.get("shc") or []})
+    supy_lbs = people.total(aboard) * people.STANDARD_LBS
+    dow, zfw, tow, law = dow + supy_lbs, zfw + supy_lbs, tow + supy_lbs, law + supy_lbs
     min_release = trip + reserve + contingency + round(burn * .25, -1)  # trip, final reserve, contingency, alternate allowance
     # balance: where the cargo sits along the hold sets the center of gravity (%MAC) and the stabilizer trim
     main = d.get("deck", {}).get("main") or []
@@ -451,9 +457,7 @@ def paperwork(d, fleet, booking=None, notams=None, captain_rank=None, airports=N
     issued = (booking or {}).get("requested_at") or 0
     reg = str(d.get("tail") or "")
     sel = "".join(rng.sample("ABCDEFGHJKLMPQRS", 4))
-    crew = "3/0" if d["aircraft"] in ("B722F", "B742F") else "2/0"
-    import people
-    aboard = people.aboard((booking or {}).get("mission"), {c for p in d.get("positions") or [] for c in p.get("shc") or []})
+    crew = ("3/0" if d["aircraft"] in ("B722F", "B742F") else "2/0") + (f"/{people.total(aboard)}" if aboard else "")
     dow, zfw, tof, tow, trip, law, taxi, block, underload, min_release, contingency, mzfw, mlw, mtow, max_pl = (
         int(round(v)) for v in (dow, zfw, tof, tow, trip, law, taxi, block, underload, min_release, contingency, mzfw, mlw, mtow, max_pl))
     return {
@@ -462,7 +466,7 @@ def paperwork(d, fleet, booking=None, notams=None, captain_rank=None, airports=N
         "loadsheet": {"dow": dow, "payload": payload, "zfw": zfw, "tof": tof, "tow": tow, "trip": trip, "law": law, "taxi": taxi, "block": block,
                       "underload": underload, "doi": doi, "dli": dli, "lizfw": lizfw, "litow": litow, "mac_zfw": mac_zfw, "mac_tow": mac_tow,
                       "mac_ldw": mac_ldw, "lildw": lildw, "trim": trim, "crew": crew, "edno": "01", "cg_source": cg_source,
-                      "supy": people.total(aboard), "supy_text": people.summary(aboard)},
+                      "supy": people.total(aboard), "supy_text": people.summary(aboard), "supy_lbs": supy_lbs},
         "people": aboard,
         "ops_rules": __import__("ops_rules").rules(d, airports),
         "balance": bal,

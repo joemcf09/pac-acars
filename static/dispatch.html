@@ -203,7 +203,7 @@ function releasePage(d) {
   out.push(esc(L(`CALLSIGN   ${p.callsign}`, 28) + L(`SELCAL ${p.selcal}`, 24) + L(`OFP NBR      ${d.ofp_id || "NOT FILED"}`, 32)));
   if (p.atc_callsign) out.push(esc(L(`ATC FPL    ${p.atc_callsign}`, 28) + L(`RMK/CALLSIGN ${String(p.callsign || "").split(" ")[0]}`, 56)));
   out.push(esc(L(`ACFT       ${d.icao}  ${d.tail}`, 28) + L(U(d.aircraft_name), 24) + L(`CREW         ${ls.crew}`, 32)));
-  if (ls.supy) out.push(esc(L(`SUPY       ${ls.supy}`, 28) + U(ls.supy_text) + " (SUPERNUMERARIES, STD WT IN PAYLOAD)"));
+  if (ls.supy) out.push(esc(L(`SUPY       ${ls.supy}`, 28) + U(ls.supy_text) + " (SUPERNUMERARIES, STD WT IN DOW)"));
   out.push(esc(L(`PIC        CAPT ${capShort}`, 27) + " " + L(`${cap.id || ""}  ${p.pic_cert}`, 24) + L(U(p.captain_rank || cap.rank || ""), 32)));
   if (d.conflict) {   // conflict zones: printed the way a real release flags restricted or caution airspace
     const zn = (d.conflict.zones || []).map(z => U(z.name)).join(", ");
@@ -401,7 +401,7 @@ function loadsheetLines(d) {
   out.push(esc(L("ALL WEIGHTS IN POUNDS", 30) + L("", 16) + L("", 18) + L(ls.edno, 6)), "");
   out.push(esc(L("FROM/TO", 9) + L("FLIGHT", 12) + L("A/C REG", 10) + L("VERSION", 10) + L("CREW", 7) + L("DATE", 10) + L("TIME", 6)));
   out.push(esc(L(`${ia(d.origin.icao)} ${ia(d.destination.icao)}`, 9) + L(`${d.flight}/${d.date.slice(0, 2)}`, 12) + L(d.tail, 10) + L("F" + (d.deck?.main?.length || ""), 10) + L(ls.crew, 7) + L(dmy, 10) + L(tm, 6)));
-  if (ls.supy) out.push(esc(`SUPY ${ls.supy}  ${U(ls.supy_text)}  STD ${ls.supy * 200} LB INCL IN PAYLOAD`));
+  if (ls.supy) out.push(esc(`SUPY ${ls.supy}  ${U(ls.supy_text)}  STD ${ls.supy_lbs || ls.supy * 200} LB INCL IN DOW, NOT A PASSENGER`));
   out.push(esc(L("", 21) + L("WEIGHT", 10) + "DISTRIBUTION"));
   out.push(esc(L("LOAD IN COMPARTMENTS", 21) + R(N(d.totals.weight_lbs), 8) + "  " + `MAIN/${N(d.totals.main_lbs)} LOWER/${N(d.totals.lower_lbs)}`));
   out.push(esc(L("PASSENGER/CABIN BAG", 21) + R("0", 8) + "  0/0/0/0  TTL 0  CAB 0"));
