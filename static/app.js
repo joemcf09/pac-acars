@@ -4977,7 +4977,7 @@ async function renderHome(h, st) {
   const [news, shots] = await Promise.all([loadNews(), api("/api/gallery?limit=8").catch(() => [])]);
   $("#homeRoot").innerHTML = `
   <section class="hero${S.me ? " hero-slim" : ""}">
-    <img class="bg" fetchpriority="high" decoding="async" src="${esc(displayPhoto(heroAc.photo, 1600))}" alt="">
+    <img class="bg" fetchpriority="high" decoding="async" src="${S.me ? esc(displayPhoto(heroAc.photo, 1600)) : "/static/illustrations/ill-777f-sunset.webp"}" alt="">
     <div class="hero-in">
       ${live ? `<div class="live-pill"><i></i>${esc(S.booking?.flight_number || "")} in the air · ${esc(st.phase_label)}</div>` : ""}
       <img class="wm" src="/static/pac-wordmark-white.png" alt="Pagani Air Cargo">
@@ -5122,7 +5122,7 @@ async function renderHome(h, st) {
     if (S.homeMap) S.homeMap.remove();
     S.homeDots = [];
     const base = makeBaseMap($("#homeMap"), { theme: "light", style: S.settings.map_style === "dark" ? "light" : (S.settings.map_style || "light") });
-    S.homeMap = base.map; S.homeMap.setView([30, 5], 2); S.homeMap.scrollWheelZoom.disable();
+    S.homeMap = base.map; S.homeMap.setView([30, 5], 2); S.homeMap.scrollWheelZoom.disable(); setTimeout(() => S.homeMap && S.homeMap.invalidateSize(), 200);
     const count = {};
     S.routes.forEach(r => {
       L.polyline(gcPath(r.origin, r.destination), { color: "#C80000", weight: 1, opacity: .3, interactive: false }).addTo(S.homeMap);
@@ -8312,7 +8312,7 @@ function whyPacHTML() {
     ["Fly online", "IVAO certified and flying on VATSIM as PGI. A weekly group flight anyone can join.", "This week's group flight", "show('groupflight')"]];
   return `<section class="why-pac" aria-label="Why fly for PAC">
     ${S.me ? "" : `<div class="section-h"><div><div class="kicker">Why PAC</div><h2>A cargo airline that takes the freight seriously</h2></div></div>
-    <div class="why-grid">${pillars.map(([h, p, l, go], i) => `<article class="why-card"><span class="why-n">0${i + 1}</span><h3>${h}</h3><p>${p}</p><button class="why-link" type="button" onclick="${go}">${l} →</button></article>`).join("")}</div>`}
+    <div class="why-grid">${pillars.map(([h, p, l, go], i) => `<article class="why-card"><img class="why-img" src="/static/illustrations/${["ill-warehouse-buildup", "ill-767-main-deck-loading", "ill-main-deck-interior", "ill-ake-lower-hold"][i]}.webp" alt="" loading="lazy"><span class="why-n">0${i + 1}</span><h3>${h}</h3><p>${p}</p><button class="why-link" type="button" onclick="${go}">${l} →</button></article>`).join("")}</div>`}
     <form class="track-strip" onsubmit="event.preventDefault();const v=this.awb.value.replace(/\\D/g,'');if(v)location.href='/track/'+v">
       <div><div class="kicker">Track a shipment</div><b>Where's my freight?</b></div>
       <input name="awb" inputmode="numeric" autocomplete="off" placeholder="901-10000123" aria-label="Air waybill number">
@@ -8393,9 +8393,28 @@ function homeLayout() {
   byKey.join = { key: "join", els: [join] };
   const track = root.querySelector(".track-strip");
   groups.push(byKey.join);
+  // See it working: the departure board and the map side by side, under one heading
+  const board = byKey["live from the ops center"], net = byKey["the network"];
+  if (board && net) {
+    const see = document.createElement("section"); see.className = "see-it";
+    see.innerHTML = `<div class="section-h"><div><div class="kicker">See it working</div><h2>PAC is flying right now</h2></div><button class="btn ghost small" type="button" onclick="location.href='/network'">Open the cargo network</button></div><div class="see-grid"></div>`;
+    const grid = see.querySelector(".see-grid");
+    board.els.filter(el => !el.classList.contains("section-h")).forEach(el => grid.append(el));
+    net.els.filter(el => !el.classList.contains("section-h")).forEach(el => grid.append(el));
+    board.els.concat(net.els).filter(el => el.classList.contains("section-h")).forEach(el => el.remove());
+    board.els = [see]; net.els = [];
+  }
+  // The fleet: one row of every type instead of the big photo grid
+  const liv = byKey["the liveries"];
+  const lgrid = liv && liv.els.find(el => el.classList.contains("livery-grid"));
+  if (lgrid) {
+    const row = document.createElement("div"); row.className = "fleet-chips";
+    row.innerHTML = fleetCodes().map(k => `<button type="button" onclick="show('fleet')">${esc(S.fleet[k].name.replace(/^(Boeing|Airbus|McDonnell Douglas) /, ""))}</button>`).join("");
+    lgrid.replaceWith(row); liv.els[liv.els.indexOf(lgrid)] = row;
+  }
   const final = put(["hero", "proof-band", "why-pac", "live from the ops center", "the network", "the liveries", "join",
     "our story", "career path", "partners", "community", "join the crew", "dir-badges", "stat-band", "site-foot"]).filter(g => !drop.has(g.key));
-  final.forEach(g => g.els.forEach(el => { if (el.isConnected || g.key === "join") root.append(el); }));
+  final.forEach(g => g.els.forEach(el => root.append(el)));
   const foot = root.querySelector(".site-foot");
   if (track && foot) { track.classList.add("track-foot"); foot.before(track); }
 }
