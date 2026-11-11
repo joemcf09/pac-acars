@@ -37,6 +37,12 @@ SEASONS = [
     {"id": "phone-launch", "name": "New smartphone launch", "window": ((9, 8), (10, 5)),
      "from": ("Z", "VH", "VT", "VV"), "to": ("K", "E", "L", "OM", "C"), "cargo": "Consumer electronics, new smartphones",
      "blurb": "Launch day stock is flown, not shipped: whole freighters of new phones leave Asian factories each September."},
+    {"id": "f1-early", "name": "Formula 1 flyaway races: season opening", "window": ((2, 10), (4, 25)),
+     "from": ("E", "L"), "to": ("Y", "OB", "OE", "RJ", "Z"), "cargo": "Race cars, garage equipment and broadcast kit",
+     "blurb": "The cars, garages and TV equipment fly to the early-season races in Australia, the Gulf and East Asia on chartered freighters, race weekend to race weekend."},
+    {"id": "f1-late", "name": "Formula 1 flyaway races: the long trip", "window": ((9, 10), (12, 8)),
+     "from": ("E", "L", "WS", "K"), "to": ("WS", "K", "MM", "SB", "OT", "OM"), "cargo": "Race cars, garage equipment and broadcast kit",
+     "blurb": "Singapore, the Americas and the Gulf back to back: freighters carry the whole paddock between races only a week apart."},
     {"id": "hurricane", "name": "Hurricane relief season", "window": ((8, 15), (10, 31)),
      "from": ("K",), "to": ("T", "M", "MY"), "cargo": "Humanitarian relief: water, generators and shelter kits",
      "blurb": "Atlantic storms leave islands cut off; relief freight flies out of Miami and Houston."},
@@ -57,6 +63,21 @@ def is_on(season, day):
 def active(day=None):
     day = day or dt.datetime.utcnow().date()
     return [s for s in SEASONS if is_on(s, day)]
+
+
+def next_start(season, day=None):
+    """The next date this season begins, today or later."""
+    day = day or dt.datetime.utcnow().date()
+    (a, _b) = season["window"]
+    d = dt.date(day.year, *a)
+    return d if d >= day else dt.date(day.year + 1, *a)
+
+
+def upcoming(day=None, within_days=75):
+    """Seasons that aren't on yet but start soon, soonest first."""
+    day = day or dt.datetime.utcnow().date()
+    out = [(next_start(s, day), s) for s in SEASONS if not is_on(s, day)]
+    return [(d, s) for d, s in sorted(out, key=lambda x: x[0]) if (d - day).days <= within_days]
 
 
 def starts(season, day=None):

@@ -1860,3 +1860,7 @@ html[data-design="loadsheet"] .fleet-chips button{border-radius:0}
 html[data-theme="dark"] .relief-brief .relief-notice{background:#1E2733;border-color:#3A4A5E;color:var(--ink)}
 html[data-design="loadsheet"] :is(.relief-draft,.relief-notice,.relief-checks){border-radius:0}
 .now-relief{background:#D7E3F1;color:#1F2E40}
+
+.cgo-coming{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px;margin-bottom:8px}
+.cgo-coming article{background:var(--white);border:1px dashed var(--line);border-radius:6px;padding:14px 16px}
+.cgo-coming h3{margin:4px 0 6px;font-size:16px}.cgo-coming p{margin:0;color:var(--steel);font-size:14px;line-height:1.45}

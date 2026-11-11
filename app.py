@@ -3851,7 +3851,8 @@ def cargo_overview():
         sheds = sorted(warehouses.fill(con).values(), key=lambda x: -x["pct"])
     for x in sheds:
         x["city"] = (AIRPORTS.get(x["station"]) or {}).get("city")
-    return jsonify({"counts": counts, "waiting": groups, "overdue_hours": overdue_s // 3600, "seasons": in_season, "sheds": sheds[:8]})
+    coming = [{"id": s["id"], "name": s["name"], "blurb": s["blurb"], "cargo": s["cargo"], "starts": d.isoformat()} for d, s in seasons.upcoming()]
+    return jsonify({"counts": counts, "waiting": groups, "overdue_hours": overdue_s // 3600, "seasons": in_season, "coming": coming, "sheds": sheds[:8]})
 
 
 @app.get("/api/cargo/shipments")

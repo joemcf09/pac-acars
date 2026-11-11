@@ -2463,6 +2463,8 @@ async function loadCargo() {
       <p class="muted">${x.waiting ? `${fmt(x.waiting)} shipment${x.waiting === 1 ? "" : "s"} waiting: ${esc(x.cargo)}` : "New orders arrive as stations restock."}</p>
       ${x.lanes.length ? `<div class="row" style="gap:6px;flex-wrap:wrap">${x.lanes.map(l => `<button type="button" class="btn small ghost" data-cgo-fly="${esc(l.station)}|${esc(l.destination)}">${esc(l.station)} → ${esc(l.destination)} (${l.n})</button>`).join("")}</div>` : ""}
     </article>`).join("")}</div>` : "";
+  if ((overview.coming || []).length) $("#cgoSeasons").insertAdjacentHTML("beforeend", `<h2>Coming up on the cargo calendar</h2><div class="cgo-coming">${overview.coming.map(x => `<article>
+      <div class="kicker">From ${esc(new Date(x.starts + "T12:00:00Z").toLocaleDateString("en-US", { month: "long", day: "numeric" }))}</div><h3>${esc(x.name)}</h3><p>${esc(x.blurb)}</p></article>`).join("")}</div>`);
   $("#cgoWaiting").innerHTML = overview.waiting.length ? `<h2>Freight waiting</h2><p class="muted">Cargo sitting at a station for its next leg. Fly it there and it's yours to deliver.</p>
     <div class="cgo-wait-grid">${overview.waiting.slice(0, 12).map(w => `<article class="cgo-wait ${w.overdue ? "overdue" : ""}">
       <div class="cgo-wait-route"><b>${esc(w.station)}</b><span aria-hidden="true">→</span><b>${esc(w.destination)}</b></div>
