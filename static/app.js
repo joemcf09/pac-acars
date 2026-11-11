@@ -8481,6 +8481,7 @@ async function staffRelief() {
   const tag = { draft: '<span class="tag amber">Waiting for review</span>', later: '<span class="tag amber">Remind later</span>', posted: '<span class="tag green">Posted</span>',
     held: '<span class="tag">Held</span>', dismissed: '<span class="tag dark">Dismissed</span>', closed: '<span class="tag dark">Closed</span>' };
   const checks = [["facts", "The facts match the linked source, and nothing is exaggerated or guessed."],
+    ["help", "The affected country has asked for, or accepted, international relief flights, so an airlift from a UN depot is realistic."],
     ["tone", "The wording is calm and respectful: no hype, nothing that makes it sound exciting."],
     ["links", "The “How to help” links go to real, active appeals."],
     ["timing", "It's the right time to post. For a very recent event, waiting a day or two is fine."]];
@@ -8500,14 +8501,14 @@ async function staffRelief() {
         <label>Note added to the briefing (optional)<textarea name="note" rows="2" maxlength="600">${esc(x.note || "")}</textarea></label>
         <fieldset><legend>How to help links (title | https:// link, one per line)</legend><textarea name="help" rows="3">${esc(x.help.map(h => h.join(" | ")).join("\n"))}</textarea></fieldset>
         <button class="btn ghost small" type="button" data-act="edit">Save changes</button>
-        <fieldset class="relief-checks"><legend>Before you post: all four must be ticked</legend>${checks.map(([k, t]) => `<label><input type="checkbox" name="${k}"> ${t}</label>`).join("")}</fieldset>
+        <fieldset class="relief-checks"><legend>Before you post: all five must be ticked</legend>${checks.map(([k, t]) => `<label><input type="checkbox" name="${k}"> ${t}</label>`).join("")}</fieldset>
         <div class="row" style="gap:10px;flex-wrap:wrap"><button class="btn small" type="button" data-act="post" disabled>Post mission</button>
           <button class="btn ghost small" type="button" data-act="later">Remind me in 24 hours</button><button class="btn ghost small" type="button" data-act="dismiss">Dismiss</button></div>
         <p class="muted" style="font-size:13px">Dismissed drafts never come back for the same event.</p></form>`
       : x.status === "posted" ? `<button class="btn ghost small" type="button" data-close="${esc(x.id)}">Close this mission now</button>` : ""}
     </div></details>`;
   };
-  body.innerHTML = `<p class="muted" style="max-width:90ch">Drafts come from real <a href="https://www.gdacs.org/" target="_blank" rel="noopener">GDACS</a> alerts at Orange or Red level for earthquakes, tropical cyclones, floods and volcanoes from the last two weeks. Nothing is posted until you review it. Events in PAC's conflict zones are held. Last checked: ${esc(when(d.fetched))}.</p>
+  body.innerHTML = `<p class="muted" style="max-width:90ch">Drafts come from real <a href="https://www.gdacs.org/" target="_blank" rel="noopener">GDACS</a> alerts at Orange or Red level for earthquakes, tropical cyclones, floods and volcanoes from the last two weeks. Nothing is posted until you review it. Events that ended more than three days ago are skipped, and events in PAC's conflict zones are held. Last checked: ${esc(when(d.fetched))}.</p>
     ${d.error ? `<div class="notice err">Couldn't reach GDACS on the last check (${esc(d.error)}). It tries again within the hour.</div>` : ""}
     ${d.drafts.length ? d.drafts.map(draftHTML).join("") : `<p>No drafts. When a serious disaster is reported, a draft appears here for you to review.</p>`}`;
   const send = async (id, act, payload) => {

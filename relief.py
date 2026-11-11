@@ -21,12 +21,13 @@ GDACS_URL = "https://www.gdacs.org/gdacsapi/api/events/geteventlist/SEARCH"
 EVENT_TYPES = {"EQ": "Earthquake", "TC": "Tropical cyclone", "FL": "Flood", "VO": "Volcanic eruption"}
 FETCH_EVERY_S = 3600                 # ask GDACS at most once an hour
 RECENT_DAYS = 14                     # only events that began in the last two weeks
+ENDED_GRACE_DAYS = 3                 # ...and are still current, or ended at most this many days ago
 SEARCH_NM = 350                      # how far from the event to look for an airport
 MIN_RWY_FT = 7000
 OPEN_DAYS = 7                        # a posted mission stays open this long unless staff close it sooner
 RELIEF_IDS = range(8900, 9000)       # PAC8900-8999: clear of AOG recoveries (8800-8899) and the PAC9xxx specials
 KIND = "Humanitarian relief"
-CHECKS = ("facts", "tone", "links", "timing")
+CHECKS = ("facts", "help", "tone", "links", "timing")
 
 # The six UN Humanitarian Response Depot (UNHRD) locations and the airport PAC uses for each.
 DEPOTS = [("MPTO", "Panama"), ("GCLP", "Las Palmas"), ("LIBR", "Brindisi"), ("DGAA", "Accra"), ("OMDB", "Dubai"),
@@ -100,6 +101,12 @@ def parse_gdacs(raw, now):
             continue
         if start < now - RECENT_DAYS * 86400:
             continue
+        try:
+            end = calendar.timegm(time.strptime(p.get("todate", "")[:19], "%Y-%m-%dT%H:%M:%S"))
+        except (TypeError, ValueError):
+            end = None
+        if str(p.get("iscurrent")).lower() != "true" and end and end < now - ENDED_GRACE_DAYS * 86400:
+            continue   # over for days already: too late for a relief airlift
         countries = [c.get("countryname") for c in p.get("affectedcountries") or [] if c.get("countryname")]
         out.append({"key": f"gdacs:{kind}:{p.get('eventid')}", "type": kind, "type_name": EVENT_TYPES[kind],
                     "name": p.get("eventname") or "", "title": p.get("name") or "", "alert": p.get("alertlevel"),
@@ -235,10 +242,10 @@ def later(con, did, hours):
 
 
 def post(con, did, checks, ctx, now=None):
-    """Posts a reviewed draft as a relief mission. All four checks must be ticked."""
+    """Posts a reviewed draft as a relief mission. All five checks must be ticked."""
     now = now or time.time()
     if not all((checks or {}).get(c) for c in CHECKS):
-        raise ValueError("Tick all four checks before posting.")
+        raise ValueError("Tick all five checks before posting.")
     r = con.execute("SELECT data, status FROM relief_drafts WHERE id=?", (did,)).fetchone()
     if not r or r["status"] not in ("draft", "later"):
         raise ValueError("This draft can't be posted.")

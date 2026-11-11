@@ -28,9 +28,13 @@ def feature(eid, kind, alert, lon, lat, iso2, country, name=""):
 raw = {"features": [feature(1, "TC", "Red", -76.8, 18.0, "JM", "Jamaica", "DELIA"),     # near Kingston
                     feature(2, "EQ", "Green", 10, 10, "XX", "Nowhere"),                  # green: ignored
                     feature(3, "DR", "Orange", 34, 9, "ET", "Ethiopia"),                 # drought: not an airlift type
-                    feature(4, "FL", "Orange", -60.0, -30.0, "AR", "Argentina")]}
+                    feature(4, "FL", "Orange", -60.0, -30.0, "AR", "Argentina"),
+                    dict(feature(5, "TC", "Red", 80.0, 15.5, "IN", "India", "OLD"), )]}
+raw["features"][-1]["properties"].update(iscurrent="false", todate=time.strftime("%Y-%m-%dT%H:%M:%S", time.gmtime(now - 8 * 86400)))
+raw["features"][0]["properties"].update(iscurrent="true")
 events = relief.parse_gdacs(raw, now)
 check("only Orange/Red earthquakes, cyclones, floods and volcanoes are kept", [e["type"] for e in events] == ["TC", "FL"], events)
+check("an event that ended eight days ago is skipped", all(e["name"] != "OLD" for e in events))
 check("GDACS dates are read as UTC", abs(events[0]["start"] - (now - 2 * 86400)) < 2)
 
 ctx = {"airports": A.AIRPORTS, "fleet": A.FLEET, "gc_distance_nm": A.gc_distance_nm, "airport_obj": A.airport_obj,
@@ -49,10 +53,10 @@ with A.db() as con:
     check("one draft per event", n == 2 and relief.refresh(con, ctx, now, events=events) == 0)
     did = events[0]["key"]
     try:
-        relief.post(con, did, {"facts": True, "tone": True, "links": True}, ctx, now); posted_early = True
+        relief.post(con, did, {"facts": True, "tone": True, "links": True, "timing": True}, ctx, now); posted_early = True
     except ValueError:
         posted_early = False
-    check("it can't be posted until all four checks are ticked", not posted_early)
+    check("it can't be posted until all five checks are ticked, including international help requested", not posted_early)
     m = relief.post(con, did, {c: True for c in relief.CHECKS}, ctx, now)
     check("posting creates a relief mission in the PAC8900 range", m["id"].startswith("PAC89") and m["relief"]["notice"].startswith("This flight is based on a real disaster"))
     check("relief pays like a normal flight: no urgency multiplier", m["yield_mult"] == 1.0 and m["urgent_kind"] == relief.KIND)
