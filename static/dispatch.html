@@ -216,6 +216,10 @@ function releasePage(d) {
   out.push(esc(L("DEST", 6) + L(`${d.destination.icao}/${ia(d.destination.icao)}`, 14) + L(d.sta, 9) + L(U(d.destination.name), 55)));
   if (d.arr_stand?.stand && d.arr_stand.icao === d.destination.icao) out.push(esc(L("", 6) + L("STAND " + d.arr_stand.stand, 14) + L("", 9) + L("PAC STAND ON ARRIVAL", 55)));
   else out.push(esc(L("", 6) + L("CARGO RAMP", 14) + L("", 9) + L("ANY FREE CARGO STAND, NOT A PASSENGER GATE", 55)));
+  if ((p.ops_rules || []).length) {   // curfews, slots, ETOPS: real rules that change how you plan
+    out.push("", "<b>OPERATING RESTRICTIONS</b>");
+    p.ops_rules.forEach(r => wrap(r.text, W - 6, 0).forEach((l, i) => out.push((r.warn ? "<b>" : "") + esc(L(i ? "" : U(r.kind), 6) + l) + (r.warn ? "</b>" : ""))));
+  }
   out.push(esc(L("ALTN", 6) + L(d.alternate ? `${d.alternate.icao}/${ia(d.alternate.icao)}` : "NIL", 14) + L(d.alternate ? `${Math.round(altnNm)}NM` : "", 9) + L(U(d.alternate?.name || ""), 55)));
   out.push("", esc(L(`CRZ ${d.cruise || "----"}`, 14) + L(`GND DIST ${N(d.distance_nm)}NM`, 22) + L(`BLOCK TIME ${hhmm(d.block_min)}`, 22) + L(`FLT PLAN FILED ${p.fltplan_filed}`, 26)));
   out.push(esc("COST INDEX  " + (p.cost_index == null || String(p.cost_index).trim() === "" ? "NOT PROVIDED" : String(p.cost_index))));
@@ -287,6 +291,16 @@ function navlogLines(d) {
 }
 
 /* ---------------- weather and NOTAMs ---------------- */
+// Deicing: ground icing is likely at +3 C or colder with visible moisture (precipitation, fog or mist). Holdover times then limit how long you can wait.
+function deiceNote(raw) {
+  const m = String(raw || "").match(/\s(M?\d{2})\/(M?\d{2})\s/);
+  if (!m) return null;
+  const t = Number(m[1].replace("M", "-"));
+  const wet = /\s[-+]?(?:VC)?(?:SH|FZ|TS|BL|DR)?(?:RA|SN|DZ|PL|GR|GS|SG|IC|UP)+\b|\s(?:FZ)?FG\b|\sBR\b/.test(" " + raw + " ");
+  if (t > 3 || !(wet || t <= 0)) return null;
+  return t <= 0 && wet ? `DEICING/ANTI-ICING EXPECTED (${t} C WITH PRECIPITATION OR FOG): ALLOW 20-40 MIN AND CHECK HOLDOVER TIMES BEFORE TAKEOFF.`
+    : `DEICING POSSIBLE (${t} C${wet ? " WITH MOISTURE" : ""}): CHECK FOR FROST OR ICE ON THE WINGS AND ALLOW EXTRA TIME.`;
+}
 async function weatherLines(d) {
   const ids = [d.origin.icao, d.destination.icao, d.alternate?.icao].filter(Boolean);
   const out = [`<b>${esc(L("WEATHER BRIEFING", 44) + R("SOURCE AVIATIONWEATHER.GOV", W - 44))}</b>`, ""];
@@ -297,6 +311,8 @@ async function weatherLines(d) {
     const x = w[icao] || {};
     out.push(`<b>${esc(L(`${icao}/${d.paper.iata[icao] || icao.slice(-3)}`, 12) + role)}</b>`);
     const sa = wrap(x.metar?.raw || "NIL", W, 4); sa[0] = "SA  " + sa[0].trimStart(); sa.forEach(l => out.push(esc(l)));
+    const ice = role === "DEPARTURE" ? deiceNote(x.metar?.raw) : null;
+    if (ice) wrap(ice, W, 4).forEach((l, i) => out.push(`<b>${esc(i ? l : "    " + l.trimStart())}</b>`));
     const taf = x.taf?.lines || [];
     if (!taf.length) out.push("FT  NIL");
     taf.forEach((ln, i) => wrap(ln, W, i ? 6 : 4).forEach((l, j) => out.push(esc(i === 0 && j === 0 ? "FT  " + l.trimStart() : l))));

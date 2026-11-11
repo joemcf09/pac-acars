@@ -464,6 +464,7 @@ def paperwork(d, fleet, booking=None, notams=None, captain_rank=None, airports=N
                       "mac_ldw": mac_ldw, "lildw": lildw, "trim": trim, "crew": crew, "edno": "01", "cg_source": cg_source,
                       "supy": people.total(aboard), "supy_text": people.summary(aboard)},
         "people": aboard,
+        "ops_rules": __import__("ops_rules").rules(d, airports),
         "balance": bal,
         "min_release_fuel": min_release, "contingency": contingency,
         "dispatcher": {"name": rng.choice(DISPATCHERS), "cert": f"ADX {rng.randrange(2000000, 3999999)}"},
