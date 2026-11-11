@@ -33,5 +33,6 @@ js = (ROOT / "static" / "app.js").read_text(encoding="utf-8")
 check("home and dashboard sections are wired in", all(x in js for x in ("${whyPacHTML()}", "${startHereHTML(d)}", "loadHappeningNow(now,d)")))
 
 check("home page layout is wired in for visitors and pilots", all(x in js for x in ("homeLayout();", "function fmtLbShort", "fillJoinGroupFlight(d)", "hero-slim")))
+check("pilot home layout and apply-form guard are in", "home-pilot" in js and 'if ($("#applyForm"))' in js)
 print("\nSTART HERE TEST " + ("PASSED" if not failures else f"FAILED: {failures}"))
 sys.exit(1 if failures else 0)

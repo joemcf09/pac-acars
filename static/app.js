@@ -5110,7 +5110,7 @@ async function renderHome(h, st) {
   if (hero && S.me && !S.me.activity) loadMe().then(() => { const hn = $("#homeNext"); if (hn) hn.innerHTML = homeNextHTML(st); }).catch(() => {});
   if ($("#heroApply")) $("#heroApply").onclick = e => { e.preventDefault(); $("#apply").scrollIntoView({ behavior: "smooth" }); };
   document.querySelectorAll("[data-photo]").forEach(b => b.onclick = () => { const a = S.fleet[b.dataset.photo]; openPhoto(a.photo, a.name); });
-  $("#applyForm").onsubmit = async e => {
+  if ($("#applyForm")) $("#applyForm").onsubmit = async e => {
     e.preventDefault();
     const fd = Object.fromEntries(new FormData(e.target).entries()); fd.agree = !!e.target.agree.checked;
     try {
@@ -5122,7 +5122,7 @@ async function renderHome(h, st) {
     if (S.homeMap) S.homeMap.remove();
     S.homeDots = [];
     const base = makeBaseMap($("#homeMap"), { theme: "light", style: S.settings.map_style === "dark" ? "light" : (S.settings.map_style || "light") });
-    S.homeMap = base.map; S.homeMap.setView([30, 5], 2); S.homeMap.scrollWheelZoom.disable(); setTimeout(() => S.homeMap && S.homeMap.invalidateSize(), 200);
+    S.homeMap = base.map; S.homeMap.setView([30, 5], 2); S.homeMap.scrollWheelZoom.disable(); setTimeout(() => S.homeMap && S.homeMap.invalidateSize(), 200); try { new ResizeObserver(() => S.homeMap && S.homeMap.invalidateSize()).observe($("#homeMap")); } catch (e) { /* older browsers */ }
     const count = {};
     S.routes.forEach(r => {
       L.polyline(gcPath(r.origin, r.destination), { color: "#C80000", weight: 1, opacity: .3, interactive: false }).addTo(S.homeMap);
@@ -8378,9 +8378,28 @@ function homeLayout() {
   const put = keys => { const seen = new Set(); const out = [];
     keys.forEach(k => { const g = byKey[k]; if (g && !seen.has(g)) { seen.add(g); out.push(g); } });
     groups.forEach(g => { if (!seen.has(g)) out.push(g); }); return out; };
+  // See it working: the departure board and the map side by side, under one heading
+  const board = byKey["live from the ops center"], net = byKey["the network"];
+  if (board && net) {
+    const see = document.createElement("section"); see.className = "see-it";
+    see.innerHTML = `<div class="section-h"><div><div class="kicker">See it working</div><h2>PAC is flying right now</h2></div><button class="btn ghost small" type="button" onclick="location.href='/network'">Open the cargo network</button></div><div class="see-grid"></div>`;
+    const grid = see.querySelector(".see-grid");
+    board.els.filter(el => !el.classList.contains("section-h")).forEach(el => grid.append(el));
+    net.els.filter(el => !el.classList.contains("section-h")).forEach(el => grid.append(el));
+    board.els.concat(net.els).filter(el => el.classList.contains("section-h")).forEach(el => el.remove());
+    board.els = [see]; net.els = [];
+  }
+  root.classList.toggle("home-pilot", !!S.me);
   root.classList.remove("home-visitor");
   if (S.me) {
-    put(["hero", "company news"]).forEach(g => g.els.forEach(el => root.append(el)));
+    const gone = new Set(["the liveries", "operations", "our story", "partners", "career path", "community", "join the crew", "dir-badges"]);
+    groups.filter(g => gone.has(g.key)).forEach(g => g.els.forEach(el => el.remove()));
+    const sb = byKey["stat-band"];
+    if (sb) { const h = document.createElement("div"); h.className = "section-h"; h.innerHTML = `<div><div class="kicker">The airline</div><h2>PAC at a glance</h2></div>`; sb.els.unshift(h); }
+    const order = put(["hero", "campaigns", "needs a crew now", "on now", "live from the ops center", "company news", "from the flight deck",
+      "online networks", "stat-band", "why-pac", "site-foot"]).filter(g => !gone.has(g.key));
+    const fi = order.findIndex(g => g.key === "site-foot"); if (fi > -1) order.push(order.splice(fi, 1)[0]);
+    order.forEach(g => g.els.forEach(el => root.append(el)));
     return;
   }
   root.classList.add("home-visitor");
@@ -8393,17 +8412,6 @@ function homeLayout() {
   byKey.join = { key: "join", els: [join] };
   const track = root.querySelector(".track-strip");
   groups.push(byKey.join);
-  // See it working: the departure board and the map side by side, under one heading
-  const board = byKey["live from the ops center"], net = byKey["the network"];
-  if (board && net) {
-    const see = document.createElement("section"); see.className = "see-it";
-    see.innerHTML = `<div class="section-h"><div><div class="kicker">See it working</div><h2>PAC is flying right now</h2></div><button class="btn ghost small" type="button" onclick="location.href='/network'">Open the cargo network</button></div><div class="see-grid"></div>`;
-    const grid = see.querySelector(".see-grid");
-    board.els.filter(el => !el.classList.contains("section-h")).forEach(el => grid.append(el));
-    net.els.filter(el => !el.classList.contains("section-h")).forEach(el => grid.append(el));
-    board.els.concat(net.els).filter(el => el.classList.contains("section-h")).forEach(el => el.remove());
-    board.els = [see]; net.els = [];
-  }
   // The fleet: one row of every type instead of the big photo grid
   const liv = byKey["the liveries"];
   const lgrid = liv && liv.els.find(el => el.classList.contains("livery-grid"));

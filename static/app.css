@@ -1818,3 +1818,9 @@ html[data-design="loadsheet"] :is(.join-gf,.join-cta){border-radius:0}
 html[data-design="loadsheet"] .fleet-chips button{border-radius:0}
 @media(max-width:980px){.see-grid{grid-template-columns:1fr}.see-grid #homeMap{min-height:320px}}
 @media(min-width:981px){.see-grid .fb-table{min-width:0!important}.see-grid .fb-table :is(th,td){padding-left:8px;padding-right:8px}}
+
+/* pilot home: three newest stories, four screenshots, at most four urgent cards */
+.home-pilot .news-grid>:nth-child(n+4){display:none}
+.home-pilot .shot-grid>:nth-child(n+5),.home-pilot .shots>:nth-child(n+5){display:none}
+.home-pilot .urgent-cards>:nth-child(n+5){display:none}
+.home-pilot .why-pac .track-strip{margin-top:40px}
