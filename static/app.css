@@ -1864,3 +1864,13 @@ html[data-design="loadsheet"] :is(.relief-draft,.relief-notice,.relief-checks){b
 .cgo-coming{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px;margin-bottom:8px}
 .cgo-coming article{background:var(--white);border:1px dashed var(--line);border-radius:6px;padding:14px 16px}
 .cgo-coming h3{margin:4px 0 6px;font-size:16px}.cgo-coming p{margin:0;color:var(--steel);font-size:14px;line-height:1.45}
+/* trip pairings */
+.trips-wrap{width:100%}.trips-wrap h4{margin:14px 0 6px}
+.trip-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px}
+.trip-card{border:1px solid var(--line,#d8dde3);border-radius:10px;padding:12px;background:var(--card,#fff)}
+.trip-card.mine{border-color:var(--accent,#2d4f7c);box-shadow:0 0 0 2px rgba(45,79,124,.15)}
+.trip-head{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.trip-stations{font-family:ui-monospace,monospace;font-size:13px;margin:6px 0}
+.trip-legs{margin:0 0 8px 18px;padding:0;font-size:13px}.trip-legs li.done{opacity:.55;text-decoration:line-through}.trip-legs li.next b{color:var(--accent,#2d4f7c)}
+.trip-rest{font-size:13px;background:rgba(45,79,124,.08);padding:6px 8px;border-radius:6px}
+.trip-foot{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between;font-size:13px}

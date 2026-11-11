@@ -179,7 +179,7 @@ const REGIONS = ["All", "US domestic", "Americas", "Transatlantic", "Europe", "M
 S.board = S.board || "all"; S.region = "All"; S.netSearch = ""; S.netLimit = 40; S.charterSpec = null;
 document.querySelectorAll("[data-board]").forEach(b => b.onclick = () => {
   S.board = b.dataset.board; S.netLimit = 40;
-  const pool = S.board === "all" ? missionBoardPool() : S.board === "missions" ? [...(S.checkrides || []), ...S.missions] : S.board === "partners" ? (S.jobs || []).filter(m => m.contract) : S.board === "network" ? S.routes : S.board === "rotations" ? rotationBoardList() : S.board === "events" ? eventsBoardList() : S.board === "urgent" ? (S.urgent || []) : S.board === "jobs" ? (S.jobs || []).filter(m => !m.contract) : (S.charterMission ? [S.charterMission] : []);
+  const pool = S.board === "all" ? missionBoardPool() : S.board === "missions" ? [...(S.checkrides || []), ...S.missions] : S.board === "partners" ? (S.jobs || []).filter(m => m.contract) : S.board === "network" ? S.routes : S.board === "rotations" ? rotationBoardList() : S.board === "events" ? eventsBoardList() : S.board === "urgent" ? (S.urgent || []) : S.board === "jobs" ? (S.jobs || []).filter(m => !m.contract) : S.board === "trips" ? tripBoardList() : (S.charterMission ? [S.charterMission] : []);
   if (!pool.some(m => m.id === S.selected?.id)) { S.selected = S.board === "charter" ? S.charterMission || null : null; S.ofp = null; S.ofpErrors = []; S.ofpWarnings = []; S.planned = false; if (S.selected) S.aircraft = S.selected.aircraft[0]; }
   renderMissions();
 });
@@ -188,7 +188,7 @@ document.querySelectorAll("[data-board]").forEach(b => b.onclick = () => {
 function fliesIn(code, sim) { return (S.fleet[code]?.sim || "MSFS").includes(sim); }
 /* PAC ACARS versions: a fourth number is a hotfix, shown as "1.1.2 hotfix 1" */
 function verLabel(v) { const p = String(v || "").split("."); return p.length > 3 && +p[3] ? `${p.slice(0, 3).join(".")} hotfix ${+p[3]}` : p.slice(0, 3).join("."); }
-function allFlights() { return [...(S.checkrides || []), ...S.missions, ...S.routes, ...(S.tourLegs || []), ...(S.urgent || []), ...(S.jobs || []), ...(S.charterMission ? [S.charterMission] : []), ...(S.booking?.mission?.urgent ? [S.booking.mission] : [])]; }
+function allFlights() { return [...(S.checkrides || []), ...S.missions, ...S.routes, ...(S.tourLegs || []), ...(S.urgent || []), ...(S.jobs || []), ...(S.trips?.mine?.legs || []), ...(S.charterMission ? [S.charterMission] : []), ...(S.booking?.mission?.urgent ? [S.booking.mission] : [])]; }
 /* rotations: the next leg of each, for this pilot */
 function rotationBoardList() {
   const nx = S.rotationNext || {};
@@ -317,6 +317,32 @@ function waybillHtml(m) {
       </span></button>`;
 }
 
+/* trip pairings: multi-day trips with duty limits and layover rest */
+async function loadTrips() { try { S.trips = await api("/api/trips"); } catch (e) { S.trips = { open: [], mine: null, rules: {} }; } if (S.board === "trips") renderMissions(); }
+function tripBoardList() { const t = S.trips?.mine; return t ? [t.legs[t.legs_done]].filter(Boolean) : []; }
+async function tripAction(id, action) {
+  if (action === "drop" && !confirmDrop()) return;
+  try { S.trips = await api(`/api/trips/${encodeURIComponent(id)}/${action}`, { method: "POST" }); } catch (e) { toast(e.message || "That didn't work."); }
+  renderMissions();
+}
+function confirmDrop() { const b = document.getElementById("tripDropBtn"); if (b && b.dataset.armed) return true; if (b) { b.dataset.armed = 1; b.textContent = "Tap again to drop the trip"; } return false; }
+function tripCard(t, mine) {
+  const ac = S.fleet[t.aircraft]?.name || t.aircraft;
+  const legs = t.legs.map((l, i) => `<li class="${mine && i < t.legs_done ? "done" : mine && i === t.legs_done ? "next" : ""}"><b>${esc(l.origin.icao)}→${esc(l.destination.icao)}</b> <small>day ${l.trip.day} · ${hm(l.target_block_min)}${l.trip.layover ? ` · layover ${esc(l.destination.city || l.destination.icao)}` : ""}</small></li>`).join("");
+  const rest = mine && t.next_after && t.next_after * 1000 > Date.now() ? `<p class="trip-rest">Layover rest: leg ${t.legs_done + 1} opens <span class="countdown" data-countdown="${t.next_after}"></span>.</p>` : "";
+  return `<div class="trip-card${mine ? " mine" : ""}"><div class="trip-head"><b>${esc(t.id)}</b><span class="tag dark">${esc(ac)}</span><span class="tag grey">${t.days} ${t.days === 1 ? "day" : "days"} · ${t.legs.length} legs · ${hm(t.block_min)} block</span></div>
+    <div class="trip-stations">${t.stations.map(esc).join(" → ")}</div><ol class="trip-legs">${legs}</ol>${rest}
+    <div class="trip-foot"><span class="muted">Per diem about $${fmt(t.per_diem_estimate)}, paid for the real time away from ${esc(t.hub)}</span>
+    ${mine ? `<button class="btn ghost" id="tripDropBtn" type="button" onclick="tripAction('${esc(t.id)}','drop')">Drop trip</button>` : S.trips?.mine ? "" : `<button class="btn" type="button" onclick="tripAction('${esc(t.id)}','bid')">Bid for this trip</button>`}</div></div>`;
+}
+function tripsPanel() {
+  const T = S.trips; if (!T) return `<p class="muted">Loading trips…</p>`;
+  const r = T.rules || {};
+  return `<div class="trips-wrap"><p class="muted">Real cargo pilots fly trips: several legs over a few days, away from base, then home. Bid for one trip at a time and fly its legs in order in the aircraft type shown. Duty days stay within ${r.max_duty_h || 13} hours, and each layover means at least ${r.rest_h || 10} hours' rest (real time) before the next leg opens. Per diem is paid when you're back at base.</p>
+    ${T.mine ? `<h4>Your trip</h4>${tripCard(T.mine, true)}` : ""}
+    <h4>Open trips</h4>${(T.open || []).length ? `<div class="trip-grid">${T.open.map(t => tripCard(t, false)).join("")}</div>` : `<p class="muted">No open trips right now. New ones are posted through the week.</p>`}</div>`;
+}
+
 function renderMissions() {
   if (S.me?.id && !S.laneMap) loadLanes().then(() => { if (!$("#view-missions")?.hidden) renderMissions(); });
   loadFeaturedShipment();
@@ -364,6 +390,12 @@ function renderMissions() {
     const stations = new Set(S.routes.flatMap(r => [r.origin.icao, r.destination.icao]));
     $("#boardCount").textContent = `${list.length} of ${S.routes.length} routes · ${stations.size} stations worldwide`;
     // Draw after all shared filters have been applied.
+  } else if (S.board === "trips") {
+    $("#boardTitle").textContent = "Trip pairings";
+    if (!S.trips || Date.now() - (S._tripsAt || 0) > 60000) { S._tripsAt = Date.now(); loadTrips(); }
+    $("#filters").innerHTML = tripsPanel();
+    list = tripBoardList();
+    $("#boardCount").textContent = S.trips?.mine ? `Trip ${S.trips.mine.id}: leg ${S.trips.mine.legs_done + 1} of ${S.trips.mine.legs.length} is next.` : "Bid for a trip to see its legs here.";
   } else if (S.board === "jobs") {
     $("#boardTitle").textContent = "Job board";
     const kinds = [["all", "All work"], ["cargo", "Cargo jobs"], ["ferry", "Ferry flights"]];

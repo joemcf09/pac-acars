@@ -810,6 +810,11 @@ def resolve_mission(body):
         return va.training.resolve(va, body['training'])
     if body.get("charter"):
         return build_charter(body["charter"])[0]
+    if str(body.get("mission_id", "")).startswith("T2"):   # a trip-pairing leg (T2611-001-1)
+        with db() as con_:
+            m_ = trips.leg(con_, body["mission_id"], va.current_pilot_id())
+        if m_:
+            return m_
     m = va.live_mission(body.get("mission_id")) or MISSIONS.get(body.get("mission_id")) or ROUTES.get(body.get("mission_id")) or va.TOUR_LEGS.get(body.get("mission_id"))
     if not m and str(body.get("mission_id", "")).startswith("TR-"):  # a type-rating checkride
         m = va.checkride_mission(va.current_pilot_id(), body.get("mission_id"))
@@ -3411,6 +3416,11 @@ def file_pirep():
     for ev_ in board_events:          # after the filing transaction, so the bot's event log isn't locked out
         botlink.emit("freight_delivered", ev_)
     p["paid"] = va.after_file(p, booking, rec, pid)
+    try:
+        with db() as con_:
+            p["trip"] = trips.settle(con_, pid_, booking.get("mission"), p, va.add_tx, pid)
+    except Exception as e:
+        app.logger.exception("trips: %s", e)
     car = va.career(pid_)
     new_badges = [b for b in va.badges(pid_) if b["earned"] and b["id"] not in before_badges]
     ranks = [r["name"] for r in va.RANKS]
@@ -4199,6 +4209,8 @@ import operations_health
 operations_health.register(app, globals())
 import relief
 relief.register(app, globals())
+import trips
+trips.register(app, globals())
 import rotation_planner
 rotation_planner.register(app, globals())
 import cargo_programs
