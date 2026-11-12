@@ -1874,3 +1874,6 @@ html[data-design="loadsheet"] :is(.relief-draft,.relief-notice,.relief-checks){b
 .trip-legs{margin:0 0 8px 18px;padding:0;font-size:13px}.trip-legs li.done{opacity:.55;text-decoration:line-through}.trip-legs li.next b{color:var(--accent,#2d4f7c)}
 .trip-rest{font-size:13px;background:rgba(45,79,124,.08);padding:6px 8px;border-radius:6px}
 .trip-foot{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between;font-size:13px}
+
+/* public pages (cargo network, tracking) shown inside the site with the menu */
+.embed-page{display:block;width:100%;height:calc(100vh - 40px);min-height:600px;border:0;background:transparent}

@@ -36,7 +36,7 @@ let toastT;
 function toast(msg, ms = 5200) { const t = $("#toast"); t.textContent = msg; t.hidden = false; clearTimeout(toastT); toastT = setTimeout(() => t.hidden = true, ms); }
 
 /* ---------------- navigation ---------------- */
-const PUBLIC_VIEWS = ["home", "fleet", "handbook", "cargoguide", "gallery", "privacy", "piracy", "roster"];   // "live" joins when staff make the live map public
+const PUBLIC_VIEWS = ["home", "network", "track", "fleet", "handbook", "cargoguide", "gallery", "privacy", "piracy", "roster"];   // "live" joins when staff make the live map public
 function show(view) {
   if (view === "reports" && location.hash !== "#reports") captureReportContext();
   if (/^career\/(overview|qualifications|wallet|activities|awards)$/.test(view)) {
@@ -51,6 +51,9 @@ function show(view) {
   closeNavigation();
   document.querySelectorAll('#mainNav .nav-group').forEach(g => g.querySelector('.nav-disclosure').classList.toggle('nav-current', !!g.querySelector('[data-view="' + view + '"]')));
   document.querySelectorAll(".view").forEach(v => v.hidden = v.id !== "view-" + view);
+  if (view === "network" || view === "track") {   // the public pages, shown inside the site so the menu stays
+    const f = document.getElementById(view + "Frame"); if (f && !f.src) f.src = "/" + view + "?embed=1";
+  }
   if (view === "acars") { renderAcars(); poll(); setTimeout(() => S.map && S.map.invalidateSize(), 50); }
   if (view === "logbook") loadLogbook();
   if (view === "profile") loadProfile();
