@@ -139,10 +139,10 @@ def top_contributors(con, c, dest, n=5):
 
 
 def wrap_up(con, add_tx=None, now=None):
-    """Closes each published campaign once after its end date: a news post with the result and top contributors,
+    """Closes each campaign once, after its end date or as soon as staff archive it: a news post with the result and top contributors,
     and the campaign's cash reward (if any) paid once to every contributor when the target was reached."""
     now=now or time.time();done=[]
-    for row in con.execute("""SELECT * FROM cargo_campaigns c WHERE state='published' AND ends<=?
+    for row in con.execute("""SELECT * FROM cargo_campaigns c WHERE ((state='published' AND ends<=?) OR (state='archived' AND archived_at IS NOT NULL))
             AND NOT EXISTS (SELECT 1 FROM cargo_campaign_wrapups w WHERE w.campaign_id=c.id)""",(now,)).fetchall():
         c=dict(row);dest=json.loads(c['destinations']);marks=','.join('?' for _ in dest);lo,hi=_window(c)
         t=con.execute(f'''SELECT COALESCE(SUM(payload_lbs),0) lbs,COUNT(*) flights,COUNT(DISTINCT pilot_id) pilots
