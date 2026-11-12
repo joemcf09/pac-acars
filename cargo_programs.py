@@ -208,6 +208,7 @@ def register(app,context):
         p,error=user(True)
         if error is not None:return error
         if request.method=='GET':
+            close_ended()
             with closing(db()) as con:data=campaigns(con,p['id'],True)
             return reply({'campaigns':data})
         try:values=campaign_input(request.get_json(silent=True),context['AIRPORTS'])
@@ -261,4 +262,5 @@ def register(app,context):
             else:
                 con.execute('UPDATE cargo_campaigns SET state=?,archived_at=COALESCE(archived_at,?) WHERE id=?',
                             ('published' if action=='publish' else 'archived',time.time() if action=='archive' else None,cid))
+        if action=='archive':close_ended()      # pays the reward and posts the result right away
         return reply({'ok':True})
