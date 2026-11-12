@@ -1877,3 +1877,19 @@ html[data-design="loadsheet"] :is(.relief-draft,.relief-notice,.relief-checks){b
 
 /* public pages (cargo network, tracking) shown inside the site with the menu */
 .embed-page{display:block;width:100%;height:calc(100vh - 40px);min-height:600px;border:0;background:transparent}
+
+/* company: P&L, CEO desk, fleet market, complaints */
+.pl-panel h2{display:flex;justify-content:space-between;align-items:center;gap:8px}.pl-pick{font-size:14px}
+.pl-table td.ind{padding-left:24px;color:var(--muted,#667)}.pl-table tr.pl-h td{font-weight:600}.pl-table tr.pl-t td{border-top:2px solid var(--line,#d8dde3)}
+.ceo-hubs{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:10px;margin-bottom:16px}
+.ceo-hub{border:1px solid var(--line,#d8dde3);border-radius:10px;padding:10px;background:var(--card,#fff)}.ceo-hub.done{border-color:#2e7d32}
+.ceo-hub-h{display:flex;gap:6px;align-items:center;flex-wrap:wrap}.ceo-hub-s{display:flex;gap:14px;margin:6px 0;font-size:13px}.ceo-hub-s span{display:flex;flex-direction:column}
+.mkt-filter{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0}
+.mkt-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:12px}
+.mkt-card{border:1px solid var(--line,#d8dde3);border-radius:10px;padding:12px;background:var(--card,#fff);display:flex;flex-direction:column;gap:6px}
+.mkt-co{display:flex;flex-direction:column;gap:2px;min-height:44px}.mkt-co img{max-height:32px;max-width:160px;object-fit:contain;align-self:flex-start}.mkt-name{font-weight:700;font-size:15px}
+.mkt-ac{display:flex;gap:6px;align-items:center;flex-wrap:wrap}.mkt-foot{display:flex;gap:8px;align-items:center;justify-content:space-between;margin-top:auto;flex-wrap:wrap}
+.mkt-price{font-weight:700;font-size:16px}.mkt-order{margin-top:14px;display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end}.mkt-order h3{width:100%;margin:0}
+.mkt-disc{font-size:12px;margin-top:18px}
+.cmp{border:1px solid var(--line,#d8dde3);border-radius:10px;padding:12px;margin-bottom:10px;background:var(--card,#fff)}.cmp.answered{opacity:.7}
+.cmp-acts{display:flex;flex-wrap:wrap;gap:6px}

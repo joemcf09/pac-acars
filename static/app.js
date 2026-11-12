@@ -3931,6 +3931,7 @@ function renderFinance(f) {
     <div><span>Revenue all time</span><b>${money(t.revenue)}</b><span>costs ${money(t.cost)}</span></div>
   </div>
   <div class="chart-box"><h3>Company cash</h3>${cashChart}</div>
+  ${plStatement(f.statements)}
   <div class="fin-grid">
     <section class="panel"><h2>By aircraft type</h2>
       ${typeRows ? `<div class="table-wrap" style="border:0"><table class="fin-table"><thead><tr><th>Type</th><th class="r">Flights</th><th class="r">Block h</th><th class="r">Revenue</th><th class="r">Costs</th><th class="r">Profit</th><th class="r">Margin</th><th class="r">Profit / hour</th></tr></thead><tbody>${typeRows}</tbody></table></div>`
@@ -5687,13 +5688,13 @@ function renderStaff() {
   const d = S.staff;
   const pendingReviews = d.reviews.filter(r => r.review_status === "Pending").length;
   const pendingApps = d.applications.filter(a => a.status === "Pending").length;
-  const tabs = [["reports", "Problem reports", 0], ["health", "Operations health", 0], ["campaigns", "Cargo campaigns", 0], ["relief", "Relief missions", 0], ["cargostock", "Cargo stock", 0], ["reviews", "PIREP review", pendingReviews], ["applications", "Applications", pendingApps], ["transfers", "Transfer hours", d.transfer_pending || 0], ["activity", "Activity", d.activity_overdue || 0], ["roster", "Roster", 0],
+  const tabs = [["ceo", "CEO desk", 0], ["market", "Fleet market", 0], ["complaints", "Complaints", 0], ["roles", "Roles", 0], ["reports", "Problem reports", 0], ["health", "Operations health", 0], ["campaigns", "Cargo campaigns", 0], ["relief", "Relief missions", 0], ["cargostock", "Cargo stock", 0], ["reviews", "PIREP review", pendingReviews], ["applications", "Applications", pendingApps], ["transfers", "Transfer hours", d.transfer_pending || 0], ["activity", "Activity", d.activity_overdue || 0], ["roster", "Roster", 0],
     ["news", "News", 0], ["mx", "Maintenance", d.airframes.reduce((n, a) => n + (a.open_items || []).length, 0)], ["types", "Fleet types", 0], ["pphotos", "Partner photos", 0], ["airframes", "Airframes", d.airframes.filter(a => ["Maintenance", "Inspection", "A-check due", "Heavy check due", "Heavy check", "Damaged"].includes(a.status)).length], ["events", "Events", 0], ["site", "Site and rules", 0]];
   $("#staffRoot").innerHTML = `<div class="profile-bar"><h1>Staff</h1><span class="muted">Running the airline. Only staff accounts can see this area.</span></div>
     <div class="staff-tabs" role="tablist">${tabs.map(([k, t, n]) => `<button role="tab" data-st="${k}" aria-selected="${S.staffTab === k}">${t}${n ? `<span class="count">${n}</span>` : ""}</button>`).join("")}</div>
     <div id="staffBody"></div>`;
   document.querySelectorAll("[data-st]").forEach(b => b.onclick = () => { S.staffTab = b.dataset.st; renderStaff(); });
-  ({ reports: staffProblemReports, health: staffOperationsHealth, campaigns: staffCargoCampaigns, relief: staffRelief, cargostock: staffCargoStock, reviews: staffReviews, applications: staffApps, transfers: staffTransfers, activity: staffActivity, roster: staffRoster, news: staffNews, mx: staffMx, types: staffTypes, pphotos: staffPartnerPhotos, airframes: staffAirframes, events: staffEvents, site: staffSite })[S.staffTab]();
+  ({ ceo: staffCeo, market: staffMarket, complaints: staffComplaints, roles: staffRoles, reports: staffProblemReports, health: staffOperationsHealth, campaigns: staffCargoCampaigns, relief: staffRelief, cargostock: staffCargoStock, reviews: staffReviews, applications: staffApps, transfers: staffTransfers, activity: staffActivity, roster: staffRoster, news: staffNews, mx: staffMx, types: staffTypes, pphotos: staffPartnerPhotos, airframes: staffAirframes, events: staffEvents, site: staffSite })[S.staffTab]();
 }
 /* Staff › Activity: every pilot's next-flight-due date, who is on leave and who is overdue */
 async function staffCargoStock() {
@@ -8518,6 +8519,104 @@ function reliefBrief(m) {
     <div class="relief-help"><h3>How to help for real</h3><p>These organizations are responding. PAC isn't affiliated with them and receives nothing; the links go straight to them.</p>
       <ul>${r.help.map(([t, u]) => `<li><a href="${esc(u)}" target="_blank" rel="noopener">${esc(t)}</a></li>`).join("")}</ul></div></section>`;
 }
+/* ---------------------------------------------------------------- company: P&L, CEO desk, fleet market, complaints, roles */
+function plStatement(list) {
+  if (!list || !list.length) return "";
+  const m = list[0], rows = (obj, sign) => Object.entries(obj).map(([k, v]) => `<tr><td>${esc(k)}</td><td class="r ${moneyCls(sign * v)}">${money(sign * v)}</td></tr>`).join("");
+  const opts = list.map((x, i) => `<option value="${i}">${new Date(x.month + "-02").toLocaleString("en-US", { month: "long", year: "numeric" })}</option>`).join("");
+  return `<section class="panel pl-panel"><h2>Profit and loss statement <select id="plMonth" class="pl-pick">${opts}</select></h2><div id="plBody">${plTable(m)}</div></section>`;
+}
+function plTable(m) {
+  const line = (obj, sign) => Object.entries(obj).map(([k, v]) => `<tr><td class="ind">${esc(k)}</td><td class="r">${money(sign * v)}</td></tr>`).join("");
+  const sum = o => Object.values(o).reduce((a, b) => a + b, 0);
+  return `<table class="fin-table pl-table"><tbody>
+    <tr class="pl-h"><td>Freight revenue <span class="muted">(${m.flights} flights)</span></td><td class="r"><b>${money(m.revenue)}</b></td></tr>
+    <tr class="pl-h"><td>Operating costs</td><td class="r">${money(-sum(m.operating))}</td></tr>${line(m.operating, -1)}
+    <tr class="pl-t"><td>Operating profit</td><td class="r ${moneyCls(m.operating_profit)}"><b>${money(m.operating_profit)}</b></td></tr>
+    ${Object.keys(m.people).length ? `<tr class="pl-h"><td>Paid to pilots</td><td class="r">${money(-sum(m.people))}</td></tr>${line(m.people, -1)}` : ""}
+    ${Object.keys(m.other).length ? `<tr class="pl-h"><td>Fleet and company</td><td class="r">${money(sum(m.other))}</td></tr>${line(m.other, 1)}` : ""}
+    <tr class="pl-t"><td>Net result</td><td class="r ${moneyCls(m.net)}"><b>${money(m.net)}</b></td></tr></tbody></table>`;
+}
+document.addEventListener("change", e => { if (e.target.id === "plMonth" && S.fin) $("#plBody").innerHTML = plTable(S.fin.statements[+e.target.value]); });
+const cDate = t => t ? new Date(t * 1000).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : "never";
+async function staffCeo() {
+  const body = $("#staffBody"); body.innerHTML = `<p class="muted">Loading the CEO desk…</p>`;
+  let d; try { d = await api("/api/staff/ceo"); } catch (e) { body.innerHTML = `<div class="notice err">${esc(e.message)}</div>`; return; }
+  const hubs = d.hubs.map(h => `<div class="ceo-hub${h.visited_this_quarter ? " done" : ""}"><div class="ceo-hub-h"><b>${esc(h.icao)}</b> ${esc(h.city)}${h.visited_this_quarter ? '<span class="tag green">Visited this quarter</span>' : '<span class="tag amber">Visit due</span>'}</div>
+    <div class="ceo-hub-s"><span>Waiting<b>${h.waiting} · ${fmt(h.waiting_lbs)} lb</b></span><span>On time (30 days)<b>${h.on_time_pct == null ? "–" : h.on_time_pct + "%"}</b></span><span>Arrivals<b>${h.arrivals_30d}</b></span></div>
+    <div class="muted">Aircraft here: ${Object.entries(h.aircraft).map(([k, v]) => `${v} ${esc(k.toLowerCase())}`).join(", ") || "none"} · last visit ${cDate(h.last_visit)}</div></div>`).join("");
+  const acc = d.accounts.length ? d.accounts.map(a => `<tr><td><b>${esc(a.shipper)}</b></td><td><span class="tag ${a.tier === "At risk" ? "" : "amber"}">${esc(a.tier)}</span> ${a.score}</td><td>${a.on_time} on time · ${a.late} late · ${a.failed} failed</td><td>${a.station ? `Fly to <b>${esc(a.station)}</b>` : "–"}</td></tr>`).join("")
+    : `<tr><td colspan="4" class="muted">Every shipper is in good standing. Nobody needs a visit.</td></tr>`;
+  body.innerHTML = `<p class="muted">Your work as CEO. Visits are flown, not clicked: file a flight into a hub and it counts as a hub visit; land at a struggling shipper's home station and their standing goes up by ${d.visit_bonus} for ${d.visit_days} days. Company cash: <b>${money(d.cash)}</b>.</p>
+    <h3>Hub visits <span class="muted">(aim for every hub each quarter)</span></h3><div class="ceo-hubs">${hubs}</div>
+    <h3>Key accounts that need you</h3><div class="table-wrap"><table class="fin-table"><thead><tr><th>Shipper</th><th>Standing</th><th>Last 90 days</th><th>Visit</th></tr></thead><tbody>${acc}</tbody></table></div>
+    <h3>Letter from the CEO <span class="muted">(${new Date(d.letter.month + "-02").toLocaleString("en-US", { month: "long", year: "numeric" })})</span></h3>
+    ${d.letter.posted ? `<p class="notice">Posted ${cDate(d.letter.posted)}. You can edit and post it again.</p>` : `<p class="muted">Drafted from last month's real numbers. Edit it to sound like you, then post it to the news feed.</p>`}
+    <textarea id="ceoLetter" rows="14" style="width:100%">${esc(d.letter.draft)}</textarea><p><button class="btn" id="ceoPost" type="button">Post to the news feed</button></p>
+    <h3>Pilot of the month</h3>${d.awards.length ? `<ul>${d.awards.map(a => `<li><b>${esc(new Date(a.month + "-02").toLocaleString("en-US", { month: "long", year: "numeric" }))}:</b> ${a.name ? `${esc(a.name)} · ${a.flights} flights, ${a.hours} h, ${a.smooth} smooth landings` : "nobody flew enough that month"}</li>`).join("")}</ul>` : `<p class="muted">Chosen automatically on the 1st of each month and announced in the news.</p>`}
+    <h3>Recent visits</h3>${d.visits.length ? `<ul>${d.visits.map(v => `<li>${cDate(v.time)}: ${v.kind === "hub" ? `hub visit, ${esc(v.place)}` : `account visit to ${esc(v.shipper)} at ${esc(v.place)}`}</li>`).join("")}</ul>` : `<p class="muted">None yet.</p>`}`;
+  $("#ceoPost").onclick = async () => { try { await api("/api/staff/ceo/letter", { method: "POST", body: JSON.stringify({ month: d.letter.month, body: $("#ceoLetter").value }) }); toast("Letter posted."); staffCeo(); } catch (e) { toast(e.message); } };
+}
+async function staffMarket() {
+  const body = $("#staffBody"); body.innerHTML = `<p class="muted">Loading the fleet market…</p>`;
+  let d; try { d = await api("/api/staff/market"); } catch (e) { body.innerHTML = `<div class="notice err">${esc(e.message)}</div>`; return; }
+  const WAY = { new: "Buy new", conversion: "Buy used + convert", used: "Buy used", lease: "Lease", wet: "Wet lease (ACMI)" };
+  const filter = S.mktWay || "all";
+  const list = d.offers.filter(o => filter === "all" || o.way === filter);
+  const price = o => o.price ? money(o.price) : o.monthly ? `${money(o.monthly)} <small>/ month</small>` : `${money(o.weekly)} <small>/ week</small>`;
+  const card = o => `<div class="mkt-card"><div class="mkt-co">${o.logo ? `<img src="${esc(o.logo)}" alt="${esc(o.company_name)}">` : `<span class="mkt-name">${esc(o.company_name || "Second-hand market")}</span>`}<small>${esc(o.company_kind || "Used aircraft")}${o.company_country ? " · " + esc(o.company_country) : ""}</small></div>
+    <div class="mkt-ac"><b>${esc(o.aircraft_name)}</b><span class="tag dark">${esc(WAY[o.way])}</span></div><p class="muted">${esc(o.what)}</p>
+    <div class="mkt-foot"><span class="mkt-price">${price(o)}</span><span class="muted">ready in ${o.lead_days} days</span><button class="btn" type="button" data-offer="${esc(o.id)}">Choose</button></div></div>`;
+  const owned = d.fleet.map(f => `<tr><td><b>${esc(f.reg)}</b></td><td>${esc(f.type)}</td><td>${esc(f.status)}</td><td>${esc(f.ownership === "wet_lease" ? "Wet lease" : f.ownership === "leased" ? "Leased" : "Owned")}${f.owner_company ? " · " + esc(d.companies[f.owner_company]?.name || "") : ""}</td><td>${f.lease_rate ? money(f.lease_rate) + (f.ownership === "wet_lease" ? "/wk" : "/mo") : ""}</td><td><button class="btn ghost" type="button" data-back="${esc(f.reg)}">${f.ownership === "owned" ? "Sell" : "Return"}</button></td></tr>`).join("");
+  body.innerHTML = `<p class="muted">How real cargo airlines get aircraft. Company cash: <b>${money(d.cash)}</b>. Purchases are paid now; leases are charged monthly; wet leases are paid up front by the week.</p>
+    <div class="mkt-filter">${["all", "new", "conversion", "used", "lease", "wet"].map(k => `<button type="button" class="btn ${filter === k ? "" : "ghost"}" data-way="${k}">${k === "all" ? "All" : WAY[k]}</button>`).join("")}</div>
+    ${filter === "new" || filter === "all" ? `<p class="notice">${esc(d.companies.airbus.note)}</p>` : ""}
+    <div class="mkt-grid">${list.map(card).join("") || `<p class="muted">No offers of this kind for PAC's types.</p>`}</div>
+    <div id="mktForm"></div>
+    ${owned ? `<h3>Aircraft from the market</h3><div class="table-wrap"><table class="fin-table"><thead><tr><th>Reg</th><th>Type</th><th>Status</th><th>How</th><th>Rate</th><th></th></tr></thead><tbody>${owned}</tbody></table></div>` : ""}
+    <p class="muted mkt-disc">${esc(d.disclaimer)}</p>`;
+  body.querySelectorAll("[data-way]").forEach(b => b.onclick = () => { S.mktWay = b.dataset.way; staffMarket(); });
+  body.querySelectorAll("[data-back]").forEach(b => b.onclick = async () => { if (!b.dataset.armed) { b.dataset.armed = 1; b.textContent = "Tap again to confirm"; return; }
+    try { const r = await api(`/api/staff/market/return/${encodeURIComponent(b.dataset.back)}`, { method: "POST" }); toast(`${b.dataset.back} ${r.note}.`); staffMarket(); } catch (e) { toast(e.message); } });
+  body.querySelectorAll("[data-offer]").forEach(b => b.onclick = () => {
+    const o = d.offers.find(x => x.id === b.dataset.offer);
+    $("#mktForm").innerHTML = `<section class="panel mkt-order"><h3>${esc(WAY[o.way])}: ${esc(o.aircraft_name)}${o.company_name ? " from " + esc(o.company_name) : ""}</h3>
+      <label>Registration <input id="mktReg" placeholder="N306PC" maxlength="8"></label>
+      <label>Based at <select id="mktHub">${d.hubs.map(h => `<option>${h}</option>`).join("")}</select></label>
+      ${o.way === "wet" ? `<label>Weeks <input id="mktWeeks" type="number" min="1" max="12" value="4"></label>` : ""}
+      <p class="muted">${o.way === "new" ? "Delivered at the factory: you fly it home." : `Delivered at your chosen hub in ${o.lead_days} days.`}</p>
+      <button class="btn" id="mktGo" type="button">Confirm</button> <button class="btn ghost" id="mktX" type="button">Cancel</button></section>`;
+    $("#mktForm").scrollIntoView({ behavior: "smooth" });
+    $("#mktX").onclick = () => { $("#mktForm").innerHTML = ""; };
+    $("#mktGo").onclick = async () => { try { const r = await api("/api/staff/market/order", { method: "POST", body: JSON.stringify({ offer: o.id, reg: $("#mktReg").value, hub: $("#mktHub").value, weeks: $("#mktWeeks")?.value }) });
+      toast(`${r.reg} ordered: ready at ${r.deliver_to} on ${cDate(r.deliver_at)}.`); staffMarket(); } catch (e) { toast(e.message); } };
+  });
+}
+async function staffComplaints() {
+  const body = $("#staffBody"); body.innerHTML = `<p class="muted">Loading complaints…</p>`;
+  let d; try { d = await api("/api/staff/complaints"); } catch (e) { body.innerHTML = `<div class="notice err">${esc(e.message)}</div>`; return; }
+  const R = Object.fromEntries(d.responses.map(r => [r.key, r]));
+  body.innerHTML = `<p class="muted">Shippers write in after a late or failed delivery. How PAC answers changes their standing for 90 days. Goodwill costs come out of company cash.</p>
+    ${d.complaints.map(c => `<div class="cmp ${c.status}"><div><b>${esc(c.shipper)}</b> <span class="tag ${c.kind === "failed" ? "" : "amber"}">${c.kind === "failed" ? "Failed shipment" : "Late delivery"}</span> <span class="muted">AWB ${esc(c.awb)} · ${esc(c.station || "")} · ${cDate(c.created)}</span></div>
+      <p>${c.kind === "failed" ? `"Our shipment never arrived. We need to understand what happened and whether we can keep relying on PAC."` : `"Our shipment arrived late and our customer noticed. Please make sure it doesn't happen again."`}</p>
+      ${c.standing ? `<p class="muted">Account standing: ${esc(c.standing.tier)} (${c.standing.score})</p>` : ""}
+      ${c.status === "open" ? `<div class="cmp-acts">${d.responses.map(r => `<button class="btn ${r.key === "apology" ? "ghost" : ""}" type="button" data-c="${c.id}" data-r="${r.key}">${esc(r.label)} <small>+${r.delta}${r.cost ? " · " + money(r.cost) : ""}</small></button>`).join("")}</div>`
+        : `<p class="tag green">Answered: ${esc(R[c.response]?.label || c.response)}</p>`}</div>`).join("") || `<p class="muted">No complaints. Keep the freight on time.</p>`}`;
+  body.querySelectorAll("[data-c]").forEach(b => b.onclick = async () => { try { const r = await api(`/api/staff/complaints/${b.dataset.c}`, { method: "POST", body: JSON.stringify({ response: b.dataset.r }) }); toast(`${r.shipper}: standing +${r.delta}.`); staffComplaints(); } catch (e) { toast(e.message); } });
+}
+async function staffRoles() {
+  const body = $("#staffBody"); body.innerHTML = `<p class="muted">Loading roles…</p>`;
+  let d; try { d = await api("/api/staff/roles"); } catch (e) { body.innerHTML = `<div class="notice err">${esc(e.message)}</div>`; return; }
+  const by = {}; d.holders.forEach(h => (by[h.role] = by[h.role] || []).push(h));
+  body.innerHTML = `<p class="muted">Management work follows the role, not the account. Hand a role to a pilot and its tasks move with it. Only the CEO can change roles.</p>
+    <div class="table-wrap"><table class="fin-table"><thead><tr><th>Role</th><th>What they own</th><th>Held by</th></tr></thead><tbody>
+    ${d.roles.map(r => `<tr><td><b>${esc(r.title)}</b></td><td class="muted">${esc(r.does)}</td><td>${(by[r.key] || []).map(h => `${esc(h.name || h.pilot_id)} <span class="muted">${esc(h.pilot_id)}</span>${d.can_assign ? ` <button class="btn ghost" type="button" data-rm="${esc(h.pilot_id)}|${r.key}">Remove</button>` : ""}`).join("<br>") || '<span class="muted">Open</span>'}</td></tr>`).join("")}</tbody></table></div>
+    ${d.can_assign ? `<section class="panel mkt-order"><h3>Give a role</h3><label>Pilot ID <input id="roPid" placeholder="PAC0002"></label><label>Role <select id="roRole">${d.roles.map(r => `<option value="${r.key}">${esc(r.title)}</option>`).join("")}</select></label><button class="btn" id="roGo" type="button">Give role</button></section>` : ""}`;
+  const send = async x => { try { await api("/api/staff/roles", { method: "POST", body: JSON.stringify(x) }); staffRoles(); } catch (e) { toast(e.message); } };
+  body.querySelectorAll("[data-rm]").forEach(b => b.onclick = () => { const [p, r] = b.dataset.rm.split("|"); send({ pilot_id: p, role: r, remove: true }); });
+  if ($("#roGo")) $("#roGo").onclick = () => send({ pilot_id: $("#roPid").value, role: $("#roRole").value });
+}
+
 async function staffRelief() {
   const body = $("#staffBody");
   body.innerHTML = `<p class="muted">Checking disaster alerts…</p>`;

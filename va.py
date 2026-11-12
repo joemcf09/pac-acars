@@ -3318,6 +3318,20 @@ def enforce_overdue():
             heavy_check.tick(con, now)
     except Exception as e:
         print("AOG tick:", e)
+    try:
+        import fleet_market, ceo
+        def _news(title, body):
+            with C["db"]() as c2:
+                c2.execute("INSERT INTO news (time, kind, title, body, important, expires, author) VALUES (?,?,?,?,?,?,?)",
+                           (time.time(), "news", title, body, 0, None, "PAC Management"))
+        with C["db"]() as con:
+            pending = []
+            fleet_market.tick(con, lambda t, b: pending.append((t, b)), now)
+            ceo.tick(con, lambda t, b: pending.append((t, b)), now)
+        for t, b in pending:
+            _news(t, b)
+    except Exception as e:
+        print("Company tick:", e)
     _emit_bot(events)
     with C["db"]() as con:
         for r in con.execute("SELECT reg, ata, description FROM maint WHERE status='open' AND severity='deferred' AND due < ?", (now,)).fetchall():

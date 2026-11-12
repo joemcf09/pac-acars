@@ -3421,6 +3421,9 @@ def file_pirep():
     try:
         with db() as con_:
             p["trip"] = trips.settle(con_, pid_, booking.get("mission"), p, va.add_tx, pid)
+            visits = ceo.on_filed(con_, pid_, p, booking.get("mission"), pid)
+            if visits:
+                p["ceo_visits"] = [{"kind": k, "place": pl, "shipper": sh} for k, pl, sh in visits]
     except Exception as e:
         app.logger.exception("trips: %s", e)
     car = va.career(pid_)
@@ -3566,7 +3569,11 @@ def finance():
         mb["revenue"] += r["revenue"]; mb["cost"] += r["cost"]; mb["profit"] += r["profit"]; mb["flights"] += 1
     with db() as con:
         shares = con.execute("SELECT COALESCE(SUM(amount),0) FROM wallet WHERE kind='profit_share'").fetchone()[0]
+        import company
+        ledger = company.ledger_total(con)
+        statements = company.statements(con, 6)
     cash -= shares
+    cash += ledger                      # aircraft purchases, leases, goodwill and other non-flight money
     this_month = _dt.datetime.now(_dt.timezone.utc).strftime("%Y-%m")
     tot = {"revenue": sum(r["revenue"] for r in rows), "cost": sum(r["cost"] for r in rows), "profit": sum(r["profit"] for r in rows)}
     routes = sorted(({"route": k, **v} for k, v in by_route.items()), key=lambda x: -x["profit"])
@@ -3588,7 +3595,7 @@ def finance():
                     "by_category": [{"category": k, **v} for k, v in sorted(by_cat.items(), key=lambda kv: -kv[1]["profit"])],
                     "best_routes": [r for r in routes if r["profit"] > 0][:8], "worst_routes": [r for r in routes[::-1] if r["profit"] < 0][:5],
                     "cost_split": dict(sorted(cost_split.items(), key=lambda kv: -kv[1])),
-                    "ledger": [dict(r) for r in rows[::-1][:25]]})
+                    "ledger": [dict(r) for r in rows[::-1][:25]], "statements": statements, "company_ledger": round(ledger)})
 
 
 EXCUSED_DELAYS = acars_core.EXCUSED_DELAYS
@@ -4213,6 +4220,10 @@ import relief
 relief.register(app, globals())
 import trips
 trips.register(app, globals())
+import company
+company.register(app, globals())
+import ceo
+ceo.register(app, globals())
 import rotation_planner
 rotation_planner.register(app, globals())
 import cargo_programs

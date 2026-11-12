@@ -32,9 +32,15 @@ def compute(con, now=None):
         key = {"DELIVERED": "on_time", "DELIVERED_LATE": "late", "EXCEPTION": "failed"}[r["status"]]
         a[key] += r["n"]
         a["last"] = max(a["last"], r["last"] or 0)
+    try:
+        import ceo
+        adj = ceo.adjustments(con, now)
+    except Exception:
+        adj = {}
     for a in out.values():
         a["shipments"] = a["on_time"] + a["late"] + a["failed"]
-        a["score"] = int(max(0, min(100, round(BASE + 3 * a["on_time"] - 6 * a["late"] - 10 * a["failed"]))))
+        a["adjust"] = adj.get(a["shipper"], 0)
+        a["score"] = int(max(0, min(100, round(BASE + 3 * a["on_time"] - 6 * a["late"] - 10 * a["failed"] + a["adjust"]))))
         a["tier"] = tier(a["score"])
     return out
 
