@@ -906,8 +906,8 @@ def refresh_jobs_today(here=None):
                 if j:
                     new.append(j)
             import heavy_check
-            for fr in [dict(r) for r in con.execute("SELECT reg, type, location FROM airframes WHERE status=? AND location!=?",
-                                                    (heavy_check.DUE, heavy_check.MX_BASE))]:
+            for fr in [dict(r) for r in con.execute(f"SELECT reg, type, location FROM airframes WHERE status=? AND location NOT IN ({','.join('?' * len(heavy_check.MX_BASES))})",
+                                                    (heavy_check.DUE, *heavy_check.MX_BASES))]:
                 j = heavy_check.ferry_job(fr, C["airport_obj"], C["gc_distance_nm"], C["FLEET"], _next_job_id(con, used), _day_end(), FERRY_BONUS)
                 if j:
                     new.append(j)
@@ -1848,6 +1848,9 @@ def check_booking(m, ac, reg, st):
             import heavy_check
             if row["status"] != "Available" and not heavy_check.may_book(row, m):
                 return f"{reg} is not available ({row['status'].lower()}).", None
+            why = heavy_check.dispatch_problem(row, m, C["FLEET"], C["airport_obj"], C["gc_distance_nm"])
+            if why:
+                return why, None
             if st.get("enforce_airframes", True) and row["location"] != m["origin"]["icao"]:
                 return f"{reg} is at {row['location']}, not {m['origin']['icao']}. Pick an aircraft that's there or ferry one in.", None
         elif st.get("enforce_airframes", True):
@@ -2021,7 +2024,7 @@ def after_file(p, booking, rec, pirep_id):
                         status, note = "A-check due", f"A-check due at {since:.0f} hours since last check"
                     import heavy_check
                     since_heavy = (row["hours_since_heavy"] or 0) + hrs if "hours_since_heavy" in row.keys() else 0
-                    heavy = heavy_check.after_flight(since_heavy, loc, status)
+                    heavy = heavy_check.after_flight(since_heavy, loc, status, reg=row["reg"])
                     heavy_until = None
                     if heavy:
                         status, note, heavy_until = heavy

@@ -5653,7 +5653,7 @@ function renderHandbook(cfg) {
       <p>Pending and rejected flights stay in your logbook, but only accepted flights count towards hours, rank, points, awards and leaderboards.</p>`],
     ["airframes", "Airframes and maintenance", `<ul><li>A landing firmer than ${Math.abs(rv.hard_landing_fpm)} fpm grounds the airframe for a hard-landing inspection until staff release it.</li>
       <li>Every ${cfg.a_check_hours} flight hours the airframe is due an A-check and is grounded until staff sign it off.</li>
-      <li>Every 6,000 flight hours it's due a heavy (C) check. That's done only at the maintenance base in Cincinnati: the aircraft can fly just one more flight, a ferry to KCVG (it shows on the mission board), then spends about three weeks in the hangar.</li>
+      <li>Every 6,000 flight hours it's due a heavy (C) check. It's done at one of PAC's maintenance bases: Cincinnati (KCVG), Milan (LIMC) or Hong Kong (VHHH). The aircraft can fly just one more flight, a ferry to the nearest base (it shows on the mission board), then spends 3 to 5 days in the hangar. Booking checks ahead: if a flight would leave too few hours to reach a base afterwards, it's refused and you're asked to pick another aircraft.</li>
       <li>A landing below −1,000 fpm damages the airframe. It stays out of service until staff return it.</li>
       <li>Staff manage the fleet: they add and remove airframes, and add, edit or retire aircraft types. Retired types can't be booked.</li></ul>`],
     ["events", "Events, featured routes and tours", `<ul><li><b>Events</b> such as Relief Week multiply the points on matching flights while they run.</li>
