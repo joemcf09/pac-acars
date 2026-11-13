@@ -123,4 +123,5 @@ def register(app, g):
     @app.get("/api/crew-rest")
     def crew_rest_me():
         with g["db"]() as con:
+            tick(con, g["va"].add_tx)            # up to date the moment the pilot looks (after a jumpseat, say)
             return jsonify({"me": status(con, g["va"].current_pilot_id()), "hq": hq(con)})
