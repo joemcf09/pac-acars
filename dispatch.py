@@ -106,7 +106,10 @@ GENERAL = [("General cargo", ["GEN"], None), ("Consolidated freight", ["GEN"], N
 # Per-type adjustments to the generic %MAC estimate, matched to the simulator aircraft PAC pilots fly.
 # A306F: iniBuilds A300-600F weight-and-balance page, 100,000 lb payload split evenly over three zones with 26,950 lb fuel:
 # ZFW 30.7% MAC, GW 32.65% MAC (fuel moves this type's CG aft). DOW CG and the fuel effect are fitted to that.
-CG_CALIBRATION = {"A306F": {"dow": 34.0, "fuel": 24.5}}
+# Fitted to the simulator aircraft's own EFB (iniBuilds A300-600F), two loads with cargo split evenly FWD/MID/AFT:
+#   100,000 lb: ZFW 30.70 / TOW 32.65 %MAC      34,000 lb: ZFW 27.36 / GW 30.26 %MAC (27,308 lb fuel)
+# -> empty aircraft at 24.7 %MAC, the evenly loaded hold's centroid at 41.3 %MAC, fuel's centroid at 52.7 %MAC.
+CG_CALIBRATION = {"A306F": {"dow": 24.66, "cargo": 41.35, "fuel": 52.7}}
 # Center-of-gravity limits (%MAC) from the simulator aircraft's own flight model (iniBuilds A300-600: 15% to 34%)
 CG_LIMITS = {"A306F": (15.0, 34.0)}
 
@@ -442,9 +445,14 @@ def paperwork(d, fleet, booking=None, notams=None, captain_rank=None, airports=N
     moment = sum(p["weight_lbs"] * pos_ix.get(p["pos"], .55) for p in d.get("positions", []))
     pcg = moment / payload if payload else .5
     cal = CG_CALIBRATION.get(d.get("aircraft"), {})
-    mac_dow = cal.get("dow", 22.0) + rng.uniform(-1.5, 1.5) * (0.3 if cal else 1)
-    mac_zfw = round((dow * mac_dow + payload * (14 + pcg * 22)) / max(1, zfw), 1)
-    mac_tow = round(mac_zfw + (tof / max(1, tow)) * cal.get("fuel", -4.5), 1)
+    if cal.get("cargo"):          # calibrated: weighted moments of the empty aircraft, the cargo and the fuel
+        mac_dow = cal["dow"]
+        mac_zfw = round((dow * mac_dow + payload * (cal["cargo"] + (pcg - .5) * 22)) / max(1, zfw), 1)
+        mac_tow = round((zfw * mac_zfw + tof * cal["fuel"]) / max(1, zfw + tof), 1)
+    else:
+        mac_dow = cal.get("dow", 22.0) + rng.uniform(-1.5, 1.5) * (0.3 if cal else 1)
+        mac_zfw = round((dow * mac_dow + payload * (14 + pcg * 22)) / max(1, zfw), 1)
+        mac_tow = round(mac_zfw + (tof / max(1, tow)) * cal.get("fuel", -4.5), 1)
     doi = round(45 + (mac_dow - 22) * 2.4, 1)
     dli = round(doi + (mac_zfw - mac_dow) * 3.1, 1)
     lizfw, litow = dli, round(dli + (mac_tow - mac_zfw) * 3.1, 1)
