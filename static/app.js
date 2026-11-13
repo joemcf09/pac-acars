@@ -4100,11 +4100,24 @@ async function drawBadge() {
   const b = badgeInfo();
   const [photo, wm] = await Promise.all([loadImg(b.photo), loadImg("/static/pac-wordmark-white.png")]);
   const W = 648, H = 1008, cv = document.createElement("canvas");
-  cv.width = W; cv.height = H + 150;                                  // room for the lanyard above the card
+  cv.width = W * 2; cv.height = H + 150;                              // front and back side by side, room for the lanyard above
   const x = cv.getContext("2d");
   const F = (w, sz) => `${w} ${sz}px Saira, "Segoe UI", system-ui, sans-serif`, M = sz => `600 ${sz}px "IBM Plex Mono", Consolas, monospace`;
   const top = 150;
-  x.fillStyle = "#6B7078"; x.fillRect(0, 0, W, H + 150);
+  x.fillStyle = "#6B7078"; x.fillRect(0, 0, W * 2, H + 150);
+  // fine-line security pattern (guilloche), as on the on-screen badge
+  const guil = (ox, col) => {
+    x.save(); roundRect(x, ox + 24, top, W - 48, H - 60, 28); x.clip(); x.strokeStyle = col; x.lineWidth = 1;
+    for (let k = 0; k < 18; k++) {
+      x.beginPath();
+      for (let gx = 0; gx <= W; gx += 6) {
+        const gy = top + (H - 60) / 2 + Math.sin((gx + k * 14 + b.n * 17) / 36) * (60 + k * 11) + Math.sin((gx - k * 20) / 14) * 9;
+        gx ? x.lineTo(ox + gx, gy) : x.moveTo(ox + gx, gy);
+      }
+      x.stroke();
+    }
+    x.restore();
+  };
   // lanyard: two straps meeting at the clip, as on screen
   const cx = W / 2, clipY = top - 34;
   [[-1, 0], [1, 0]].forEach(([dir]) => {
@@ -4120,8 +4133,12 @@ async function drawBadge() {
   x.fillStyle = "#6B7078"; roundRect(x, cx - 26, clipY + 12, 52, 24, 4); x.fill();
   // card
   x.fillStyle = "#fff"; roundRect(x, 24, top, W - 48, H - 60, 28); x.fill();
+  guil(0, "rgba(200,0,0,.13)");
   x.save(); roundRect(x, 24, top, W - 48, H - 60, 28); x.clip();
   x.fillStyle = "#C80000"; x.fillRect(24, top, W - 48, 96);
+  // microprint strip under the header
+  x.fillStyle = "#fff3f3"; x.fillRect(24, top + 96, W - 48, 14);
+  x.fillStyle = "#a40000"; x.font = M(8); x.fillText(("PAGANI AIR CARGO · " + b.badgeNo + " · ").repeat(10), 30, top + 106);
   const wmH = 34, wmW2 = wm.width / wm.height * wmH;
   x.drawImage(wm, 56, top + 32, wmW2, wmH);
   x.fillStyle = "#fff"; x.font = F(800, 34); x.textAlign = "right"; x.fillText("CREW", W - 56, top + 64); x.textAlign = "left";
@@ -4134,10 +4151,22 @@ async function drawBadge() {
   g.addColorStop(0, "rgba(255,255,255,0)"); g.addColorStop(.45, "rgba(255,255,255,.22)"); g.addColorStop(.55, "rgba(255,255,255,0)");
   x.fillStyle = g; x.fillRect(px, py, pw, ph); x.restore();
   x.strokeStyle = "#e3e5e8"; x.lineWidth = 2; roundRect(x, px, py, pw, ph, 10); x.stroke();
+  // holographic sheen and the verification seal over the photo's corner
+  const hg = x.createLinearGradient(px, py, px + pw, py + ph);
+  [[.3, "rgba(255,120,200,0)"], [.42, "rgba(255,120,200,.22)"], [.5, "rgba(120,220,255,.26)"], [.58, "rgba(255,240,140,.22)"], [.7, "rgba(255,240,140,0)"]].forEach(([o, c]) => hg.addColorStop(o, c));
+  x.fillStyle = hg; x.fillRect(px, py, pw, ph);
+  x.save(); x.translate(px + pw - 20, py + ph - 34); x.rotate(-14 * Math.PI / 180); x.globalAlpha = .62;
+  x.strokeStyle = x.fillStyle = "#7a1aa0"; x.lineWidth = 3; x.beginPath(); x.arc(0, 0, 46, 0, Math.PI * 2); x.stroke();
+  x.lineWidth = 1.5; x.beginPath(); x.arc(0, 0, 27, 0, Math.PI * 2); x.stroke();
+  x.font = F(700, 9); const seal = "PAC OPERATIONS CONTROL · VERIFIED · ";
+  [...seal].forEach((ch, i) => { x.save(); x.rotate(i / seal.length * Math.PI * 2); x.fillText(ch, -3, -33); x.restore(); });
+  x.font = F(800, 15); x.textAlign = "center"; x.fillText(b.iata, 0, 6); x.textAlign = "left"; x.restore();
   // name block
   const tx = px + pw + 28;
   x.fillStyle = "#1E2126"; x.font = F(800, 38);
-  const name = b.name.length > 18 ? b.name.replace(/^(\S+)\s/, "$1\n") : b.name;
+  const maxW = W - 56 - tx, lines = [];        // wrap the name to the space beside the photo
+  b.name.split(" ").forEach(w => { const t = lines.length ? lines[lines.length - 1] + " " + w : w; if (lines.length && x.measureText(t).width <= maxW) lines[lines.length - 1] = t; else lines.push(w); });
+  const name = lines.join("\n");
   name.split("\n").forEach((ln, i) => x.fillText(ln, tx, py + 40 + i * 42));
   x.fillStyle = "#5E6470"; x.font = F(600, 21); x.fillText(b.rank, tx, py + 40 + name.split("\n").length * 42 + 6);
   x.fillStyle = "#C80000"; x.font = M(30); x.fillText(b.id, tx, py + 40 + name.split("\n").length * 42 + 48);
@@ -4167,6 +4196,14 @@ async function drawBadge() {
       if (i === b.ratings.length - 1 && line) { x.fillText(line, 56, fy); fy += 40; }
     });
   }
+  // ghost portrait and the colour-shifting strip
+  const gw = 54, gh = 68, gxp = W - 56 - gw, gyp = top + H - 60 - 118 - 30 - gh;
+  x.save(); x.globalAlpha = .16; x.filter = "grayscale(1) contrast(1.4)";
+  const gs = Math.max(gw / photo.width, gh / photo.height); x.beginPath(); x.rect(gxp, gyp, gw, gh); x.clip();
+  x.drawImage(photo, gxp + (gw - photo.width * gs) / 2, gyp + (gh - photo.height * gs) / 2, photo.width * gs, photo.height * gs); x.restore();
+  const kg = x.createLinearGradient(56, 0, W - 56, 0);
+  ["#c0c4c9", "#f6e3a8", "#b9e4f5", "#f2b9da", "#c0c4c9"].forEach((c, i) => kg.addColorStop(i / 4, c));
+  x.fillStyle = kg; roundRect(x, 56, top + H - 60 - 118 - 22, W - 112, 10, 5); x.fill();
   // barcode
   const by = top + H - 60 - 118;
   x.fillStyle = "#1E2126";
@@ -4176,7 +4213,41 @@ async function drawBadge() {
     for (let i = 0; i < 4; i++) { const w = ((c >> i) & 1) ? 6 : 2.6; if (i % 2 === 0) x.fillRect(bx, by, w, 54); bx += w + 2.4; }
   }
   x.font = M(19); x.fillStyle = "#5E6470"; x.fillText(b.badgeNo, 56, by + 80);
-  x.font = F(600, 15); x.textAlign = "right"; x.fillText("FOR FLIGHT SIMULATION", W - 56, by + 80); x.textAlign = "left";
+  x.font = M(17); x.textAlign = "right"; x.fillText(`DOC ${b.docNo}`, W - 56, by + 80); x.textAlign = "left";
+  x.restore();
+  // ---- the back
+  const o = W;
+  x.fillStyle = "#fff"; roundRect(x, o + 24, top, W - 48, H - 60, 28); x.fill();
+  guil(o, "rgba(30,33,38,.09)");
+  x.save(); roundRect(x, o + 24, top, W - 48, H - 60, 28); x.clip();
+  x.fillStyle = "#1E2126"; x.fillRect(o + 24, top + 40, W - 48, 64);                     // magnetic stripe
+  const chip = x.createLinearGradient(o + 56, top + 140, o + 126, top + 194);
+  chip.addColorStop(0, "#f3dc93"); chip.addColorStop(.55, "#c9a24b"); chip.addColorStop(1, "#e9cf86");
+  x.fillStyle = chip; roundRect(x, o + 56, top + 140, 70, 54, 8); x.fill();
+  x.strokeStyle = "#8f6f2c"; x.lineWidth = 2; roundRect(x, o + 56, top + 140, 70, 54, 8); x.stroke();
+  x.beginPath(); x.moveTo(o + 79, top + 140); x.lineTo(o + 79, top + 194); x.moveTo(o + 103, top + 140); x.lineTo(o + 103, top + 194); x.moveTo(o + 56, top + 167); x.lineTo(o + 126, top + 167); x.stroke();
+  x.fillStyle = "#1E2126"; x.font = F(800, 26); x.fillText("Conditions of use", o + 146, top + 166);
+  x.fillStyle = "#5E6470"; x.font = F(600, 16); x.fillText("Airside identification · PAC Security Programme", o + 146, top + 190);
+  const wrap = (txt, yy, max, lh) => { let line = ""; txt.split(" ").forEach(w => { const t = line ? line + " " + w : w; if (x.measureText(t).width > max) { x.fillText(line, o + 56, yy); yy += lh; line = w; } else line = t; }); if (line) x.fillText(line, o + 56, yy); return yy + lh; };
+  x.fillStyle = "#1E2126"; x.font = F(500, 19);
+  let yb = wrap("This badge stays with the holder and must be worn visibly airside. It isn't transferable. If found, please return it to PAC Operations Control, Cincinnati.", top + 248, W - 112, 28);
+  yb += 14;
+  [["TYPE RATINGS", b.ratings.length ? b.ratings.join(" · ") : "In training"], ["BADGE", b.badgeNo], ["DOCUMENT", b.docNo]].forEach(([k, v]) => {
+    x.fillStyle = "#5E6470"; x.font = F(600, 16); x.fillText(k, o + 56, yb);
+    x.fillStyle = "#1E2126"; x.font = F(700, 20); yb = wrap(String(v), yb + 26, W - 112, 26) + 6;
+  });
+  yb += 20; x.fillStyle = "#5E6470"; x.font = F(600, 16); x.fillText("HOLDER'S SIGNATURE", o + 56, yb);
+  x.strokeStyle = "#c9cdd2"; x.lineWidth = 1.5; x.beginPath(); x.moveTo(o + 56, yb + 62); x.lineTo(o + W - 220, yb + 62); x.stroke();
+  x.fillStyle = "#1b2a6b"; x.font = `italic 40px "Brush Script MT","Segoe Script","Snell Roundhand",cursive`; x.fillText(b.p.name || b.name, o + 66, yb + 54);
+  x.save(); x.translate(o + W - 130, yb + 30); x.rotate(9 * Math.PI / 180); x.globalAlpha = .72;
+  x.strokeStyle = x.fillStyle = "#c80000"; x.lineWidth = 3; roundRect(x, -78, -40, 156, 80, 8); x.stroke();
+  x.textAlign = "center"; x.font = F(800, 14); x.fillText("ISSUED", 0, -16); x.font = F(800, 18); x.fillText(b.issued, 0, 8);
+  x.font = F(800, 12); x.fillText(`${b.iata} BADGE OFFICE`, 0, 28); x.textAlign = "left"; x.restore();
+  const mrz = [`PAC<<${(b.p.name || b.name).toUpperCase().replace(/[^A-Z]+/g, "<")}`.padEnd(30, "<").slice(0, 30), `${b.docNo}<${b.iata}<${b.id}`.padEnd(30, "<").slice(0, 30)];
+  x.fillStyle = "rgba(255,255,255,.85)"; x.fillRect(o + 24, top + H - 60 - 150, W - 48, 86);
+  x.fillStyle = "#1E2126"; x.font = M(26); mrz.forEach((ln, i) => x.fillText(ln, o + 50, top + H - 60 - 112 + i * 34));
+  x.fillStyle = "#5E6470"; x.font = F(500, 14);
+  wrap("Pagani Air Cargo is a virtual airline. This badge is for flight simulation and has no real-world validity.", top + H - 60 - 34, W - 112, 18);
   x.restore();
   return cv;
 }
