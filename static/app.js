@@ -8443,8 +8443,16 @@ function dayNightSync() {
   // flat map (Leaflet)
   const m = live.base?.map;
   if (m) {
-    (live.nightLayers || []).forEach(l => m.removeLayer(l)); live.nightLayers = [];
-    rings.forEach(r => live.nightLayers.push(L.polygon(r.map(([x, y]) => [y, x]), { stroke: false, fillColor: "#00081a", fillOpacity: dark ? 0.22 : 0.14, interactive: false }).addTo(m)));
+    // one canvas with a wide margin, kept between updates: panning and zooming don't redraw it from scratch (no blinking)
+    live.nightRenderer ||= L.canvas({ padding: 1.5, pane: "overlayPane" });
+    live.nightLayers ||= [];
+    rings.forEach((r, i) => {
+      const ll = r.map(([x, y]) => [y, x]);
+      if (live.nightLayers[i]) live.nightLayers[i].setLatLngs(ll);
+      else live.nightLayers[i] = L.polygon(ll, { renderer: live.nightRenderer, stroke: false, fillColor: "#00081a", fillOpacity: dark ? 0.22 : 0.14, interactive: false, smoothFactor: 2 });
+      if (!m.hasLayer(live.nightLayers[i])) live.nightLayers[i].addTo(m);
+    });
+    if (!on) live.nightLayers.forEach(l => m.hasLayer(l) && m.removeLayer(l));
   }
   // globe (MapLibre)
   const g = live.globe;
