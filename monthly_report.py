@@ -97,7 +97,9 @@ def build(con, pid, name, month, site_url, unsub_url, now=None):
     text = "\n".join(lines)
     body = "".join(f"<p style='margin:0 0 4px;white-space:pre-wrap;font-family:{'monospace' if l.startswith('  ') else 'Arial,sans-serif'}'>{html.escape(l) or '&nbsp;'}</p>" for l in lines[:-1])
     htm = (f"<div style='max-width:560px;margin:auto;font-size:15px;color:#1E2126'><div style='background:#c80000;color:#fff;padding:14px 18px;"
-           f"font:800 18px Arial,sans-serif'>PAC · {html.escape(label)}</div><div style='padding:18px'>{body}"
+           f"font:800 18px Arial,sans-serif'><table role='presentation' cellpadding='0' cellspacing='0' style='width:100%'><tr>"
+           f"<td><img src='{html.escape(site)}/static/pac-wordmark-white.png' alt='PAC' height='28' style='display:block;height:28px;border:0'></td>"
+           f"<td style='text-align:right;color:#fff;font:700 15px Arial,sans-serif'>{html.escape(label)}</td></tr></table></div><div style='padding:18px'>{body}"
            f"<p style='margin-top:18px'><a href='{html.escape(site)}' style='background:#c80000;color:#fff;padding:10px 16px;text-decoration:none;"
            f"font-weight:700;border-radius:4px'>Open PAC</a></p><p style='font-size:12px;color:#5E6470;margin-top:24px'>"
            f"<a href='{html.escape(unsub_url)}' style='color:#5E6470'>Turn off monthly emails</a></p></div></div>")
