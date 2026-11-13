@@ -371,6 +371,8 @@ def badge_issue():
     p = current()
     if not p:
         return jsonify({"error": "Sign in with your password first."}), 401
+    if not p.get("staff") and not (C.get("settings") and (C["settings"]() or {}).get("badge_signin_open")):
+        return jsonify({"error": "Badge sign-in is in staff preview. It opens to all pilots soon."}), 403
     tok = secrets.token_urlsafe(32)
     with C["db"]() as con:
         con.execute("INSERT INTO badge_tokens (token_hash, pilot_id, created, agent) VALUES (?,?,?,?)",

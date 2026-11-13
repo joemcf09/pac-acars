@@ -3332,6 +3332,8 @@ def enforce_overdue():
             growth.tick(con, now)
             import insurance
             insurance.tick(con, C["FLEET"], now)
+            import hotels
+            hotels.tick(con, add_tx, now)
         for t, b in pending:
             _news(t, b)
     except Exception as e:

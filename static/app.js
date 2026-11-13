@@ -59,7 +59,7 @@ function show(view) {
   if (view === "profile") loadProfile();
   if (view === "fleet") loadFleet();
   if (view === "home") loadHome();
-  if (view === "dashboard") loadPilotBriefing();
+  if (view === "dashboard") { loadPilotBriefing(); loadCrewRest(); }
   if (view === "career") loadCareer();
   if (view === "finance") loadFinance();
   if (view === "shop") loadShop();
@@ -3581,7 +3581,7 @@ async function quoteJump(to) {
 }
 function walletPanel(me, wallet) {
   if (!me) return "";
-  const kinds = { flight_pay: "Flight pay", profit_share: "Profit share", skill_bonus: "Skill bonus", contract_bonus: "Shortage bonus", ferry_bonus: "Ferry bonus", hazard_pay: "Hazard pay", jumpseat: "Travel", shop: "PAC shop", gear_bonus: "Gear bonus", adjustment: "Staff adjustment", campaign: "Campaign reward", per_diem: "Per diem", mentoring: "Mentoring bonus" };
+  const kinds = { flight_pay: "Flight pay", profit_share: "Profit share", skill_bonus: "Skill bonus", contract_bonus: "Shortage bonus", ferry_bonus: "Ferry bonus", hazard_pay: "Hazard pay", jumpseat: "Travel", shop: "PAC shop", gear_bonus: "Gear bonus", adjustment: "Staff adjustment", campaign: "Campaign reward", per_diem: "Per diem", mentoring: "Mentoring bonus", hotel: "Hotel stay" };
   const entries = wallet?.transactions || [];
   const pager = wallet && wallet.pages > 1 ? `<nav class="wallet-pages" aria-label="Wallet transaction pages" style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:12px 14px;border-top:1px solid var(--line)">
     <span class="muted" role="status">Transactions ${(wallet.page - 1) * wallet.per_page + 1}–${Math.min(wallet.page * wallet.per_page, wallet.total)} of ${wallet.total}</span>
@@ -8588,6 +8588,13 @@ function plTable(m) {
 }
 document.addEventListener("change", e => { if (e.target.id === "plMonth" && S.fin) $("#plBody").innerHTML = plTable(S.fin.statements[+e.target.value]); });
 const cDate = t => t ? new Date(t * 1000).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : "never";
+async function loadCrewRest() {
+  const el = $("#crewRestNote"); if (!el) return;
+  try {
+    const d = await api("/api/crew-rest"), m = d.me;
+    el.innerHTML = m.away ? `<div class="notice crew-rest ${m.kind === "own" && m.night > 1 ? "warn" : ""}"><b>🛏 Crew rest · ${esc(m.station)}</b> ${esc(m.text)}</div>` : "";
+  } catch (e) { el.innerHTML = ""; }
+}
 async function staffCeo() {
   const body = $("#staffBody"); body.innerHTML = `<p class="muted">Loading the CEO desk…</p>`;
   let d; try { d = await api("/api/staff/ceo"); } catch (e) { body.innerHTML = `<div class="notice err">${esc(e.message)}</div>`; return; }
@@ -8598,12 +8605,14 @@ async function staffCeo() {
     : `<tr><td colspan="4" class="muted">Every shipper is in good standing. Nobody needs a visit.</td></tr>`;
   body.innerHTML = `<p class="muted">Your work as CEO. Visits are flown, not clicked: file a flight into a hub and it counts as a hub visit; land at a struggling shipper's home station and their standing goes up by ${d.visit_bonus} for ${d.visit_days} days. Company cash: <b>${money(d.cash)}</b>.</p>
     <h3>Hub visits <span class="muted">(aim for every hub each quarter)</span></h3><div class="ceo-hubs">${hubs}</div>
+    <div id="ceoRest"></div>
     <h3>Key accounts that need you</h3><div class="table-wrap"><table class="fin-table"><thead><tr><th>Shipper</th><th>Standing</th><th>Last 90 days</th><th>Visit</th></tr></thead><tbody>${acc}</tbody></table></div>
     <h3>Letter from the CEO <span class="muted">(${new Date(d.letter.month + "-02").toLocaleString("en-US", { month: "long", year: "numeric" })})</span></h3>
     ${d.letter.posted ? `<p class="notice">Posted ${cDate(d.letter.posted)}. You can edit and post it again.</p>` : `<p class="muted">Drafted from last month's real numbers. Edit it to sound like you, then post it to the news feed.</p>`}
     <textarea id="ceoLetter" rows="14" style="width:100%">${esc(d.letter.draft)}</textarea><p><button class="btn" id="ceoPost" type="button">Post to the news feed</button></p>
     <h3>Pilot of the month</h3>${d.awards.length ? `<ul>${d.awards.map(a => `<li><b>${esc(new Date(a.month + "-02").toLocaleString("en-US", { month: "long", year: "numeric" }))}:</b> ${a.name ? `${esc(a.name)} · ${a.flights} flights, ${a.hours} h, ${a.smooth} smooth landings` : "nobody flew enough that month"}</li>`).join("")}</ul>` : `<p class="muted">Chosen automatically on the 1st of each month and announced in the news.</p>`}
     <h3>Recent visits</h3>${d.visits.length ? `<ul>${d.visits.map(v => `<li>${cDate(v.time)}: ${v.kind === "hub" ? `hub visit, ${esc(v.place)}` : `account visit to ${esc(v.shipper)} at ${esc(v.place)}`}</li>`).join("")}</ul>` : `<p class="muted">None yet.</p>`}`;
+  api("/api/crew-rest").then(r => { const h = r.hq, el = $("#ceoRest"); if (el) el.innerHTML = `<h3>KCVG crew rest rooms <span class="muted">(${h.used} of ${h.rooms} beds in use${h.used ? ` · saving $${fmt(h.saved_per_night)} a night in hotels` : ""})</span></h3><p class="muted">${h.guests.length ? h.guests.map(g => esc(g.name || g.pilot_id)).join(", ") : "All rooms free tonight."}</p>`; }).catch(() => { });
   body.insertAdjacentHTML("beforeend", `<div id="growthBox"><p class="muted">Loading network and safety…</p></div>`);
   staffGrowth();
   $("#ceoPost").onclick = async () => { try { await api("/api/staff/ceo/letter", { method: "POST", body: JSON.stringify({ month: d.letter.month, body: $("#ceoLetter").value }) }); toast("Letter posted."); staffCeo(); } catch (e) { toast(e.message); } };

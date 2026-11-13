@@ -4234,6 +4234,8 @@ import relief
 relief.register(app, globals())
 import trips
 trips.register(app, globals())
+import hotels
+hotels.register(app, globals())
 import company
 company.register(app, globals())
 import ceo
