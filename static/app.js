@@ -383,11 +383,18 @@ function renderMissions() {
   } else if (S.board === "network") {
     $("#boardTitle").textContent = "Scheduled network";
     $("#filters").innerHTML = REGIONS.map(r => `<button class="chip" aria-pressed="${S.region === r}" data-region="${esc(r)}">${esc(r)}</button>`).join("") +
+      `<span class="net-od"><input type="search" id="netFrom" placeholder="From (ICAO or city)" value="${esc(S.netFrom || "")}" aria-label="Departure">
+        <button type="button" class="btn ghost small" id="netSwap" title="Swap departure and destination" aria-label="Swap departure and destination">⇄</button>
+        <input type="search" id="netTo" placeholder="To (ICAO or city)" value="${esc(S.netTo || "")}" aria-label="Destination"></span>` +
       `<input type="search" id="netSearch" placeholder="Search ICAO, city or cargo" value="${esc(S.netSearch)}" aria-label="Search routes">` + acSel;
     document.querySelectorAll("[data-region]").forEach(b => b.onclick = () => { S.region = b.dataset.region; S.netLimit = 40; renderMissions(); });
     $("#netSearch").oninput = e => { S.netSearch = e.target.value; S.netLimit = 40; clearTimeout(S._nt); S._nt = setTimeout(() => { renderMissions(); const i = $("#netSearch"); i.focus(); i.setSelectionRange(i.value.length, i.value.length); }, 200); };
-    const q = S.netSearch.trim().toUpperCase();
-    list = S.routes.filter(r => (S.region === "All" || r.region === S.region) && (!S.acFilter || r.aircraft.includes(S.acFilter)) &&
+    const odInput = id => { const i = $(id); i.oninput = e => { S[id === "#netFrom" ? "netFrom" : "netTo"] = e.target.value; S.netLimit = 40; clearTimeout(S._nt); S._nt = setTimeout(() => { renderMissions(); const j = $(id); j.focus(); j.setSelectionRange(j.value.length, j.value.length); }, 200); }; };
+    odInput("#netFrom"); odInput("#netTo");
+    $("#netSwap").onclick = () => { [S.netFrom, S.netTo] = [S.netTo || "", S.netFrom || ""]; S.netLimit = 40; renderMissions(); };
+    const q = S.netSearch.trim().toUpperCase(), qf = (S.netFrom || "").trim().toUpperCase(), qt = (S.netTo || "").trim().toUpperCase();
+    const at = (ap, x) => !x || [ap.icao, ap.city, ap.name].some(v => (v || "").toUpperCase().includes(x));
+    list = S.routes.filter(r => at(r.origin, qf) && at(r.destination, qt) && (S.region === "All" || r.region === S.region) && (!S.acFilter || r.aircraft.includes(S.acFilter)) &&
       (!S.simFilter || r.aircraft.some(a => fliesIn(a, S.simFilter))) &&
       (!q || [r.origin.icao, r.destination.icao, r.origin.city, r.destination.city, r.cargo, r.id].some(x => (x || "").toUpperCase().includes(q))));
     const stations = new Set(S.routes.flatMap(r => [r.origin.icao, r.destination.icao]));

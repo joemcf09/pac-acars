@@ -1946,3 +1946,4 @@ html[data-design="loadsheet"] :is(.relief-draft,.relief-notice,.relief-checks){b
 .ceo-trip small{display:block;color:var(--steel,#5E6470);font-size:12px}
 .ceo-trip em{font-style:normal;font-weight:800;white-space:nowrap}
 .daynight-btn[aria-pressed="true"]{background:var(--red);color:#fff;border-color:var(--red)}
+.net-od{display:inline-flex;gap:6px;align-items:center;flex-wrap:wrap}.net-od input{max-width:170px}#netSwap{font-size:16px;line-height:1;padding:6px 10px}
