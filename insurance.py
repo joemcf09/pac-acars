@@ -74,6 +74,7 @@ def tick(con, fleet, now=None):
     import company
     now = now or time.time()
     con.execute("CREATE TABLE IF NOT EXISTS insurance_bills (month TEXT PRIMARY KEY, amount REAL, time REAL)")
+    correct_settlements(con)
     settle_past(con, fleet)
     month = dt.datetime.fromtimestamp(now, dt.timezone.utc).strftime("%Y-%m")
     if con.execute("SELECT 1 FROM insurance_bills WHERE month=?", (month,)).fetchone():
@@ -86,6 +87,26 @@ def tick(con, fleet, now=None):
     return pol["monthly"]
 
 
+def correct_settlements(con):
+    """Reverses any settlement paid on a flight that isn't an accepted PIREP (an early version claimed those too).
+    Each reversal is posted once, dated with the original, so the monthly statements come out right."""
+    import company
+    company.migrate(con)
+    done = {r[0] for r in con.execute("SELECT ref FROM company_ledger WHERE kind='insurance_settlement' AND ref LIKE 'unsettle-%'")}
+    fixed = 0
+    for row in con.execute("""SELECT l.ref, l.amount, l.time, l.description FROM company_ledger l WHERE l.kind='insurance_settlement'
+            AND l.ref LIKE 'settle-%' AND l.amount>0""").fetchall():
+        pid = row[0].split("-", 1)[1]
+        if "un" + row[0] in done:
+            continue
+        ok = con.execute("SELECT 1 FROM pireps WHERE id=? AND demo=0 AND review_status='Accepted'", (pid,)).fetchone()
+        if not ok:
+            company.post(con, "insurance_settlement", -row[1], "Correction: " + (row[3] or "") + " (PIREP not accepted, claim withdrawn)",
+                         "un" + row[0], None, row[2])
+            fixed += row[1]
+    return fixed
+
+
 def settle_past(con, fleet):
     """One-time settlement for incidents flown before PAC had insurance: the insurer pays each repair above the
     deductible, credited in the month the incident happened. Each PIREP is settled once (ref settle-<id>)."""
@@ -95,7 +116,9 @@ def settle_past(con, fleet):
     company.migrate(con)
     done = {r[0] for r in con.execute("SELECT ref FROM company_ledger WHERE kind='insurance_settlement'")}
     total = 0
-    for r in con.execute("SELECT id, filed_at, aircraft, flight_number, detail FROM pireps WHERE demo=0 AND detail LIKE '%repairs%'").fetchall():
+    # only accepted flights are claimed: a rejected or pending PIREP never cost the company anything
+    for r in con.execute("""SELECT id, filed_at, aircraft, flight_number, detail FROM pireps WHERE demo=0 AND review_status='Accepted'
+            AND detail LIKE '%repairs%'""").fetchall():
         ref = f"settle-{r[0]}"
         if ref in done or CLAIM_NOTE in (r[4] or ""):
             continue
