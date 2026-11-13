@@ -32,7 +32,7 @@ def migrate(con):
         destinations TEXT NOT NULL, state TEXT NOT NULL DEFAULT 'draft',
         created_at REAL NOT NULL, created_by TEXT NOT NULL, archived_at REAL)''')
     cols={r[1] for r in con.execute('PRAGMA table_info(cargo_campaigns)')}
-    for col,typ in (('patch','TEXT'),('reward_cash','REAL DEFAULT 0'),('baseline_lbs','INTEGER DEFAULT 0')):
+    for col,typ in (('patch','TEXT'),('reward_cash','REAL DEFAULT 0'),('baseline_lbs','INTEGER DEFAULT 0'),('launch_at','REAL')):
         if col not in cols:con.execute(f'ALTER TABLE cargo_campaigns ADD COLUMN {col} {typ}')
     con.execute('''CREATE TABLE IF NOT EXISTS cargo_campaign_wrapups (campaign_id INTEGER PRIMARY KEY, at REAL NOT NULL,
         cargo_lbs REAL, flights INTEGER, pilots INTEGER, goal_met INTEGER, paid INTEGER DEFAULT 0)''')
@@ -138,6 +138,21 @@ def top_contributors(con, c, dest, n=5):
         LEFT JOIN pilots r ON r.id=p.pilot_id GROUP BY p.pilot_id ORDER BY cargo_lbs DESC LIMIT ?''',(lo,hi,*dest,n))]
 
 
+def auto_launch(con, now=None):
+    """Publishes drafts set to launch themselves once their launch time comes, with a news post for the crews."""
+    now=now or time.time();done=[]
+    for row in con.execute("SELECT * FROM cargo_campaigns WHERE state='draft' AND launch_at IS NOT NULL AND launch_at<=?",(now,)).fetchall():
+        c=dict(row);dest=json.loads(c['destinations'])
+        con.execute("UPDATE cargo_campaigns SET state='published' WHERE id=? AND state='draft'",(c['id'],))
+        body=(f"{c['description']} Goal: {c['target_lbs']:,} lb to {' · '.join(dest)} by "
+              f"{datetime.fromtimestamp(c['ends']-1,timezone.utc).strftime('%b %d')}."
+              +(f" Every contributor earns the patch and ${float(c.get('reward_cash') or 0):,.0f} if we hit the target." if c.get('reward_cash') else ''))
+        con.execute('INSERT INTO news (time, kind, title, body, important, expires, author) VALUES (?,?,?,?,?,?,?)',
+                    (now,'event',f"{c['title']} is live",body,1,c['ends'],'PAC Operations'))
+        done.append(c['id'])
+    return done
+
+
 def wrap_up(con, add_tx=None, now=None):
     """Closes each campaign once, after its end date or as soon as staff archive it: a news post with the result and top contributors,
     and the campaign's cash reward (if any) paid once to every contributor when the target was reached."""
@@ -192,7 +207,7 @@ def register(app,context):
     def close_ended():
         try:
             with closing(db()) as con,con:
-                con.execute('BEGIN IMMEDIATE');wrap_up(con,context['va'].add_tx)
+                con.execute('BEGIN IMMEDIATE');auto_launch(con);wrap_up(con,context['va'].add_tx)
         except Exception as e:print('campaign wrap-up:',e)
 
     @app.get('/api/pilot/cargo-campaigns')
@@ -249,6 +264,18 @@ def register(app,context):
                 if not row or row['state']=='discarded':return reply({'error':'Campaign not found.'},404)
                 if row['state']!='draft':return reply({'error':'Only drafts can be edited. Published campaigns keep their rules.'},409)
                 con.execute('UPDATE cargo_campaigns SET title=?,description=?,starts=?,ends=?,target_lbs=?,destinations=? WHERE id=?',(*values,cid))
+            return reply({'ok':True})
+        if action in ('schedule','unschedule'):
+            with closing(db()) as con,con:
+                row=con.execute('SELECT state,starts FROM cargo_campaigns WHERE id=?',(cid,)).fetchone()
+                if not row or row['state']!='draft':return reply({'error':'Only drafts can be set to launch.'},409)
+                when=None
+                if action=='schedule':
+                    try:
+                        when=(datetime.strptime(b['launch_date'],'%Y-%m-%d').replace(tzinfo=timezone.utc).timestamp() if b.get('launch_date') else row['starts'])
+                    except (ValueError,TypeError):return reply({'error':'Use a valid launch date.'},400)
+                con.execute('UPDATE cargo_campaigns SET launch_at=? WHERE id=?',(when,cid))
+            close_ended()          # a launch date that has already passed goes live now
             return reply({'ok':True})
         if action not in ('publish','archive'):return reply({'error':'Choose publish or archive.'},400)
         with closing(db()) as con,con:

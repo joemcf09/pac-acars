@@ -3344,6 +3344,9 @@ def enforce_overdue():
             insurance.tick(con, C["FLEET"], now)
             import hotels
             hotels.tick(con, add_tx, now)
+            import cargo_programs
+            cargo_programs.migrate(con)
+            cargo_programs.auto_launch(con, now)
         for t, b in pending:
             _news(t, b)
     except Exception as e:

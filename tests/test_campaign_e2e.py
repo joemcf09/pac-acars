@@ -50,3 +50,17 @@ with A.db() as con:
 assert sorted(paid) == [("PAC0001", 2500.0), ("PAC0006", 2500.0)], paid
 assert len(news) == 1 and "mission accomplished" in news[0][0], news
 print("CAMPAIGN E2E PASSED:", news[0][1][:120])
+
+# auto-launch: a draft set to launch publishes itself (once) with a news post
+r = staff.post("/api/staff/cargo-campaigns", json={"title": "Auto Test", "description": "x", "target_lbs": 1000,
+               "destinations": ["KCVG"], "start_date": "2030-01-01", "end_date": "2030-01-31"})
+cid2 = r.get_json()["id"]
+assert staff.post(f"/api/staff/cargo-campaigns/{cid2}", json={"action": "schedule"}).status_code == 200
+assert not any(c["title"] == "Auto Test" for c in pilot.get("/api/pilot/cargo-campaigns").get_json()["campaigns"])
+with A.db() as con:
+    when = con.execute("SELECT launch_at, starts FROM cargo_campaigns WHERE id=?", (cid2,)).fetchone()
+    assert when[0] == when[1]
+    assert cp.auto_launch(con, now=when[0] + 1) == [cid2] and cp.auto_launch(con, now=when[0] + 2) == []
+    assert con.execute("SELECT COUNT(*) FROM news WHERE title='Auto Test is live'").fetchone()[0] == 1
+assert any(c["title"] == "Auto Test" for c in pilot.get("/api/pilot/cargo-campaigns").get_json()["campaigns"])
+print("AUTO-LAUNCH PASSED")
