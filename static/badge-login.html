@@ -52,13 +52,14 @@ h1{font-size:15px;letter-spacing:.18em;text-transform:uppercase;color:#aab1ba;ma
 .links{margin-top:6px;display:flex;gap:18px;font-size:13px}
 .links a,.links button{color:#aab1ba;background:none;border:0;font:inherit;cursor:pointer;text-decoration:underline;padding:0}
 .btn{background:var(--red);color:#fff;border:0;padding:11px 20px;font:700 14px inherit;border-radius:4px;cursor:pointer}
+.pref{display:flex;gap:8px;align-items:center;justify-content:center;margin:4px 0 10px;color:#c3c9d0;font-size:14px;cursor:pointer}.pref input{accent-color:var(--red);width:16px;height:16px}
 .empty{max-width:420px;text-align:center;color:#c3c9d0}
 .hint{color:#8a929c;font-size:12.5px;margin-top:8px}
 @media (prefers-reduced-motion:reduce){.badge{transition:none}}
 </style>
 </head>
 <body>
-<header><img src="/static/pac-wordmark-white.png" alt="Pagani Air Cargo"><a href="/">Sign in with password</a></header>
+<header><img src="/static/pac-wordmark-white.png" alt="Pagani Air Cargo"><a href="/?password=1">Sign in with password</a></header>
 <h1>Crew access · Badge reader</h1>
 <div id="root"></div>
 <script>
@@ -84,14 +85,14 @@ async function api(url, opt = {}) {
 }
 async function load() {
   const d = await api("/api/auth/badge").catch(() => ({}));
-  if (d.badge) return reader(d.badge);
+  if (d.badge) return reader(d.badge, d.signed_in);
   $("#root").innerHTML = `<div class="empty"><p>No badge has been issued to this computer.</p>
     ${d.signed_in ? `<p>You're signed in. Issue your crew badge to this browser and next time you can tap in instead of typing your password.</p><button class="btn" id="issue">Issue badge to this computer</button>
       <p class="hint">Only on your own computer. Don't do this on a shared or public one.</p>`
       : `<p>Sign in once with your pilot ID and password, then come back here to have your badge issued.</p><a class="btn" href="/" style="text-decoration:none;display:inline-block">Sign in with password</a>`}</div>`;
   if ($("#issue")) $("#issue").onclick = async () => { await api("/api/auth/badge/issue", { method: "POST" }); load(); };
 }
-function reader(b) {
+function reader(b, signedIn) {
   $("#root").innerHTML = `<div class="stage">
     <div class="holder"><div class="strap"><i></i><i></i></div>
       <div class="badge" id="badge" tabindex="0" role="button" aria-label="Tap ${esc(b.name)}'s badge on the reader to sign in">
@@ -104,7 +105,8 @@ function reader(b) {
       <div class="lcd" id="lcd">TAP BADGE</div></div>
   </div>
   <div class="msg" id="msg">Drag your badge onto the reader, or click it.<div class="hint">Press Enter to sign in instantly.</div></div>
-  <div class="links" style="justify-content:center;width:100%"><a href="/">Use password instead</a><button id="forget">Remove badge from this computer</button></div>`;
+  ${signedIn ? `<label class="pref"><input type="checkbox" id="every" ${b.every_visit ? "checked" : ""}> Ask for my badge every time I visit</label>` : ""}
+  <div class="links" style="justify-content:center;width:100%"><a href="/?password=1">Use password instead</a><button id="forget">Remove badge from this computer</button></div>`;
   const badge = $("#badge"), rd = $("#reader");
   let busy = false;
   const toReader = () => {          // measured from the badge's resting place, wherever it was dragged
@@ -154,6 +156,11 @@ function reader(b) {
   };
   badge.onkeydown = e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); tap(e.key === "Enter"); } };
   document.onkeydown = e => { if (e.key === "Enter" && document.activeElement === document.body) tap(true); };
+  if ($("#every")) $("#every").onchange = async e => {
+    try { await api("/api/auth/badge/pref", { method: "POST", body: { every_visit: e.target.checked } });
+      $("#msg").innerHTML = e.target.checked ? "Saved. Closing your browser signs you out, and pac-va.com brings you straight here." : "Saved. You'll stay signed in as before."; }
+    catch (err) { e.target.checked = !e.target.checked; $("#msg").textContent = err.message; }
+  };
   $("#forget").onclick = async () => { await api("/api/auth/badge/forget", { method: "POST" }); load(); };
 }
 load();

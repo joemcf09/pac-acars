@@ -54,6 +54,8 @@ def migrate(con):
         used REAL, purpose TEXT)""")
     con.execute("""CREATE TABLE IF NOT EXISTS badge_tokens (token_hash TEXT PRIMARY KEY, pilot_id TEXT, created REAL,
         last_used REAL, agent TEXT)""")
+    if "every_visit" not in {r[1] for r in con.execute("PRAGMA table_info(badge_tokens)")}:
+        con.execute("ALTER TABLE badge_tokens ADD COLUMN every_visit INTEGER DEFAULT 0")
     con.execute("""CREATE TABLE IF NOT EXISTS api_keys (key_hash TEXT PRIMARY KEY, pilot_id TEXT, label TEXT, created REAL,
         last_used REAL)""")
 
@@ -172,7 +174,9 @@ def _too_many(key):
 @bp.get("/api/auth/me")
 def me():
     p = current()
+    b = None if p else _badge_pilot()[0]
     return jsonify({"signed_in": bool(p), "pilot": public_pilot(p) if p else None, "setup_needed": setup_needed(),
+                    "badge_every_visit": bool(b and b.get("every_visit")),
                     "founder_id": founder_id() if setup_needed() else None})
 
 
@@ -351,13 +355,18 @@ def _badge_pilot():
     if not tok:
         return None, None
     with C["db"]() as con:
-        r = con.execute("SELECT pilot_id FROM badge_tokens WHERE token_hash=?", (_hash_token(tok),)).fetchone()
-    return (pilot_row(r[0]) if r else None), tok
+        r = con.execute("SELECT pilot_id, every_visit FROM badge_tokens WHERE token_hash=?", (_hash_token(tok),)).fetchone()
+    if not r:
+        return None, tok
+    p = pilot_row(r[0])
+    if p:
+        p = dict(p, every_visit=bool(r[1]))
+    return p, tok
 
 
 def _badge_card(r):
     return {"pilot_id": r["id"], "name": r.get("name"), "status": r.get("status") or "Active",
-            "photo": f"/api/profile/photo?pilot={r['id']}"}
+            "photo": f"/api/profile/photo?pilot={r['id']}", "every_visit": bool(r.get("every_visit"))}
 
 
 @bp.get("/api/auth/badge")
@@ -395,8 +404,21 @@ def badge_tap():
         return jsonify({"error": "Access denied. See PAC Operations.", "light": "red"}), 403
     with C["db"]() as con:
         con.execute("UPDATE badge_tokens SET last_used=? WHERE token_hash=?", (time.time(), _hash_token(tok)))
-    _sign_in(r["id"], True)
+    _sign_in(r["id"], not r.get("every_visit"))      # every visit: the session ends when the browser closes
     return jsonify({"ok": True, "light": "green", "pilot": public_pilot(r)})
+
+
+@bp.post("/api/auth/badge/pref")
+def badge_pref():
+    r, tok = _badge_pilot()
+    p = current()
+    if not r or not p or p["id"] != r["id"]:
+        return jsonify({"error": "Tap in with this badge first."}), 403
+    on = bool((request.json or {}).get("every_visit"))
+    with C["db"]() as con:
+        con.execute("UPDATE badge_tokens SET every_visit=? WHERE token_hash=?", (int(on), _hash_token(tok)))
+    session.permanent = not on
+    return jsonify({"ok": True, "every_visit": on})
 
 
 @bp.post("/api/auth/badge/forget")

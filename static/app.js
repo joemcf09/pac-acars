@@ -7021,6 +7021,7 @@ function gcnm(a, b) {
 (async function boot() {
   try {
     const a = await api("/api/auth/me");
+    if (!a.signed_in && a.badge_every_visit && !/password=1/.test(location.search) && !location.hash.startsWith("#set-password")) { location.replace("/badge-login"); return; }
     S.me = a.pilot; S.authPilot = a.pilot; S.setupNeeded = a.setup_needed;
     applyAuth();
     if (a.setup_needed) { openSetup(a.founder_id); return; }            // first time: secure the airline
