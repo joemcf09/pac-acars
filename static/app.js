@@ -3581,7 +3581,7 @@ async function quoteJump(to) {
 }
 function walletPanel(me, wallet) {
   if (!me) return "";
-  const kinds = { flight_pay: "Flight pay", profit_share: "Profit share", skill_bonus: "Skill bonus", contract_bonus: "Shortage bonus", ferry_bonus: "Ferry bonus", hazard_pay: "Hazard pay", jumpseat: "Travel", shop: "PAC shop", gear_bonus: "Gear bonus", adjustment: "Staff adjustment", campaign: "Campaign reward", per_diem: "Per diem" };
+  const kinds = { flight_pay: "Flight pay", profit_share: "Profit share", skill_bonus: "Skill bonus", contract_bonus: "Shortage bonus", ferry_bonus: "Ferry bonus", hazard_pay: "Hazard pay", jumpseat: "Travel", shop: "PAC shop", gear_bonus: "Gear bonus", adjustment: "Staff adjustment", campaign: "Campaign reward", per_diem: "Per diem", mentoring: "Mentoring bonus" };
   const entries = wallet?.transactions || [];
   const pager = wallet && wallet.pages > 1 ? `<nav class="wallet-pages" aria-label="Wallet transaction pages" style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:12px 14px;border-top:1px solid var(--line)">
     <span class="muted" role="status">Transactions ${(wallet.page - 1) * wallet.per_page + 1}–${Math.min(wallet.page * wallet.per_page, wallet.total)} of ${wallet.total}</span>
@@ -8555,7 +8555,35 @@ async function staffCeo() {
     <textarea id="ceoLetter" rows="14" style="width:100%">${esc(d.letter.draft)}</textarea><p><button class="btn" id="ceoPost" type="button">Post to the news feed</button></p>
     <h3>Pilot of the month</h3>${d.awards.length ? `<ul>${d.awards.map(a => `<li><b>${esc(new Date(a.month + "-02").toLocaleString("en-US", { month: "long", year: "numeric" }))}:</b> ${a.name ? `${esc(a.name)} · ${a.flights} flights, ${a.hours} h, ${a.smooth} smooth landings` : "nobody flew enough that month"}</li>`).join("")}</ul>` : `<p class="muted">Chosen automatically on the 1st of each month and announced in the news.</p>`}
     <h3>Recent visits</h3>${d.visits.length ? `<ul>${d.visits.map(v => `<li>${cDate(v.time)}: ${v.kind === "hub" ? `hub visit, ${esc(v.place)}` : `account visit to ${esc(v.shipper)} at ${esc(v.place)}`}</li>`).join("")}</ul>` : `<p class="muted">None yet.</p>`}`;
+  body.insertAdjacentHTML("beforeend", `<div id="growthBox"><p class="muted">Loading network and safety…</p></div>`);
+  staffGrowth();
   $("#ceoPost").onclick = async () => { try { await api("/api/staff/ceo/letter", { method: "POST", body: JSON.stringify({ month: d.letter.month, body: $("#ceoLetter").value }) }); toast("Letter posted."); staffCeo(); } catch (e) { toast(e.message); } };
+}
+async function staffGrowth() {
+  const box = $("#growthBox"); if (!box) return;
+  let d; try { d = await api("/api/staff/growth"); } catch (e) { box.innerHTML = `<div class="notice err">${esc(e.message)}</div>`; return; }
+  const a = d.audit;
+  const ST = { proposed: '<span class="tag amber">Waiting for its proving flight</span>', proven: '<span class="tag green">Proven: on the schedule</span>', cancelled: '<span class="tag dark">Cancelled</span>' };
+  box.innerHTML = `
+    <h3>Safety audit <span class="muted">(last 12 months)</span> ${a.flights < 10 ? '<span class="tag">Not enough flights yet</span>' : a.passed ? '<span class="tag green">Passed</span>' : '<span class="tag">Needs work</span>'}</h3>
+    <div class="ceo-hub-s"><span>Flights<b>${a.flights}</b></span><span>Avg landing<b>${a.avg_rate == null ? "–" : a.avg_rate + " fpm"}</b></span><span>Hard landings<b>${a.hard_pct}%</b></span><span>On time<b>${a.on_time == null ? "–" : a.on_time + "%"}</b></span><span>Groundings<b>${a.aog}</b></span><span>Ramp findings<b>${a.findings} in ${a.inspections}</b></span></div>
+    <ul class="audit">${a.checks.map(c => `<li>${c.ok ? "✓" : "✗"} ${esc(c.text)}</li>`).join("")}</ul>
+    <h3>Open a new route <span class="muted">(the first flight anyone files between the two airports proves it)</span></h3>
+    <div class="mkt-order"><label>From <input id="prO" placeholder="KCVG" maxlength="4" size="6"></label><label>To <input id="prD" placeholder="EGNX" maxlength="4" size="6"></label><button class="btn" id="prGo" type="button">Propose route</button></div>
+    ${d.proposals.length ? `<div class="table-wrap"><table class="fin-table"><tbody>${d.proposals.map(p => `<tr><td><b>${esc(p.origin)}–${esc(p.dest)}</b></td><td>${ST[p.status] || esc(p.status)}</td><td class="muted">${cDate(p.proposed)}</td><td>${p.status === "proposed" ? `<button class="btn ghost" type="button" data-prx="${p.id}">Cancel</button>` : ""}</td></tr>`).join("")}</tbody></table></div>` : ""}
+    <h3>Next hub candidates <span class="muted">(busiest non-hub stations, last 90 days)</span></h3>
+    ${d.candidates.length ? `<ol>${d.candidates.map(c => `<li><b>${esc(c.icao)}</b>: ${c.arrivals_90d} arrivals by ${c.pilots} pilot${c.pilots === 1 ? "" : "s"}</li>`).join("")}</ol>` : `<p class="muted">Not enough traffic yet.</p>`}
+    <h3>Ramp inspections</h3>
+    ${d.ramp.length ? `<ul>${d.ramp.map(r => `<li>${cDate(r.time)} · ${esc(r.station)} · ${esc(r.pilot || "")}: ${r.findings.length ? r.findings.map(esc).join(" ") : "no findings"}</li>`).join("")}</ul>` : `<p class="muted">About one arrival in ${12} gets a ramp inspection. None yet.</p>`}
+    <h3>Mentoring <span class="muted">(both pilots get $${d.mentor_bonus} after the mentee's first ${d.mentor_flights} flights)</span></h3>
+    <div class="mkt-order"><label>Mentor <input id="mnA" placeholder="PAC0001" size="9"></label><label>New pilot <input id="mnB" placeholder="PAC0007" size="9"></label><button class="btn" id="mnGo" type="button">Pair them</button></div>
+    ${d.mentors.length ? `<ul>${d.mentors.map(m => `<li>${esc(m.mentor_name || m.mentor)} → ${esc(m.mentee_name || m.mentee)}: ${m.status === "done" ? "complete" : `${m.flights} of ${d.mentor_flights} flights`}</li>`).join("")}</ul>` : ""}
+    <h3>Seniority <span class="muted">(senior pilots get first pick on new trips for 12 hours)</span></h3>
+    <ol>${d.seniority.map(p => `<li>${esc(p.name || p.pilot_id)} <span class="muted">${esc(p.pilot_id)}</span></li>`).join("")}</ol>`;
+  const post = async (act, x) => { try { await api(`/api/staff/growth/${act}`, { method: "POST", body: JSON.stringify(x) }); staffGrowth(); return true; } catch (e) { toast(e.message); } };
+  $("#prGo").onclick = async () => { if (await post("propose", { origin: $("#prO").value, dest: $("#prD").value })) toast("Route proposed: it opens after its proving flight."); };
+  box.querySelectorAll("[data-prx]").forEach(b => b.onclick = () => post("cancel_route", { id: +b.dataset.prx }));
+  $("#mnGo").onclick = async () => { if (await post("mentor", { mentor: $("#mnA").value, mentee: $("#mnB").value })) toast("Mentoring pair set up."); };
 }
 async function staffMarket() {
   const body = $("#staffBody"); body.innerHTML = `<p class="muted">Loading the fleet market…</p>`;

@@ -3328,6 +3328,8 @@ def enforce_overdue():
             pending = []
             fleet_market.tick(con, lambda t, b: pending.append((t, b)), now)
             ceo.tick(con, lambda t, b: pending.append((t, b)), now)
+            import growth
+            growth.tick(con, now)
         for t, b in pending:
             _news(t, b)
     except Exception as e:

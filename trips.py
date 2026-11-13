@@ -131,6 +131,14 @@ def bid(con, tid, pilot_id, now=None):
     now = now or time.time()
     if con.execute("SELECT 1 FROM trips WHERE pilot_id=? AND status='bid'", (pilot_id,)).fetchone():
         raise ValueError("You already hold a trip. Finish or drop it first.")
+    row = con.execute("SELECT created FROM trips WHERE id=?", (tid,)).fetchone()
+    try:
+        import growth
+        why = growth.senior_window_problem(con, pilot_id, row and row[0], now)
+    except Exception:
+        why = None
+    if why:
+        raise ValueError(why)
     cur = con.execute("UPDATE trips SET status='bid', pilot_id=?, started=NULL WHERE id=? AND status='open' AND expires>?", (pilot_id, tid, now))
     if not cur.rowcount:
         raise ValueError("That trip has been taken or has expired.")

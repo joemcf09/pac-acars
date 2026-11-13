@@ -3421,6 +3421,9 @@ def file_pirep():
     try:
         with db() as con_:
             p["trip"] = trips.settle(con_, pid_, booking.get("mission"), p, va.add_tx, pid)
+            grown = growth.on_filed(con_, pid_, p, booking.get("mission"), pid, globals())
+            if grown:
+                p["growth"] = grown
             visits = ceo.on_filed(con_, pid_, p, booking.get("mission"), pid)
             if visits:
                 p["ceo_visits"] = [{"kind": k, "place": pl, "shipper": sh} for k, pl, sh in visits]
@@ -4224,6 +4227,8 @@ import company
 company.register(app, globals())
 import ceo
 ceo.register(app, globals())
+import growth
+growth.register(app, globals())
 import rotation_planner
 rotation_planner.register(app, globals())
 import cargo_programs
