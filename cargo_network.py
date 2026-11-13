@@ -343,17 +343,23 @@ def record_flight(con, booking, pirep, pirep_id, pilot_id):
 
     now = time.time()
     for shipment, shipment_id in zip(shipments, registered):
-        row = con.execute("SELECT current_station, destination FROM cargo_shipments WHERE id=?", (shipment_id,)).fetchone()
+        row = con.execute("SELECT current_station, destination, data FROM cargo_shipments WHERE id=?", (shipment_id,)).fetchone()
         if not row:
             raise RuntimeError(f"Persistent shipment {shipment_id} was not created.")
         previous_station = row["current_station"]
         trucked = False
+        # a shipment is late against its own promised delivery time; without one, the flight's on-time result decides
+        try:
+            deadline = float(json.loads(row["data"] or "{}").get("deadline") or 0)
+        except (ValueError, TypeError):
+            deadline = 0
+        late = (now > deadline) if deadline else flight_status == "Delivered late"
         if flight_status in ("Delivered", "Delivered late"):
             if actual_station == row["destination"]:
-                status = "DELIVERED_LATE" if flight_status == "Delivered late" else "DELIVERED"
+                status = "DELIVERED_LATE" if late else "DELIVERED"
             elif nearby(actual_station, row["destination"]) and not (
                     _ctx["routes"] and has_route(list(_ctx["routes"]()), actual_station, row["destination"])):
-                status = "DELIVERED_LATE" if flight_status == "Delivered late" else "DELIVERED"
+                status = "DELIVERED_LATE" if late else "DELIVERED"
                 trucked = True           # the last leg goes by road from the arrival airport
             else:
                 status = "AT_STATION"

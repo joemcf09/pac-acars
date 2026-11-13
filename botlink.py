@@ -81,6 +81,10 @@ def pirep_accepted(pirep_id):
             return
         p = _pilot(con, r["pilot_id"])
     ac = FLEET.get(r["aircraft"], {})
+    s_ = C["settings"]() if C.get("settings") else {}
+    if s_.get("discord_webhook") and s_.get("discord_arrivals", True):
+        check_promotion(r["pilot_id"])      # the webhook already posted this arrival: never twice
+        return
     emit("pirep", {"pirep_id": r["id"], "flight": r["flight_number"], "dep": r["dep"], "arr": r["arr"],
                    "aircraft": ac.get("icao") or r["aircraft"], "aircraft_name": ac.get("name", ""),
                    "mission": r["mission_title"], "pilot_id": p["id"], "pilot": p["name"], "discord_id": p.get("discord_id"),

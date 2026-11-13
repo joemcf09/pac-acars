@@ -103,6 +103,22 @@ def _quarter_start(now):
 
 
 # ------------------------------------------------------------------------------------------------------- complaints
+def fix_false_late(con):
+    """Shipments marked late although they arrived before their own deadline (an earlier rule took the flight's on-time
+    result): set them to delivered and withdraw the complaints they caused. Safe to run any number of times."""
+    fixed = 0
+    for sid, awb, data, upd in con.execute("SELECT id, awb, data, updated_at FROM cargo_shipments WHERE status='DELIVERED_LATE'").fetchall():
+        try:
+            dl = float(json.loads(data or "{}").get("deadline") or 0)
+        except (ValueError, TypeError):
+            dl = 0
+        if dl and upd and upd <= dl:
+            con.execute("UPDATE cargo_shipments SET status='DELIVERED' WHERE id=?", (sid,))
+            con.execute("UPDATE complaints SET status='withdrawn' WHERE awb=? AND status='open'", (awb,))
+            fixed += 1
+    return fixed
+
+
 def scan_complaints(con, now=None):
     """A late or failed delivery in the last week gets a complaint from its shipper (at most one open per shipper)."""
     now = now or time.time()
@@ -165,6 +181,7 @@ def tick(con, news, now=None):
     """Runs with the maintenance tick: complaints, and on the first days of a month, last month's pilot of the month."""
     now = now or time.time()
     migrate(con)
+    fix_false_late(con)
     scan_complaints(con, now)
     d = dt.datetime.fromtimestamp(now, dt.timezone.utc)
     if d.day <= 3:
@@ -368,6 +385,7 @@ def register(app, g):
             migrate(con)
             if (r := deny(con, "complaints")):
                 return r
+            fix_false_late(con)
             scan_complaints(con)
             import accounts
             acc = accounts.compute(con)
