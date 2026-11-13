@@ -2379,7 +2379,7 @@ async function fillRatings() {
  const el=$('#ratingsGrid');if(!el)return;
  try{const [ratings,career]=await Promise.all([api('/api/ratings'),api('/api/va/career')]);S.ratings=ratings;S.career=career.career;S.checkrides=S.ratings.families.map(f=>f.mission).filter(Boolean);
  $('#ratingsText').textContent='Company-funded checkrides. Choose a dedicated training session or an available fleet aircraft. Both use the same passing standards.';
- el.innerHTML=lineCheckrideCard(S.career?.checkride,S.career?.checkride_via)+S.ratings.families.map(f=>`<div class="rating"><h3>${esc(f.family)}</h3><p>${f.type_names.map(esc).join(' · ')}</p><p>${f.rated?'Qualification held':f.unlocked?'Available to train':'Unlocks at '+esc(f.unlock_rank)}</p>${f.unlocked?`<button class="btn" data-training-course="${esc(f.checkride_id)}">${f.rated?'Retake checkride':'Start checkride'}</button>`:''}</div>`).join('');
+ el.innerHTML=lineCheckrideCard(S.career?.checkride,S.career?.checkride_via)+S.ratings.families.map(f=>`<div class="rating ${f.rated?'rt-held':f.unlocked?'rt-open':'rt-locked'}"><div class="rating-top"><h3>${esc(f.family)}</h3>${f.rated?'<span class="tag green">✓ Qualified</span>':f.unlocked?'<span class="tag amber">Not yet rated</span>':'<span class="tag">Locked</span>'}</div><p>${f.type_names.map(esc).join(' · ')}</p><p>${f.rated?'<b class="rt-ok">You can fly these types.</b>':f.unlocked?'Available to train':'Unlocks at '+esc(f.unlock_rank)}</p>${f.unlocked?`<button class="btn ${f.rated?'ghost':''}" data-training-course="${esc(f.checkride_id)}">${f.rated?'Retake checkride (optional)':'Start checkride'}</button>`:''}</div>`).join('');
  el.querySelectorAll('[data-training-course]').forEach(x=>x.onclick=()=>openTraining(x.dataset.trainingCourse));
  }catch(e){$('#ratingsText').textContent=e.message;el.innerHTML='<button class="btn" onclick="fillRatings()">Retry qualifications</button>';}
 }
@@ -5690,9 +5690,18 @@ function renderStaff() {
   const pendingApps = d.applications.filter(a => a.status === "Pending").length;
   const tabs = [["ceo", "CEO desk", 0], ["market", "Fleet market", 0], ["complaints", "Complaints", 0], ["roles", "Roles", 0], ["reports", "Problem reports", 0], ["health", "Operations health", 0], ["campaigns", "Cargo campaigns", 0], ["relief", "Relief missions", 0], ["cargostock", "Cargo stock", 0], ["reviews", "PIREP review", pendingReviews], ["applications", "Applications", pendingApps], ["transfers", "Transfer hours", d.transfer_pending || 0], ["activity", "Activity", d.activity_overdue || 0], ["roster", "Roster", 0],
     ["news", "News", 0], ["mx", "Maintenance", d.airframes.reduce((n, a) => n + (a.open_items || []).length, 0)], ["types", "Fleet types", 0], ["pphotos", "Partner photos", 0], ["airframes", "Airframes", d.airframes.filter(a => ["Maintenance", "Inspection", "A-check due", "Heavy check due", "Heavy check", "Damaged"].includes(a.status)).length], ["events", "Events", 0], ["site", "Site and rules", 0]];
+  const GROUPS = [["Company", ["ceo", "market", "complaints", "roles"]], ["Pilots", ["reviews", "applications", "transfers", "activity", "roster"]],
+    ["Operations", ["reports", "health", "events", "news"]], ["Cargo", ["campaigns", "relief", "cargostock"]], ["Fleet", ["airframes", "mx", "types", "pphotos"]], ["Settings", ["site"]]];
+  const T = Object.fromEntries(tabs.map(t => [t[0], t]));
+  if (!T[S.staffTab]) S.staffTab = "reviews";
+  const groupOf = k => (GROUPS.find(([, ks]) => ks.includes(k)) || GROUPS[0])[0];
+  const cur = groupOf(S.staffTab);
+  const gCount = ks => ks.reduce((n, k) => n + (T[k]?.[2] || 0), 0);
   $("#staffRoot").innerHTML = `<div class="profile-bar"><h1>Staff</h1><span class="muted">Running the airline. Only staff accounts can see this area.</span></div>
-    <div class="staff-tabs" role="tablist">${tabs.map(([k, t, n]) => `<button role="tab" data-st="${k}" aria-selected="${S.staffTab === k}">${t}${n ? `<span class="count">${n}</span>` : ""}</button>`).join("")}</div>
+    <div class="staff-groups" role="tablist">${GROUPS.map(([g, ks]) => `<button role="tab" data-sg="${g}" aria-selected="${g === cur}">${g}${gCount(ks) ? `<span class="count">${gCount(ks)}</span>` : ""}</button>`).join("")}</div>
+    <div class="staff-tabs" role="tablist">${GROUPS.find(([g]) => g === cur)[1].map(k => T[k]).filter(Boolean).map(([k, t, n]) => `<button role="tab" data-st="${k}" aria-selected="${S.staffTab === k}">${t}${n ? `<span class="count">${n}</span>` : ""}</button>`).join("")}</div>
     <div id="staffBody"></div>`;
+  document.querySelectorAll("[data-sg]").forEach(b => b.onclick = () => { const ks = GROUPS.find(([g]) => g === b.dataset.sg)[1]; S.staffTab = ks.find(k => T[k]?.[2]) || ks[0]; renderStaff(); });
   document.querySelectorAll("[data-st]").forEach(b => b.onclick = () => { S.staffTab = b.dataset.st; renderStaff(); });
   ({ ceo: staffCeo, market: staffMarket, complaints: staffComplaints, roles: staffRoles, reports: staffProblemReports, health: staffOperationsHealth, campaigns: staffCargoCampaigns, relief: staffRelief, cargostock: staffCargoStock, reviews: staffReviews, applications: staffApps, transfers: staffTransfers, activity: staffActivity, roster: staffRoster, news: staffNews, mx: staffMx, types: staffTypes, pphotos: staffPartnerPhotos, airframes: staffAirframes, events: staffEvents, site: staffSite })[S.staffTab]();
 }
