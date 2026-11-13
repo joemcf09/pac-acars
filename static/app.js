@@ -8601,10 +8601,11 @@ async function staffCeo() {
   let d; try { d = await api("/api/staff/ceo"); } catch (e) { body.innerHTML = `<div class="notice err">${esc(e.message)}</div>`; return; }
   const hubs = d.hubs.map(h => `<div class="ceo-hub${h.visited_this_quarter ? " done" : ""}"><div class="ceo-hub-h"><b>${esc(h.icao)}</b> ${esc(h.city)}${h.visited_this_quarter ? '<span class="tag green">Visited this quarter</span>' : '<span class="tag amber">Visit due</span>'}</div>
     <div class="ceo-hub-s"><span>Waiting<b>${h.waiting} · ${fmt(h.waiting_lbs)} lb</b></span><span>On time (30 days)<b>${h.on_time_pct == null ? "–" : h.on_time_pct + "%"}</b></span><span>Arrivals<b>${h.arrivals_30d}</b></span></div>
-    <div class="muted">Aircraft here: ${Object.entries(h.aircraft).map(([k, v]) => `${v} ${esc(k.toLowerCase())}`).join(", ") || "none"} · last visit ${cDate(h.last_visit)}</div></div>`).join("");
+    <div class="muted">Aircraft here: ${Object.entries(h.aircraft).map(([k, v]) => `${v} ${esc(k.toLowerCase())}`).join(", ") || "none"} · last visit ${cDate(h.last_visit)}</div>
+    ${d.location === h.icao ? `<div class="ceo-here">📍 You're here</div>` : `<button class="btn ghost small" type="button" data-travel="${esc(h.icao)}">Travel here</button>`}<div class="ceo-travel" data-travel-box="${esc(h.icao)}"></div></div>`).join("");
   const acc = d.accounts.length ? d.accounts.map(a => `<tr><td><b>${esc(a.shipper)}</b></td><td><span class="tag ${a.tier === "At risk" ? "" : "amber"}">${esc(a.tier)}</span> ${a.score}</td><td>${a.on_time} on time · ${a.late} late · ${a.failed} failed</td><td>${a.station ? `Fly to <b>${esc(a.station)}</b>` : "–"}</td></tr>`).join("")
     : `<tr><td colspan="4" class="muted">Every shipper is in good standing. Nobody needs a visit.</td></tr>`;
-  body.innerHTML = `<p class="muted">Your work as CEO. Visits are flown, not clicked: file a flight into a hub and it counts as a hub visit; land at a struggling shipper's home station and their standing goes up by ${d.visit_bonus} for ${d.visit_days} days. Company cash: <b>${money(d.cash)}</b>.</p>
+  body.innerHTML = `<p class="muted">Your work as CEO. You're at <b>${esc(d.location || "–")}</b>. Arriving at a hub counts as a hub visit, however you get there: fly a PAC flight, ride along on a freighter, buy a commercial ticket or charter a jet (use <b>Travel here</b>). Arriving at a struggling shipper's home station and their standing goes up by ${d.visit_bonus} for ${d.visit_days} days. Company cash: <b>${money(d.cash)}</b>.</p>
     <h3>Hub visits <span class="muted">(aim for every hub each quarter)</span></h3><div class="ceo-hubs">${hubs}</div>
     <div id="ceoRest"></div>
     <h3>Key accounts that need you</h3><div class="table-wrap"><table class="fin-table"><thead><tr><th>Shipper</th><th>Standing</th><th>Last 90 days</th><th>Visit</th></tr></thead><tbody>${acc}</tbody></table></div>
@@ -8613,6 +8614,22 @@ async function staffCeo() {
     <textarea id="ceoLetter" rows="14" style="width:100%">${esc(d.letter.draft)}</textarea><p><button class="btn" id="ceoPost" type="button">Post to the news feed</button></p>
     <h3>Pilot of the month</h3>${d.awards.length ? `<ul>${d.awards.map(a => `<li><b>${esc(new Date(a.month + "-02").toLocaleString("en-US", { month: "long", year: "numeric" }))}:</b> ${a.name ? `${esc(a.name)} · ${a.flights} flights, ${a.hours} h, ${a.smooth} smooth landings` : "nobody flew enough that month"}</li>`).join("")}</ul>` : `<p class="muted">Chosen automatically on the 1st of each month and announced in the news.</p>`}
     <h3>Recent visits</h3>${d.visits.length ? `<ul>${d.visits.map(v => `<li>${cDate(v.time)}: ${v.kind === "hub" ? `hub visit, ${esc(v.place)}` : `account visit to ${esc(v.shipper)} at ${esc(v.place)}`}</li>`).join("")}</ul>` : `<p class="muted">None yet.</p>`}`;
+  body.querySelectorAll("[data-travel]").forEach(btn => btn.onclick = async () => {
+    const to = btn.dataset.travel, box = body.querySelector(`[data-travel-box="${to}"]`);
+    box.innerHTML = `<p class="muted">Your assistant is checking the options…</p>`;
+    try {
+      const q = await api(`/api/staff/ceo/travel?to=${encodeURIComponent(to)}`);
+      box.innerHTML = `<p class="muted" style="margin:6px 0">${esc(q.from)} → ${esc(q.to)} · ${fmt(q.distance_nm)} nm</p>` + q.options.map(o => `<button class="ceo-trip" type="button" data-how="${esc(o.kind)}">
+        <span><b>${esc(o.label)}</b><small>${esc(o.note)}</small></span><em>${o.cost ? money(o.cost) : "Free"}</em></button>`).join("");
+      box.querySelectorAll("[data-how]").forEach(b2 => b2.onclick = async () => {
+        try {
+          const r = await api("/api/staff/ceo/travel", { method: "POST", body: { to, how: b2.dataset.how } });
+          toast(`Arrived at ${r.location}${r.cost ? ` · ${money(r.cost)} executive travel` : ""}${r.visits.some(v => v.kind === "hub") ? " · hub visit logged" : ""}.`);
+          staffCeo();
+        } catch (e) { toast(e.message); }
+      });
+    } catch (e) { box.innerHTML = `<div class="notice err">${esc(e.message)}</div>`; }
+  });
   api("/api/crew-rest").then(r => { const h = r.hq, el = $("#ceoRest"); if (el) el.innerHTML = `<h3>KCVG crew rest rooms <span class="muted">(${h.used} of ${h.rooms} beds in use${h.used ? ` · saving $${fmt(h.saved_per_night)} a night in hotels` : ""})</span></h3><p class="muted">${h.guests.length ? h.guests.map(g => esc(g.name || g.pilot_id)).join(", ") : "All rooms free tonight."}</p>`; }).catch(() => { });
   body.insertAdjacentHTML("beforeend", `<div id="growthBox"><p class="muted">Loading network and safety…</p></div>`);
   staffGrowth();

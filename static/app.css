@@ -1937,3 +1937,11 @@ html[data-design="loadsheet"] :is(.relief-draft,.relief-notice,.relief-checks){b
 .crewid-mrz{margin:0;font:600 8.4px/1.25 "OCR B","OCR-B",var(--mono,monospace);letter-spacing:.06em;color:#1E2126;background:rgba(255,255,255,.75);padding:3px 0;white-space:pre;overflow:hidden}
 .crewid-public{margin:0 0 24px}
 @media (prefers-reduced-motion:reduce){.crewid-photo .holo,.crewid-kine{animation:none}}
+
+.ceo-here{margin-top:8px;font-weight:700;color:var(--red)}
+.ceo-hub [data-travel]{margin-top:8px}
+.ceo-travel:empty{display:none}
+.ceo-trip{display:flex;justify-content:space-between;gap:10px;align-items:center;width:100%;text-align:left;background:var(--white,#fff);border:1px solid var(--line,#d9dde2);border-radius:6px;padding:8px 10px;margin:6px 0;cursor:pointer;font:inherit;color:inherit}
+.ceo-trip:hover{border-color:var(--red)}
+.ceo-trip small{display:block;color:var(--steel,#5E6470);font-size:12px}
+.ceo-trip em{font-style:normal;font-weight:800;white-space:nowrap}

@@ -59,11 +59,17 @@ def accounts_needing_visit(con):
 
 def on_filed(con, pid, p, mission, pirep_id=None, now=None):
     """Called after every filed flight: records CEO hub and account visits."""
+    if p.get("demo"):
+        return []
+    return arrive(con, pid, p.get("arr") or ((mission or {}).get("destination") or {}).get("icao"), pirep_id, now)
+
+
+def arrive(con, pid, arr, pirep_id=None, now=None):
+    """The CEO has arrived somewhere (flown, jumpseated or travelled): records hub and account visits."""
     now = now or time.time()
     migrate(con)
-    if p.get("demo") or "ceo" not in company.roles_of(con, pid):
+    if "ceo" not in company.roles_of(con, pid):
         return []
-    arr = p.get("arr") or ((mission or {}).get("destination") or {}).get("icao")
     done = []
     if arr in HUBS:
         con.execute("INSERT INTO ceo_visits (pilot_id, kind, place, time, pirep_id) VALUES (?,?,?,?,?)", (pid, "hub", arr, now, pirep_id))
@@ -204,6 +210,28 @@ def letter_draft(con, month, ceo_name):
 
 
 # --------------------------------------------------------------------------------------------------------- the API
+# ---------------------------------------------------------------- executive travel
+# How a real airline CEO gets to a hub: a seat on the airline's own freighter (free), a commercial ticket (economy on
+# short trips, business class on long haul, as company travel policies allow), or a business jet charter.
+CHARTER_MID, CHARTER_LARGE = 5500, 9500          # dollars per flight hour: midsize jet, large-cabin jet
+
+
+def travel_options(frm, to, dist, pac_seat):
+    long = dist >= 3000          # business class only on long-haul international trips
+    fare = round(600 + 1.1 * dist, -1) if long else round(180 + 0.25 * dist, -1)
+    jet_rate = CHARTER_LARGE if dist > 2500 else CHARTER_MID
+    jet_h = round(dist / 430 + 0.5, 1)
+    opts = []
+    if pac_seat:
+        opts.append({"kind": "pac", "label": "Ride along on a PAC freighter", "cost": 0,
+                     "note": "Jumpseat or courier seat on our own flight. Free, and the crews get to meet the boss."})
+    opts.append({"kind": "commercial", "label": f"Commercial ticket ({'business class' if long else 'economy'})", "cost": int(fare),
+                 "note": "Booked by the company as executive travel." + (" Business class on long haul, per company travel policy." if long else "")})
+    opts.append({"kind": "charter", "label": f"Business jet charter ({'large-cabin' if dist > 2500 else 'midsize'} jet)", "cost": int(round(jet_rate * jet_h, -2)),
+                 "note": f"About {jet_h} h at ${jet_rate:,}/h. Fastest, and the board will see the bill."})
+    return opts
+
+
 def register(app, g):
     from flask import jsonify, request
     import fleet_market
@@ -222,6 +250,44 @@ def register(app, g):
     def deny(con, what):
         if not company.may(con, pid(), what):
             return jsonify({"error": "This is for the CEO (or the role it's been handed to)."}), 403
+
+    def _quote(con, to):
+        va = g["va"]
+        frm = va.pilot_location(pid())
+        q = va.jumpseat_options(frm, to)
+        return frm, q, travel_options(frm, q["to"]["icao"], q["distance_nm"], any(o["kind"] == "pac" for o in q["options"]))
+
+    @app.get("/api/staff/ceo/travel")
+    def ceo_travel_quote():
+        try:
+            with g["db"]() as con:
+                if (r := deny(con, "ceo_desk")):
+                    return r
+                frm, q, opts = _quote(con, request.args.get("to", ""))
+                return jsonify({"from": frm, "to": q["to"]["icao"], "city": q["to"].get("city"), "distance_nm": q["distance_nm"], "options": opts})
+        except ValueError as e:
+            return jsonify({"error": str(e)}), 400
+
+    @app.post("/api/staff/ceo/travel")
+    def ceo_travel_go():
+        b = request.get_json(silent=True) or {}
+        try:
+            with g["db"]() as con:
+                if (r := deny(con, "ceo_desk")):
+                    return r
+                frm, q, opts = _quote(con, b.get("to", ""))
+                o = next((x for x in opts if x["kind"] == b.get("how")), None)
+                if not o:
+                    return jsonify({"error": "That way of travelling isn't available for this trip."}), 400
+                to = q["to"]["icao"]
+                if o["cost"]:
+                    company.post(con, "exec_travel", -o["cost"], f"{o['label']}: {frm} to {to} ({q['distance_nm']:,} nm)", None, pid())
+                con.execute("UPDATE pilots SET location=? WHERE id=?", (to, pid()))
+                done = arrive(con, pid(), to)
+                return jsonify({"location": to, "cost": o["cost"], "how": o["label"],
+                                "visits": [{"kind": k, "place": pl, "shipper": sh} for k, pl, sh in done]})
+        except ValueError as e:
+            return jsonify({"error": str(e)}), 400
 
     @app.get("/api/staff/ceo")
     def ceo_desk():
@@ -243,7 +309,7 @@ def register(app, g):
                                        "draft": letter_draft(con, month, (me[0] if me else "The CEO"))},
                             "awards": [dict(month=r[0], **(json.loads(r[1]) if r[1] and r[1] != "null" else {})) for r in
                                        con.execute("SELECT month, data FROM awards ORDER BY month DESC LIMIT 6")],
-                            "cash": cash(con)})
+                            "cash": cash(con), "location": g["va"].pilot_location(pid())})
 
     @app.post("/api/staff/ceo/letter")
     def ceo_letter():

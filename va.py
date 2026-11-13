@@ -675,6 +675,7 @@ def jumpseat(pid, to, kind):
                 raise ValueError("You don't have a jumpseat pass left.")
             add_tx(pid, "jumpseat", 0, f"Jumpseat pass: {frm} to {q['to']['icao']} ({q['distance_nm']:,} nm)", None, con)
             con.execute("UPDATE pilots SET location=? WHERE id=?", (q["to"]["icao"], pid))
+            _ceo_arrive(con, pid, q["to"]["icao"])
         return {"location": q["to"]["icao"], "cost": 0, "balance": balance(pid)}
     bal = balance(pid)
     if bal < opt["cost"]:
@@ -682,7 +683,16 @@ def jumpseat(pid, to, kind):
     with C["db"]() as con:
         add_tx(pid, "jumpseat", -opt["cost"], f"{opt['label']}: {frm} to {q['to']['icao']} ({q['distance_nm']:,} nm)", None, con)
         con.execute("UPDATE pilots SET location=? WHERE id=?", (q["to"]["icao"], pid))
+        _ceo_arrive(con, pid, q["to"]["icao"])
     return {"location": q["to"]["icao"], "cost": opt["cost"], "balance": balance(pid)}
+
+
+def _ceo_arrive(con, pid, icao):
+    try:
+        import ceo
+        ceo.arrive(con, pid, icao)
+    except Exception as e:
+        print("ceo arrive:", e)
 
 
 # ---------------------------------------------------------------- job board: generated cargo, ferry and contract flying
