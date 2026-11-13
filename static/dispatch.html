@@ -91,6 +91,7 @@ dialog.sign .msg { color: #C80000; font-size: 14px; min-height: 1em; margin: 6px
   <label>Jump to <select id="jumpTo" aria-label="Jump to a section of the release"><option value="">Section…</option></select></label>
   <label>NOTAM print scope <select id="notamScope"><option value="airports">Airports</option><option value="all">All imported</option><option value="none">Omit imported NOTAMs</option></select></label>
   <button id="hoppieBtn" hidden title="Send the loadsheet to your aircraft's ACARS over Hoppie">📡 Send loadsheet to cockpit</button>
+  <label id="hoppieAutoLbl" hidden title="PAC sends the loadsheet by itself when you start PAC ACARS, and again if you sign a new edition at the gate" style="display:inline-flex;gap:6px;align-items:center;font-size:13px;color:inherit"><input type="checkbox" id="hoppieAuto"> Auto-send</label>
   <button class="primary" id="printBtn" onclick="print()">Print / save as PDF</button></div>
 <div class="amended" id="amended" hidden>Your SimBrief plan changed the fuel and weights, so this is an amended release. Review it and sign again.</div>
 <main id="doc"><div class="err">Loading the release…</div></main>
@@ -644,6 +645,13 @@ async function setupHoppie(d, pid) {
   if (pid) return;
   if (!d.hoppie) return;
   const b = $("#hoppieBtn"); b.hidden = false;
+  const al = $("#hoppieAutoLbl"), ab = $("#hoppieAuto"); al.hidden = false; ab.checked = !!d.hoppie_auto;
+  ab.onchange = async () => {
+    let cs = d.hoppie_callsign || "";
+    if (ab.checked) { cs = prompt("Callsign you log on with in the aircraft (leave empty to use each flight's ATC callsign):", cs) ?? null; if (cs === null) { ab.checked = false; return; } }
+    try { await fetch("/api/dispatch/hoppie/auto", { method: "POST", headers: { "Content-Type": "application/json" }, credentials: "same-origin", body: JSON.stringify({ on: ab.checked, callsign: cs }) }); d.hoppie_callsign = cs; }
+    catch (e) { ab.checked = !ab.checked; alert("It couldn't be saved."); }
+  };
   b.onclick = async () => {
     const cs = prompt("Callsign you're logged on with in the aircraft's ACARS:", (d.paper && d.paper.atc_callsign) || "");
     if (!cs) return;

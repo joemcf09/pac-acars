@@ -1898,6 +1898,7 @@ def dispatch_current():
     d["release_amended"] = bool(booking.get("release_amended"))
     d["signature_required"] = signature_required(booking)
     d["hoppie"] = bool(__import__("hoppie").logon(DATA))
+    d["hoppie_auto"], d["hoppie_callsign"] = hoppie_auto_pref()
     return jsonify(d)
 
 
@@ -1999,6 +2000,8 @@ def dispatch_sign():
     booking["dispatch"]["signed_snapshot"]["paper"] = dispatch.paperwork(booking["dispatch"], FLEET, booking, va.active_notams(), va.career(va.current_pilot_id())["rank"], AIRPORTS,
                                                                          dow_override=(learned_dow(booking["aircraft"]) or {}).get("dow"))
     save_booking(booking)
+    if releases.started(booking):
+        hoppie_auto_send(booking)        # a new edition signed at the gate goes straight to the cockpit
     response = jsonify({"ok": True, "signed": booking["signed"]})
     response.headers['Cache-Control'] = 'private, no-store'
     return response
@@ -2088,6 +2091,44 @@ def hoppie_watcher():
                     print("hoppie reply:", why)
         except Exception as e:
             print("hoppie watcher:", e)
+
+
+def hoppie_auto_pref(pid=None):
+    _, prefs = _pilot_prefs(pid or va.current_pilot_id())
+    return bool(prefs.get("hoppie_auto")), str(prefs.get("hoppie_callsign") or "")
+
+
+def hoppie_auto_send(booking, pid=None):
+    """Automatic uplink (the pilot's choice): sends the loadsheet in the background so ACARS and signing never wait on Hoppie."""
+    import hoppie
+    pid = pid or va.current_pilot_id()
+    on, cs = hoppie_auto_pref(pid)
+    if not (on and hoppie.logon(DATA) and booking and booking.get("dispatch")):
+        return
+    cs = re.sub(r"[^A-Z0-9]", "", (cs or atc_callsign(booking)).upper())[:8]
+    def go():
+        try:
+            b = load_booking(pid)
+            if b and b.get("requested_at") == booking.get("requested_at"):
+                why, _, _ = hoppie_send_loadsheet(b, cs, pid)
+                if why:
+                    print("hoppie auto:", why)
+        except Exception as e:
+            print("hoppie auto:", e)
+    threading.Thread(target=go, daemon=True).start()
+
+
+@app.post("/api/dispatch/hoppie/auto")
+def dispatch_hoppie_auto():
+    b = request.get_json(silent=True) or {}
+    pid = va.current_pilot_id()
+    cs = re.sub(r"[^A-Z0-9]", "", str(b.get("callsign") or "").upper())[:8]
+    with db() as con:
+        _, prefs = _pilot_prefs(pid, con)
+        prefs["hoppie_auto"] = bool(b.get("on"))
+        prefs["hoppie_callsign"] = cs
+        con.execute("UPDATE pilots SET prefs=? WHERE id=?", (json.dumps(prefs), pid))
+    return jsonify({"ok": True, "on": prefs["hoppie_auto"]})
 
 
 @app.get("/api/staff/hoppie")
@@ -3147,6 +3188,7 @@ def acars_app_start():
                         "needs_signature": True}), 409
     releases.mark_started(booking)
     save_booking(booking)
+    hoppie_auto_send(booking)            # the final loadsheet goes to the cockpit as the crew starts up
     state.update(remote={"source": source, "started": time.time(), "requested_at": booking.get("requested_at"),
                          "flight": booking["flight_number"]}, remote_status=None, remote_seen=time.time(), recorder=None, source_name=source)
     clear_flight_state()
