@@ -3249,7 +3249,7 @@ def discord_departure(st):
     import botlink
     s = settings()
     hook = bool(s.get("discord_webhook") and s.get("discord_departures", True))
-    bot = botlink.enabled() and s.get("discord_departures", True)
+    bot = botlink.enabled() and s.get("discord_departures", True) and not hook   # the webhook already posts departures: never twice
     if not (hook or bot):
         return
     if st.get("phase") not in ("TAKEOFF", "TAKEOFF_ROLL", "INITIAL_CLIMB", "CLIMB", "CRUISE"):
