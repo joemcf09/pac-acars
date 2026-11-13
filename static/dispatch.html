@@ -89,6 +89,7 @@ dialog.sign .msg { color: #C80000; font-size: 14px; min-height: 1em; margin: 6px
   <button class="primary" id="signBtn" hidden>Sign release</button>
   <label>Jump to <select id="jumpTo" aria-label="Jump to a section of the release"><option value="">Section…</option></select></label>
   <label>NOTAM print scope <select id="notamScope"><option value="airports">Airports</option><option value="all">All imported</option><option value="none">Omit imported NOTAMs</option></select></label>
+  <button id="hoppieBtn" hidden title="Send the loadsheet to your aircraft's ACARS over Hoppie">📡 Send loadsheet to cockpit</button>
   <button class="primary" id="printBtn" onclick="print()">Print / save as PDF</button></div>
 <div class="amended" id="amended" hidden>Your SimBrief plan changed the fuel and weights, so this is an amended release. Review it and sign again.</div>
 <main id="doc"><div class="err">Loading the release…</div></main>
@@ -637,6 +638,24 @@ function handlingLines(d) {
   return out;
 }
 
+/* ---------------- loadsheet to the cockpit (Hoppie's ACARS) ---------------- */
+async function setupHoppie(d, pid) {
+  if (pid) return;
+  if (!d.hoppie) return;
+  const b = $("#hoppieBtn"); b.hidden = false;
+  b.onclick = async () => {
+    const cs = prompt("Callsign you're logged on with in the aircraft's ACARS:", (d.paper && d.paper.atc_callsign) || "");
+    if (!cs) return;
+    b.disabled = true; b.textContent = "📡 Sending…";
+    try {
+      const r = await fetch("/api/dispatch/hoppie", { method: "POST", headers: { "Content-Type": "application/json" }, credentials: "same-origin", body: JSON.stringify({ callsign: cs }) });
+      const j = await r.json();
+      b.textContent = r.ok ? `✓ Sent to ${j.callsign} (EDNO ${j.edno})` : "📡 Send loadsheet to cockpit";
+      if (!r.ok) alert(j.error || "It couldn't be sent.");
+    } catch (e) { b.textContent = "📡 Send loadsheet to cockpit"; alert("It couldn't be sent. Use the printed loadsheet."); }
+    b.disabled = false;
+  };
+}
 /* ---------------- the captain's signature ---------------- */
 const qsLayout = () => new URLSearchParams(location.search).get("layout") || "";
 const zulu = ts => { const x = new Date(ts * 1000).toISOString(); return `${x.substr(11, 2)}${x.substr(14, 2)}Z`; };
@@ -723,6 +742,7 @@ const pageBreaks = (lines, size) => {
     renderPages(d);
     $("#notamScope").onchange = () => { const cut=PAGES.findIndex(p=>p.form==='OCC-PERF / 01'||p.form==='OCC-BRF / 01'); if(cut>=0) PAGES.splice(cut); addImportedBriefing(d); renderPages(d); };
     setupSigning(d, pid);
+    setupHoppie(d, pid);
     if (qs.get("sign") && !d.signed && !pid) $("#signBtn").click();
   } catch (e) {
     $("#doc").innerHTML = `<div class="err"><h2 style="margin-top:0">No dispatch paperwork</h2><p>${esc(e.message)}</p><p><a href="/#missions">Go to the mission board</a></p></div>`;

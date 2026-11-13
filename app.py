@@ -289,7 +289,8 @@ def public_settings(st=None):
     st["si_ready"] = bool(st.get("si_enabled") and (st.get("si_va_key") or "").strip())
     st["si_key_set"] = bool((st.get("si_va_key") or "").strip())
     st["discord_bot_token_set"] = bool((st.get("discord_bot_token") or "").strip())
-    st["simbrief_api"] = bool(simbrief_api_key())   # one-click OFP generation (the key itself never leaves the server)
+    st["simbrief_api"] = bool(simbrief_api_key())
+    st["hoppie"] = bool(__import__("hoppie").logon(DATA))   # one-click OFP generation (the key itself never leaves the server)
     for k in SECRET_SETTINGS:
         st.pop(k, None)
     return st
@@ -1896,6 +1897,7 @@ def dispatch_current():
     shipments.enrich(d)                      # full air waybill, acceptance record and tracking for each shipment
     d["release_amended"] = bool(booking.get("release_amended"))
     d["signature_required"] = signature_required(booking)
+    d["hoppie"] = bool(__import__("hoppie").logon(DATA))
     return jsonify(d)
 
 
@@ -2000,6 +2002,48 @@ def dispatch_sign():
     response = jsonify({"ok": True, "signed": booking["signed"]})
     response.headers['Cache-Control'] = 'private, no-store'
     return response
+
+
+@app.post("/api/dispatch/hoppie")
+def dispatch_hoppie():
+    """Sends the current loadsheet to the cockpit over Hoppie's ACARS, as PAC Load Control (PACLD)."""
+    import hoppie
+    booking = load_booking()
+    if not booking or not booking.get("dispatch"):
+        return jsonify({"error": "No dispatch release yet. Request a flight first."}), 404
+    b = request.get_json(silent=True) or {}
+    cs = re.sub(r"[^A-Z0-9]", "", str(b.get("callsign") or atc_callsign(booking)).upper())[:8]
+    if not re.fullmatch(r"[A-Z]{3}[A-Z0-9]{1,5}", cs):
+        return jsonify({"error": "Enter the callsign you're logged on with in the aircraft, for example PGI8616."}), 400
+    d = dict(booking["dispatch"])
+    paper = dispatch.paperwork(d, FLEET, booking, va.active_notams(), va.career(va.current_pilot_id())["rank"], AIRPORTS,
+                               dow_override=(learned_dow(booking["aircraft"]) or {}).get("dow"))
+    if releases.valid_signature(booking):
+        paper = (booking["dispatch"].get("signed_snapshot") or {}).get("paper") or paper
+    edno = int(booking.get("hoppie_edno") or 0) + 1
+    text = hoppie.telex(d, paper, cs, edno)
+    why = hoppie.send(hoppie.logon(DATA), cs, text)
+    if why:
+        return jsonify({"error": why}), 502
+    booking["hoppie_edno"] = edno
+    save_booking(booking)
+    return jsonify({"ok": True, "callsign": cs, "edno": edno, "text": text})
+
+
+@app.get("/api/staff/hoppie")
+def staff_hoppie_status():
+    import hoppie
+    return jsonify({"configured": bool(hoppie.logon(DATA)), "station": hoppie.STATION})
+
+
+@app.post("/api/staff/hoppie")
+def staff_hoppie_save():
+    import hoppie
+    try:
+        hoppie.save_logon(DATA, (request.get_json(silent=True) or {}).get("logon", ""))
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 400
+    return jsonify({"configured": bool(hoppie.logon(DATA))})
 
 
 @app.get("/api/dispatch/pirep/<int:pid>")

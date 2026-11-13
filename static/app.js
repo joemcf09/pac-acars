@@ -6254,6 +6254,9 @@ function staffSite() {
       <h2 style="padding:14px 0 0">Pagani Aviation Group</h2>
       <p class="muted" style="font-size:13px;margin:4px 0 8px">The group hub reads PAC's roster, hours and Anchorage arrivals from a private feed, and adds each pilot's Pagani Remote Aviation hours. Names, ranks, hours and flights are shared; emails, Discord, network IDs and wallets never are. Tick <b>PRA</b> in Pilots for anyone cleared to fly the Kodiak.</p>
       <div id="groupBox"><span class="muted" style="font-size:13px">Loading…</span></div>
+      <h2 style="padding:14px 0 0">Loadsheet to the cockpit (Hoppie's ACARS)</h2>
+      <p class="muted" style="font-size:13px;margin:4px 0 8px">PAC Load Control sends the loadsheet to the aircraft as <b>PACLD</b>. Paste PAC's Hoppie logon code here. It's kept on the server only and is never shown again.</p>
+      <div id="hoppieBox"><span class="muted" style="font-size:13px">Loading…</span></div>
     </section>
     <form class="panel" id="siteForm" style="padding:4px 20px 18px;display:flex;flex-direction:column;gap:12px"><h2 style="padding:14px 0 0;margin:0">Home page text</h2>
       ${[["tagline", "Headline", 1], ["intro", "Introduction", 3], ["story", "PAC story", 7], ["recruiting", "Recruiting message", 3]].map(([k, l, rows]) =>
@@ -6344,6 +6347,15 @@ function staffSite() {
     toast("Economics saved. New prices apply to flights filed from now on.");
   };
   $("#backupNow").onclick = async () => { try { const r = await api("/api/staff/backups", { method: "POST" }); showBackups(r); toast("Backup saved."); } catch (e) { toast(e.message); } };
+  const hoppieBox = async () => {
+    const h = await api("/api/staff/hoppie").catch(() => ({}));
+    $("#hoppieBox").innerHTML = `<div class="row" style="gap:8px;align-items:center;flex-wrap:wrap"><span class="tag ${h.configured ? "green" : "amber"}">${h.configured ? "Connected" : "Not set up"}</span>
+      <input type="password" id="hoppieCode" autocomplete="off" placeholder="${h.configured ? "Paste a new code to replace it" : "Hoppie logon code"}" style="max-width:260px">
+      <button class="btn small" type="button" id="hoppieSave">Save</button>${h.configured ? `<button class="btn ghost small" type="button" id="hoppieClear">Turn off</button>` : ""}</div>`;
+    $("#hoppieSave").onclick = async () => { try { await api("/api/staff/hoppie", { method: "POST", body: { logon: $("#hoppieCode").value } }); toast("Saved."); hoppieBox(); } catch (err) { toast(err.message); } };
+    if ($("#hoppieClear")) $("#hoppieClear").onclick = async () => { await api("/api/staff/hoppie", { method: "POST", body: { logon: "" } }); hoppieBox(); };
+  };
+  if ($("#hoppieBox")) hoppieBox();
   $("#siteForm").onsubmit = async e => {
     e.preventDefault(); S.staff.site = await api("/api/staff/site", { method: "POST", body: Object.fromEntries(new FormData(e.target).entries()) }); toast("Home page updated.");
   };
