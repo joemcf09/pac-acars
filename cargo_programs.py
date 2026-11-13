@@ -149,6 +149,21 @@ def auto_launch(con, now=None):
               +(f" Every contributor earns the patch and ${float(c.get('reward_cash') or 0):,.0f} if we hit the target." if c.get('reward_cash') else ''))
         con.execute('INSERT INTO news (time, kind, title, body, important, expires, author) VALUES (?,?,?,?,?,?,?)',
                     (now,'event',f"{c['title']} is live",body,1,c['ends'],'PAC Operations'))
+        # and the Discord announcement (posted by the PAC bot), written into the same transaction
+        try:
+            import botlink
+            if botlink.enabled():
+                reward=float(c.get('reward_cash') or 0)
+                text='\n'.join([c['description'],'',
+                    f"🎯 **Shared goal:** {c['target_lbs']:,} lb delivered",
+                    f"📍 **Destinations:** {' · '.join(dest)}",
+                    f"📅 **{datetime.fromtimestamp(c['starts'],timezone.utc):%b %d} – {datetime.fromtimestamp(c['ends']-1,timezone.utc):%b %d, %Y} (UTC)**",'',
+                    '**How to contribute:** fly any suitable PAC cargo flight into one of the destinations, complete it in PAC ACARS and file your PIREP. Every accepted delivery counts.','',
+                    '🏅 **When we hit the target:** the campaign patch'+(f' and a **${reward:,.0f}** bonus to every contributor.' if reward>0 else ' for every contributor.'),'',
+                    'Track progress under **Operations → Cargo campaigns**. Let\'s move the freight! ✈️'])
+                con.execute('INSERT INTO bot_events (time, kind, data) VALUES (?,?,?)',(now,'site_news',json.dumps(
+                    {'kind':'news','title':f"{c['title'].upper()} IS LIVE!",'body':text,'important':True,'author':'PAC Operations','updated':False,'number':None})))
+        except Exception as e:print('campaign launch post:',e)
         done.append(c['id'])
     return done
 

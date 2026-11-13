@@ -64,3 +64,18 @@ with A.db() as con:
     assert con.execute("SELECT COUNT(*) FROM news WHERE title='Auto Test is live'").fetchone()[0] == 1
 assert any(c["title"] == "Auto Test" for c in pilot.get("/api/pilot/cargo-campaigns").get_json()["campaigns"])
 print("AUTO-LAUNCH PASSED")
+
+# the Discord launch post goes into the bot's queue when the bot is on
+import botlink, json as _json
+botlink.enabled = lambda: True
+r = staff.post("/api/staff/cargo-campaigns", json={"title": "Bot Test", "description": "Hello crews.", "target_lbs": 5000,
+               "destinations": ["PANC"], "start_date": "2031-01-01", "end_date": "2031-01-31"})
+cid3 = r.get_json()["id"]
+staff.post(f"/api/staff/cargo-campaigns/{cid3}", json={"action": "extras", "reward_cash": 10000})
+staff.post(f"/api/staff/cargo-campaigns/{cid3}", json={"action": "schedule"})
+with A.db() as con:
+    t = con.execute("SELECT launch_at FROM cargo_campaigns WHERE id=?", (cid3,)).fetchone()[0]
+    cp.auto_launch(con, now=t + 1)
+    ev = [_json.loads(r[0]) for r in con.execute("SELECT data FROM bot_events WHERE kind='site_news'")]
+assert ev and ev[-1]["title"] == "BOT TEST IS LIVE!" and "$10,000" in ev[-1]["body"], ev
+print("DISCORD LAUNCH POST QUEUED")
