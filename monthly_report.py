@@ -189,11 +189,11 @@ def register(app, g):
             return "PAC's email account isn't set up (Staff → Settings → Email).", 400
         with g["db"]() as con:
             r = con.execute("SELECT name FROM pilots WHERE id=?", (pid,)).fetchone()
-            to = (con.execute("SELECT email FROM pilots WHERE id=?", (me,)).fetchone() or [""])[0]
+            to = request.args.get("to") or (con.execute("SELECT email FROM pilots WHERE id=?", (me,)).fetchone() or [""])[0]
             if not r:
                 return "No such pilot.", 404
             if not mailer.valid_email(to):
-                return "Your own pilot profile has no email address to send the test to.", 400
+                return "Your own pilot profile has no email address. Add &to=you@example.com to the link to choose where the test goes.", 400
             month = request.args.get("month") or last_month()
             site = _site(st, request.host_url)
             kind, subject, text, htm = build(con, pid, r[0], month, site, f"{site}/unsubscribe/monthly?p={pid}&t={unsub_token(app.secret_key, pid)}")

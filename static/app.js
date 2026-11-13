@@ -5145,7 +5145,7 @@ async function renderHome(h, st) {
       <div class="row"><button class="btn light" onclick="show('dashboard')">Go to your dashboard</button><button class="btn ghost" onclick="show('missions')">Book a flight</button></div>`
       : `<h1>Real freight. Real paperwork. Real consequences.</h1>
       <p>Pagani Air Cargo is a cargo-only virtual airline for Microsoft Flight Simulator and X-Plane. Every load has a waybill, a deadline and somewhere to be.</p>
-      <div class="row"><a class="btn light" href="#apply" id="heroApply">Apply to fly</a>${PUBLIC_VIEWS.includes("live") ? `<button class="btn ghost" onclick="show('live')">Watch a flight live</button>` : `<button class="btn ghost" onclick="location.href='/network'">See the cargo network</button>`}<button class="btn ghost" onclick="show('fleet')">Meet the fleet</button></div>`}
+      <div class="row"><a class="btn light" href="#apply" id="heroApply">Apply to fly</a>${PUBLIC_VIEWS.includes("live") ? `<button class="btn ghost" onclick="show('live')">Watch a flight live</button>` : `<button class="btn ghost" onclick="(S.me ? show('network') : location.href='/network')">See the cargo network</button>`}<button class="btn ghost" onclick="show('fleet')">Meet the fleet</button></div>`}
     </div>
   </section>
   ${S.me ? "" : `<section class="proof-band"><div class="proof-in">
@@ -8563,7 +8563,7 @@ function dayNightSync() {
 function whyPacHTML() {
   const pillars = [
     ["Real paperwork", "Every flight gets a dispatch release: load sheet with CG, NOTOC, cargo manifest with IATA codes, weather and runway wind.", "Read the cargo guide", "show('cargoguide')"],
-    ["Cargo that stays put", "Shipments move station to station across flights. Track any air waybill, and see the whole network live.", "See the network", "location.href='/network'"],
+    ["Cargo that stays put", "Shipments move station to station across flights. Track any air waybill, and see the whole network live.", "See the network", "(S.me ? show('network') : location.href='/network')"],
     ["Real consequences", "A hard landing or tail strike grounds the aircraft where it is. Then a PAC crew flies in the repair kit.", "How scoring works", "show('handbook')"],
     ["Fly online", "IVAO certified and flying on VATSIM as PGI. A weekly group flight anyone can join.", "This week's group flight", "show('groupflight')"]];
   return `<section class="why-pac" aria-label="Why fly for PAC">
@@ -8610,7 +8610,7 @@ async function loadHappeningNow(root, d) {
   if (urgent.length > aog.length) items.push(["URGENT", `${urgent.length - aog.length} urgent request${urgent.length - aog.length > 1 ? "s" : ""}`, "Time-critical freight with bonus points.", "See urgent flights", "S.board='urgent';show('missions')"]);
   const here = (net?.waiting || []).find(w => w.icao === d.location.icao);
   if (here) items.push(["FREIGHT", `${fmt(here.lbs)} lb waiting at ${esc(here.icao)}`, `${here.shipments} shipment${here.shipments > 1 ? "s" : ""} ready to move from where you are.`, "Find a flight", "show('missions')"]);
-  else if (net?.waiting?.length) { const w = net.waiting[0]; items.push(["FREIGHT", `${fmt(w.lbs)} lb waiting at ${esc(w.icao)}`, `The most freight sitting anywhere in the network right now.`, "Cargo network", "location.href='/network'"]); }
+  else if (net?.waiting?.length) { const w = net.waiting[0]; items.push(["FREIGHT", `${fmt(w.lbs)} lb waiting at ${esc(w.icao)}`, `The most freight sitting anywhere in the network right now.`, "Cargo network", "(S.me ? show('network') : location.href='/network')"]); }
   if (gf?.enabled && gf.event) items.push(["GROUP", esc(gf.event.title || "Weekly group flight"), `${esc(gfWhen(gf.event.start, { weekday: "long", hour: "numeric", minute: "2-digit" }))} your time. ${esc(gf.schedule || "")}`, "Sign up", "show('groupflight')"]);
   root.innerHTML = `<div class="kicker">Happening now</div><h3>What needs a crew</h3>${items.length ? `<div class="now-grid">${items.map(([tag, h, p, l, go]) => `<div class="now-item"><span class="now-tag now-${tag.toLowerCase()}">${tag}</span><b>${h}</b><small>${p}</small><button class="why-link" type="button" onclick="${go}">${l} →</button></div>`).join("")}</div>` : `<p>All quiet: no urgent flights or waiting freight right now. A good time to fly a scheduled route.</p>`}`;
 }
@@ -8641,7 +8641,7 @@ function homeLayout() {
   const board = byKey["live from the ops center"], net = byKey["the network"];
   if (board && net) {
     const see = document.createElement("section"); see.className = "see-it";
-    see.innerHTML = `<div class="section-h"><div><div class="kicker">See it working</div><h2>PAC is flying right now</h2></div><button class="btn ghost small" type="button" onclick="location.href='/network'">Open the cargo network</button></div><div class="see-grid"></div>`;
+    see.innerHTML = `<div class="section-h"><div><div class="kicker">See it working</div><h2>PAC is flying right now</h2></div><button class="btn ghost small" type="button" onclick="(S.me ? show('network') : location.href='/network')">Open the cargo network</button></div><div class="see-grid"></div>`;
     const grid = see.querySelector(".see-grid");
     board.els.filter(el => !el.classList.contains("section-h")).forEach(el => grid.append(el));
     net.els.filter(el => !el.classList.contains("section-h")).forEach(el => grid.append(el));
