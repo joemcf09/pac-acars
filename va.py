@@ -3330,6 +3330,8 @@ def enforce_overdue():
             ceo.tick(con, lambda t, b: pending.append((t, b)), now)
             import growth
             growth.tick(con, now)
+            import insurance
+            insurance.tick(con, C["FLEET"], now)
         for t, b in pending:
             _news(t, b)
     except Exception as e:

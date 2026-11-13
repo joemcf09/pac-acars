@@ -3547,6 +3547,12 @@ def economics_estimate_post():
                                       block_min=ofp.get("est_block_min"), trip_fuel_lbs=ofp.get("trip_fuel_lbs")))
 
 
+def _insurance_policy():
+    import insurance
+    with db() as con:
+        return insurance.policy(con, FLEET)
+
+
 @app.get("/api/finance")
 def finance():
     import datetime as _dt
@@ -3598,7 +3604,7 @@ def finance():
                     "by_category": [{"category": k, **v} for k, v in sorted(by_cat.items(), key=lambda kv: -kv[1]["profit"])],
                     "best_routes": [r for r in routes if r["profit"] > 0][:8], "worst_routes": [r for r in routes[::-1] if r["profit"] < 0][:5],
                     "cost_split": dict(sorted(cost_split.items(), key=lambda kv: -kv[1])),
-                    "ledger": [dict(r) for r in rows[::-1][:25]], "statements": statements, "company_ledger": round(ledger)})
+                    "ledger": [dict(r) for r in rows[::-1][:25]], "statements": statements, "company_ledger": round(ledger), "insurance": _insurance_policy()})
 
 
 EXCUSED_DELAYS = acars_core.EXCUSED_DELAYS

@@ -136,6 +136,8 @@ def flight_economics(p, booking, fleet, settings, distance_nm):
         costs["tail_strike_repairs"] = 450_000 if wide else 180_000
     if status == "Diverted":
         costs["diversion"] = 45_000 if wide else 18_000
+    import insurance
+    insurance.apply(costs, wide, notes)          # repairs above the deductible go to the insurer
     return _result(revenue, costs, notes, kg, {"contract_price": price, "priced_on": basis, "fuel_price": fuel_price,
                                                 "distance_nm": round(distance_nm)})
 

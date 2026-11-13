@@ -3881,7 +3881,7 @@ const money = (v, dec = false) => { if (v == null || isNaN(v)) return "–"; con
 const moneyCls = v => v > 0 ? "pos-money" : v < 0 ? "neg-money" : "";
 const COST_NAMES = { fuel: "Fuel", ownership: "Aircraft ownership", maintenance: "Maintenance", crew: "Crew", overhead: "Overhead", landing_fees: "Landing fees",
   navigation: "Navigation", handling: "Cargo handling", hard_landing_inspection: "Hard landing inspection", tail_strike_repairs: "Tail strike repairs",
-  damage_repairs: "Damage repairs", diversion: "Diversion costs" };
+  damage_repairs: "Damage repairs (deductible)", diversion: "Diversion costs" };
 function econBox(e, title = "PAC's flight economics", note = "") {
   if (!e) return "";
   return `<div class="econ-box"><div class="econ-head">
@@ -3932,6 +3932,8 @@ function renderFinance(f) {
   </div>
   <div class="chart-box"><h3>Company cash</h3>${cashChart}</div>
   ${plStatement(f.statements)}
+  ${f.insurance ? `<section class="panel"><h2>Insurance</h2><p class="panel-sub">Hull and liability cover: <b>${money(f.insurance.monthly)}</b> a month for the fleet. After an incident PAC pays only the deductible (${money(f.insurance.deductible.wide)} widebody, ${money(f.insurance.deductible.narrow)} narrowbody); the insurer pays the rest. ${f.insurance.claims_12m ? `${f.insurance.claims_12m} claim${f.insurance.claims_12m === 1 ? "" : "s"} in the last 12 months add ${f.insurance.loading_pct}% to the premium.` : "No claims in the last 12 months."} ${esc(f.insurance.note)}</p>
+    <div class="table-wrap" style="border:0"><table class="fin-table"><thead><tr><th>Type</th><th class="r">Aircraft</th><th class="r">Value each</th><th class="r">Premium / month</th></tr></thead><tbody>${f.insurance.lines.map(l => `<tr><td>${esc(l.name)}</td><td class="r">${l.aircraft}</td><td class="r">${money(l.value)}</td><td class="r">${money(l.monthly)}</td></tr>`).join("")}</tbody></table></div></section>` : ""}
   <div class="fin-grid">
     <section class="panel"><h2>By aircraft type</h2>
       ${typeRows ? `<div class="table-wrap" style="border:0"><table class="fin-table"><thead><tr><th>Type</th><th class="r">Flights</th><th class="r">Block h</th><th class="r">Revenue</th><th class="r">Costs</th><th class="r">Profit</th><th class="r">Margin</th><th class="r">Profit / hour</th></tr></thead><tbody>${typeRows}</tbody></table></div>`
