@@ -5063,7 +5063,7 @@ async function renderHome(h, st) {
   const [news, shots] = await Promise.all([loadNews(), api("/api/gallery?limit=8").catch(() => [])]);
   $("#homeRoot").innerHTML = `
   <section class="hero${S.me ? " hero-slim" : ""}">
-    <img class="bg" fetchpriority="high" decoding="async" src="/static/illustrations/${S.me ? "ill-briefing-room" : "ill-ramp-night"}.webp" alt=""><span class="ill-tag">Illustration</span>
+    <img class="bg" fetchpriority="high" decoding="async" src="/static/illustrations/${S.me ? "ill-briefing-room" : "ill-ramp-night"}.webp?v=20261113" alt=""><span class="ill-tag">Illustration</span>
     <div class="hero-in">
       ${live ? `<div class="live-pill"><i></i>${esc(S.booking?.flight_number || "")} in the air · ${esc(st.phase_label)}</div>` : ""}
       <img class="wm" src="/static/pac-wordmark-white.png" alt="Pagani Air Cargo">
