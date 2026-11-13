@@ -59,12 +59,13 @@ button:hover{background:var(--red-deep);border-color:var(--red-deep)}
 .fine{margin-top:18px;color:var(--steel);font-size:12px}
 @media (max-width:560px){.route{grid-template-columns:1fr 1fr}.route .mid{display:none}.route .end b{font-size:26px}
   .ev{grid-template-columns:52px 1fr}.ev time{grid-column:2;text-align:left}header span{display:none}}
+header .hdr-nav{margin-left:auto;display:flex;gap:16px;flex-wrap:wrap}header .hdr-nav a{color:#fff;font-weight:700;text-decoration:none;font-size:14px}header .hdr-nav a:hover{text-decoration:underline}header .hdr-home{display:flex;margin-left:0;opacity:1}header .hdr-nav a{margin-left:0}@media(max-width:640px){header .hdr-nav a:not(:first-child){display:none}}
 </style>
 </head>
 <body>
 <script>if(window.self!==window.top||/[?&]embed=1/.test(location.search))document.documentElement.classList.add("pac-embed")</script>
 <style>.pac-embed body>header{display:none}</style>
-<header><img src="/static/pac-wordmark-white.png" alt="PAC"><span>Cargo tracking</span><a href="/">pac-va.com</a></header>
+<header><a href="/" class="hdr-home" aria-label="PAC home"><img src="/static/pac-wordmark-white.png" alt="PAC"></a><span>Cargo tracking</span><nav class="hdr-nav"><a href="/#home" onclick="if(document.referrer.indexOf(location.host)>-1&&history.length>1){history.back();return false}">← Back to PAC</a><a href="/#missions">Missions</a><a href="/network">Network</a><a href="/track">Track a shipment</a></nav></header>
 <main>
   <figure style="margin:0 0 18px"><img src="/static/illustrations/ill-ramp-gse.webp" alt="PAC containers, pallet dollies and loaders on the cargo ramp" style="display:block;width:100%;height:200px;object-fit:cover;object-position:50% 50%;border-radius:6px"><figcaption style="font-size:12px;color:var(--steel);margin-top:6px">Illustration</figcaption></figure>
   <h1>Track a shipment</h1>

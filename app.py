@@ -4437,6 +4437,9 @@ import rotation_planner
 rotation_planner.register(app, globals())
 import cargo_programs
 cargo_programs.register(app, globals())
+import monthly_report
+monthly_report.register(app, globals())
+va.C["secret"] = app.secret_key
 import hubs as _hubs
 try:
     with db() as _con:
