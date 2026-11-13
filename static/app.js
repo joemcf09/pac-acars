@@ -3979,31 +3979,57 @@ function mrz(s, n) { return (s.toUpperCase().replace(/[^A-Z0-9]+/g, "<") + "<".r
 /* ================= Crew ID badge =================
    An airport-style crew identification badge on a PAC lanyard. Click it to flip; download it as a PNG. */
 const BADGE_AREAS = { ramp: "RAMP", cargo: "CARGO", aoa: "AOA", occ: "OCC" };
-function badgeInfo() {
-  const p = S.profile || {}, car = S.career || {};
+const BADGE_IATA = { KCVG: "CVG", KMIA: "MIA", LIMC: "MXP", OMDW: "DWC", VHHH: "HKG", PANC: "ANC", KMEM: "MEM", KSDF: "SDF", KILN: "ILN", KPAE: "PAE" };
+function badgeIata(icao) {
+  icao = String(icao || "KCVG").toUpperCase();
+  return BADGE_IATA[icao] || (/^K[A-Z]{3}$/.test(icao) ? icao.slice(1) : icao.slice(-3));
+}
+function badgeInfo(p = S.profile || {}, car = S.career || {}, staff = S.me?.staff) {
   const id = String(p.pilot_id || "PAC0001");
   const n = parseInt(id.replace(/\D/g, ""), 10) || 1;
   const areas = ["RAMP", "CARGO", "AOA"];                       // every pilot: ramp, cargo build-up, movement area
-  if (S.me?.staff) areas.push("OCC");                           // staff also get operations control
+  if (staff) areas.push("OCC");                                 // staff also get operations control
   const ratings = [...new Set((p.type_ratings || []).filter(r => r.status !== "Inactive").map(r => r.type))];
   const since = p.member_since ? new Date(p.member_since + "T00:00:00Z") : null;
   const expires = since ? new Date(Date.UTC(since.getUTCFullYear() + 3, since.getUTCMonth(), since.getUTCDate())) : null;
   const d = x => x ? x.toLocaleDateString("en-US", { day: "2-digit", month: "short", year: "numeric", timeZone: "UTC" }).toUpperCase() : "—";
   const code = (p.base || "KCVG").match(/\b[A-Z]{4}\b/)?.[0] || (p.base || "KCVG").split(/[ ,/]/)[0].slice(0, 4).toUpperCase();
-  return { p, car, id, name: displayName(p), rank: car.rank || p.rank || "Pilot", base: code,
-    badgeNo: `CVG-${String(n).padStart(5, "0")}`, areas, ratings, issued: d(since), expires: d(expires),
+  const iata = badgeIata(code);
+  return { p, car, id, n, name: displayName(p), rank: car.rank || p.rank || "Pilot", base: code, iata,
+    badgeNo: `${iata}-${String(n).padStart(5, "0")}`, areas, ratings, issued: d(since), expires: d(expires),
+    docNo: `PAC${String(since ? since.getUTCFullYear() % 100 : 26).padStart(2, "0")}${String(n * 7919 % 100000).padStart(5, "0")}`,
     expired: expires ? Date.now() > expires.getTime() : false, photo: p.photo || "/static/pilot-photo.jpg" };
 }
-function badgeHtml() {
-  const b = badgeInfo();
+/* fine line security pattern (guilloche), drawn as an SVG background */
+function badgeGuilloche(seed) {
+  let path = "";
+  for (let k = 0; k < 14; k++) {
+    let d = "";
+    for (let x = 0; x <= 260; x += 4) {
+      const y = 200 + Math.sin((x + k * 9 + seed) / 23) * (40 + k * 7) + Math.sin((x - k * 13) / 9) * 6;
+      d += (x ? "L" : "M") + x + " " + y.toFixed(1);
+    }
+    path += `<path d="${d}"/>`;
+  }
+  return `<svg class="crewid-guil" viewBox="0 0 260 400" preserveAspectRatio="none" aria-hidden="true"><g fill="none" stroke-width=".45">${path}</g></svg>`;
+}
+function badgeHtml(p, car, staff, opts = {}) {
+  const b = badgeInfo(p, car, staff);
+  const flair = (p || S.profile || {}).flair;
+  const micro = ("PAGANI AIR CARGO · " + b.badgeNo + " · ").repeat(12);
+  const mrz = `PAC<<${(b.p.name || b.name).toUpperCase().replace(/[^A-Z]+/g, "<")}`.padEnd(30, "<").slice(0, 30) + "\n" + `${b.docNo}<${b.iata}<${b.id}`.padEnd(30, "<").slice(0, 30);
   return `<div class="crewid-wrap">
     <div class="lanyard" aria-hidden="true"><i class="strap l"></i><i class="strap r"></i><i class="clip"></i></div>
-    <div class="crewid ${frameCls(S.profile?.flair)}" id="crewBadge" tabindex="0" role="button" aria-label="Crew identification badge for ${esc(b.name)}. Activate to turn it over.">
+    <div class="crewid ${frameCls(flair)}" ${opts.own ? 'id="crewBadge"' : ""} tabindex="0" role="button" aria-label="Crew identification badge for ${esc(b.name)}. Activate to turn it over.">
       <div class="crewid-inner">
         <div class="crewid-face crewid-front">
+          ${badgeGuilloche(b.n * 17)}
           <div class="crewid-top"><img src="/static/pac-wordmark-white.png" alt="Pagani Air Cargo"><span>CREW</span></div>
+          <div class="crewid-micro" aria-hidden="true">${esc(micro)}</div>
           <div class="crewid-body">
-            <div class="crewid-photo"><img src="${esc(b.photo)}" alt="Portrait of ${esc(b.name)}"><i class="holo" aria-hidden="true"></i></div>
+            <div class="crewid-photo"><img src="${esc(b.photo)}" alt="Portrait of ${esc(b.name)}"><i class="holo" aria-hidden="true"></i>
+              <span class="crewid-seal" aria-hidden="true"><svg viewBox="0 0 60 60"><defs><path id="sealArc${b.n}" d="M30 30m-21 0a21 21 0 1 1 42 0a21 21 0 1 1-42 0"/></defs><circle cx="30" cy="30" r="27" fill="none" stroke-width="1.6"/><circle cx="30" cy="30" r="16" fill="none" stroke-width=".8"/><text font-size="6.2" font-weight="700" letter-spacing="1"><textPath href="#sealArc${b.n}">PAC OPERATIONS CONTROL · VERIFIED ·</textPath></text><text x="30" y="33" font-size="8" font-weight="800" text-anchor="middle">${esc(b.iata)}</text></svg></span>
+            </div>
             <div class="crewid-id">
               <b class="crewid-name">${esc(b.name)}</b>
               <span class="crewid-rank">${esc(b.rank)}</span>
@@ -4011,25 +4037,29 @@ function badgeHtml() {
               <div class="crewid-rows"><span>Base</span><b>${esc(b.base)}</b><span>Issued</span><b>${esc(b.issued)}</b><span>Expires</span><b class="${b.expired ? "exp" : ""}">${esc(b.expires)}</b></div>
             </div>
           </div>
-          <div class="crewid-areas">${b.areas.map(a => `<span>${esc(a)}</span>`).join("")}${(S.profile?.flair?.patches || []).slice(0, 4).map(p => patchTip(p, 22)).join("")}</div>
+          <div class="crewid-areas">${b.areas.map(a => `<span>${esc(a)}</span>`).join("")}${(flair?.patches || []).slice(0, 4).map(x => patchTip(x, 22)).join("")}<img class="crewid-ghost" src="${esc(b.photo)}" alt="" aria-hidden="true"></div>
           <div class="crewid-ratings"><span>Type ratings</span>${b.ratings.length ? `<div>${b.ratings.map(r => `<i>${esc(r)}</i>`).join("")}</div>`
             : `<p class="muted" style="margin:2px 0 0;font-size:11px">In training</p>`}</div>
-          <div class="crewid-strip"><svg viewBox="0 0 220 28" preserveAspectRatio="none" class="crewid-bars" aria-hidden="true">${badgeBars(b.badgeNo)}</svg><small>${esc(b.badgeNo)}</small></div>
+          <i class="crewid-kine" aria-hidden="true"></i>
+          <div class="crewid-strip"><svg viewBox="0 0 220 28" preserveAspectRatio="none" class="crewid-bars" aria-hidden="true">${badgeBars(b.badgeNo)}</svg><small>${esc(b.badgeNo)}</small><small class="crewid-doc">DOC ${esc(b.docNo)}</small></div>
         </div>
         <div class="crewid-face crewid-back">
+          ${badgeGuilloche(b.n * 31 + 5)}
           <div class="crewid-mag" aria-hidden="true"></div>
           <div class="crewid-backtext">
-            <b>Conditions of use</b>
+            <div class="crewid-backhead"><span class="crewid-chip" aria-hidden="true"></span><div><b>Conditions of use</b><small>Airside identification · PAC Security Programme</small></div></div>
             <p>This badge stays with the holder and must be worn visibly airside. It isn't transferable. If found, please return it to PAC Operations Control, Cincinnati.</p>
-            <div class="crewid-rows"><span>Type ratings</span><b>${b.ratings.length ? esc(b.ratings.join(" · ")) : "In training"}</b><span>Badge</span><b>${esc(b.badgeNo)}</b></div>
-            <div class="crewid-sign"><span>Holder's signature</span><i></i></div>
+            <div class="crewid-rows"><span>Type ratings</span><b>${b.ratings.length ? esc(b.ratings.join(" · ")) : "In training"}</b><span>Badge</span><b>${esc(b.badgeNo)}</b><span>Document</span><b>${esc(b.docNo)}</b></div>
+            <div class="crewid-sign"><span>Holder's signature</span><i>${esc(b.p.name || b.name)}</i>
+              <span class="crewid-stamp" aria-hidden="true">ISSUED<br><b>${esc(b.issued)}</b><br>${esc(b.iata)} BADGE OFFICE</span></div>
+            <pre class="crewid-mrz" aria-hidden="true">${esc(mrz)}</pre>
             <small>Pagani Air Cargo is a virtual airline. This badge is for flight simulation and has no real-world validity.</small>
           </div>
         </div>
       </div>
     </div>
-    <div class="row crewid-actions"><button class="btn ghost small" type="button" id="badgeFlip">Turn it over</button>
-      <button class="btn ghost small" type="button" id="badgeDl">Download badge</button></div>
+    <div class="row crewid-actions"><button class="btn ghost small" type="button" data-badge-flip>Turn it over</button>
+      ${opts.own ? `<button class="btn ghost small" type="button" id="badgeDl">Download badge</button>` : ""}</div>
   </div>`;
 }
 /* a simple barcode pattern from the badge number (decorative) */
@@ -4042,11 +4072,13 @@ function badgeBars(text) {
   return out;
 }
 function wireBadge() {
-  const el = $("#crewBadge"); if (!el) return;
-  const flip = () => el.classList.toggle("flipped");
-  el.onclick = flip;
-  el.onkeydown = e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); flip(); } };
-  if ($("#badgeFlip")) $("#badgeFlip").onclick = e => { e.stopPropagation(); flip(); };
+  document.querySelectorAll(".crewid-wrap").forEach(w => {
+    const el = w.querySelector(".crewid"); if (!el) return;
+    const flip = () => el.classList.toggle("flipped");
+    el.onclick = flip;
+    el.onkeydown = e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); flip(); } };
+    const fb = w.querySelector("[data-badge-flip]"); if (fb) fb.onclick = e => { e.stopPropagation(); flip(); };
+  });
   if ($("#badgeDl")) $("#badgeDl").onclick = async e => {
     e.stopPropagation();
     const btn = e.currentTarget; btn.disabled = true;
@@ -6572,6 +6604,11 @@ async function renderPilotPage(pid) {
           <td>${recencyHtml(h, r)}</td>
           <td><span class="status-pill ${r.status === "Active" ? "" : "off"}">${esc(r.status || "Active")}</span></td></tr>`; }).join("")}</tbody></table></div>
     </section>` : ""}
+  <section class="panel crewid-panel crewid-public">
+    <h2>Crew badge</h2>
+    <p class="panel-sub">${esc(p.name)}'s PAC airport identification. Click it to turn it over.</p>
+    ${badgeHtml(p, c, d.staff, { own: mine })}
+  </section>
   <div class="pilot-grid">
     <section class="panel">
       <h2>Career with PAC</h2>
@@ -6605,6 +6642,7 @@ async function renderPilotPage(pid) {
     <div class="stats-map pilot-map" id="pilotMap"></div>
   </section>`;
   $("#backRoster").onclick = () => { S.pilotOpen = null; show("pilots"); };
+  wireBadge();
   root.querySelectorAll("[data-pirep-open]").forEach(li => {
     li.onclick = () => openDetail(+li.dataset.pirepOpen);
     li.onkeydown = e => { if (e.key === "Enter") openDetail(+li.dataset.pirepOpen); };
@@ -6815,7 +6853,7 @@ function renderProfile() {
       <section class="panel crewid-panel">
         <h2>Crew badge</h2>
         <p class="panel-sub">Your PAC airport identification. Click it to turn it over.</p>
-        ${badgeHtml()}
+        ${badgeHtml(undefined, undefined, undefined, { own: true })}
       </section>
       <section class="panel">
         <h2>Credentials</h2>

@@ -1097,7 +1097,7 @@ html[data-theme="dark"] .gate-table td.ok{color:#7FD9A2}html[data-theme="dark"] 
 .crewid-backtext p{margin:0;font-size:10.5px;line-height:1.45;color:#5E6470}
 .crewid-sign{margin-top:2px}
 .crewid-sign span{font-size:9.5px;color:#5E6470}
-.crewid-sign i{display:block;height:22px;border-bottom:1px solid #9aa0a8}
+.crewid-sign i{max-width:62%;display:block;height:22px;border-bottom:1px solid #9aa0a8}
 .crewid-backtext small{font-size:9px;color:#8a9099;line-height:1.4}
 .crewid-actions{margin-top:14px;justify-content:center}
 @media (prefers-reduced-motion:reduce){.crewid-inner{transition:none}}
@@ -1902,3 +1902,38 @@ html[data-design="loadsheet"] :is(.relief-draft,.relief-notice,.relief-checks){b
 .staff-groups button[aria-selected="true"] .count{background:#fff;color:var(--red)}
 .rating.rt-held{background:linear-gradient(0deg,rgba(31,157,85,.06),rgba(31,157,85,.06)),var(--white)}.rating .rt-ok{color:#1f9d55}
 .rating-top h3{margin:0}
+
+/* ============ Crew badge security features ============ */
+.crewid-guil{position:absolute;inset:0;width:100%;height:100%;stroke:rgba(200,0,0,.13);pointer-events:none;z-index:0}
+.crewid-back .crewid-guil{stroke:rgba(30,33,38,.09)}
+.crewid-face>*:not(.crewid-guil){position:relative;z-index:1}
+.crewid-micro{font:600 3.6px/1 var(--mono,monospace);letter-spacing:.04em;color:#a40000;white-space:nowrap;overflow:hidden;padding:1.5px 0;background:#fff3f3;border-bottom:1px solid #f1caca}
+.crewid-photo{box-shadow:inset 0 0 0 1px rgba(0,0,0,.08)}
+.crewid-photo .holo{background:linear-gradient(115deg,transparent 30%,rgba(255,120,200,.28) 40%,rgba(120,220,255,.32) 48%,rgba(255,240,140,.28) 56%,transparent 66%);
+  background-size:250% 250%;mix-blend-mode:screen;animation:crewHolo 6s ease-in-out infinite}
+.crewid-photo .holo::after{content:"";position:absolute;inset:0;background:repeating-linear-gradient(0deg,rgba(255,255,255,.06) 0 1px,transparent 1px 3px)}
+@keyframes crewHolo{0%,100%{background-position:0% 50%}50%{background-position:100% 50%}}
+.crewid-seal{position:absolute;right:-16px;bottom:-14px;width:46px;height:46px;transform:rotate(-14deg);opacity:.62;mix-blend-mode:multiply}
+.crewid-seal svg{width:100%;height:100%;stroke:#7a1aa0;fill:#7a1aa0}
+.crewid-photo{overflow:visible}
+.crewid-photo img{border-radius:4px}
+.crewid-ghost{margin-left:auto;width:22px;height:28px;align-self:center;object-fit:cover;opacity:.16;filter:grayscale(1) contrast(1.4);border-radius:2px;pointer-events:none}
+.crewid-id{position:relative}
+.crewid-kine{display:block;height:6px;margin:8px 12px 0;border-radius:3px;
+  background:linear-gradient(90deg,#c0c4c9,#f6e3a8,#b9e4f5,#f2b9da,#c0c4c9);background-size:300% 100%;animation:crewHolo 5s linear infinite;opacity:.85}
+.crewid-strip{display:grid;grid-template-columns:1fr auto;align-items:end;column-gap:8px;background:rgba(255,255,255,.85)}
+.crewid-strip svg{grid-column:1/-1}
+.crewid-doc{text-align:right}
+.crewid-backhead{display:flex;gap:9px;align-items:center}
+.crewid-backhead small{display:block;font-size:9px;color:#5E6470}
+.crewid-chip{width:30px;height:23px;border-radius:4px;flex:none;border:1px solid #9d7d36;
+  background:linear-gradient(135deg,#f3dc93,#c9a24b 55%,#e9cf86);
+  box-shadow:inset 0 0 0 4px rgba(0,0,0,0),inset 10px 0 0 -9px #8f6f2c,inset -10px 0 0 -9px #8f6f2c,inset 0 8px 0 -7px #8f6f2c,inset 0 -8px 0 -7px #8f6f2c}
+.crewid-sign{position:relative}
+.crewid-sign i{max-width:62%;font:italic 400 19px/22px "Brush Script MT","Segoe Script","Snell Roundhand",cursive;color:#1b2a6b;padding-left:6px;white-space:nowrap;overflow:hidden}
+.crewid-stamp{position:absolute;right:0;top:-2px;transform:rotate(9deg);border:2px solid rgba(200,0,0,.65);border-radius:4px;padding:2px 6px;
+  font:800 7px/1.25 var(--font);letter-spacing:.08em;color:rgba(200,0,0,.7);text-align:center;mix-blend-mode:multiply}
+.crewid-stamp b{font-size:8.5px;color:inherit}
+.crewid-mrz{margin:0;font:600 8.4px/1.25 "OCR B","OCR-B",var(--mono,monospace);letter-spacing:.06em;color:#1E2126;background:rgba(255,255,255,.75);padding:3px 0;white-space:pre;overflow:hidden}
+.crewid-public{margin:0 0 24px}
+@media (prefers-reduced-motion:reduce){.crewid-photo .holo,.crewid-kine{animation:none}}
