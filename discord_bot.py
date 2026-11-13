@@ -92,6 +92,30 @@ def pirep_card(ev, site):
             "colour": GRADE_COLOURS.get(grade, PAC_RED), "fields": fields, "url": f"{site}/#logbook"}
 
 
+def status_card(r, site):
+    """/status: where the pilot is, where they sleep tonight, what's next, money and rank."""
+    here = f"**{r.get('location') or '–'}**" + (f" {r['city']}" if r.get("city") else "") + ("  ·  🏠 home base" if r.get("location") == r.get("hub") else f"  ·  base {r.get('hub') or '–'}")
+    fields = [("📍 Location", here)]
+    rest = r.get("rest") or {}
+    if rest.get("away"):
+        fields.append(("🛏 Tonight", rest.get("text") or "–"))
+    if r.get("booking"):
+        b = r["booking"]
+        fields.append(("✈️ Booked flight", f"{b.get('flight') or ''} {b['route']}" + (f" · {b['aircraft']}" if b.get("aircraft") else "") + (f"\n*{b['title']}*" if b.get("title") else "")))
+    if r.get("trip"):
+        t = r["trip"]
+        line = f"{t['id']}: leg {t['done'] + 1} of {t['legs']}" + (f" ({t['next']})" if t.get("next") else "")
+        if t.get("next_after"):
+            line += f"\nRest ends <t:{int(t['next_after'])}:R>"
+        fields.append(("🧳 Trip", line))
+    fields.append(("💰 Wallet", f"${int(r.get('balance') or 0):,}"))
+    rank = f"{r.get('rank')} · {r.get('hours') or 0} h"
+    if r.get("next_rank"):
+        rank += f"\nNext: **{r['next_rank']}**" + ("".join(f"\n• {x}" for x in r.get("todo") or []))
+    fields.append(("🎖 Rank", rank))
+    return {"title": f"{r.get('name')} · {r.get('pilot_id')}", "colour": PAC_RED, "fields": fields, "url": f"{site}/#dashboard"}
+
+
 def departed_card(ev, site):
     """🛫 a PAC flight just took off (from PAC ACARS, once per flight)."""
     fields = [("Route", f"{ev.get('dep')} → {ev.get('arr')}"),
@@ -650,6 +674,14 @@ def run(cfg):
             await inter.response.send_message(msg, ephemeral=True)
             return
         await inter.response.send_message(embed=embed(pilot_card(r, site)))
+
+    @tree.command(name="status", description="Your PAC day at a glance (only you see it)")
+    async def status_cmd(inter: discord.Interaction):
+        st, r = await apac("GET", "/api/bot/status?" + urllib.parse.urlencode({"discord_id": str(inter.user.id)}))
+        if st != 200:
+            await inter.response.send_message(r.get("error") or "PAC isn't answering just now.", ephemeral=True)
+            return
+        await inter.response.send_message(embed=embed(status_card(r, site)), ephemeral=True)
 
     @tree.command(name="claim", description="Hold waiting PAC freight for your next flight (24 hours)")
     @app_commands.describe(awb="The air waybill number, like 901-10000034")

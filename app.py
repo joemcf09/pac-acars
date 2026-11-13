@@ -4327,7 +4327,7 @@ activity.init({"db": db, "settings": settings, "clean_text": clean_text, "va": v
 app.register_blueprint(activity.bp)
 import botlink  # noqa: E402
 botlink.init({"cargo_network": cargo_network, "AIRPORTS": AIRPORTS, "db": db, "settings": settings, "save_settings": lambda s_: save_json(SETTINGS_PATH, s_), "DATA": DATA, "va": va, "live_flights": lambda member=True: live_flights(member),
-              "FLEET": FLEET, "AIRPORTS": AIRPORTS})
+              "FLEET": FLEET, "AIRPORTS": AIRPORTS, "load_booking": load_booking})
 app.register_blueprint(botlink.bp)
 va.C["on_pirep_accepted"] = botlink.pirep_accepted
 import sayintentions as SI  # noqa: E402

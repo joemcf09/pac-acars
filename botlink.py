@@ -482,3 +482,46 @@ def bot_activity_reminded():
     import activity
     activity.mark_reminded((request.json or {}).get("items") or [])
     return jsonify({"ok": True})
+
+
+@bp.get("/api/bot/status")
+def bot_status():
+    """/status in Discord: the linked pilot's day at a glance (location, crew rest, current flight or trip, wallet, rank)."""
+    did = str(request.args.get("discord_id") or "")
+    va, AP = C["va"], C["AIRPORTS"]
+    with C["db"]() as con:
+        p = con.execute("SELECT id, name, hub, location FROM pilots WHERE discord_id=?", (did,)).fetchone() if did else None
+        if not p:
+            return jsonify({"error": "Link your PAC pilot first: use /link with the code from Settings on the website."}), 404
+        pid = p["id"]
+        out = {"pilot_id": pid, "name": p["name"], "hub": p["hub"], "location": p["location"],
+               "city": __import__("hubs").names().get(p["location"] or "") or (AP.get(p["location"] or "") or {}).get("city")}
+        try:
+            import hotels
+            hotels.tick(con, va.add_tx)
+            out["rest"] = hotels.status(con, pid)
+        except Exception:
+            out["rest"] = None
+        try:
+            import trips
+            t = trips.board(con, pid).get("mine")
+            if t:
+                n = (t.get("legs_done") or 0)
+                nxt = t["legs"][n] if n < len(t["legs"]) else None
+                out["trip"] = {"id": t["id"], "done": n, "legs": len(t["legs"]), "next_after": t.get("next_after"),
+                               "next": f"{nxt['origin']['icao']} → {nxt['destination']['icao']}" if nxt else None}
+        except Exception:
+            out["trip"] = None
+        try:
+            b = C["load_booking"](pid) if C.get("load_booking") else None
+            if b and b.get("mission"):
+                m = b["mission"]
+                out["booking"] = {"flight": b.get("flight_number"), "route": f"{(m.get('origin') or {}).get('icao')} → {(m.get('destination') or {}).get('icao')}",
+                                  "title": m.get("title"), "aircraft": b.get("aircraft"), "tail": b.get("airframe")}
+        except Exception:
+            out["booking"] = None
+        out["balance"] = round(va.balance(pid, con) or 0)
+        car = va.career(pid, con)
+        out.update(rank=car["rank"], next_rank=car.get("next"), hours=car.get("hours"),
+                   todo=[r["label"] for r in car.get("requirements") or [] if not r.get("done")][:3])
+    return jsonify(out)
