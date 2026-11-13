@@ -2012,7 +2012,10 @@ def dispatch_reissue():
     if not booking or not booking.get("dispatch"):
         return jsonify({"error": "No flight is booked."}), 404
     if releases.started(booking):
-        return jsonify({"error": "This flight has already started. A release can't be reissued once you're under way."}), 409
+        # ACARS is running, but a new edition is still fine at the gate (like a last-minute loadsheet before pushback)
+        st = (SESSIONS.get(va.current_pilot_id()) or {}).get("remote_status") or {}
+        if st.get("phase") != "PREFLIGHT":
+            return jsonify({"error": "You're past preflight (pushback or later), so the release is locked for this flight."}), 409
     releases.invalidate(booking)
     save_booking(booking)
     return jsonify({"ok": True})
