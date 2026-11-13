@@ -202,4 +202,14 @@ def build(p, booking, rec=None, fleet=None):
     who = people.aboard(m, {c for x in cargo for c in x.get("shc") or []})
     return {"v": 1, "planned_actual": rows, "customer": customer, "dispatcher": dispatcher, "takeaways": take, "cargo": cargo,
             "people": people.debrief_note(who, rate, p.get("landing_g"), p.get("bounces")),
-            "on_time": None if not cargo else f"{sum(c['status'] == 'DELIVERED' for c in cargo)} / {len(cargo)}"}
+            "on_time": None if not cargo else _on_time_label(cargo)}
+
+
+def _on_time_label(cargo):
+    """'5 delivered, 2 transferred at station, all on time' instead of a bare '5 / 7'."""
+    n = len(cargo)
+    dl = sum(c["status"] == "DELIVERED" for c in cargo)
+    tr = sum("TRANSFER" in str(c["status"]) for c in cargo)
+    if dl + tr == n:
+        return f"{dl} delivered, {tr} transferred at station, all on time" if tr else f"{n} / {n} delivered, all on time"
+    return f"{dl + tr} / {n} on time" + (f" ({tr} transferred at station)" if tr else "")

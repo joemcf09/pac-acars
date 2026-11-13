@@ -74,6 +74,7 @@ def tick(con, fleet, now=None):
     import company
     now = now or time.time()
     con.execute("CREATE TABLE IF NOT EXISTS insurance_bills (month TEXT PRIMARY KEY, amount REAL, time REAL)")
+    settle_past(con, fleet)
     month = dt.datetime.fromtimestamp(now, dt.timezone.utc).strftime("%Y-%m")
     if con.execute("SELECT 1 FROM insurance_bills WHERE month=?", (month,)).fetchone():
         return None
@@ -83,3 +84,26 @@ def tick(con, fleet, now=None):
         company.post(con, "insurance", -pol["monthly"], f"Hull and liability insurance, {month}"
                      + (f" (+{pol['loading_pct']}% for {pol['claims_12m']} claim{'s' if pol['claims_12m'] != 1 else ''})" if pol["loading_pct"] else ""), month, None, now)
     return pol["monthly"]
+
+
+def settle_past(con, fleet):
+    """One-time settlement for incidents flown before PAC had insurance: the insurer pays each repair above the
+    deductible, credited in the month the incident happened. Each PIREP is settled once (ref settle-<id>)."""
+    import json
+    import company
+    import economics
+    company.migrate(con)
+    done = {r[0] for r in con.execute("SELECT ref FROM company_ledger WHERE kind='insurance_settlement'")}
+    total = 0
+    for r in con.execute("SELECT id, filed_at, aircraft, flight_number, detail FROM pireps WHERE demo=0 AND detail LIKE '%repairs%'").fetchall():
+        ref = f"settle-{r[0]}"
+        if ref in done or CLAIM_NOTE in (r[4] or ""):
+            continue
+        costs = (json.loads(r[4] or "{}").get("economics") or {}).get("costs") or {}
+        insured = sum(costs.get(k, 0) for k in INSURED_COSTS)
+        ded = deductible(economics.is_wide(r[2], fleet.get(r[2], {})))
+        if insured > ded:
+            company.post(con, "insurance_settlement", insured - ded,
+                         f"Insurance settlement, {r[3]} (repair ${insured:,.0f} less ${ded:,.0f} deductible)", ref, None, r[1])
+            total += insured - ded
+    return total
