@@ -102,6 +102,12 @@ POOLS = [
 GENERAL = [("General cargo", ["GEN"], None), ("Consolidated freight", ["GEN"], None), ("Machinery spares", ["GEN"], None)]
 
 
+
+# Per-type adjustments to the generic %MAC estimate, matched to the simulator aircraft PAC pilots fly.
+# A306F: iniBuilds A300-600F weight-and-balance page, 100,000 lb payload split evenly over three zones with 26,950 lb fuel:
+# ZFW 30.7% MAC, GW 32.65% MAC (fuel moves this type's CG aft). DOW CG and the fuel effect are fitted to that.
+CG_CALIBRATION = {"A306F": {"dow": 34.0, "fuel": 24.5}}
+
 def awb(rng):
     serial = rng.randrange(1_000_000, 9_999_999)
     return f"{AWB_PREFIX}-{serial}{serial % 7}"
@@ -433,9 +439,10 @@ def paperwork(d, fleet, booking=None, notams=None, captain_rank=None, airports=N
     pos_ix = {p: (i + .5) / max(1, len(main)) for i, p in enumerate(main)}
     moment = sum(p["weight_lbs"] * pos_ix.get(p["pos"], .55) for p in d.get("positions", []))
     pcg = moment / payload if payload else .5
-    mac_dow = 22.0 + rng.uniform(-1.5, 1.5)
+    cal = CG_CALIBRATION.get(d.get("aircraft"), {})
+    mac_dow = cal.get("dow", 22.0) + rng.uniform(-1.5, 1.5) * (0.3 if cal else 1)
     mac_zfw = round((dow * mac_dow + payload * (14 + pcg * 22)) / max(1, zfw), 1)
-    mac_tow = round(mac_zfw - (tof / max(1, tow)) * 4.5, 1)
+    mac_tow = round(mac_zfw + (tof / max(1, tow)) * cal.get("fuel", -4.5), 1)
     doi = round(45 + (mac_dow - 22) * 2.4, 1)
     dli = round(doi + (mac_zfw - mac_dow) * 3.1, 1)
     lizfw, litow = dli, round(dli + (mac_tow - mac_zfw) * 3.1, 1)
