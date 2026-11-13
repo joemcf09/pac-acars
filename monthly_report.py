@@ -123,6 +123,11 @@ def due(con, now=None):
     return month, out
 
 
+def _site(st, fallback=""):
+    import auth
+    return auth.site_address(st.get("public_url") or fallback or "https://pac-va.com")
+
+
 def tick(con, st, secret, now=None):
     """Sends whatever's due. Uses PAC's email account; does nothing if email isn't set up."""
     import mailer
@@ -131,7 +136,7 @@ def tick(con, st, secret, now=None):
     if dt.datetime.fromtimestamp(now or time.time(), dt.timezone.utc).day > SEND_DAYS:
         return 0           # only in the first days of the month: a mid-month deploy never mails last month's report late
     month, todo = due(con, now)
-    site = (st.get("public_url") or "").rstrip("/")
+    site = _site(st)
     sent = 0
     for pid, name, email in todo[:40]:          # a few at a time, so a big roster never floods the mail account
         unsub = f"{site}/unsubscribe/monthly?p={pid}&t={unsub_token(secret, pid)}"
@@ -167,6 +172,30 @@ def register(app, g):
             if not r:
                 return jsonify({"error": "No such pilot."}), 404
             month = request.args.get("month") or last_month()
-            site = (g["settings"]().get("public_url") or "").rstrip("/")
-            kind, subject, text, _ = build(con, pid, r[0], month, site, f"{site}/unsubscribe/monthly?p={pid}&t=…")
+            site = _site(g["settings"](), request.host_url)
+            kind, subject, text, htm = build(con, pid, r[0], month, site, f"{site}/unsubscribe/monthly?p={pid}&t={unsub_token(app.secret_key, pid)}")
+        if request.args.get("format") != "json":
+            return htm                      # the email exactly as it looks in an inbox
         return jsonify({"pilot": pid, "month": month, "kind": kind, "subject": subject, "text": text})
+
+    @app.get("/api/staff/monthly-report/send-test")
+    def monthly_send_test():
+        """Sends one pilot's report to the signed-in staff member's own email, marked TEST. Records nothing."""
+        import mailer
+        me = g["va"].current_pilot_id()
+        pid = (request.args.get("pilot") or me).upper()
+        st = g["settings"]()
+        if not mailer.config_ready(st):
+            return "PAC's email account isn't set up (Staff → Settings → Email).", 400
+        with g["db"]() as con:
+            r = con.execute("SELECT name FROM pilots WHERE id=?", (pid,)).fetchone()
+            to = (con.execute("SELECT email FROM pilots WHERE id=?", (me,)).fetchone() or [""])[0]
+            if not r:
+                return "No such pilot.", 404
+            if not mailer.valid_email(to):
+                return "Your own pilot profile has no email address to send the test to.", 400
+            month = request.args.get("month") or last_month()
+            site = _site(st, request.host_url)
+            kind, subject, text, htm = build(con, pid, r[0], month, site, f"{site}/unsubscribe/monthly?p={pid}&t={unsub_token(app.secret_key, pid)}")
+        ok, err = mailer.send(st, to, "[TEST] " + subject, text, htm, wait=True)
+        return (f"Sent a test of {pid}'s {month} report to {to}. Check your inbox (and spam)." if ok else f"It couldn't be sent: {err}"), (200 if ok else 502)
