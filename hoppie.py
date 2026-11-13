@@ -98,11 +98,11 @@ def telex(d, paper, callsign, edno=1, now=None):
     return "\n".join(out).upper()
 
 
-def send(code, to, text, timeout=8):
+def send(code, to, text, timeout=8, station=STATION):
     """Sends a telex. Returns None when it went through, otherwise the reason."""
     if not code:
         return "PAC's Hoppie logon code isn't set up yet."
-    body = urllib.parse.urlencode({"logon": code, "from": STATION, "to": to.upper(), "type": "telex", "packet": text}).encode()
+    body = urllib.parse.urlencode({"logon": code, "from": station, "to": to.upper(), "type": "telex", "packet": text}).encode()
     try:
         with urllib.request.urlopen(urllib.request.Request(URL, data=body, headers={"User-Agent": "PAC-LoadControl/1.0"}), timeout=timeout) as r:
             reply = r.read().decode("utf-8", "replace").strip()
@@ -126,3 +126,34 @@ def poll(code, timeout=8):
     if not reply.lower().startswith("ok"):
         return []
     return [(m.group(1), m.group(2).lower(), m.group(3)) for m in re.finditer(r"\{(\S+)\s+(\w+)\s+\{(.*?)\}\}", reply, re.S)]
+
+
+OPS = "PACOPS"
+
+
+def _z(t):
+    return time.strftime("%H%MZ", time.gmtime(t)) if t else "----"
+
+
+def _hm(sec):
+    m = max(0, int(round((sec or 0) / 60)))
+    return f"{m // 60}H{m % 60:02d}"
+
+
+def oooi_report(kind, callsign, dep, arr, oooi, eta=None, city=None):
+    """PAC Operations' acknowledgment of the aircraft's OOOI times: a departure report after takeoff, an arrival report at the gate."""
+    o = oooi or {}
+    if kind == "off":
+        lines = ["PAC OPS DEPARTURE RPT", f"{callsign} {dep}-{arr}", f"OUT {_z(o.get('out'))}  OFF {_z(o.get('off'))}"]
+        if eta:
+            lines.append(f"ETA {arr} {_z(eta)}")
+        lines += ["TIMES RECORDED", "HAVE A GOOD FLIGHT"]
+    else:
+        lines = ["PAC OPS ARRIVAL RPT", f"{callsign} {dep}-{arr}", f"ON {_z(o.get('on'))}  IN {_z(o.get('in'))}"]
+        if o.get("out") and o.get("in"):
+            lines.append(f"BLOCK {_hm(o['in'] - o['out'])}" + (f" FLT {_hm(o['on'] - o['off'])}" if o.get("off") and o.get("on") else ""))
+        lines += [f"WELCOME TO {city.upper()[:13]}" if city else "WELCOME", "PLS FILE YOUR PIREP"]
+    out = []
+    for ln in lines:
+        out.append(ln[:24])
+    return "\n".join(out).upper()

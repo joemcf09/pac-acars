@@ -3283,7 +3283,36 @@ def acars_app_live():
     st.pop("booking", None)
     state.update(remote_status=st, remote_seen=time.time())
     discord_departure(st)
+    hoppie_oooi(st)
     return jsonify({"ok": True})
+
+
+def hoppie_oooi(st):
+    """With auto-send on, PAC Operations answers the aircraft's OOOI times over Hoppie: a departure report a minute after
+    takeoff (with the ETA) and an arrival report at the gate. Each is sent once per flight."""
+    import hoppie
+    o = st.get("oooi") or {}
+    now = time.time()
+    kind = "in" if o.get("in") else "off" if o.get("off") and now - o["off"] > 60 else None
+    if not kind:
+        return
+    booking = load_booking()
+    if not booking or (state.get("remote") or {}).get("source") == "Demo":
+        return
+    key = f"hoppie_{kind}_for"
+    if state.get(key) == booking.get("requested_at"):
+        return
+    state[key] = booking.get("requested_at")
+    on, cs = hoppie_auto_pref()
+    code = hoppie.logon(DATA)
+    if not (on and code):
+        return
+    m = booking.get("mission") or {}
+    cs = re.sub(r"[^A-Z0-9]", "", (cs or atc_callsign(booking)).upper())[:8]
+    ete = (booking.get("ofp") or {}).get("est_enroute_min") or max(20, (m.get("target_block_min") or 60) - 20)
+    text = hoppie.oooi_report(kind, cs, (m.get("origin") or {}).get("icao"), (m.get("destination") or {}).get("icao"), o,
+                              eta=(o.get("off") or now) + ete * 60, city=(m.get("destination") or {}).get("city"))
+    threading.Thread(target=lambda: hoppie.send(code, cs, text, station=hoppie.OPS), daemon=True).start()
 
 
 def discord_departure(st):
