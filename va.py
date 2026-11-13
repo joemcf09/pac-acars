@@ -832,7 +832,7 @@ def _ferry_job(rng, frame, used, con):
     ac = F.get(frame["type"])
     if not o or not ac or ac.get("retired"):
         return None
-    hubs = [h for h in ("KCVG", "LIMC", "KMIA", "OMDW", "VHHH", "PANC") if h != o["icao"]]
+    hubs = [h for h in LIVE_HUBS if h != o["icao"]]
     rng.shuffle(hubs)
     for h in hubs:
         d = C["airport_obj"](h)
@@ -908,7 +908,7 @@ def refresh_jobs_today(here=None):
         big = [a["icao"] for a in C["AIRPORTS"].values() if a["size"] == "L" and (a["rwy_ft"] or 0) >= 8000]
         new = []
         if have == 0:
-            origins = [here] * 5 + ["KCVG", "LIMC", "KMIA", "OMDW", "VHHH", "PANC"] * 2
+            origins = [here] * 5 + list(LIVE_HUBS) * 2
             origins += [rng.choice(stations) for _ in range(JOBS_PER_DAY["cargo"] - len(origins))]
             for oc in origins:
                 o = C["airport_obj"](oc)
@@ -923,7 +923,7 @@ def refresh_jobs_today(here=None):
                     new.append(j)
             frames = [dict(r) for r in con.execute("SELECT reg, type, location FROM airframes WHERE status='Available'")]
             rng.shuffle(frames)
-            frames.sort(key=lambda f: f["location"] in ("KCVG", "LIMC", "KMIA", "OMDW", "VHHH", "PANC"))
+            frames.sort(key=lambda f: f["location"] in LIVE_HUBS)
             for fr in frames[: JOBS_PER_DAY["ferry"] * 2]:
                 if sum(1 for j in new if j["job_kind"] == "ferry") >= JOBS_PER_DAY["ferry"]:
                     break
@@ -3056,8 +3056,8 @@ def staff_waive(pid):
 def letter_fields(pilot_id=None, name="", hub="KCVG", staff_name=None):
     import auth
     st = site()
-    hubs = {"KCVG": "Cincinnati", "KMIA": "Miami", "LIMC": "Milan Malpensa", "OMDW": "Dubai World Central",
-            "PANC": "Anchorage", "VHHH": "Hong Kong"}
+    import hubs as H
+    hubs = H.names()
     me = auth.pilot_row(auth.current_id()) or {}
     return {"name": name, "pilot_id": pilot_id or "", "hub": hub or "KCVG", "hub_name": hubs.get(hub or "KCVG", ""),
             "site": auth.site_address(st.get("public_url", "")), "discord": st.get("discord_invite", "").strip(),
@@ -3344,6 +3344,8 @@ def enforce_overdue():
             insurance.tick(con, C["FLEET"], now)
             import hotels
             hotels.tick(con, add_tx, now)
+            import hubs
+            hubs.tick(con, now)
             import cargo_programs
             cargo_programs.migrate(con)
             cargo_programs.auto_launch(con, now)

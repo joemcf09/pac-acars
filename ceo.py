@@ -257,6 +257,38 @@ def register(app, g):
         q = va.jumpseat_options(frm, to)
         return frm, q, travel_options(frm, q["to"]["icao"], q["distance_nm"], any(o["kind"] == "pac" for o in q["options"]))
 
+    def _hub_network(con):
+        import hubs as H
+        import growth
+        H.migrate(con)
+        opened = [dict(zip(("icao", "city", "opened_at"), r)) for r in
+                  con.execute("SELECT icao, city, opened_at FROM hubs_opened WHERE closed_at IS NULL ORDER BY opened_at")]
+        ap = g["AIRPORTS"]
+        cands = [dict(c, city=(ap.get(c["icao"]) or {}).get("city") or c["icao"]) for c in growth.hub_candidates(con, n=6)]
+        return {"core": list(H.CORE), "opened": opened, "candidates": cands, "open_cost": H.OPEN_COST,
+                "monthly_cost": H.MONTHLY_COST, "max": H.MAX_HUBS, "count": len(H.names())}
+
+    @app.post("/api/staff/ceo/hub")
+    def ceo_hub():
+        import hubs as H
+        b = request.get_json(silent=True) or {}
+        try:
+            with g["db"]() as con:
+                if (r := deny(con, "ceo_desk")):
+                    return r
+                if b.get("action") == "close":
+                    H.close_hub(con, b.get("icao"), pid())
+                    return jsonify({"ok": True, "hub_network": _hub_network(con)})
+                city = H.open_hub(con, b.get("icao"), (b.get("city") or "").strip()[:40], pid(), g["AIRPORTS"])
+                icao = str(b.get("icao")).upper()
+                con.execute("INSERT INTO news (time, kind, title, body, important, expires, author) VALUES (?,?,?,?,?,?,?)",
+                            (time.time(), "news", f"PAC opens a new hub in {city}",
+                             f"Pagani Air Cargo has opened its newest hub at {city} ({icao}). Missions, trips and cargo orders now start "
+                             f"from {icao}, and pilots can choose it as their home base.", 1, time.time() + 21 * 86400, "PAC Operations"))
+                return jsonify({"ok": True, "city": city, "hub_network": _hub_network(con)})
+        except ValueError as e:
+            return jsonify({"error": str(e)}), 400
+
     @app.get("/api/staff/ceo/travel")
     def ceo_travel_quote():
         try:
@@ -309,7 +341,8 @@ def register(app, g):
                                        "draft": letter_draft(con, month, (me[0] if me else "The CEO"))},
                             "awards": [dict(month=r[0], **(json.loads(r[1]) if r[1] and r[1] != "null" else {})) for r in
                                        con.execute("SELECT month, data FROM awards ORDER BY month DESC LIMIT 6")],
-                            "cash": cash(con), "location": g["va"].pilot_location(pid())})
+                            "cash": cash(con), "location": g["va"].pilot_location(pid()),
+                            "hub_network": _hub_network(con)})
 
     @app.post("/api/staff/ceo/letter")
     def ceo_letter():

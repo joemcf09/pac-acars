@@ -1503,7 +1503,7 @@ def bootstrap():
     import auth
     if not auth.current():  # visitors: what the public pages need, nothing personal
         prof = load_profile(founder_pid())
-        return jsonify({"guest": True, "missions": [], "partners": PARTNERS, "fleet": FLEET, "divisions": DIVISIONS, "settings": {}, "phases": PHASES, "booking": None,
+        return jsonify({"guest": True, "missions": [], "partners": PARTNERS, "fleet": FLEET, "divisions": DIVISIONS, "settings": {}, "phases": PHASES, "hubs": __import__("hubs").names(), "booking": None,
                         "routes": [], "cargo_types": CARGO_TYPES, "airframes": va.airframes(), "tour_legs": [], "tours": va.TOURS,
                         "featured": va.featured_routes(), "active_events": va.active_events(), "career": None, "ranks": va.ranks_effective(),
                         "checkride_id": va.CHECKRIDE_ID, "tour_progress": None, "rotations": va.ROTATIONS, "rotation_progress": None, "live_public": bool(settings().get("live_map_public")),
@@ -1522,7 +1522,7 @@ def bootstrap():
             return default
 
     out = {"ofp_watch": part("ofp_watch", ofp_watch_status, None), "missions": part("missions", va.mission_board, []),
-           "partners": PARTNERS, "fleet": FLEET, "divisions": DIVISIONS, "settings": public_settings(), "phases": PHASES,
+           "partners": PARTNERS, "fleet": FLEET, "divisions": DIVISIONS, "settings": public_settings(), "phases": PHASES, "hubs": __import__("hubs").names(),
            "booking": part("booking", load_booking, None), "routes": list(ROUTES.values()), "cargo_types": CARGO_TYPES,
            "profile": part("profile", lambda: with_rating_families(with_flair(load_profile())), {}), "airframes": part("airframes", va.airframes, []),
            "tour_legs": list(va.TOUR_LEGS.values()), "tours": va.TOURS, "featured": part("featured", va.featured_routes, []),
@@ -4437,6 +4437,12 @@ import rotation_planner
 rotation_planner.register(app, globals())
 import cargo_programs
 cargo_programs.register(app, globals())
+import hubs as _hubs
+try:
+    with db() as _con:
+        _hubs.load(_con)
+except Exception as _e:
+    print("hubs:", _e)
 import cargo_experience
 cargo_experience.register(app, globals())
 import crew_planning

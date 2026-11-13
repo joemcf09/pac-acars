@@ -512,7 +512,7 @@ function drawNetwork(list) {
       [r.origin, r.destination].forEach(a => count[a.icao] = { a, n: (count[a.icao]?.n || 0) + 1 });
     });
     Object.values(count).forEach(({ a, n }) => {
-      const main = a.icao === "KCVG", hub = main || ["LIMC", "KMIA", "OMDW", "VHHH", "PANC"].includes(a.icao);
+      const main = a.icao === "KCVG", hub = main || Object.keys(S.hubs || {}).includes(a.icao);
       L.circleMarker([a.lat, a.lon], { radius: main ? 10 : hub ? 7 : Math.min(6, 2.5 + n / 2), color: wxColor(a.icao) || "#fff", weight: wxColor(a.icao) ? 3 : main ? 3 : 1.5, fillColor: hub ? "#C80000" : "#1E2126", fillOpacity: 1 })
         .bindTooltip(`${a.icao} · ${esc(a.city)}${main ? " · main hub" : hub ? " · gateway" : ""} (${n})`, { className: "stn-tip", direction: "top" })
         .on("click", () => { S.netSearch = a.icao; S.netLimit = 40; renderMissions(); })
@@ -3553,7 +3553,7 @@ async function openJumpseat(to) {
   const me = S.me || await loadMe();
   $("#jsFrom").innerHTML = `You're at <b>${esc(me.location.icao)}</b> ${esc(me.location.name || "")}. Wallet <b>${money(me.balance, true)}</b>.`;
   $("#jsBal").textContent = "";
-  const picks = new Set(["KCVG", "LIMC", "KMIA", "OMDW", "VHHH", "PANC"]);
+  const picks = new Set(Object.keys(S.hubs || { KCVG: 1, LIMC: 1, KMIA: 1, OMDW: 1, VHHH: 1, PANC: 1 }));
   if (S.selected) picks.add(S.selected.origin.icao);
   (S.urgent || []).forEach(u => picks.add(u.origin.icao));
   picks.delete(me.location.icao);
@@ -4858,6 +4858,7 @@ const VIEWS = ["privacy", "roster", "home", "dashboard", "missions", "bids", "ac
 const TOUR_ORDER = {};
 function applyCore(d) {
   if (d.partners) S.partners = d.partners;
+  if (d.hubs) S.hubs = d.hubs;
   Object.assign(S, { airframes: d.airframes || [], tourLegs: d.tour_legs || [], tours: d.tours || [], featured: d.featured || [],
     activeEvents: d.active_events || [], career: d.career || {}, ranks: d.ranks || [], checkrideId: d.checkride_id || "PAC001",
     tourDone: Object.fromEntries(Object.entries(d.tour_progress || {}).map(([k, v]) => [k, v.next])),
@@ -5129,7 +5130,8 @@ async function renderHome(h, st) {
   const heroAc = S.fleet.B77F || S.fleet[codes[0]];
   const live = st && st.live && (st.tracking || st.complete === false) ? st : null;
   const hubs = [["KCVG", "Cincinnati", "Main hub"], ["LIMC", "Milan Malpensa", "European gateway"], ["KMIA", "Miami", "Latin America gateway"],
-    ["OMDW", "Dubai World Central", "Middle East & Africa"], ["VHHH", "Hong Kong", "Asia gateway"], ["PANC", "Anchorage", "Transpacific tech stop"]];
+    ["OMDW", "Dubai World Central", "Middle East & Africa"], ["VHHH", "Hong Kong", "Asia gateway"], ["PANC", "Anchorage", "Transpacific tech stop"],
+    ...Object.entries(S.hubs || {}).filter(([k]) => !["KCVG", "LIMC", "KMIA", "OMDW", "VHHH", "PANC"].includes(k)).map(([k, v]) => [k, v, "PAC hub"])];
   const routeCount = ic => S.routes.filter(r => r.origin.icao === ic || r.destination.icao === ic).length;
   const [news, shots] = await Promise.all([loadNews(), api("/api/gallery?limit=8").catch(() => [])]);
   $("#homeRoot").innerHTML = `
@@ -6081,7 +6083,7 @@ function staffRoster() {
       <td style="white-space:nowrap"><b class="${moneyCls(p.balance)}">${money(p.balance, true)}</b><br><small class="muted">at ${esc(p.location || "–")}</small>
         <div class="row" style="margin-top:4px;flex-wrap:nowrap"><input type="number" step="50" placeholder="±$" data-wamt="${p.id}" style="width:80px" aria-label="Wallet adjustment"><button class="btn ghost small" type="button" data-wadj="${p.id}">Adjust</button></div></td>
       <td><input type="number" min="0" step="0.1" value="${p.transfer_hours || 0}" data-f="transfer_hours" aria-label="Transfer hours" style="width:90px"></td>
-      <td><select data-f="hub" aria-label="Home hub">${["KCVG", "LIMC", "KMIA", "OMDW", "VHHH", "PANC"].map(h => `<option ${h === (p.hub || "KCVG") ? "selected" : ""}>${h}</option>`).join("")}</select><br><small class="muted">at ${esc(p.location || "–")}</small></td>
+      <td><select data-f="hub" aria-label="Home hub">${Object.keys(S.hubs || { KCVG: 1, LIMC: 1, KMIA: 1, OMDW: 1, VHHH: 1, PANC: 1 }).map(h => `<option ${h === (p.hub || "KCVG") ? "selected" : ""}>${h}</option>`).join("")}</select><br><small class="muted">at ${esc(p.location || "–")}</small></td>
       <td><select data-f="checkride" aria-label="Checkride">${["Pending", "Passed", "Waived"].map(o => `<option ${o === p.checkride ? "selected" : ""}>${o}</option>`).join("")}</select></td>
       <td><select data-f="rank_override" aria-label="Rank setting"><option value="">Earned by flying</option>${(S.ranks || []).map(r => `<option ${r.name === p.rank_override ? "selected" : ""}>${esc(r.name)}</option>`).join("")}</select></td>
       <td><input type="checkbox" data-f="pra" ${p.pra ? "checked" : ""} aria-label="Cleared for Pagani Remote Aviation" style="accent-color:var(--red);width:18px;height:18px"></td>
@@ -8764,12 +8766,31 @@ async function staffCeo() {
   body.innerHTML = `<p class="muted">Your work as CEO. You're at <b>${esc(d.location || "–")}</b>. Arriving at a hub counts as a hub visit, however you get there: fly a PAC flight, ride along on a freighter, buy a commercial ticket or charter a jet (use <b>Travel here</b>). Arriving at a struggling shipper's home station and their standing goes up by ${d.visit_bonus} for ${d.visit_days} days. Company cash: <b>${money(d.cash)}</b>.</p>
     <h3>Hub visits <span class="muted">(aim for every hub each quarter)</span></h3><div class="ceo-hubs">${hubs}</div>
     <div id="ceoRest"></div>
+    ${(() => { const n = d.hub_network; if (!n) return "";
+      return `<h3>Hub network <span class="muted">(${n.count} of ${n.max} hubs · opening one costs ${money(n.open_cost)} up front and ${money(n.monthly_cost)} a month)</span></h3>
+      ${n.opened.length ? `<p class="muted">Opened by PAC: ${n.opened.map(o => `<b>${esc(o.icao)}</b> ${esc(o.city)} <button class="btn ghost small" type="button" data-hub-close="${esc(o.icao)}">Close</button>`).join(" · ")}</p>` : ""}
+      <p class="muted" style="margin:4px 0">Where PAC already flies most (last 90 days):</p>
+      <div class="row" style="flex-wrap:wrap;gap:8px">${n.candidates.length ? n.candidates.map(c => `<button class="btn ghost small" type="button" data-hub-open="${esc(c.icao)}" title="${c.arrivals_90d} arrivals by ${c.pilots} pilots in 90 days">Open ${esc(c.icao)} · ${esc(c.city)} (${c.arrivals_90d} arr.)</button>`).join("") : `<span class="muted">No candidates yet.</span>`}</div>
+      <div class="row" style="gap:8px;margin-top:8px"><input id="hubIcao" placeholder="Or any airport ICAO" maxlength="4" style="max-width:170px;text-transform:uppercase"><button class="btn small" type="button" id="hubOpenBtn">Open hub</button></div>`; })()}
     <h3>Key accounts that need you</h3><div class="table-wrap"><table class="fin-table"><thead><tr><th>Shipper</th><th>Standing</th><th>Last 90 days</th><th>Visit</th></tr></thead><tbody>${acc}</tbody></table></div>
     <h3>Letter from the CEO <span class="muted">(${new Date(d.letter.month + "-02").toLocaleString("en-US", { month: "long", year: "numeric" })})</span></h3>
     ${d.letter.posted ? `<p class="notice">Posted ${cDate(d.letter.posted)}. You can edit and post it again.</p>` : `<p class="muted">Drafted from last month's real numbers. Edit it to sound like you, then post it to the news feed.</p>`}
     <textarea id="ceoLetter" rows="14" style="width:100%">${esc(d.letter.draft)}</textarea><p><button class="btn" id="ceoPost" type="button">Post to the news feed</button></p>
     <h3>Pilot of the month</h3>${d.awards.length ? `<ul>${d.awards.map(a => `<li><b>${esc(new Date(a.month + "-02").toLocaleString("en-US", { month: "long", year: "numeric" }))}:</b> ${a.name ? `${esc(a.name)} · ${a.flights} flights, ${a.hours} h, ${a.smooth} smooth landings` : "nobody flew enough that month"}</li>`).join("")}</ul>` : `<p class="muted">Chosen automatically on the 1st of each month and announced in the news.</p>`}
     <h3>Recent visits</h3>${d.visits.length ? `<ul>${d.visits.map(v => `<li>${cDate(v.time)}: ${v.kind === "hub" ? `hub visit, ${esc(v.place)}` : `account visit to ${esc(v.shipper)} at ${esc(v.place)}`}</li>`).join("")}</ul>` : `<p class="muted">None yet.</p>`}`;
+  const openHub = async icao => {
+    icao = String(icao || "").toUpperCase().trim(); if (!icao) return;
+    const n = d.hub_network || {};
+    if (!confirm(`Open a PAC hub at ${icao}? It costs ${money(n.open_cost)} now and ${money(n.monthly_cost)} a month in station costs.`)) return;
+    try { const r = await api("/api/staff/ceo/hub", { method: "POST", body: { icao } }); toast(`${r.city} is now a PAC hub.`); location.reload(); }
+    catch (e) { toast(e.message); }
+  };
+  body.querySelectorAll("[data-hub-open]").forEach(b => b.onclick = () => openHub(b.dataset.hubOpen));
+  if ($("#hubOpenBtn")) $("#hubOpenBtn").onclick = () => openHub($("#hubIcao").value);
+  body.querySelectorAll("[data-hub-close]").forEach(b => b.onclick = async () => {
+    if (!confirm(`Close the ${b.dataset.hubClose} hub? Its monthly station costs stop; the setup cost isn't refunded.`)) return;
+    try { await api("/api/staff/ceo/hub", { method: "POST", body: { action: "close", icao: b.dataset.hubClose } }); location.reload(); } catch (e) { toast(e.message); }
+  });
   body.querySelectorAll("[data-travel]").forEach(btn => btn.onclick = async () => {
     const to = btn.dataset.travel, box = body.querySelector(`[data-travel-box="${to}"]`);
     box.innerHTML = `<p class="muted">Your assistant is checking the options…</p>`;
