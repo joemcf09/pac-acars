@@ -2004,6 +2004,20 @@ def dispatch_sign():
     return response
 
 
+@app.post("/api/dispatch/reissue")
+@releases.serialized
+def dispatch_reissue():
+    """Reopens a signed release so it's recalculated with the latest figures (a new edition), then signed again."""
+    booking = load_booking()
+    if not booking or not booking.get("dispatch"):
+        return jsonify({"error": "No flight is booked."}), 404
+    if releases.started(booking):
+        return jsonify({"error": "This flight has already started. A release can't be reissued once you're under way."}), 409
+    releases.invalidate(booking)
+    save_booking(booking)
+    return jsonify({"ok": True})
+
+
 @app.post("/api/dispatch/hoppie")
 def dispatch_hoppie():
     """Sends the current loadsheet to the cockpit over Hoppie's ACARS, as PAC Load Control (PACLD)."""

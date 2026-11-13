@@ -86,6 +86,7 @@ dialog.sign .msg { color: #C80000; font-size: 14px; min-height: 1em; margin: 6px
   <a id="navigraph" href="https://charts.navigraph.com/" target="_blank" rel="noopener" hidden>Navigraph Charts</a>
   <a href="/#acars">Back to ACARS</a>
   <span class="signed" id="signedTag" hidden></span>
+  <button id="reissueBtn" hidden title="Reopen this signed release so it's recalculated with the latest figures, then sign it again">Request new edition</button>
   <button class="primary" id="signBtn" hidden>Sign release</button>
   <label>Jump to <select id="jumpTo" aria-label="Jump to a section of the release"><option value="">Section…</option></select></label>
   <label>NOTAM print scope <select id="notamScope"><option value="airports">Airports</option><option value="all">All imported</option><option value="none">Omit imported NOTAMs</option></select></label>
@@ -662,6 +663,15 @@ const zulu = ts => { const x = new Date(ts * 1000).toISOString(); return `${x.su
 function setupSigning(d, pid) {
   const s = d.signed;
   if (s) { $("#signedTag").textContent = `✓ Signed ${zulu(s.at)}`; $("#signedTag").hidden = false; }
+  if (s && !pid) {
+    const rb = $("#reissueBtn"); rb.hidden = false;
+    rb.onclick = async () => {
+      if (!confirm("Reopen the signed release? PAC recalculates it with the latest figures and you sign the new edition.")) return;
+      const r = await fetch("/api/dispatch/reissue", { method: "POST", credentials: "same-origin" });
+      const j = await r.json().catch(() => ({}));
+      if (r.ok) location.reload(); else alert(j.error || "It couldn't be reissued.");
+    };
+  }
   if (s && new URLSearchParams(location.search).get("signed")) $("#signedTag").textContent += " · you can close this tab and go back to ACARS";
   if (pid || s) return;
   if (d.release_amended) $("#amended").hidden = false;
