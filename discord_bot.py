@@ -87,9 +87,25 @@ def pirep_card(ev, site):
         fields.append(("Score", f"{ev['score']}{f' ({grade})' if grade else ''}"))
     if ev.get("points"):
         fields.append(("Points", f"{ev['points']:,}"))
-    return {"title": f"{ev['flight']} · {ev.get('mission') or 'PAC flight'}",
-            "description": f"Flown by {mention(ev)}" + (" · delivered late" if late else " · delivered"),
+    return {"title": f"🛬 {ev['flight']} landed {ev['arr']}",
+            "description": f"Flown by {mention(ev)}" + (" · delivered late" if late else " · delivered") + (f"\n*{ev['mission']}*" if ev.get("mission") else ""),
             "colour": GRADE_COLOURS.get(grade, PAC_RED), "fields": fields, "url": f"{site}/#logbook"}
+
+
+def departed_card(ev, site):
+    """🛫 a PAC flight just took off (from PAC ACARS, once per flight)."""
+    fields = [("Route", f"{ev.get('dep')} → {ev.get('arr')}"),
+              ("Aircraft", f"{ev.get('aircraft_name') or '–'}{' · ' + ev['tail'] if ev.get('tail') else ''}")]
+    if ev.get("cargo_lbs"):
+        fields.append(("Cargo", f"{int(ev['cargo_lbs']):,} lb" + (f" · {ev['cargo']}" if ev.get("cargo") else "")))
+    if ev.get("cruise_ft"):
+        fields.append(("Cruise", f"FL{round(ev['cruise_ft'] / 100):03d}"))
+    if ev.get("eta_min"):
+        fields.append(("Planned block", hm(ev["eta_min"])))
+    where = " to ".join(x for x in (ev.get("dep_city") or ev.get("dep"), ev.get("arr_city") or ev.get("arr")) if x)
+    return {"title": f"🛫 {ev.get('callsign') or ev.get('flight')} departed {ev.get('dep')}",
+            "description": f"{mention(ev)} is on the way{': ' + where if where else ''}." + (f"\n*{ev['mission']}*" if ev.get("mission") else ""),
+            "colour": PAC_RED, "fields": fields, "url": f"{site}/#live"}
 
 
 def recap_card(r):
@@ -435,6 +451,8 @@ def run(cfg):
             bt = butter_text(d, cfg.get("butter_fpm", 100))
             if bt and channel("butter"):                       # the butter board: soft landings, posted automatically
                 await post("butter", bt)
+        elif kind == "departed":
+            await post("flights", card=departed_card(d, site))
         elif kind == "promotion":
             await post("news", promotion_text(d))
             await sync_all()

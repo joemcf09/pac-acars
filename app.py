@@ -3246,8 +3246,11 @@ def acars_app_live():
 
 def discord_departure(st):
     """Posts the departure to Discord once per flight, as the takeoff roll begins."""
+    import botlink
     s = settings()
-    if not (s.get("discord_webhook") and s.get("discord_departures", True)):
+    hook = bool(s.get("discord_webhook") and s.get("discord_departures", True))
+    bot = botlink.enabled() and s.get("discord_departures", True)
+    if not (hook or bot):
         return
     if st.get("phase") not in ("TAKEOFF", "TAKEOFF_ROLL", "INITIAL_CLIMB", "CLIMB", "CRUISE"):
         return
@@ -3256,7 +3259,20 @@ def discord_departure(st):
         return
     state["discord_dep_for"] = booking.get("requested_at")
     b = {**booking, "aircraft_name": FLEET.get(booking["aircraft"], {}).get("name"), "pilot_name": display_pilot_name()}
-    discord_post.post(s["discord_webhook"], discord_post.departure_embed(b, st))
+    if hook:
+        discord_post.post(s["discord_webhook"], discord_post.departure_embed(b, st))
+    if bot:
+        m = booking.get("mission") or {}
+        pid = va.current_pilot_id()
+        with db() as con:
+            p = botlink._pilot(con, pid)
+        botlink.emit("departed", {"flight": booking.get("flight_number"), "callsign": atc_callsign(booking),
+                                  "dep": (m.get("origin") or {}).get("icao"), "arr": (m.get("destination") or {}).get("icao"),
+                                  "dep_city": (m.get("origin") or {}).get("city"), "arr_city": (m.get("destination") or {}).get("city"),
+                                  "aircraft_name": b["aircraft_name"] or booking.get("aircraft"), "tail": booking.get("airframe"),
+                                  "mission": m.get("title"), "cargo_lbs": m.get("payload_lbs"), "cargo": m.get("cargo"),
+                                  "cruise_ft": (booking.get("ofp") or {}).get("cruise_ft"), "eta_min": m.get("target_block_min"),
+                                  "pilot_id": pid, "pilot": p.get("name"), "discord_id": p.get("discord_id")})
 
 
 def display_pilot_name():

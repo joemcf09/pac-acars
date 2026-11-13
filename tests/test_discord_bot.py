@@ -120,7 +120,7 @@ check("switched off: nothing is recorded", A.db().execute("SELECT COUNT(*) FROM 
 
 print("What the bot says")
 card = DB.pirep_card(p, "https://pac-va.com")
-check("PIREP card", card["title"].startswith("PAC1024") and "<@123456789012345678>" in card["description"]
+check("PIREP card", "PAC1024" in card["title"] and "<@123456789012345678>" in card["description"]
       and ("Landing", "-212 fpm") in card["fields"] and card["colour"] == DB.GRADE_COLOURS["A"])
 check("promotion", "**Second Officer**" in DB.promotion_text({"pilot": "Bob", "from": "Cadet", "rank": "Second Officer"}))
 check("altitudes read like ATC", DB.altitude(35012) == "FL350" and DB.altitude(9500) == "9,500 ft" and DB.altitude(0, True) == "On the ground")
