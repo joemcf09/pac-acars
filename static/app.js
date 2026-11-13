@@ -4059,7 +4059,7 @@ function badgeHtml(p, car, staff, opts = {}) {
       </div>
     </div>
     <div class="row crewid-actions"><button class="btn ghost small" type="button" data-badge-flip>Turn it over</button>
-      ${opts.own ? `<button class="btn ghost small" type="button" id="badgeDl">Download badge</button>` : ""}</div>
+      ${opts.own ? `<button class="btn ghost small" type="button" id="badgeDl">Download badge</button><a class="btn ghost small" href="/badge-login" style="text-decoration:none">Sign in with this badge</a>` : ""}</div>
   </div>`;
 }
 /* a simple barcode pattern from the badge number (decorative) */
