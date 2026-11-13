@@ -107,6 +107,8 @@ GENERAL = [("General cargo", ["GEN"], None), ("Consolidated freight", ["GEN"], N
 # A306F: iniBuilds A300-600F weight-and-balance page, 100,000 lb payload split evenly over three zones with 26,950 lb fuel:
 # ZFW 30.7% MAC, GW 32.65% MAC (fuel moves this type's CG aft). DOW CG and the fuel effect are fitted to that.
 CG_CALIBRATION = {"A306F": {"dow": 34.0, "fuel": 24.5}}
+# Center-of-gravity limits (%MAC) from the simulator aircraft's own flight model (iniBuilds A300-600: 15% to 34%)
+CG_LIMITS = {"A306F": (15.0, 34.0)}
 
 def awb(rng):
     serial = rng.randrange(1_000_000, 9_999_999)
@@ -471,7 +473,7 @@ def paperwork(d, fleet, booking=None, notams=None, captain_rank=None, airports=N
         "limits": {"mzfw": mzfw, "mtow": mtow, "mlw": mlw, "max_payload": max_pl},
         "min_rwy_ft": ac.get("min_rwy_ft"),
         "loadsheet": {"dow": dow, "payload": payload, "zfw": zfw, "tof": tof, "tow": tow, "trip": trip, "law": law, "taxi": taxi, "block": block,
-                      "underload": underload, "doi": doi, "dli": dli, "lizfw": lizfw, "litow": litow, "mac_zfw": mac_zfw, "mac_tow": mac_tow,
+                      "underload": underload, "doi": doi, "dli": dli, "lizfw": lizfw, "litow": litow, "mac_zfw": mac_zfw, "mac_tow": mac_tow, "cg_limits": CG_LIMITS.get(d.get("aircraft")),
                       "mac_ldw": mac_ldw, "lildw": lildw, "trim": trim, "crew": crew, "edno": "01", "cg_source": cg_source,
                       "supy": people.total(aboard), "supy_text": people.summary(aboard), "supy_lbs": supy_lbs},
         "people": aboard,

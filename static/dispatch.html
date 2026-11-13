@@ -419,6 +419,10 @@ function loadsheetLines(d) {
   out.push(esc(L(`LIZFW ${ls.lizfw.toFixed(1)}    LITOW ${ls.litow.toFixed(1)}`, 42) + "....  ....  ......  .    ......"));
   if (ls.lildw != null) out.push(esc(L(`LILDW ${ls.lildw.toFixed(1)}`, 42) + "....  ....  ......  .    ......"));
   out.push(esc(L(`MACZFW ${ls.mac_zfw.toFixed(1)}   MACTOW ${ls.mac_tow.toFixed(1)}`, 42) + "....  ....  ......  .    ......"));
+  if (ls.cg_limits) {
+    const [lo, hi] = ls.cg_limits, worst = [ls.mac_zfw, ls.mac_tow].find(v => v < lo || v > hi);
+    out.push(esc(`CG LIMITS ${lo.toFixed(0)}-${hi.toFixed(0)}% MAC: ` + (worst == null ? (Math.max(ls.mac_zfw, ls.mac_tow) > hi - 2 ? "WITHIN LIMITS, CLOSE TO AFT LIMIT" : "WITHIN LIMITS") : `OUTSIDE LIMITS (${worst.toFixed(1)}%): RELOAD BEFORE DEPARTURE`)));
+  }
   if (ls.mac_ldw != null) out.push(esc(L(`MACLDW ${ls.mac_ldw.toFixed(1)}`, 42) + "....  ....  ......  .    ......"));
   out.push(esc(L(`STAB TRIM SETTING  ${ls.trim}`, 42) + "LMC TOTAL  + -     ......"));
   out.push(esc(`UNDERLOAD BEFORE LMC  ${N(ls.underload)}`), "");
