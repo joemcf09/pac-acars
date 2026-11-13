@@ -16,6 +16,7 @@ for pid, hub, loc in pilots:
 con.execute("INSERT INTO trips VALUES ('P3','bid')")
 wallet = []
 add = lambda pid, kind, amt, desc, pir, c: wallet.append((pid, amt))
+con.execute("INSERT INTO pilots VALUES ('Z1','Z1','LIMC','KCVG','Active')")   # joined, never flew
 for day in range(0, 10):
     hotels.tick(con, add, T0 + day * 86400 + 3600)
 paid = lambda pid: round(sum(a for p, a in wallet if p == pid))
@@ -25,5 +26,5 @@ assert paid("P2") == -3 * hotels.rate("KMIA"), paid("P2")
 assert paid("P3") == 0 and paid("P4") == 0
 trip = con.execute("SELECT SUM(amount) FROM company_ledger WHERE kind='hotel'").fetchone()[0]
 assert trip == -9 * round(hotels.rate("VHHH") * hotels.CONTRACT), trip
-h = hotels.hq(con); assert h["used"] == 6, h
+h = hotels.hq(con); assert h["used"] == 6 and "Z1" not in [g["pilot_id"] for g in h["guests"]], h
 print("All hotel checks passed.")

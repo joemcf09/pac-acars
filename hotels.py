@@ -16,6 +16,7 @@ HQ = "KCVG"
 HQ_ROOMS = 6
 FREE_NIGHTS = 1
 CHARGED_NIGHTS = 3                      # nights 2-4
+ACTIVE_DAYS = 14                        # a pilot without a flight in this long is at home, not in a hotel
 CONTRACT = 0.6                          # crew contract rate: 60% of the walk-in price
 # typical walk-in airport-hotel night, US dollars
 RATES = {"KCVG": 139, "KMIA": 189, "KMEM": 129, "KSDF": 125, "KILN": 109, "KPAE": 159, "LIMC": 165, "OMDW": 180,
@@ -59,9 +60,11 @@ def tick(con, add_tx, now=None):
     pilots = con.execute("SELECT id, hub, location FROM pilots WHERE COALESCE(status,'Active')='Active'").fetchall()
     rest = {r[0]: r for r in con.execute("SELECT pilot_id, station, since, nights, kind FROM crew_rest")}
     away = []
+    # only pilots actually flying the line need a bed: no flight in the last 14 days (or never) means they're at home
+    recent = {r[0] for r in con.execute("SELECT DISTINCT pilot_id FROM pireps WHERE demo=0 AND filed_at>?", (now - ACTIVE_DAYS * 86400,))}
     for pid, hub, loc in pilots:
         loc = (loc or "").upper()
-        if not loc or loc == _base(hub):
+        if not loc or loc == _base(hub) or pid not in recent:
             con.execute("DELETE FROM crew_rest WHERE pilot_id=?", (pid,))
             continue
         r = rest.get(pid)
