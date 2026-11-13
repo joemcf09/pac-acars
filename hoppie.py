@@ -111,3 +111,18 @@ def send(code, to, text, timeout=8):
     if reply.lower().startswith("ok"):
         return None
     return "Hoppie refused the message: " + re.sub(r"[{}]", "", reply)[:120]
+
+
+def is_request(text):
+    t = re.sub(r"\s+", " ", str(text or "").upper()).strip()
+    return "LOADSHEET" in t or t in ("REQ LS", "LS", "REQ LOAD")
+
+
+def poll(code, timeout=8):
+    """New messages for PACLD as (from, type, text). Hoppie hands each message out once."""
+    body = urllib.parse.urlencode({"logon": code, "from": STATION, "to": "SERVER", "type": "poll"}).encode()
+    with urllib.request.urlopen(urllib.request.Request(URL, data=body, headers={"User-Agent": "PAC-LoadControl/1.0"}), timeout=timeout) as r:
+        reply = r.read().decode("utf-8", "replace")
+    if not reply.lower().startswith("ok"):
+        return []
+    return [(m.group(1), m.group(2).lower(), m.group(3)) for m in re.finditer(r"\{(\S+)\s+(\w+)\s+\{(.*?)\}\}", reply, re.S)]

@@ -2032,19 +2032,62 @@ def dispatch_hoppie():
     cs = re.sub(r"[^A-Z0-9]", "", str(b.get("callsign") or atc_callsign(booking)).upper())[:8]
     if not re.fullmatch(r"[A-Z]{3}[A-Z0-9]{1,5}", cs):
         return jsonify({"error": "Enter the callsign you're logged on with in the aircraft, for example PGI8616."}), 400
+    why, edno, text = hoppie_send_loadsheet(booking, cs)
+    if why:
+        return jsonify({"error": why}), 502
+    return jsonify({"ok": True, "callsign": cs, "edno": edno, "text": text})
+
+
+def hoppie_send_loadsheet(booking, cs, pid=None):
+    """Builds and sends the next loadsheet edition. Returns (error or None, edition, text)."""
+    import hoppie
+    pid = pid or va.current_pilot_id()
     d = dict(booking["dispatch"])
-    paper = dispatch.paperwork(d, FLEET, booking, va.active_notams(), va.career(va.current_pilot_id())["rank"], AIRPORTS,
+    paper = dispatch.paperwork(d, FLEET, booking, va.active_notams(), va.career(pid)["rank"], AIRPORTS,
                                dow_override=(learned_dow(booking["aircraft"]) or {}).get("dow"))
     if releases.valid_signature(booking):
         paper = (booking["dispatch"].get("signed_snapshot") or {}).get("paper") or paper
     edno = int(booking.get("hoppie_edno") or 0) + 1
     text = hoppie.telex(d, paper, cs, edno)
     why = hoppie.send(hoppie.logon(DATA), cs, text)
-    if why:
-        return jsonify({"error": why}), 502
-    booking["hoppie_edno"] = edno
-    save_booking(booking)
-    return jsonify({"ok": True, "callsign": cs, "edno": edno, "text": text})
+    if not why:
+        booking["hoppie_edno"] = edno
+        save_booking(booking, pid, notify=False)
+    return why, edno, text
+
+
+def hoppie_watcher():
+    """Answers loadsheet requests from the cockpit: a telex to PACLD saying REQ LOADSHEET (or LOADSHEET) from a flight's callsign."""
+    import hoppie
+    import random
+    while True:
+        time.sleep(random.uniform(45, 75))          # Hoppie asks clients to poll no faster than about once a minute
+        code = hoppie.logon(DATA)
+        if not code:
+            continue
+        try:
+            msgs = hoppie.poll(code)
+            if not msgs:
+                continue
+            with db() as con:
+                pids = [r[0] for r in con.execute("SELECT pilot_id FROM bookings")]
+            by_cs = {}
+            for pid in pids:
+                b = load_booking(pid)
+                if b and b.get("dispatch"):
+                    by_cs[re.sub(r"[^A-Z0-9]", "", atc_callsign(b).upper())] = (pid, b)
+            for frm, kind, text in msgs:
+                if kind != "telex" or not hoppie.is_request(text):
+                    continue
+                hit = by_cs.get(frm.upper())
+                if not hit:
+                    hoppie.send(code, frm, "PAC LOAD CONTROL\nNO PAC FLIGHT FOUND FOR\nTHIS CALLSIGN. CHECK YOUR\nFLT ID MATCHES THE RELEASE.")
+                    continue
+                why, _, _ = hoppie_send_loadsheet(hit[1], frm.upper(), hit[0])
+                if why:
+                    print("hoppie reply:", why)
+        except Exception as e:
+            print("hoppie watcher:", e)
 
 
 @app.get("/api/staff/hoppie")
@@ -4336,6 +4379,7 @@ if __name__ == "__main__":
         print(f"  Paid {len(paid)} earlier flights into your pilot wallet (${sum(x['total'] for x in paid):,.0f}).")
     restore_flight_state()
     threading.Thread(target=ofp_watcher, daemon=True).start()
+    threading.Thread(target=hoppie_watcher, daemon=True).start()
     port = int(os.environ.get("PAC_PORT", "5050"))
     host = os.environ.get("PAC_HOST", "127.0.0.1")
     if PUBLIC_MODE:
