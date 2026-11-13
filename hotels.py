@@ -66,7 +66,7 @@ def tick(con, add_tx, now=None):
             continue
         r = rest.get(pid)
         if not r or r[1] != loc:
-            since = _landed(con, pid, loc, now)
+            since = max(_landed(con, pid, loc, now), now - 86400)   # no back-billing for nights before this started
             con.execute("INSERT OR REPLACE INTO crew_rest (pilot_id, station, since, nights, kind, updated) VALUES (?,?,?,?,?,?)",
                         (pid, loc, since, 0, None, now))
             r = (pid, loc, since, 0, None)
