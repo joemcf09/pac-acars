@@ -61,7 +61,7 @@ def telex(d, paper, callsign, edno=1, now=None):
     dep = (m.get("origin") or {}).get("icao") or d.get("dep") or ""
     arr = (m.get("destination") or {}).get("icao") or d.get("arr") or ""
     t = time.gmtime(now)
-    lines = [f"LOADSHEET FINAL {time.strftime('%H%MZ', t)} EDNO {edno}",
+    lines = [f"LOADSHEET FINAL {time.strftime('%H%MZ', t)}", f"EDNO {edno}",
              f"{callsign}/{time.strftime('%d%b', t).upper()} {dep} {arr}",
              f"{d.get('aircraft') or ''} {d.get('tail') or ''}  CREW {ls.get('crew') or '-'}",
              f"ZFW {_n(ls.get('zfw')):>7}  MAX {_n(lim.get('mzfw'))}",
@@ -77,16 +77,25 @@ def telex(d, paper, callsign, edno=1, now=None):
         worst = max(ls.get("mac_zfw") or 0, ls.get("mac_tow") or 0)
         low = min(ls.get("mac_zfw") or 99, ls.get("mac_tow") or 99)
         state = "OUTSIDE LIMITS" if worst > lim_cg[1] or low < lim_cg[0] else "NEAR AFT LIMIT" if worst > lim_cg[1] - 2 else "WITHIN LIMITS"
-        lines.append(f"CG LIMITS {lim_cg[0]:g}-{lim_cg[1]:g} {state}")
+        lines.append(f"CG LIMITS {lim_cg[0]:g}-{lim_cg[1]:g} MAC")
+        lines.append(state)
     if ls.get("trim"):
-        lines.append(f"TRIM {ls['trim']}")
+        lines.append("TRIM " + str(ls["trim"]).replace(" (TAKEOFF REF)", "").replace(" UNITS", "U"))
     lines.append(f"PAYLOAD {_n(ls.get('payload'))} LB")
     if ls.get("supy"):
         lines.append(f"SUPY {ls['supy']}")
     dg = d.get("dg") or []
     lines.append(f"DG {len(dg)} ITEMS SEE NOTOC" if dg else "DG NIL  NOTOC NIL")
     lines += ["LMC NIL", "WEIGHTS IN LB", "-- PAC LOAD CONTROL --"]
-    return "\n".join(lines).upper()
+    # the A300's MCDU shows 24 characters a line: wrap anything longer at a space
+    out = []
+    for ln in lines:
+        while len(ln) > 24:
+            cut = ln.rfind(" ", 0, 25)
+            cut = cut if cut > 0 else 24
+            out.append(ln[:cut].rstrip()); ln = ln[cut:].lstrip()
+        out.append(ln)
+    return "\n".join(out).upper()
 
 
 def send(code, to, text, timeout=8):
