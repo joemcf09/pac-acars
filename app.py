@@ -3986,6 +3986,11 @@ def cargo_shipment_detail(shipment_id):
 import network_stats  # noqa: E402  (public network page)
 
 
+@app.get("/badge-login")
+def badge_login_page():
+    return send_from_directory(app.static_folder, "badge-login.html")
+
+
 @app.get("/network")
 def network_page():
     return send_from_directory(app.static_folder, "network.html")

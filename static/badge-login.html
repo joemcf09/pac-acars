@@ -1,0 +1,162 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PAC Badge Sign-in</title>
+<style>
+:root{--red:#c80000;--ink:#1E2126;--steel:#5E6470;--bg:#14171b;--panel:#1d2127}
+*{box-sizing:border-box}
+body{margin:0;min-height:100vh;background:radial-gradient(ellipse at 50% 0%,#2a2f37,var(--bg) 70%);color:#e9ecef;
+  font:15px/1.5 "Barlow",system-ui,sans-serif;display:flex;flex-direction:column;align-items:center}
+header{width:100%;padding:18px 24px;display:flex;justify-content:space-between;align-items:center}
+header img{height:22px}
+header a{color:#aab1ba;font-size:13px}
+h1{font-size:15px;letter-spacing:.18em;text-transform:uppercase;color:#aab1ba;margin:8px 0 26px;font-weight:700}
+.stage{display:flex;gap:70px;align-items:center;justify-content:center;flex-wrap:wrap;padding:0 16px}
+/* badge */
+.holder{display:flex;flex-direction:column;align-items:center}
+.strap{width:120px;height:60px;position:relative}
+.strap i{position:absolute;top:0;width:11px;height:52px;background:linear-gradient(90deg,#9e0000,var(--red) 40%,#e23b3b);border-radius:2px}
+.strap i:first-child{left:34px;transform:rotate(19deg);transform-origin:top}
+.strap i:last-child{right:34px;transform:rotate(-19deg);transform-origin:top}
+.badge{width:190px;height:290px;background:#fff;color:var(--ink);border-radius:10px;box-shadow:0 10px 30px rgba(0,0,0,.5);
+  overflow:hidden;cursor:grab;user-select:none;touch-action:none;position:relative;transition:transform .32s cubic-bezier(.3,.7,.3,1);z-index:2}
+.badge:focus-visible{outline:3px solid #fff;outline-offset:4px}
+.badge.drag{transition:none;cursor:grabbing}
+.badge .top{background:var(--red);height:32px;display:flex;align-items:center;justify-content:space-between;padding:0 10px}
+.badge .top img{height:11px}.badge .top b{color:#fff;font-size:12px;letter-spacing:.1em}
+.badge .ph{width:96px;height:120px;margin:14px auto 8px;border-radius:4px;overflow:hidden;background:#ddd;position:relative}
+.badge .ph img{width:100%;height:100%;object-fit:cover}
+.badge .ph::after{content:"";position:absolute;inset:0;background:linear-gradient(115deg,transparent 35%,rgba(255,120,200,.25) 45%,rgba(120,220,255,.3) 52%,transparent 62%)}
+.badge .nm{text-align:center;font-weight:800;font-size:15px;padding:0 8px;line-height:1.2}
+.badge .id{text-align:center;color:var(--red);font:700 15px ui-monospace,monospace;margin-top:4px}
+.badge .chip{position:absolute;left:12px;bottom:14px;width:26px;height:20px;border-radius:3px;background:linear-gradient(135deg,#f3dc93,#c9a24b 55%,#e9cf86);border:1px solid #9d7d36}
+.badge .bars{position:absolute;right:12px;bottom:14px;width:100px;height:18px;background:repeating-linear-gradient(90deg,var(--ink) 0 2px,transparent 2px 4px,var(--ink) 4px 5px,transparent 5px 8px)}
+/* reader */
+.reader{width:170px;height:250px;border-radius:16px;background:linear-gradient(160deg,#3a4049,#22262c);box-shadow:0 10px 30px rgba(0,0,0,.5),inset 0 1px 0 rgba(255,255,255,.08);
+  display:flex;flex-direction:column;align-items:center;padding:18px 0;position:relative}
+.reader .led{width:110px;height:8px;border-radius:4px;background:#3b0f0f;box-shadow:inset 0 1px 2px rgba(0,0,0,.6)}
+.reader .led.amber{background:#ffb000;box-shadow:0 0 14px #ffb000;animation:blink .18s steps(2) infinite}
+.reader .led.green{background:#28e06a;box-shadow:0 0 18px #28e06a}
+.reader .led.red{background:#ff2b2b;box-shadow:0 0 18px #ff2b2b}
+@keyframes blink{50%{opacity:.25}}
+.reader .pad{margin-top:22px;width:120px;height:120px;border-radius:12px;border:2px dashed #59616c;display:flex;align-items:center;justify-content:center}
+.reader .pad svg{width:54px;height:54px;stroke:#8e97a2;fill:none;stroke-width:2.2;stroke-linecap:round}
+.reader.hot .pad{border-color:#cfd5db}
+.reader .lcd{margin-top:18px;width:136px;height:34px;border-radius:4px;background:#0d1a12;color:#7dffaa;font:700 10px/1.25 ui-monospace,monospace;
+  display:flex;align-items:center;justify-content:center;text-align:center;letter-spacing:.06em;padding:0 6px}
+.reader .lcd.red{color:#ff7272;background:#1d0d0d}
+.msg{min-height:48px;margin-top:30px;text-align:center;font-size:16px}
+.msg b{color:#fff}
+.links{margin-top:6px;display:flex;gap:18px;font-size:13px}
+.links a,.links button{color:#aab1ba;background:none;border:0;font:inherit;cursor:pointer;text-decoration:underline;padding:0}
+.btn{background:var(--red);color:#fff;border:0;padding:11px 20px;font:700 14px inherit;border-radius:4px;cursor:pointer}
+.empty{max-width:420px;text-align:center;color:#c3c9d0}
+.hint{color:#8a929c;font-size:12.5px;margin-top:8px}
+@media (prefers-reduced-motion:reduce){.badge{transition:none}}
+</style>
+</head>
+<body>
+<header><img src="/static/pac-wordmark-white.png" alt="Pagani Air Cargo"><a href="/">Sign in with password</a></header>
+<h1>Crew access · Badge reader</h1>
+<div id="root"></div>
+<script>
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+let ac;
+function beep(ok) {
+  try {
+    ac = ac || new (window.AudioContext || window.webkitAudioContext)();
+    const tones = ok ? [[1760, 0, .09]] : [[330, 0, .14], [330, .2, .14]];
+    for (const [f, at, len] of tones) {
+      const o = ac.createOscillator(), g = ac.createGain();
+      o.type = "square"; o.frequency.value = f; g.gain.value = .05;
+      o.connect(g).connect(ac.destination); o.start(ac.currentTime + at); o.stop(ac.currentTime + at + len);
+    }
+  } catch (e) { }
+}
+async function api(url, opt = {}) {
+  const r = await fetch(url, { method: opt.method || "GET", headers: { "Content-Type": "application/json" }, credentials: "same-origin", body: opt.body ? JSON.stringify(opt.body) : undefined });
+  const d = await r.json().catch(() => ({}));
+  if (!r.ok) { const e = new Error(d.error || "The reader couldn't be reached."); e.data = d; throw e; }
+  return d;
+}
+async function load() {
+  const d = await api("/api/auth/badge").catch(() => ({}));
+  if (d.badge) return reader(d.badge);
+  $("#root").innerHTML = `<div class="empty"><p>No badge has been issued to this computer.</p>
+    ${d.signed_in ? `<p>You're signed in. Issue your crew badge to this browser and next time you can tap in instead of typing your password.</p><button class="btn" id="issue">Issue badge to this computer</button>
+      <p class="hint">Only on your own computer. Don't do this on a shared or public one.</p>`
+      : `<p>Sign in once with your pilot ID and password, then come back here to have your badge issued.</p><a class="btn" href="/" style="text-decoration:none;display:inline-block">Sign in with password</a>`}</div>`;
+  if ($("#issue")) $("#issue").onclick = async () => { await api("/api/auth/badge/issue", { method: "POST" }); load(); };
+}
+function reader(b) {
+  $("#root").innerHTML = `<div class="stage">
+    <div class="holder"><div class="strap"><i></i><i></i></div>
+      <div class="badge" id="badge" tabindex="0" role="button" aria-label="Tap ${esc(b.name)}'s badge on the reader to sign in">
+        <div class="top"><img src="/static/pac-wordmark-white.png" alt=""><b>CREW</b></div>
+        <div class="ph"><img src="${esc(b.photo)}" alt="" onerror="this.src='/static/pilot-photo-default.svg'"></div>
+        <div class="nm">${esc(b.name)}</div><div class="id">${esc(b.pilot_id)}</div>
+        <i class="chip"></i><i class="bars"></i></div></div>
+    <div class="reader" id="reader"><div class="led" id="led"></div>
+      <div class="pad"><svg viewBox="0 0 48 48"><path d="M16 14a14 14 0 0 1 0 20M22 9a21 21 0 0 1 0 30M28 4a28 28 0 0 1 0 40"/><circle cx="10" cy="24" r="2.5"/></svg></div>
+      <div class="lcd" id="lcd">TAP BADGE</div></div>
+  </div>
+  <div class="msg" id="msg">Drag your badge onto the reader, or click it.<div class="hint">Press Enter to sign in instantly.</div></div>
+  <div class="links" style="justify-content:center;width:100%"><a href="/">Use password instead</a><button id="forget">Remove badge from this computer</button></div>`;
+  const badge = $("#badge"), rd = $("#reader");
+  let busy = false;
+  const toReader = () => {          // measured from the badge's resting place, wherever it was dragged
+    const prev = badge.style.transform; badge.classList.add("drag"); badge.style.transform = "";
+    const a = badge.getBoundingClientRect(), r = rd.getBoundingClientRect();
+    badge.style.transform = prev; void badge.offsetWidth; badge.classList.remove("drag");
+    return [r.left + r.width / 2 - (a.left + a.width / 2), r.top + 108 - (a.top + a.height / 2)];
+  };
+  async function tap(fast) {
+    if (busy) return; busy = true;
+    const [x, y] = toReader();
+    badge.style.transform = `translate(${x}px,${y}px) rotate(-4deg) scale(.5)`;
+    $("#led").className = "led amber"; $("#lcd").className = "lcd"; $("#lcd").textContent = "READING…";
+    const started = performance.now();
+    let res, err;
+    try { res = await api("/api/auth/badge/tap", { method: "POST" }); } catch (e) { err = e; }
+    const wait = fast ? 0 : Math.max(0, 380 - (performance.now() - started));   // let the light blink briefly, never longer
+    setTimeout(() => {
+      if (res) {
+        $("#led").className = "led green"; beep(true);
+        $("#lcd").textContent = "ACCESS GRANTED";
+        $("#msg").innerHTML = `Welcome, <b>${esc(res.pilot.name)}</b>.`;
+        setTimeout(() => location.href = "/", fast ? 0 : 450);
+      } else {
+        $("#led").className = "led red"; beep(false);
+        $("#lcd").className = "lcd red"; $("#lcd").textContent = "ACCESS DENIED";
+        $("#msg").textContent = err.message;
+        setTimeout(() => { badge.style.transform = ""; busy = false; if (err.data?.error?.includes("not recognized")) load(); }, 1400);
+      }
+    }, wait);
+  }
+  // drag
+  let sx, sy, moved = false;
+  badge.onpointerdown = e => { if (busy) return; sx = e.clientX; sy = e.clientY; moved = false; badge.setPointerCapture(e.pointerId); badge.classList.add("drag"); };
+  badge.onpointermove = e => {
+    if (sx == null) return;
+    const dx = e.clientX - sx, dy = e.clientY - sy; if (Math.abs(dx) + Math.abs(dy) > 6) moved = true;
+    badge.style.transform = `translate(${dx}px,${dy}px) rotate(${dx / 40}deg)`;
+    const a = badge.getBoundingClientRect(), r = rd.getBoundingClientRect();
+    rd.classList.toggle("hot", a.right > r.left && a.left < r.right && a.bottom > r.top && a.top < r.bottom);
+  };
+  badge.onpointerup = () => {
+    if (sx == null) return; sx = null;
+    const hot = rd.classList.contains("hot"); rd.classList.remove("hot");
+    if (!moved || hot) tap(false);
+    else { badge.classList.remove("drag"); badge.style.transform = ""; }
+  };
+  badge.onkeydown = e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); tap(e.key === "Enter"); } };
+  document.onkeydown = e => { if (e.key === "Enter" && document.activeElement === document.body) tap(true); };
+  $("#forget").onclick = async () => { await api("/api/auth/badge/forget", { method: "POST" }); load(); };
+}
+load();
+</script>
+</body>
+</html>

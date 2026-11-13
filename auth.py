@@ -30,7 +30,7 @@ PUBLIC_GET = ("/api/group/", "/api/conflict-zones", "/api/bootstrap", "/api/va/h
               "/api/bot/",   # the Discord bot's own API checks its secret itself (botlink.py)
               "/api/partner-photos", "/api/partner-photo/", "/api/public/roster", "/api/public/group-flight", "/api/public/track/", "/api/public/network", "/healthz",
               "/api/group-flight.ics")   # credited Commons photos on landing cards
-PUBLIC_POST = ("/api/applications", "/api/auth/setup", "/api/auth/login", "/api/auth/accept", "/api/auth/token", "/api/auth/logout",
+PUBLIC_POST = ("/api/applications", "/api/auth/setup", "/api/auth/login", "/api/auth/accept", "/api/auth/token", "/api/auth/logout", "/api/auth/badge/tap", "/api/auth/badge/forget",
                "/api/bot/link", "/api/bot/unlink", "/api/bot/weekly/posted", "/api/bot/activity/reminded", "/api/bot/claim")   # the bot API checks its own secret (botlink.py)
 STAFF_PREFIXES = ("/api/staff/",)
 STAFF_EXACT_POST = ("/api/fleet",)  # editing aircraft types and photos on the Fleet page
@@ -52,6 +52,8 @@ def migrate(con):
         con.execute("ALTER TABLE pilots ADD COLUMN password_set REAL")
     con.execute("""CREATE TABLE IF NOT EXISTS invites (token_hash TEXT PRIMARY KEY, pilot_id TEXT, created REAL, expires REAL,
         used REAL, purpose TEXT)""")
+    con.execute("""CREATE TABLE IF NOT EXISTS badge_tokens (token_hash TEXT PRIMARY KEY, pilot_id TEXT, created REAL,
+        last_used REAL, agent TEXT)""")
     con.execute("""CREATE TABLE IF NOT EXISTS api_keys (key_hash TEXT PRIMARY KEY, pilot_id TEXT, label TEXT, created REAL,
         last_used REAL)""")
 
@@ -334,3 +336,75 @@ def revoke_key():
         with C["db"]() as con:
             con.execute("DELETE FROM api_keys WHERE key_hash=?", (_hash_token(auth[7:].strip()),))
     return jsonify({"ok": True})
+
+
+# ---------------------------------------------------------------- badge sign-in (prototype, opt-in)
+# The first sign-in on a computer is the normal password. The pilot can then have a badge "issued" to that browser:
+# a random token kept in a private cookie (only its hash is stored here). Tapping the badge on the reader signs in
+# with that token. Another computer, a cleared browser or "sign out completely" means the password again.
+BADGE_COOKIE = "pac_badge"
+BADGE_DAYS = 365
+
+
+def _badge_pilot():
+    tok = request.cookies.get(BADGE_COOKIE)
+    if not tok:
+        return None, None
+    with C["db"]() as con:
+        r = con.execute("SELECT pilot_id FROM badge_tokens WHERE token_hash=?", (_hash_token(tok),)).fetchone()
+    return (pilot_row(r[0]) if r else None), tok
+
+
+def _badge_card(r):
+    return {"pilot_id": r["id"], "name": r.get("name"), "status": r.get("status") or "Active",
+            "photo": f"/api/profile/photo?pilot={r['id']}"}
+
+
+@bp.get("/api/auth/badge")
+def badge_status():
+    r, _ = _badge_pilot()
+    return jsonify({"badge": _badge_card(r) if r else None, "signed_in": bool(current())})
+
+
+@bp.post("/api/auth/badge/issue")
+def badge_issue():
+    p = current()
+    if not p:
+        return jsonify({"error": "Sign in with your password first."}), 401
+    tok = secrets.token_urlsafe(32)
+    with C["db"]() as con:
+        con.execute("INSERT INTO badge_tokens (token_hash, pilot_id, created, agent) VALUES (?,?,?,?)",
+                    (_hash_token(tok), p["id"], time.time(), (request.user_agent.string or "")[:200]))
+    resp = jsonify({"ok": True, "badge": _badge_card(p)})
+    resp.set_cookie(BADGE_COOKIE, tok, max_age=BADGE_DAYS * 86400, httponly=True, samesite="Lax", secure=request.is_secure)
+    return resp
+
+
+@bp.post("/api/auth/badge/tap")
+def badge_tap():
+    key = "badge|" + (request.remote_addr or "?")
+    if _too_many(key):
+        return jsonify({"error": "Reader locked. Wait 15 minutes.", "light": "red"}), 429
+    r, tok = _badge_pilot()
+    if not r:
+        _attempts.setdefault(key, []).append(time.time())
+        resp = jsonify({"error": "Badge not recognized. Sign in with your password.", "light": "red"})
+        resp.delete_cookie(BADGE_COOKIE)
+        return resp, 401
+    if r.get("status") in ("Suspended", "Removed"):
+        return jsonify({"error": "Access denied. See PAC Operations.", "light": "red"}), 403
+    with C["db"]() as con:
+        con.execute("UPDATE badge_tokens SET last_used=? WHERE token_hash=?", (time.time(), _hash_token(tok)))
+    _sign_in(r["id"], True)
+    return jsonify({"ok": True, "light": "green", "pilot": public_pilot(r)})
+
+
+@bp.post("/api/auth/badge/forget")
+def badge_forget():
+    tok = request.cookies.get(BADGE_COOKIE)
+    if tok:
+        with C["db"]() as con:
+            con.execute("DELETE FROM badge_tokens WHERE token_hash=?", (_hash_token(tok),))
+    resp = jsonify({"ok": True})
+    resp.delete_cookie(BADGE_COOKIE)
+    return resp
