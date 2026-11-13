@@ -1945,3 +1945,4 @@ html[data-design="loadsheet"] :is(.relief-draft,.relief-notice,.relief-checks){b
 .ceo-trip:hover{border-color:var(--red)}
 .ceo-trip small{display:block;color:var(--steel,#5E6470);font-size:12px}
 .ceo-trip em{font-style:normal;font-weight:800;white-space:nowrap}
+.daynight-btn[aria-pressed="true"]{background:var(--red);color:#fff;border-color:var(--red)}

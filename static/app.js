@@ -8348,6 +8348,7 @@ async function setLiveView(v) {
       map.addLayer({ id: "toarr", type: "line", source: "toarr", paint: { "line-color": "#d4111e", "line-width": 1.5, "line-dasharray": [3, 3], "line-opacity": 0.75 } });
       live.globe.ready = true;
       globeSync();
+      dayNightSync();
     });
   } else {
     setTimeout(() => live.globe.map.resize(), 30);
@@ -8398,6 +8399,63 @@ function liveViewSwitch() {
   bar.insertAdjacentHTML("beforeend", `<div class="seg-switch" id="liveViewSwitch" role="group" aria-label="Map view"><button type="button" data-liveview="flat" aria-pressed="true">Flat map</button><button type="button" data-liveview="globe" aria-pressed="false">Globe</button></div>`);
   $(".live-wrap").insertAdjacentHTML("afterbegin", `<div id="liveGlobe" class="live-map live-globe" hidden></div>`);
   document.querySelectorAll("[data-liveview]").forEach(b => b.onclick = () => setLiveView(b.dataset.liveview));
+  bar.insertAdjacentHTML("beforeend", `<button type="button" class="btn ghost small daynight-btn" id="dayNightBtn" aria-pressed="${dayNightPref()}" title="Show where it's day and night right now">☀︎ Day / night</button>`);
+  $("#dayNightBtn").onclick = () => { const on = !dayNightPref(); setDayNightPref(on); $("#dayNightBtn").setAttribute("aria-pressed", on); dayNightSync(); };
+  dayNightSync();
+  clearInterval(S.dayNightTimer); S.dayNightTimer = setInterval(() => { if (document.getElementById("dayNightBtn")) dayNightSync(); else clearInterval(S.dayNightTimer); }, 60000);
+}
+
+/* ================= Day / night: where the sun is up right now (the terminator), on the flat map and the globe ================= */
+function dayNightPref() { try { return localStorage.getItem("pac.dayNight") === "1"; } catch (e) { return false; } }
+function setDayNightPref(on) { try { localStorage.setItem("pac.dayNight", on ? "1" : "0"); } catch (e) { /* not remembered */ } }
+function sunPosition(date = new Date()) {
+  // low-precision solar position (good to about 0.1 degree; plenty for a map)
+  const rad = Math.PI / 180, n = date.getTime() / 86400000 + 2440587.5 - 2451545;
+  const L = (280.460 + 0.9856474 * n) % 360, g = ((357.528 + 0.9856003 * n) % 360) * rad;
+  const lam = (L + 1.915 * Math.sin(g) + 0.020 * Math.sin(2 * g)) * rad, eps = (23.439 - 0.0000004 * n) * rad;
+  const ra = Math.atan2(Math.cos(eps) * Math.sin(lam), Math.cos(lam)) / rad, dec = Math.asin(Math.sin(eps) * Math.sin(lam)) / rad;
+  const gmst = ((18.697374558 + 24.06570982441908 * n) % 24) * 15;
+  return { dec, lon: ((ra - gmst + 540) % 360) - 180 };       // the point on Earth where the sun is overhead
+}
+function nightRings(date = new Date()) {
+  // the night side, plus a softer twilight band (sun up to 6 and 12 degrees below the horizon)
+  const sun = sunPosition(date), rad = Math.PI / 180, out = [];
+  for (const depress of [0, 6, 12]) {
+    const ring = [], pole = sun.dec > 0 ? -90 : 90;
+    const d = sun.dec * rad, dir = pole < 0 ? 1 : -1;
+    for (let lon = -180; lon <= 180; lon += 2) {
+      const ch = Math.cos((lon - sun.lon) * rad);
+      const alt = lat => Math.asin(Math.sin(lat * rad) * Math.sin(d) + Math.cos(lat * rad) * Math.cos(d) * ch) / rad;
+      // walk from the dark pole toward the sunlit one; the edge is where the sun climbs above -depress
+      let lat = pole, edge = -pole;
+      for (let x = pole; dir > 0 ? x <= 90 : x >= -90; x += dir * 0.5) { if (alt(x) > -depress) { edge = x; break; } lat = x; }
+      ring.push([lon, Math.max(-89.9, Math.min(89.9, edge))]);
+    }
+    ring.push([180, pole], [-180, pole], ring[0]);
+    out.push(ring);
+  }
+  return out;          // [night edge, civil twilight, nautical twilight], each a closed [lon, lat] ring
+}
+function dayNightSync() {
+  const live = S.live; if (!live) return;
+  const on = dayNightPref(), rings = on ? nightRings() : [];
+  const dark = document.documentElement.dataset.theme !== "light";
+  // flat map (Leaflet)
+  const m = live.base?.map;
+  if (m) {
+    (live.nightLayers || []).forEach(l => m.removeLayer(l)); live.nightLayers = [];
+    rings.forEach(r => live.nightLayers.push(L.polygon(r.map(([x, y]) => [y, x]), { stroke: false, fillColor: "#00081a", fillOpacity: dark ? 0.22 : 0.14, interactive: false }).addTo(m)));
+  }
+  // globe (MapLibre)
+  const g = live.globe;
+  if (g?.ready) {
+    const fc = { type: "FeatureCollection", features: rings.map(r => ({ type: "Feature", properties: {}, geometry: { type: "Polygon", coordinates: [r] } })) };
+    if (g.map.getSource("night")) g.map.getSource("night").setData(fc);
+    else {
+      g.map.addSource("night", { type: "geojson", data: fc });
+      g.map.addLayer({ id: "night", type: "fill", source: "night", paint: { "fill-color": "#00081a", "fill-opacity": dark ? 0.22 : 0.14, "fill-antialias": false } }, g.map.getLayer("tracks") ? "tracks" : undefined);
+    }
+  }
 }
 
 
