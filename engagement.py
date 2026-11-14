@@ -33,6 +33,27 @@ MAX_PER_TICK = 40                 # a few at a time, so a big roster never flood
 def migrate(con):
     con.execute("""CREATE TABLE IF NOT EXISTS engagement_nudges (pilot_id TEXT, tag TEXT, channel TEXT, sent_at REAL,
                    PRIMARY KEY (pilot_id, tag, channel))""")
+    con.execute("CREATE TABLE IF NOT EXISTS engagement_meta (k TEXT PRIMARY KEY, v TEXT)")
+    if not con.execute("SELECT 1 FROM engagement_meta WHERE k='dedup_v1'").fetchone():
+        _dedup_once(con)      # one-time: drop the redundant superseded rows an earlier build recorded (see _record)
+        con.execute("INSERT OR IGNORE INTO engagement_meta (k, v) VALUES ('dedup_v1', ?)", (str(time.time()),))
+
+
+def _dedup_once(con):
+    """Keep only the highest step actually sent per pilot/channel/family; the lower rows were never real sends."""
+    best = {}
+    for rid, pid, tag, ch in con.execute("SELECT rowid, pilot_id, tag, channel FROM engagement_nudges"):
+        fam = "new" if str(tag).startswith("new") else "lapse"
+        try:
+            step = int(str(tag)[len(fam):])
+        except ValueError:
+            continue
+        key = (pid, ch, fam)
+        if key not in best or step > best[key][0]:
+            best[key] = (step, rid)
+    keep = {v[1] for v in best.values()}
+    if keep:
+        con.execute("DELETE FROM engagement_nudges WHERE rowid NOT IN (%s)" % ",".join("?" * len(keep)), tuple(keep))
 
 
 # ---------------------------------------------------------------- tokens (unsubscribe)
@@ -51,17 +72,6 @@ def _prefs(row):
 def _on_leave(prefs, now):
     lv = prefs.get("leave")
     return bool(lv and now < lv.get("until", 0))
-
-
-def _family(tag):
-    return "new" if tag.startswith("new") else "lapse"
-
-
-def _lower_tags(tag):
-    """Every step at or below this one, in the same family -- used to supersede so a backlog sends only once."""
-    steps = NEVER_STEPS if _family(tag) == "new" else LAPSE_STEPS
-    n = int(tag[len(_family(tag)):])
-    return [f"{_family(tag)}{s}" for s in steps if s <= n]
 
 
 def _due_tag(category, age_days):
@@ -101,11 +111,11 @@ def _already(con, pid, tag, channel):
 
 
 def _record(con, pid, tag, channel, now=None):
-    """Record this tag sent on this channel, and supersede every lower step in the family so a backlog never drips."""
+    """Record this nudge as sent on this channel. Only the step actually sent is stored, so the count stays truthful.
+    A backlog never drips because candidates() always offers the single highest step due, never the lower ones."""
     now = now or time.time()
-    for t in _lower_tags(tag):
-        con.execute("INSERT OR IGNORE INTO engagement_nudges (pilot_id, tag, channel, sent_at) VALUES (?,?,?,?)",
-                    (pid, t, channel, now))
+    con.execute("INSERT OR IGNORE INTO engagement_nudges (pilot_id, tag, channel, sent_at) VALUES (?,?,?,?)",
+                (pid, tag, channel, now))
 
 
 # ---------------------------------------------------------------- email
