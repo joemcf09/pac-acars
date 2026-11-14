@@ -109,9 +109,15 @@ GENERAL = [("General cargo", ["GEN"], None), ("Consolidated freight", ["GEN"], N
 # Fitted to the simulator aircraft's own EFB (iniBuilds A300-600F), two loads with cargo split evenly FWD/MID/AFT:
 #   100,000 lb: ZFW 30.70 / TOW 32.65 %MAC      34,000 lb: ZFW 27.36 / GW 30.26 %MAC (27,308 lb fuel)
 # -> empty aircraft at 24.7 %MAC, the evenly loaded hold's centroid at 41.3 %MAC, fuel's centroid at 52.7 %MAC.
-CG_CALIBRATION = {"A306F": {"dow": 24.66, "cargo": 41.35, "fuel": 52.7}}
-# Center-of-gravity limits (%MAC) from the simulator aircraft's own flight model (iniBuilds A300-600: 15% to 34%)
-CG_LIMITS = {"A306F": (15.0, 34.0)}
+CG_CALIBRATION = {"A306F": {"dow": 24.66, "cargo": 41.35, "fuel": 52.7},
+                  # MD11F: fitted to the TFDi MD-11F EFB (PGI8189 KCVG-KBOS, 14 Nov 2026) --
+                  #   ZFW 437,466 lb @ 20.2 %MAC, TOW 494,780 lb @ 21.3 %MAC, payload 188,700 lb, take-off fuel 57,314 lb.
+                  # Fuel centroid solved exactly (29.7 %MAC, moves CG aft). DOW CG anchored at 24.0 %MAC (the MD-11 sits aft
+                  # empty) and the even-load cargo centroid fitted to match (15.2 %MAC: a heavy main deck pulls CG forward).
+                  # Single-point anchor -- provisional until a second, differently-loaded EFB pair separates DOW from cargo.
+                  "MD11F": {"dow": 24.0, "cargo": 15.2, "fuel": 29.7, "trim_intercept": 9.2}}
+# Center-of-gravity limits (%MAC) from the simulator aircraft's own flight model (iniBuilds A300-600: 15% to 34%; MD-11: 9% to 32.5%)
+CG_LIMITS = {"A306F": (15.0, 34.0), "MD11F": (9.0, 32.5)}
 
 def awb(rng):
     serial = rng.randrange(1_000_000, 9_999_999)
@@ -457,7 +463,7 @@ def paperwork(d, fleet, booking=None, notams=None, captain_rank=None, airports=N
     dli = round(doi + (mac_zfw - mac_dow) * 3.1, 1)
     lizfw, litow = dli, round(dli + (mac_tow - mac_zfw) * 3.1, 1)
     airbus = ac.get("icao", "").startswith("A")
-    trim = f"{round((26 - mac_tow) * .2, 1):+.1f} THS" if airbus else f"{round(9.6 - .2 * mac_tow, 1):.1f} UNITS"
+    trim = f"{round((26 - mac_tow) * .2, 1):+.1f} THS" if airbus else f"{round(cal.get('trim_intercept', 9.6) - .2 * mac_tow, 1):.1f} UNITS"
     cg_source = "estimate"
     import wb  # real weight and balance where PAC has documented data for the type
     bal = wb.balance(d["aircraft"], d.get("positions") or [], dow, tof, trip) if wb.supported(d["aircraft"]) else None
