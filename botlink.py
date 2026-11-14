@@ -471,16 +471,28 @@ def staff_bot_status():
 @bp.get("/api/bot/activity")
 def bot_activity():
     """Pilots to remind by DM that their next flight is due soon."""
-    import activity
+    import activity, engagement
     st = C["settings"]()
-    return jsonify({"reminders": activity.reminders_due(), "site": (C["va"].site().get("public_url") or "https://pac-va.com").rstrip("/") or "https://pac-va.com",
-                    "enabled": bool(st.get("discord_activity_dm", True))})
+    site = (C["va"].site().get("public_url") or "https://pac-va.com").rstrip("/") or "https://pac-va.com"
+    reminders = activity.reminders_due()
+    try:                                   # engagement nudges ride the same DM path (independent of the activity rule)
+        with C["db"]() as con:
+            reminders = reminders + engagement.dm_due(con, site)
+    except Exception as e:
+        print("engagement dm_due:", e)
+    return jsonify({"reminders": reminders, "site": site, "enabled": bool(st.get("discord_activity_dm", True))})
 
 
 @bp.post("/api/bot/activity/reminded")
 def bot_activity_reminded():
-    import activity
-    activity.mark_reminded((request.json or {}).get("items") or [])
+    import activity, engagement
+    items = (request.json or {}).get("items") or []
+    activity.mark_reminded([it for it in items if it.get("src") != "engagement"])
+    try:
+        with C["db"]() as con:
+            engagement.mark_dmed(con, [it for it in items if it.get("src") == "engagement"])
+    except Exception as e:
+        print("engagement mark_dmed:", e)
     return jsonify({"ok": True})
 
 

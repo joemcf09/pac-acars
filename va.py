@@ -3348,6 +3348,8 @@ def enforce_overdue():
             hubs.tick(con, now)
             import monthly_report
             monthly_report.tick(con, C["settings"](), C.get("secret") or "", now)
+            import engagement
+            engagement.tick(con, C["settings"](), C.get("secret") or "", now)
             import cargo_programs
             cargo_programs.migrate(con)
             cargo_programs.auto_launch(con, now)

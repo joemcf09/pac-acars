@@ -553,7 +553,7 @@ def run(cfg):
         for it in r["reminders"]:
             try:
                 u = client.get_user(int(it["discord_id"])) or await client.fetch_user(int(it["discord_id"]))
-                await u.send(activity_dm(it, r.get("site") or site))
+                await u.send(it.get("text") or activity_dm(it, r.get("site") or site))
                 done.append(it)
             except (discord.Forbidden, discord.HTTPException, discord.NotFound):
                 done.append(it)          # DMs closed: don't keep trying for this date

@@ -54,7 +54,11 @@ PUBLIC_OK = {
              "/api/fleet/liveries", "/api/fleet/liveries/<lid>/preview", "/api/fleet/liveries/<lid>/download",
              "/api/va/home/network-logo/<net>",   # the VATSIM logo in the home page's Network partners section
              "/api/group/v1/summary", "/api/group/v1/metar",   # group hub feeds: off by default, need the group key (test_group_feed.py)
-             "/api/news", "/api/profile/photo", "/api/va/board", "/api/va/home", "/gallery/<path:name>", "/api/applications"}
+             "/api/news", "/api/profile/photo", "/api/va/board", "/api/va/home", "/gallery/<path:name>", "/api/applications",
+             # the sign-in page itself, and public pages whose data endpoints still need a sign-in:
+             "/badge-login", "/unicom", "/unicom/ivao", "/unicom/flight",
+             # email unsubscribe links are public but token-protected (an invalid/absent token returns 400, not a leak):
+             "/unsubscribe/monthly", "/unsubscribe/reminders"}
 leaks = []
 for r in A.app.url_map.iter_rules():
     if r.rule.startswith(("/static", "/api/auth/")):

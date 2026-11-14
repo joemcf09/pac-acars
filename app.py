@@ -4536,6 +4536,8 @@ import cargo_programs
 cargo_programs.register(app, globals())
 import monthly_report
 monthly_report.register(app, globals())
+import engagement
+engagement.register(app, globals())
 va.C["secret"] = app.secret_key
 import hubs as _hubs
 try:

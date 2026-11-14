@@ -5830,9 +5830,9 @@ function renderStaff() {
   const d = S.staff;
   const pendingReviews = d.reviews.filter(r => r.review_status === "Pending").length;
   const pendingApps = d.applications.filter(a => a.status === "Pending").length;
-  const tabs = [["ceo", "CEO desk", 0], ["market", "Fleet market", 0], ["complaints", "Complaints", 0], ["roles", "Roles", 0], ["reports", "Problem reports", 0], ["health", "Operations health", 0], ["campaigns", "Cargo campaigns", 0], ["relief", "Relief missions", 0], ["cargostock", "Cargo stock", 0], ["reviews", "PIREP review", pendingReviews], ["applications", "Applications", pendingApps], ["transfers", "Transfer hours", d.transfer_pending || 0], ["activity", "Activity", d.activity_overdue || 0], ["roster", "Roster", 0],
+  const tabs = [["ceo", "CEO desk", 0], ["market", "Fleet market", 0], ["complaints", "Complaints", 0], ["roles", "Roles", 0], ["reports", "Problem reports", 0], ["health", "Operations health", 0], ["campaigns", "Cargo campaigns", 0], ["relief", "Relief missions", 0], ["cargostock", "Cargo stock", 0], ["reviews", "PIREP review", pendingReviews], ["applications", "Applications", pendingApps], ["transfers", "Transfer hours", d.transfer_pending || 0], ["activity", "Activity", d.activity_overdue || 0], ["engagement", "Engagement", d.engagement_pending || 0], ["roster", "Roster", 0],
     ["news", "News", 0], ["mx", "Maintenance", d.airframes.reduce((n, a) => n + (a.open_items || []).length, 0)], ["types", "Fleet types", 0], ["pphotos", "Partner photos", 0], ["airframes", "Airframes", d.airframes.filter(a => ["Maintenance", "Inspection", "A-check due", "Heavy check due", "Heavy check", "Damaged"].includes(a.status)).length], ["events", "Events", 0], ["site", "Site and rules", 0]];
-  const GROUPS = [["Company", ["ceo", "market", "complaints", "roles"]], ["Pilots", ["reviews", "applications", "transfers", "activity", "roster"]],
+  const GROUPS = [["Company", ["ceo", "market", "complaints", "roles"]], ["Pilots", ["reviews", "applications", "transfers", "activity", "engagement", "roster"]],
     ["Operations", ["reports", "health", "events", "news"]], ["Cargo", ["campaigns", "relief", "cargostock"]], ["Fleet", ["airframes", "mx", "types", "pphotos"]], ["Settings", ["site"]]];
   const T = Object.fromEntries(tabs.map(t => [t[0], t]));
   if (!T[S.staffTab]) S.staffTab = "reviews";
@@ -5845,7 +5845,38 @@ function renderStaff() {
     <div id="staffBody"></div>`;
   document.querySelectorAll("[data-sg]").forEach(b => b.onclick = () => { const ks = GROUPS.find(([g]) => g === b.dataset.sg)[1]; S.staffTab = ks.find(k => T[k]?.[2]) || ks[0]; renderStaff(); });
   document.querySelectorAll("[data-st]").forEach(b => b.onclick = () => { S.staffTab = b.dataset.st; renderStaff(); });
-  ({ ceo: staffCeo, market: staffMarket, complaints: staffComplaints, roles: staffRoles, reports: staffProblemReports, health: staffOperationsHealth, campaigns: staffCargoCampaigns, relief: staffRelief, cargostock: staffCargoStock, reviews: staffReviews, applications: staffApps, transfers: staffTransfers, activity: staffActivity, roster: staffRoster, news: staffNews, mx: staffMx, types: staffTypes, pphotos: staffPartnerPhotos, airframes: staffAirframes, events: staffEvents, site: staffSite })[S.staffTab]();
+  ({ ceo: staffCeo, market: staffMarket, complaints: staffComplaints, roles: staffRoles, reports: staffProblemReports, health: staffOperationsHealth, campaigns: staffCargoCampaigns, relief: staffRelief, cargostock: staffCargoStock, reviews: staffReviews, applications: staffApps, transfers: staffTransfers, activity: staffActivity, engagement: staffEngagement, roster: staffRoster, news: staffNews, mx: staffMx, types: staffTypes, pphotos: staffPartnerPhotos, airframes: staffAirframes, events: staffEvents, site: staffSite })[S.staffTab]();
+}
+/* Staff › Engagement: new pilots who never flew and lapsed pilots, with a one-click reminder */
+async function staffEngagement() {
+  const body = $("#staffBody");
+  body.innerHTML = `<p class="muted">Loading engagement…</p>`;
+  let d;
+  try { d = await api("/api/staff/engagement/roster"); } catch (e) { body.innerHTML = `<div class="notice err">${esc(e.message)}</div>`; return; }
+  const day = t => t ? new Date(t * 1000).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : "–";
+  const reach = p => `${p.has_email ? '<span class="tag green" title="Has email">✉</span>' : '<span class="tag" title="No email on file">no email</span>'} ${p.linked_discord ? '<span class="tag green" title="Linked Discord">Discord</span>' : ''}`;
+  const nudged = p => p.opted_out ? '<span class="tag dark">Opted out</span>' : p.nudges_sent ? `${p.nudges_sent} sent` : '<span class="muted">none yet</span>';
+  const btn = p => p.has_email && !p.opted_out ? `<button class="btn ghost small" data-nudge="${esc(p.pilot_id)}">Send reminder</button>` : `<span class="muted">–</span>`;
+  body.innerHTML = `
+    <p class="muted" style="max-width:85ch">New pilots who haven't flown their first flight, and pilots who've gone quiet. PAC emails them automatically — never-flown at <b>3, 7 and 14 days</b> after joining, lapsed at <b>30 and 60 days</b> since their last flight — plus a Discord DM for linked pilots. Each nudge sends once and stops; the monthly report takes over after. Use <b>Send reminder</b> to nudge someone now. Pilots on leave are left alone.</p>
+    <div class="row" style="gap:18px;margin:8px 0 14px">
+      <span><span class="tag green">Active</span> ${d.active_count}</span>
+      <span><span class="tag amber">Never flown</span> ${d.never_count}</span>
+      <span><span class="tag">Lapsed</span> ${d.lapsed_count}</span>
+      ${d.hq_idle_count ? `<span><span class="tag amber">At ${esc(d.hq || "HQ")}, not flying</span> ${d.hq_idle_count}</span>` : ""}</div>
+    <h3 style="margin:14px 0 6px">Never flown <span class="muted">(${d.never_count})</span></h3>
+    <div class="aar-wrap"><table class="aar-table"><thead><tr><th>Pilot</th><th>Joined</th><th>Reach</th><th>Reminders</th><th></th></tr></thead>
+      <tbody>${d.never.map(p => `<tr><td><b class="mono">${esc(p.pilot_id)}</b> ${esc(p.name || "")}${p.at_hq ? ' <span class="tag amber" title="Sitting at HQ without flying">At HQ</span>' : ""}</td>
+        <td>${day(p.joined)} <small class="muted">${p.age_days}d ago</small></td><td>${reach(p)}</td><td>${nudged(p)}</td><td>${btn(p)}</td></tr>`).join("") || `<tr><td colspan="5" class="muted">Nobody — every pilot has flown. 🎉</td></tr>`}</tbody></table></div>
+    <h3 style="margin:18px 0 6px">Lapsed <span class="muted">(${d.lapsed_count})</span></h3>
+    <div class="aar-wrap"><table class="aar-table"><thead><tr><th>Pilot</th><th>Last flight</th><th>Reach</th><th>Reminders</th><th></th></tr></thead>
+      <tbody>${d.lapsed.map(p => `<tr><td><b class="mono">${esc(p.pilot_id)}</b> ${esc(p.name || "")}${p.at_hq ? ' <span class="tag amber" title="Sitting at HQ without flying">At HQ</span>' : ""}</td>
+        <td>${day(p.last_flight)} <small class="muted">${p.idle_days}d ago</small></td><td>${reach(p)}</td><td>${nudged(p)}</td><td>${btn(p)}</td></tr>`).join("") || `<tr><td colspan="5" class="muted">Nobody lapsed right now.</td></tr>`}</tbody></table></div>`;
+  body.querySelectorAll("[data-nudge]").forEach(b => b.onclick = async () => {
+    b.disabled = true; const was = b.textContent; b.textContent = "Sending…";
+    try { const r = await api("/api/staff/engagement/nudge", { method: "POST", body: { pilot: b.dataset.nudge } }); toast(r.message || "Reminder sent."); staffEngagement(); }
+    catch (e) { toast(e.message); b.disabled = false; b.textContent = was; }
+  });
 }
 /* Staff › Activity: every pilot's next-flight-due date, who is on leave and who is overdue */
 async function staffCargoStock() {
