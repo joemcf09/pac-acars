@@ -2143,6 +2143,9 @@ async function openAirframe(reg) {
           <div><span>Last flown by</span><b>${esc(h.flights[h.flights.length - 1]?.pilot || "–")}</b><small>${esc(a.last_flight || "")}</small></div>
         </div></div>
       ${a.note ? `<div class="notice">${esc(a.note)}</div>` : ""}
+      ${S.me?.staff && a.status === "Booked" ? `<div class="notice" style="border-left:3px solid #c80000">
+        <b>Dispatch override.</b> ${esc(reservationSummary(a))}.
+        <div class="row" style="margin-top:8px"><button class="btn small" type="button" id="afRelease" data-reg="${esc(a.reg)}">Cancel booking &amp; free this aircraft</button></div></div>` : ""}
       <h3 style="margin:4px 0 0;font-size:17px">Maintenance</h3><div id="afMx"><span class="muted" style="font-size:13px">Loading…</span></div>
       <div style="border:1px solid var(--line)"><div id="detailMap"></div></div>
       ${h.flights.length ? `<div class="table-wrap"><table class="fin-table"><thead><tr><th>Date</th><th>Flight</th><th>Route</th><th>Pilot</th><th class="r">Block</th><th class="r">Landing</th><th class="r">Profit</th></tr></thead><tbody>
@@ -2151,6 +2154,19 @@ async function openAirframe(reg) {
         : `<p class="muted">No flights logged on ${esc(a.reg)} yet.</p>`}`;
     $("#detailDlg").showModal();
     document.querySelectorAll("#detailBody [data-open]").forEach(tr => tr.onclick = () => openDetail(tr.dataset.open));
+    const relBtn = $("#afRelease");
+    if (relBtn) relBtn.onclick = async () => {
+      const who = a.reservation ? `${a.reservation.pilot_name || a.reservation.pilot_id}'s booking` : "the booking holding this aircraft";
+      if (!confirm(`Cancel ${who} and make ${a.reg} available again? The pilot's flight is cancelled and the mission goes back on the board.`)) return;
+      relBtn.disabled = true; relBtn.textContent = "Freeing…";
+      try {
+        const r = await api("/api/staff/booking/release", { method: "POST", body: { reg: a.reg } });
+        toast(r.had_booking ? `${a.reg} freed. Cancelled ${esc(r.flight || "a flight")} (${esc(r.pilot || "")}).` : `${a.reg} is available again.`);
+        $("#detailDlg").close();
+        try { S.airframes = await api("/api/airframes"); } catch (e) { /* keep */ }
+        if (S.view === "fleet") show("fleet");
+      } catch (e) { toast(e.message); relBtn.disabled = false; relBtn.textContent = "Cancel booking & free this aircraft"; }
+    };
     api(`/api/maintenance?reg=${encodeURIComponent(a.reg)}&all=1`).then(r => { const el = $("#afMx"); if (el) el.innerHTML = mxItems(r.items); }).catch(() => {});
     if (detailMap) detailMap.remove();
     if (!HAS_MAP) return;

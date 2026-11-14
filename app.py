@@ -2186,6 +2186,49 @@ def cancel_booking():
     return jsonify({"ok": True})
 
 
+@app.post("/api/staff/booking/release")
+@releases.serialized
+def staff_booking_release():
+    """Staff override: cancel whatever booking is holding an airframe (or a named pilot's booking), free the
+    aircraft and reopen its mission. Also frees an airframe left 'Booked' with no booking behind it (orphaned)."""
+    b = request.get_json(silent=True) or {}
+    reg = str(b.get("reg") or "").strip().upper()
+    target_pid = str(b.get("pilot") or "").strip().upper()
+    held_pid, booking = None, None
+    with db() as con:
+        rows = con.execute("SELECT pilot_id, data FROM bookings").fetchall()
+    for r in rows:
+        try:
+            bk = json.loads(r["data"])
+        except Exception:
+            continue
+        if (target_pid and r["pilot_id"] == target_pid) or (reg and str(bk.get("airframe") or "").upper() == reg):
+            held_pid, booking = r["pilot_id"], bk
+            break
+    out = {"ok": True, "had_booking": False, "pilot": None, "flight": None}
+    if booking:
+        reg = reg or str(booking.get("airframe") or "").upper()
+        m = booking.get("mission") or {}
+        if m.get("job"):
+            va.set_job_status(m["id"], "open")
+        if m.get("live"):
+            va.set_live_status(m["id"], "open" if time.time() < (m.get("expires") or 0) else "expired")
+        if m.get("urgent"):
+            _um, _ = va.urgent_by_id(m["id"])
+            va.set_urgent_status(m["id"], "open" if _um and time.time() < _um["expires"] else "expired")
+        clear_booking(held_pid)
+        clear_flight_state(held_pid)
+        if held_pid == va.current_pilot_id():                 # the dispatcher is cancelling their own flight
+            stop_tracking()
+            state.update(remote=None, remote_status=None, recorder=None)
+            clear_checkpoint()
+        out.update(had_booking=True, pilot=held_pid, flight=booking.get("flight_number"))
+    if reg:
+        va.release_airframe(reg)                              # frees an orphaned 'Booked' airframe too
+    out["reg"] = reg
+    return jsonify(out)
+
+
 # ---------------------------------------------------------------- bookings (one per pilot)
 def _booking_pid(pid=None):
     return pid or va.current_pilot_id()
