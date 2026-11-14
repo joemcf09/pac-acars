@@ -6158,8 +6158,14 @@ async function staffTransfers() {
   });
 }
 function staffRoster() {
-  $("#staffBody").innerHTML = `<div class="table-wrap"><table class="staff-table"><thead><tr><th>ID</th><th>Name</th><th>Rank</th><th>Hours</th><th>Flights</th><th>Avg</th><th>Wallet</th><th>Transfer hrs</th><th title="Home hub: where the pilot is based">Hub</th><th>Checkride</th><th>Rank setting</th><th title="Cleared to fly the Kodiak for Pagani Remote Aviation">PRA</th><th>Status</th><th></th></tr></thead><tbody>
-    ${S.staff.roster.map(p => `<tr data-pilot="${p.id}"><td><b>${p.id}</b>${p.staff ? ' <span class="tag dark">Staff</span>' : ""}</td><td>${esc(p.name)}<br><small class="muted">${esc(p.email || "")}</small></td><td style="white-space:nowrap">${rankImg(p.rank)}${esc(p.rank)}${p.rank_override ? ' <span class="tag dark">Appointed</span>' : ""}</td>
+  const noCid = S.staff.roster.filter(p => (p.status || "Active") === "Active" && !p.vatsim_cid).length;
+  $("#staffBody").innerHTML = `<div class="row" style="justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:10px">
+      <span class="muted" style="font-size:13px">${noCid ? `<span class="tag amber">${noCid}</span> active pilot${noCid === 1 ? " has" : "s have"} no VATSIM CID — needed for the VATSIM VA roster. Ask them to add it in Settings.` : "Every active pilot has a VATSIM CID on file. ✓"}</span>
+      <a class="btn ghost small" href="/api/staff/roster.csv" download>⬇ Download audit roster (CSV)</a></div>
+    <div class="table-wrap"><table class="staff-table"><thead><tr><th>ID</th><th>Name</th><th title="VATSIM CID / IVAO VID — needed for the VATSIM VA roster">Network IDs</th><th>Rank</th><th>Hours</th><th>Flights</th><th>Avg</th><th>Wallet</th><th>Transfer hrs</th><th title="Home hub: where the pilot is based">Hub</th><th>Checkride</th><th>Rank setting</th><th title="Cleared to fly the Kodiak for Pagani Remote Aviation">PRA</th><th>Status</th><th></th></tr></thead><tbody>
+    ${S.staff.roster.map(p => `<tr data-pilot="${p.id}"><td><b>${p.id}</b>${p.staff ? ' <span class="tag dark">Staff</span>' : ""}</td><td>${esc(p.name)}<br><small class="muted">${esc(p.email || "")}</small></td>
+      <td style="white-space:nowrap;font-size:13px">${p.vatsim_cid ? `VATSIM ${esc(p.vatsim_cid)}` : ((p.status || "Active") === "Active" ? '<span class="tag amber">no VATSIM</span>' : '<span class="muted">—</span>')}${p.ivao_vid ? `<br>IVAO ${esc(p.ivao_vid)}` : ""}</td>
+      <td style="white-space:nowrap">${rankImg(p.rank)}${esc(p.rank)}${p.rank_override ? ' <span class="tag dark">Appointed</span>' : ""}</td>
       <td>${esch(p.hours)}</td><td>${p.flights}</td><td>${p.avg_score ?? "–"}</td>
       <td style="white-space:nowrap"><b class="${moneyCls(p.balance)}">${money(p.balance, true)}</b><br><small class="muted">at ${esc(p.location || "–")}</small>
         <div class="row" style="margin-top:4px;flex-wrap:nowrap"><input type="number" step="50" placeholder="±$" data-wamt="${p.id}" style="width:80px" aria-label="Wallet adjustment"><button class="btn ghost small" type="button" data-wadj="${p.id}">Adjust</button></div></td>

@@ -51,6 +51,9 @@ RATING_FAMILY = {"B738F": "B737", "B732F": "B737", "B733F": "B737", "B722F": "B7
                  "B752F": "B757/767", "B763F": "B757/767", "B77F": "B777", "B742F": "B747 classic", "B748F": "B747-8"}
 TYPE_CHECKRIDE = {"min_score": 80, "min_rate": -600, "max_g": 1.8, "max_approach_speed_spread": 35,
                   "max_sustained_descent_fpm": 1300, "min_nm": 250, "max_nm": 1000}
+# Airports kept off checkride routes: fine for line ops, but their terrain or approach makes them a poor place to be
+# graded on a standard company sector. Kodiak (PADQ) points its runway at a mountain with no straight-in go-around.
+CHECKRIDE_AVOID_DEST = {"PADQ"}
 
 FEATURED_COUNT = 6
 FEATURED_MULT = 1.25
@@ -2299,6 +2302,7 @@ def checkride_mission(pilot_id, mission_id, origin=None, aircraft=None, _career=
     lo, hi = (100, 1000) if aircraft else (TYPE_CHECKRIDE["min_nm"], TYPE_CHECKRIDE["max_nm"])
     seed = sum(map(ord, pilot_id + fam))
     routes = sorted((r for r in C["ROUTES"].values() if r["origin"]["icao"] == here and any(t in r["aircraft"] for t in unlocked)
+                     and r["destination"]["icao"] not in CHECKRIDE_AVOID_DEST
                      and (A.get(r["destination"]["icao"], {}).get("rwy_ft") or 0) >= min_rwy
                      and lo <= (r.get("distance_nm") or 0) <= hi), key=lambda r: r["id"])
     if routes:
@@ -2312,7 +2316,7 @@ def checkride_mission(pilot_id, mission_id, origin=None, aircraft=None, _career=
         ck_key = (start, min_rwy, bool(aircraft), len(A))
         cands = _CK_CANDS.get(ck_key)
         if cands is None:   # the airports in range never change, so work them out once per start airport and runway length
-            cands = sorted((i for i, a in A.items() if i != start and (aircraft or a.get("size") == "L") and (a.get("rwy_ft") or 0) >= min_rwy
+            cands = sorted((i for i, a in A.items() if i != start and i not in CHECKRIDE_AVOID_DEST and (aircraft or a.get("size") == "L") and (a.get("rwy_ft") or 0) >= min_rwy
                             and (100 if aircraft else 300) <= C["gc_distance_nm"](o["lat"], o["lon"], a["lat"], a["lon"]) <= (1000 if aircraft else 700)))
             if len(_CK_CANDS) > 200:
                 _CK_CANDS.clear()
@@ -2840,6 +2844,24 @@ def short_name(name):
     return parts[0] if len(parts) < 2 else f"{parts[0]} {parts[-1][0]}."
 
 
+@bp.get("/api/staff/roster.csv")
+def staff_roster_csv():
+    """The pilot roster VATSIM's VA audit asks for: pilot ID, name, VATSIM CID, IVAO VID and status, so staff can show
+    that members have their network IDs linked. Staff only (guarded like all /api/staff routes)."""
+    rows = ["pilot_id,name,vatsim_cid,ivao_vid,status,joined"]
+    with C["db"]() as con:
+        for r in con.execute("SELECT id, name, prefs, status, joined FROM pilots ORDER BY id"):
+            try:
+                pr = json.loads(r["prefs"] or "{}")
+            except (ValueError, TypeError):
+                pr = {}
+            joined = time.strftime("%Y-%m-%d", time.gmtime(r["joined"])) if r["joined"] else ""
+            name = str(r["name"] or "").replace(",", " ")
+            rows.append(f'{r["id"]},{name},{pr.get("vatsim_cid") or ""},{pr.get("ivao_vid") or ""},{r["status"] or "Active"},{joined}')
+    return "\n".join(rows) + "\n", 200, {"Content-Type": "text/csv; charset=utf-8",
+                                         "Content-Disposition": 'attachment; filename="pac-roster.csv"'}
+
+
 @bp.get("/api/public/roster")
 def public_roster():
     """The public pilot roster and flight log (VATSIM and IVAO ask for both to be visible without signing in).
@@ -2943,6 +2965,12 @@ def staff_overview():
     for p in roster:
         p.pop("password_hash", None)
         p.pop("password_set", None)
+        try:
+            pr = json.loads(p.get("prefs") or "{}")
+        except (ValueError, TypeError):
+            pr = {}
+        p["vatsim_cid"], p["ivao_vid"] = pr.get("vatsim_cid") or "", pr.get("ivao_vid") or ""   # for the roster + VATSIM VA audit
+        p.pop("prefs", None)                                                                     # don't expose the rest of a pilot's settings
         c = career(p["id"])
         p.update(rank=c["rank"], hours=c["hours"], flights=c["flights"], avg_score=c["avg_score"], balance=balance(p["id"]))
     s = C["settings"]()
