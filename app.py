@@ -4240,6 +4240,12 @@ def network_api():
 import cargo_track  # noqa: E402  (public air waybill tracking)
 
 
+@app.get("/unicom")
+def unicom_page():
+    """Printable cheat sheet: flying on Unicom (122.800) when no ATC is online."""
+    return send_from_directory(app.static_folder, "unicom.html")
+
+
 @app.get("/track")
 @app.get("/track/<path:awb>")
 def track_page(awb=None):

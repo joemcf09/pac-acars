@@ -1,0 +1,182 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Unicom cheat sheet · Pagani Air Cargo</title>
+<style>
+:root{--red:#C80000;--red-deep:#9A0000;--red-wash:#FBEAEA;--ink:#1E2126;--steel:#5E6470;--line:#D9DCE1;--paper:#F3F4F6;--white:#fff;
+  --ok:#17693C;--ok-wash:#E3F4EA;--warn:#7A5600;--warn-wash:#FFF1CC;--font:"Saira",system-ui,-apple-system,"Segoe UI",sans-serif;--mono:"IBM Plex Mono",ui-monospace,Consolas,monospace}
+*{box-sizing:border-box}html,body{margin:0}
+body{font-family:var(--font);color:var(--ink);background:var(--paper);font-size:15px;line-height:1.5}
+header{background:var(--red);color:#fff;display:flex;align-items:center;gap:14px;padding:14px 24px;flex-wrap:wrap}
+header img{height:24px}
+header .hdr-nav{margin-left:auto;display:flex;gap:16px;flex-wrap:wrap}
+header .hdr-nav a{color:#fff;font-weight:700;text-decoration:none;font-size:14px}
+header .hdr-nav a:hover{text-decoration:underline}
+.wrap{max-width:1040px;margin:0 auto;padding:24px 20px 60px}
+h1{font-size:30px;margin:14px 0 2px}
+.sub{color:var(--steel);margin:0 0 8px}
+.freq{display:inline-block;background:var(--ink);color:#fff;font:800 20px var(--mono);letter-spacing:.06em;padding:6px 14px;border-radius:6px;margin:8px 0}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:18px;margin:18px 0}
+.card{background:#fff;border:1px solid var(--line);border-radius:8px;padding:16px 18px}
+.card h2{font-size:18px;margin:0 0 10px;display:flex;align-items:center;gap:8px}
+.card h2 .n{background:var(--red);color:#fff;width:26px;height:26px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:14px;flex:none}
+.rules li{margin:6px 0}
+.call{background:var(--paper);border-left:3px solid var(--red);border-radius:4px;padding:8px 12px;margin:8px 0;font:600 14px var(--mono);white-space:pre-wrap;word-break:break-word}
+.call b{color:var(--red-deep)}
+.phase{border:1px solid var(--line);border-radius:8px;overflow:hidden;margin:10px 0;background:#fff}
+.phase>summary{cursor:pointer;padding:12px 16px;font-weight:800;list-style:none;display:flex;justify-content:space-between;align-items:center;gap:10px}
+.phase>summary::-webkit-details-marker{display:none}
+.phase>summary::after{content:"＋";color:var(--red);font-weight:800}
+.phase[open]>summary::after{content:"－"}
+.phase .body{padding:0 16px 14px}
+.tag{display:inline-block;font:700 11px var(--font);letter-spacing:.04em;text-transform:uppercase;padding:2px 8px;border-radius:20px;vertical-align:middle}
+.tag.v{background:#e7effb;color:#1b4f9c}
+.tag.i{background:#eef3e7;color:#3a6b1a}
+.tag.both{background:var(--warn-wash);color:var(--warn)}
+.note{background:var(--warn-wash);color:var(--warn);border-radius:6px;padding:12px 14px;margin:14px 0;font-weight:600}
+.ok{background:var(--ok-wash);color:var(--ok);border-radius:6px;padding:12px 14px;margin:14px 0}
+table{border-collapse:collapse;width:100%;margin:8px 0;font-size:14px}
+th,td{text-align:left;padding:7px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+th{background:var(--paper)}
+.legend{display:flex;gap:16px;flex-wrap:wrap;margin:10px 0;font-size:13px;color:var(--steel)}
+.toolbar{display:flex;gap:10px;flex-wrap:wrap;margin:10px 0 0}
+.btn{font:700 14px var(--font);background:var(--red);color:#fff;border:2px solid var(--red);border-radius:4px;padding:8px 16px;cursor:pointer;text-decoration:none;display:inline-block}
+.btn.ghost{background:#fff;color:var(--red)}
+small.src{color:var(--steel);font-size:12px}
+@media print{
+  header,.toolbar,.hdr-nav{display:none}
+  body{background:#fff;font-size:11.5pt}
+  .wrap{max-width:none;padding:0}
+  .phase{break-inside:avoid}.card{break-inside:avoid;border-color:#bbb}
+  .phase[open] .body,.phase .body{display:block!important}
+  .phase>summary::after{content:""}
+  a[href]::after{content:""}
+}
+</style>
+</head>
+<body>
+<header>
+  <a href="/" aria-label="PAC home"><img src="/static/pac-wordmark-white.png" alt="PAC"></a>
+  <span style="font-weight:800">Unicom cheat sheet</span>
+  <nav class="hdr-nav"><a href="/#home" onclick="if(document.referrer.indexOf(location.host)>-1&&history.length>1){history.back();return false}">← Back to PAC</a>
+    <a href="/#downloads">Downloads</a></nav>
+</header>
+<div class="wrap">
+  <h1>Flying on Unicom — no controller online</h1>
+  <p class="sub">What to do and what to say on VATSIM or IVAO when there's no ATC: dead silence, everyone self-announces.</p>
+  <div class="freq">UNICOM 122.800</div>
+  <div class="toolbar">
+    <button class="btn" onclick="print()">🖨 Print / save as PDF</button>
+    <span class="legend"><span><span class="tag v">VATSIM</span> airport-focused</span><span><span class="tag i">IVAO</span> also reports enroute</span><span><span class="tag both">Both</span> applies to either network</span></span>
+  </div>
+
+  <div class="grid">
+    <div class="card">
+      <h2><span class="n">1</span> First: is anyone really off?</h2>
+      <ul class="rules">
+        <li>Check who's online in your pilot client or on the map. A higher sector (Approach, Centre/Control, even FSS) may still cover your airport — if so, call <em>them</em>, not Unicom.</li>
+        <li>Only use Unicom when <b>no</b> controller covers you.</li>
+        <li>Re-check every so often. A controller can log on mid-flight; when they do, contact them.</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h2><span class="n">2</span> Golden rules</h2>
+      <ul class="rules">
+        <li><b>122.800</b> is shared by everyone in range. Keep every call short.</li>
+        <li>You're <b>informing, not requesting</b>. No one answers, and that's normal — expect silence.</li>
+        <li>Announce <b>before</b> you act: taxi before you move, line-up before you enter the runway.</li>
+        <li><b>English only.</b> Times in <b>UTC (Zulu)</b>.</li>
+        <li>Transponder on <b>Mode C</b> (ALT/TX) so others' TCAS sees you.</li>
+        <li>In text your callsign is added automatically. In voice, say it yourself.</li>
+      </ul>
+    </div>
+  </div>
+
+  <h2 style="margin-top:26px">The calls, phase by phase</h2>
+  <p class="sub">Pattern: <b>“[Field] traffic, [who you are], [what you're doing], [field].”</b> Fill in the blanks. Text examples drop the callsign (the client adds it).</p>
+
+  <details class="phase" open><summary>Before taxi / pushback <span class="tag both">Both</span></summary>
+    <div class="body">
+      <p>Say where you are, the runway you expect and your taxi route.</p>
+      <div class="call"><b>KCVG traffic,</b> PAC1235, pushing back stand C4, then taxi for runway 36C, <b>KCVG.</b></div>
+      <div class="call">// text: KCVG twr offline — pushback C4, taxi 36C</div>
+    </div>
+  </details>
+
+  <details class="phase"><summary>Entering the runway / departure <span class="tag both">Both</span></summary>
+    <div class="body">
+      <p>Call <b>before</b> you enter the runway, then as you roll.</p>
+      <div class="call"><b>KCVG traffic,</b> PAC1235, lining up and departing runway 36C, northbound, <b>KCVG.</b></div>
+      <div class="call">// text: KCVG — lining up 36C, departing N'bound</div>
+    </div>
+  </details>
+
+  <details class="phase"><summary>Clear of the runway / after landing <span class="tag both">Both</span></summary>
+    <div class="body">
+      <div class="call"><b>KCVG traffic,</b> PAC1235, clear of runway 36C, taxiing to the cargo ramp, <b>KCVG.</b></div>
+    </div>
+  </details>
+
+  <details class="phase"><summary>Enroute — position &amp; level reports <span class="tag i">IVAO</span></summary>
+    <div class="body">
+      <p>IVAO treats Unicom like TIBA: report your position and intentions enroute, not just at airports. Announce especially with traffic within <b>20 NM</b> (check TCAS), and:</p>
+      <ul class="rules">
+        <li>~<b>10 min</b> before a reporting point, an airway join, or entering special airspace;</li>
+        <li><b>2–5 min</b> before a level change, and again <b>at</b> the change.</li>
+      </ul>
+      <div class="call"><b>All stations,</b> FL340, airway UM603, position PETAK at 1512Z, estimating RONIX at 1538Z, FL340.</div>
+      <div class="call"><b>All stations,</b> leaving FL340 now for FL360.</div>
+      <p><span class="tag v">VATSIM</span> doesn't ask for full enroute reports — on VATSIM you mainly announce around airports (below). A courtesy call at top of descent is welcome but not required.</p>
+    </div>
+  </details>
+
+  <details class="phase" open><summary>Inbound / approach <span class="tag both">Both</span></summary>
+    <div class="body">
+      <p>Make a first inbound call around <b>25 NM</b> out with your distance and planned runway, then build up to final.</p>
+      <div class="call"><b>KMIA traffic,</b> PAC1235, 25 miles north, inbound ILS runway 09, <b>KMIA.</b></div>
+      <div class="call"><b>KMIA traffic,</b> PAC1235, 10 mile final, runway 09, <b>KMIA.</b></div>
+      <div class="call"><b>KMIA traffic,</b> PAC1235, turning final, runway 09, <b>KMIA.</b></div>
+    </div>
+  </details>
+
+  <details class="phase"><summary>VFR traffic pattern (if flying VFR) <span class="tag both">Both</span></summary>
+    <div class="body">
+      <p>Announce each leg with the runway and direction.</p>
+      <div class="call"><b>KXYZ traffic,</b> [callsign], joining left downwind runway 27, <b>KXYZ.</b></div>
+      <div class="call"><b>KXYZ traffic,</b> [callsign], base… then final, runway 27, <b>KXYZ.</b></div>
+    </div>
+  </details>
+
+  <div class="note">⚠️ You will usually get <b>no reply</b> to any of these. That's expected on Unicom — you're broadcasting so others can picture where you are, not asking permission. Keep flying normally.</div>
+
+  <div class="card" style="margin-top:8px">
+    <h2>Text templates — copy, paste, fill in</h2>
+    <p class="sub">Most pilots type on Unicom. Keep a few of these ready.</p>
+    <table>
+      <tr><th>Phase</th><th>Text</th></tr>
+      <tr><td>Taxi</td><td class="call" style="margin:0">[ICAO] taxi rwy [RW] via [taxiways]</td></tr>
+      <tr><td>Departing</td><td class="call" style="margin:0">[ICAO] lining up + departing rwy [RW], [dir]bound</td></tr>
+      <tr><td>Clear</td><td class="call" style="margin:0">[ICAO] clear rwy [RW], taxi to ramp</td></tr>
+      <tr><td>Enroute (IVAO)</td><td class="call" style="margin:0">All stns FL[xxx] [airway], [fix] at [time]Z, est [nextfix] [time]Z</td></tr>
+      <tr><td>Level change (IVAO)</td><td class="call" style="margin:0">All stns leaving FL[xxx] for FL[yyy]</td></tr>
+      <tr><td>Inbound</td><td class="call" style="margin:0">[ICAO] [dist]mi [dir], inbound rwy [RW]</td></tr>
+      <tr><td>Final</td><td class="call" style="margin:0">[ICAO] final rwy [RW]</td></tr>
+    </table>
+  </div>
+
+  <div class="ok" style="margin-top:20px">
+    <b>One full PAC flight, KCVG → KMIA, no ATC the whole way:</b><br>
+    1. <span style="font-family:var(--mono)">KCVG — pushback C4, taxi rwy 36C</span><br>
+    2. <span style="font-family:var(--mono)">KCVG — lining up + departing 36C, southbound</span><br>
+    3. <span style="font-family:var(--mono)">KCVG — clear of the area, climbing (IVAO: add enroute reports)</span><br>
+    4. <span style="font-family:var(--mono)">KMIA — 25mi N, inbound ILS rwy 09</span><br>
+    5. <span style="font-family:var(--mono)">KMIA — final rwy 09</span><br>
+    6. <span style="font-family:var(--mono)">KMIA — clear rwy 09, taxi to cargo ramp</span>
+  </div>
+
+  <p style="margin-top:22px"><small class="src">Summarised from each network's own guidance. Procedures can change — follow VATSIM's and IVAO's current rules and your pilot client's documentation. Sources: VATSIM blog “S.O.A.R – UNICOM”, IVAO wiki “UNICOM” and “Self-announcing procedure”.</small></p>
+</div>
+</body>
+</html>
