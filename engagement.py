@@ -364,3 +364,29 @@ def register(app, g):
         with g["db"]() as con:
             ok, msg = send_manual(con, g["settings"](), app.secret_key, pid)
         return (jsonify({"ok": True, "message": msg}) if ok else (jsonify({"error": msg}), 400))
+
+    @app.post("/api/staff/engagement/send-test")
+    def engagement_send_test():
+        """Send a sample reminder of any step to the signed-in staff member's own inbox. Records nothing, so it never
+        affects a real pilot's nudge state -- a safe way to see exactly what each email looks like."""
+        import mailer
+        body = request.json or {}
+        tag = body.get("tag") or "new3"
+        if tag not in ("new3", "new7", "new14", "lapse30", "lapse60"):
+            return jsonify({"error": "Unknown reminder type."}), 400
+        me = g["va"].current_pilot_id()
+        st = g["settings"]()
+        if not mailer.config_ready(st):
+            return jsonify({"error": "PAC's email account isn't set up (Staff → Site and rules → Email)."}), 400
+        with g["db"]() as con:
+            row = con.execute("SELECT name, email FROM pilots WHERE id=?", (me,)).fetchone()
+        to = body.get("to") or (row["email"] if row else "")
+        if not mailer.valid_email(to):
+            return jsonify({"error": "Your pilot profile has no email address. Add one in your profile to send yourself a test."}), 400
+        category = "never" if tag.startswith("new") else "lapsed"
+        site = _site(st)
+        unsub = f"{site}/unsubscribe/reminders?p={me}&t={unsub_token(app.secret_key, me)}"
+        subject, text, htm = build_email((row["name"] if row else "Captain"), category, tag, site, unsub)
+        ok, err = mailer.send(st, to, "[TEST] " + subject, text, htm, wait=True)
+        return (jsonify({"ok": True, "message": f"Test reminder sent to {to}. Check your inbox (and spam)."}) if ok
+                else (jsonify({"error": f"It couldn't be sent: {err}"}), 502))

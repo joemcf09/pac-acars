@@ -253,6 +253,8 @@ def migrate(con):
         con.execute("UPDATE pilots SET rank_override='Senior Captain' WHERE staff=1 AND id=?", (C["settings"]().get("pilot_id") or "PAC0001",))
     con.execute("""CREATE TABLE IF NOT EXISTS applications (id INTEGER PRIMARY KEY AUTOINCREMENT, submitted REAL, name TEXT, email TEXT,
         country TEXT, discord TEXT, simulator TEXT, experience TEXT, hub TEXT, motivation TEXT, status TEXT, note TEXT, pilot_id TEXT)""")
+    if "source" not in {r[1] for r in con.execute("PRAGMA table_info(applications)")}:
+        con.execute("ALTER TABLE applications ADD COLUMN source TEXT")   # where the applicant heard about PAC
     con.execute("""CREATE TABLE IF NOT EXISTS airframes (reg TEXT PRIMARY KEY, type TEXT, location TEXT, status TEXT,
         hours REAL DEFAULT 0, cycles INTEGER DEFAULT 0, hours_since_check REAL DEFAULT 0, last_flight TEXT, last_pilot TEXT,
         updated REAL, note TEXT)""")
@@ -2907,10 +2909,10 @@ def apply():
     if not b.get("agree"):
         return jsonify({"error": "Please confirm you've read the pilot handbook."}), 400
     with C["db"]() as con:
-        con.execute("""INSERT INTO applications (submitted, name, email, country, discord, simulator, experience, hub, motivation, status)
-            VALUES (?,?,?,?,?,?,?,?,?, 'Pending')""", (time.time(), name, email, ct(b.get("country"), 60), ct(b.get("discord"), 60),
-                                                        ct(b.get("simulator"), 40), ct(b.get("experience"), 40), ct(b.get("hub"), 8),
-                                                        ct(b.get("motivation"), 2000)))
+        con.execute("""INSERT INTO applications (submitted, name, email, country, discord, simulator, experience, hub, motivation, source, status)
+            VALUES (?,?,?,?,?,?,?,?,?,?, 'Pending')""", (time.time(), name, email, ct(b.get("country"), 60), ct(b.get("discord"), 60),
+                                                         ct(b.get("simulator"), 40), ct(b.get("experience"), 40), ct(b.get("hub"), 8),
+                                                         ct(b.get("motivation"), 2000), ct(b.get("source"), 60)))
     return jsonify({"ok": True})
 
 

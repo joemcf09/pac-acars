@@ -5279,6 +5279,11 @@ async function renderHome(h, st) {
       <div class="field"><label for="ap_sim">Simulator</label><select id="ap_sim" name="simulator"><option>MSFS 2024</option><option>MSFS 2020</option><option>X-Plane 12</option><option>X-Plane 11</option><option>Prepar3D</option></select></div>
       <div class="field"><label for="ap_exp">Simulator experience</label><select id="ap_exp" name="experience"><option>New to airliners</option><option>Under 100 hours</option><option>100–500 hours</option><option>500+ hours</option><option>Real-world pilot</option></select></div>
       <div class="field"><label for="ap_hub">Preferred hub</label><select id="ap_hub" name="hub">${hubs.map(([ic, n]) => `<option value="${ic}">${ic} ${esc(n)}</option>`).join("")}</select></div>
+      <div class="field full"><label for="ap_source">Where did you hear about us?</label><select id="ap_source" name="source">
+        <option value="">— Select —</option><option>Reddit</option><option>Simdispatch (VA directory)</option><option>VA-List.com</option>
+        <option>X-Plane Community forum</option><option>X-Plane.org forums</option><option>Flightsim.to</option><option>Hangar Addons</option>
+        <option>My Next Airline</option><option>VATSIM forum</option><option>IVAO forum</option><option>Discord</option>
+        <option>A friend / word of mouth</option><option>Other</option></select></div>
       <div class="field full"><label for="ap_why">Why do you want to fly with PAC?</label><textarea id="ap_why" name="motivation" rows="3"></textarea></div>
       <label class="full" style="display:flex;gap:10px;font-size:14px;align-items:flex-start"><input type="checkbox" name="agree" style="margin-top:3px;accent-color:#fff"> I've read the <a href="#handbook" onclick="show('handbook');return false">pilot handbook</a> and will fly by its rules.</label>
       <p class="full ap-privacy">Staff use your details only to review your application and, if you join, to run your PAC account. See the <a href="#privacy" onclick="show('privacy');return false">privacy policy</a>.</p>
@@ -5859,6 +5864,10 @@ async function staffEngagement() {
   const btn = p => p.has_email && !p.opted_out ? `<button class="btn ghost small" data-nudge="${esc(p.pilot_id)}">Send reminder</button>` : `<span class="muted">–</span>`;
   body.innerHTML = `
     <p class="muted" style="max-width:85ch">New pilots who haven't flown their first flight, and pilots who've gone quiet. PAC emails them automatically — never-flown at <b>3, 7 and 14 days</b> after joining, lapsed at <b>30 and 60 days</b> since their last flight — plus a Discord DM for linked pilots. Each nudge sends once and stops; the monthly report takes over after. Use <b>Send reminder</b> to nudge someone now. Pilots on leave are left alone.</p>
+    <div class="notice" style="margin:0 0 12px"><b>Test it on yourself.</b> Send a sample reminder to your own inbox — it records nothing and doesn't touch any pilot.
+      <span class="row" style="gap:8px;margin-top:6px;align-items:center;flex-wrap:wrap">
+        <select id="engTestTag" aria-label="Reminder type"><option value="new3">First-flight · day 3</option><option value="new7">First-flight · day 7</option><option value="new14">First-flight · day 14</option><option value="lapse30">Lapsed · 30 days</option><option value="lapse60">Lapsed · 60 days</option></select>
+        <button class="btn ghost small" id="engTestSend" type="button">Send test to me</button></span></div>
     <div class="row" style="gap:18px;margin:8px 0 14px">
       <span><span class="tag green">Active</span> ${d.active_count}</span>
       <span><span class="tag amber">Never flown</span> ${d.never_count}</span>
@@ -5877,6 +5886,14 @@ async function staffEngagement() {
     try { const r = await api("/api/staff/engagement/nudge", { method: "POST", body: { pilot: b.dataset.nudge } }); toast(r.message || "Reminder sent."); staffEngagement(); }
     catch (e) { toast(e.message); b.disabled = false; b.textContent = was; }
   });
+  const tb = body.querySelector("#engTestSend");
+  if (tb) tb.onclick = async () => {
+    const tag = body.querySelector("#engTestTag").value, w = tb.textContent;
+    tb.disabled = true; tb.textContent = "Sending…";
+    try { const r = await api("/api/staff/engagement/send-test", { method: "POST", body: { tag } }); toast(r.message || "Sent."); }
+    catch (e) { toast(e.message); }
+    tb.disabled = false; tb.textContent = w;
+  };
 }
 /* Staff › Activity: every pilot's next-flight-due date, who is on leave and who is overdue */
 async function staffCargoStock() {
@@ -6053,11 +6070,15 @@ function staffReviews() {
 }
 function staffApps() {
   const list = S.staff.applications, old = list.filter(a => a.status !== "Pending" && !a.on_roster);
-  $("#staffBody").innerHTML = (old.length ? `<div class="row" style="justify-content:space-between;align-items:center;margin-bottom:12px;gap:12px;flex-wrap:wrap">
+  const srcCount = {}; list.forEach(a => { if (a.source) srcCount[a.source] = (srcCount[a.source] || 0) + 1; });
+  const srcRows = Object.entries(srcCount).sort((x, y) => y[1] - x[1]);
+  const srcTally = srcRows.length ? `<div class="notice" style="margin:0 0 12px"><b>Where applicants come from</b> <span class="muted">(all ${list.length} applications)</span>
+    <div class="row" style="gap:8px;margin-top:6px;flex-wrap:wrap">${srcRows.map(([s, n]) => `<span class="tag">${esc(s)} <b>${n}</b></span>`).join("")}${list.some(a => !a.source) ? `<span class="tag dark">Not asked / blank <b>${list.filter(a => !a.source).length}</b></span>` : ""}</div></div>` : "";
+  $("#staffBody").innerHTML = srcTally + (old.length ? `<div class="row" style="justify-content:space-between;align-items:center;margin-bottom:12px;gap:12px;flex-wrap:wrap">
       <span class="muted" style="font-size:14px">${old.length} reviewed application${old.length === 1 ? "" : "s"} from people who aren't on the roster (declined, or pilots since removed).</span>
       <button class="btn ghost small" id="clearOldApps">Clear old applications</button></div>` : "") + (list.length ? list.map(a => `<div class="q-item ${statusCls(a.status === "Approved" ? "Accepted" : a.status)}">
     <div><b>${esc(a.name)}</b> <span class="tag ${a.status === "Pending" ? "amber" : a.status === "Approved" ? "green" : ""}">${a.status}${a.pilot_id ? " · " + a.pilot_id : ""}</span>
-      <div class="meta">${esc(a.email)} · ${esc(a.country || "–")} · ${esc(a.simulator || "")} · ${esc(a.experience || "")} · prefers ${esc(a.hub || "–")}${a.discord ? " · Discord " + esc(a.discord) : ""} · ${new Date(a.submitted * 1000).toISOString().substr(0, 10)}</div>
+      <div class="meta">${esc(a.email)} · ${esc(a.country || "–")} · ${esc(a.simulator || "")} · ${esc(a.experience || "")} · prefers ${esc(a.hub || "–")}${a.discord ? " · Discord " + esc(a.discord) : ""}${a.source ? ' · <b>via ' + esc(a.source) + "</b>" : ""} · ${new Date(a.submitted * 1000).toISOString().substr(0, 10)}</div>
       ${a.motivation ? `<p style="margin:6px 0 0;max-width:80ch">${esc(a.motivation)}</p>` : ""}${a.note ? `<div class="meta">Note: ${esc(a.note)}</div>` : ""}</div>
     <div class="q-actions">${a.status === "Pending" ? `<input placeholder="Note (optional)" data-anote="${a.id}" aria-label="Note">
       <button class="btn small" data-app="${a.id}" data-act="approve">Approve</button><button class="btn ghost small" data-app="${a.id}" data-act="reject">Decline</button>` : ""}
