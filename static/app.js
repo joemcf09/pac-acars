@@ -5864,10 +5864,11 @@ async function staffEngagement() {
   const btn = p => p.has_email && !p.opted_out ? `<button class="btn ghost small" data-nudge="${esc(p.pilot_id)}">Send reminder</button>` : `<span class="muted">–</span>`;
   body.innerHTML = `
     <p class="muted" style="max-width:85ch">New pilots who haven't flown their first flight, and pilots who've gone quiet. PAC emails them automatically — never-flown at <b>3, 7 and 14 days</b> after joining, lapsed at <b>30 and 60 days</b> since their last flight — plus a Discord DM for linked pilots. Each nudge sends once and stops; the monthly report takes over after. Use <b>Send reminder</b> to nudge someone now. Pilots on leave are left alone.</p>
-    <div class="notice" style="margin:0 0 12px"><b>Test it on yourself.</b> Send a sample reminder to your own inbox — it records nothing and doesn't touch any pilot.
+    <div class="notice" style="margin:0 0 12px"><b>Test it on yourself.</b> Send a sample reminder to any inbox — it records nothing and doesn't touch any pilot. Leave the address blank to use your profile email.
       <span class="row" style="gap:8px;margin-top:6px;align-items:center;flex-wrap:wrap">
         <select id="engTestTag" aria-label="Reminder type"><option value="new3">First-flight · day 3</option><option value="new7">First-flight · day 7</option><option value="new14">First-flight · day 14</option><option value="lapse30">Lapsed · 30 days</option><option value="lapse60">Lapsed · 60 days</option></select>
-        <button class="btn ghost small" id="engTestSend" type="button">Send test to me</button></span></div>
+        <input id="engTestTo" type="email" placeholder="send to… (optional)" style="min-width:220px" autocomplete="email">
+        <button class="btn ghost small" id="engTestSend" type="button">Send test</button></span></div>
     <div class="row" style="gap:18px;margin:8px 0 14px">
       <span><span class="tag green">Active</span> ${d.active_count}</span>
       <span><span class="tag amber">Never flown</span> ${d.never_count}</span>
@@ -5888,9 +5889,9 @@ async function staffEngagement() {
   });
   const tb = body.querySelector("#engTestSend");
   if (tb) tb.onclick = async () => {
-    const tag = body.querySelector("#engTestTag").value, w = tb.textContent;
+    const tag = body.querySelector("#engTestTag").value, to = body.querySelector("#engTestTo").value.trim(), w = tb.textContent;
     tb.disabled = true; tb.textContent = "Sending…";
-    try { const r = await api("/api/staff/engagement/send-test", { method: "POST", body: { tag } }); toast(r.message || "Sent."); }
+    try { const r = await api("/api/staff/engagement/send-test", { method: "POST", body: to ? { tag, to } : { tag } }); toast(r.message || "Sent."); }
     catch (e) { toast(e.message); }
     tb.disabled = false; tb.textContent = w;
   };
