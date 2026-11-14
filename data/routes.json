@@ -36642,5 +36642,75 @@
   "reward": 740,
   "distance_nm": 4134,
   "briefing": "Scheduled return freight from RJAA to KSEA. Plan the return sector in SimBrief and check departure and arrival performance, weather, and fuel."
+ },
+ {
+  "id": "PAC2201",
+  "title": "Edmonton to Anchorage",
+  "category": "Scheduled",
+  "region": "Americas",
+  "priority": "Standard",
+  "origin": {
+   "icao": "CYEG",
+   "name": "Edmonton International Airport",
+   "city": "Edmonton",
+   "country": "CA",
+   "lat": 53.3097,
+   "lon": -113.58
+  },
+  "destination": {
+   "icao": "PANC",
+   "name": "Ted Stevens Anchorage International Airport",
+   "city": "Anchorage",
+   "country": "US",
+   "lat": 61.179,
+   "lon": -149.9926
+  },
+  "aircraft": [
+   "B763F",
+   "B752F",
+   "B738F",
+   "B733F"
+  ],
+  "cargo": "Northbound freight for the transpacific gateway",
+  "payload_lbs": 42000,
+  "target_block_min": 202,
+  "reward": 280,
+  "distance_nm": 1253,
+  "briefing": "Scheduled Americas rotation, 1253 nm, about 3h22. Connects the Edmonton-Yellowknife feeder into the PAC hub at Anchorage. Both Edmonton and Anchorage are full-service cargo hubs with long runways."
+ },
+ {
+  "id": "PAC2202",
+  "title": "Anchorage to Edmonton",
+  "category": "Scheduled",
+  "region": "Americas",
+  "priority": "Standard",
+  "origin": {
+   "icao": "PANC",
+   "name": "Ted Stevens Anchorage International Airport",
+   "city": "Anchorage",
+   "country": "US",
+   "lat": 61.179,
+   "lon": -149.9926
+  },
+  "destination": {
+   "icao": "CYEG",
+   "name": "Edmonton International Airport",
+   "city": "Edmonton",
+   "country": "CA",
+   "lat": 53.3097,
+   "lon": -113.58
+  },
+  "aircraft": [
+   "B763F",
+   "B752F",
+   "B738F",
+   "B733F"
+  ],
+  "cargo": "Transpacific inbound for the prairies",
+  "payload_lbs": 42000,
+  "target_block_min": 202,
+  "reward": 280,
+  "distance_nm": 1253,
+  "briefing": "Scheduled Americas rotation, 1253 nm, about 3h22. Feeds Anchorage cargo south to Edmonton and the northern Canada network. Both Edmonton and Anchorage are full-service cargo hubs with long runways."
  }
 ]
