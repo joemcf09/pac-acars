@@ -152,6 +152,23 @@ def register(app, context):
         return body,code,{'Content-Type':'text/plain; charset=utf-8','Cache-Control':'no-store'}
 
 
+    @app.get('/up')
+    def up():
+        """Shallow liveness for the member-facing monitor: 200 only if the web app is serving and the database reads.
+        Unlike /healthz it ignores background subsystems (mission worker, Discord bot, backups), so a routine deploy or a
+        late backup never shows the website as down to members -- a 'down' here means the site is genuinely unreachable.
+        Public, leaks no data."""
+        try:
+            con=sqlite3.connect(context['DB_PATH'],timeout=2)
+            try:
+                con.execute('SELECT 1 FROM pilots LIMIT 1').fetchone()
+            finally:
+                con.close()
+        except sqlite3.Error:
+            return 'PROBLEM: database',503,{'Content-Type':'text/plain; charset=utf-8','Cache-Control':'no-store'}
+        return 'OK',200,{'Content-Type':'text/plain; charset=utf-8','Cache-Control':'no-store'}
+
+
     @app.get('/api/staff/vatsim-flights.csv')
     def vatsim_csv():
         """The flight list VATSIM's audit asks for: callsign, origin, destination and date (no pilot names)."""

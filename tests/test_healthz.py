@@ -32,5 +32,11 @@ r = c.get("/healthz")
 bot_on = botlink.enabled()
 check("bot silent for 10 minutes: 503 names it (when the bot is on)", (r.status_code == 503 and "discord bot" in r.text) if bot_on else r.status_code == 200, (bot_on, r.text))
 check("only names the problem, no data", len(r.text) < 80)
+# /up is the shallow member-facing check: it ignores the subsystems /healthz watches
+botlink._seen["poll"] = now - 600          # bot still 'silent', which makes /healthz 503...
+check("/healthz is 503 while the bot is silent (when bot on)", (c.get("/healthz").status_code == 503) if bot_on else True)
+r = c.get("/up")
+check("/up stays 200 when only a subsystem (bot/backups) is unhealthy", r.status_code == 200 and r.text == "OK", (r.status_code, r.text))
+check("/up needs no sign-in", "set-cookie" not in {k.lower() for k in r.headers.keys()} or r.status_code == 200)
 print("\nHEALTHZ TEST " + ("PASSED" if not failures else f"FAILED: {failures}"))
 sys.exit(1 if failures else 0)
