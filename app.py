@@ -4240,6 +4240,12 @@ def network_api():
 import cargo_track  # noqa: E402  (public air waybill tracking)
 
 
+@app.get("/unicom/flight")
+def unicom_flight_page():
+    """Unicom calls generated for a specific flight (prefilled from the booking via query string)."""
+    return send_from_directory(app.static_folder, "unicom-flight.html")
+
+
 @app.get("/unicom/ivao")
 def unicom_ivao_page():
     """Printable cheat sheet: IVAO-specific self-announcing on Unicom 122.800."""

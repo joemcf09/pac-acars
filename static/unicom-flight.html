@@ -1,0 +1,172 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Unicom calls for your flight · Pagani Air Cargo</title>
+<style>
+:root{--red:#C80000;--red-deep:#9A0000;--red-wash:#FBEAEA;--ink:#1E2126;--steel:#5E6470;--line:#D9DCE1;--paper:#F3F4F6;--white:#fff;
+  --ivao:#124a8c;--vatsim:#1f7a3d;--ok:#17693C;--ok-wash:#E3F4EA;--font:"Saira",system-ui,-apple-system,"Segoe UI",sans-serif;--mono:"IBM Plex Mono",ui-monospace,Consolas,monospace}
+*{box-sizing:border-box}html,body{margin:0}
+body{font-family:var(--font);color:var(--ink);background:var(--paper);font-size:15px;line-height:1.5}
+header{background:var(--red);color:#fff;display:flex;align-items:center;gap:14px;padding:14px 24px;flex-wrap:wrap}
+header img{height:24px}
+header .hdr-nav{margin-left:auto;display:flex;gap:16px;flex-wrap:wrap}
+header .hdr-nav a{color:#fff;font-weight:700;text-decoration:none;font-size:14px}
+header .hdr-nav a:hover{text-decoration:underline}
+.wrap{max-width:900px;margin:0 auto;padding:24px 20px 60px}
+h1{font-size:28px;margin:12px 0 2px}
+.sub{color:var(--steel);margin:0 0 10px}
+.freq{display:inline-block;background:var(--ink);color:#fff;font:800 18px var(--mono);letter-spacing:.06em;padding:5px 12px;border-radius:6px}
+.panel{background:#fff;border:1px solid var(--line);border-radius:8px;padding:16px 18px;margin:16px 0}
+.fields{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:12px}
+label{display:flex;flex-direction:column;font-size:12px;font-weight:700;color:var(--steel);text-transform:uppercase;letter-spacing:.04em;gap:4px}
+input,select{font:600 15px var(--mono);padding:8px 10px;border:2px solid var(--line);border-radius:5px;background:#fff;color:var(--ink);text-transform:uppercase}
+input:focus,select:focus{outline:none;border-color:var(--red)}
+.toggles{display:flex;gap:18px;flex-wrap:wrap;margin:14px 0 0;align-items:center}
+.seg{display:inline-flex;border:2px solid var(--line);border-radius:6px;overflow:hidden}
+.seg button{font:700 13px var(--font);background:#fff;color:var(--ink);border:0;padding:7px 14px;cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--red);color:#fff}
+.seg.net button[aria-pressed="true"][data-v="ivao"]{background:var(--ivao)}
+.seg.net button[aria-pressed="true"][data-v="vatsim"]{background:var(--vatsim)}
+.call-row{display:flex;gap:10px;align-items:flex-start;padding:10px 0;border-bottom:1px solid var(--line)}
+.call-row:last-child{border-bottom:0}
+.call-ph{flex:none;width:118px;font-weight:800;font-size:13px;padding-top:7px}
+.call-ph small{display:block;color:var(--steel);font-weight:600;text-transform:uppercase;letter-spacing:.03em;font-size:10px}
+.call-txt{flex:1;background:var(--paper);border-left:3px solid var(--red);border-radius:4px;padding:9px 12px;font:600 14px var(--mono);white-space:pre-wrap;word-break:break-word;min-width:0}
+.cp{flex:none;font:700 12px var(--font);background:#fff;color:var(--red);border:2px solid var(--red);border-radius:5px;padding:7px 10px;cursor:pointer}
+.cp:hover{background:var(--red);color:#fff}
+.cp.done{background:var(--ok);border-color:var(--ok);color:#fff}
+.toolbar{display:flex;gap:10px;flex-wrap:wrap;margin:6px 0 0;align-items:center}
+.btn{font:700 14px var(--font);background:var(--red);color:#fff;border:2px solid var(--red);border-radius:5px;padding:8px 16px;cursor:pointer;text-decoration:none;display:inline-block}
+.btn.ghost{background:#fff;color:var(--red)}
+.hint{background:#fff7e0;color:#7A5600;border-radius:6px;padding:10px 13px;margin:12px 0;font-weight:600;font-size:14px}
+small.src{color:var(--steel);font-size:12px}
+@media print{header,.toolbar,.toggles,.cp,.hint{display:none}body{background:#fff}.panel{border-color:#bbb}.call-txt{background:#fff}}
+</style>
+</head>
+<body>
+<header>
+  <a href="/" aria-label="PAC home"><img src="/static/pac-wordmark-white.png" alt="PAC"></a>
+  <span style="font-weight:800">Unicom calls for your flight</span>
+  <nav class="hdr-nav"><a href="/#home" onclick="if(document.referrer.indexOf(location.host)>-1&&history.length>1){history.back();return false}">← Back to PAC</a>
+    <a href="/unicom">Reference sheet</a></nav>
+</header>
+<div class="wrap">
+  <h1>Your Unicom calls, ready to send</h1>
+  <p class="sub">No controller online? These are built from your flight. Edit anything, pick your network, then copy each call straight into VATSIM or IVAO. <span class="freq">122.800</span></p>
+
+  <div class="panel">
+    <div class="fields">
+      <label>Callsign<input id="f_cs" maxlength="10" placeholder="PGI1235"></label>
+      <label>From<input id="f_dep" maxlength="4" placeholder="KCVG"></label>
+      <label>Dep runway<input id="f_deprwy" maxlength="3" placeholder="36C"></label>
+      <label>SID (optional)<input id="f_sid" maxlength="12" placeholder="e.g. ANVI4L"></label>
+      <label>To<input id="f_arr" maxlength="4" placeholder="KMIA"></label>
+      <label>Arr runway<input id="f_arrwy" maxlength="3" placeholder="09"></label>
+      <label>Approach<select id="f_appr"><option value="ILS">ILS</option><option value="RNAV">RNAV</option><option value="visual">Visual</option><option value="the">Other/▼</option></select></label>
+      <label>Cruise<input id="f_crz" maxlength="6" placeholder="FL350"></label>
+      <label>Direction<input id="f_dir" maxlength="10" placeholder="southbound"></label>
+    </div>
+    <div class="toggles">
+      <span class="seg net" role="group" aria-label="Network"><button data-t="net" data-v="vatsim" aria-pressed="true">VATSIM</button><button data-t="net" data-v="ivao" aria-pressed="false">IVAO</button></span>
+      <span class="seg mode" role="group" aria-label="Voice or text"><button data-t="mode" data-v="text" aria-pressed="true">Text (paste)</button><button data-t="mode" data-v="voice" aria-pressed="false">Voice (read)</button></span>
+    </div>
+    <p class="hint" id="modeHint"></p>
+  </div>
+
+  <div class="toolbar">
+    <button class="btn" id="copyAll">Copy all calls</button>
+    <button class="btn ghost" onclick="print()">🖨 Print / save as PDF</button>
+  </div>
+
+  <div class="panel" id="calls"></div>
+
+  <p><small class="src">Text mode leaves out your callsign because the VATSIM/IVAO client adds it for you. Voice mode includes it to read aloud. You'll usually get no reply — Unicom is a broadcast, not a request. Full reference: <a href="/unicom">VATSIM/combined</a> · <a href="/unicom/ivao">IVAO</a>.</small></p>
+</div>
+<script>
+const $ = s => document.querySelector(s);
+const qp = new URLSearchParams(location.search);
+const F = {};
+["cs","dep","deprwy","sid","arr","arrwy","crz","dir","appr"].forEach(k => { const el = $("#f_" + k); F[k] = el;
+  const v = qp.get(k); if (v) el.value = decodeURIComponent(v).toUpperCase(); });
+if (qp.get("appr")) { const a = decodeURIComponent(qp.get("appr")); [...F.appr.options].forEach(o => { if (o.value.toUpperCase() === a.toUpperCase()) F.appr.value = o.value; }); }
+let net = (qp.get("net") || "vatsim").toLowerCase(), mode = "text";
+
+const val = k => (F[k].value || "").trim().toUpperCase();
+function calls() {
+  const cs = val("cs") || "[CALLSIGN]", dep = val("dep") || "[DEP]", arr = val("arr") || "[ARR]";
+  const dr = val("deprwy"), ar = val("arrwy"), sid = val("sid"), crz = val("crz"), dir = (F.dir.value || "").trim().toLowerCase();
+  const appr = F.appr.value === "the" ? "the" : F.appr.value;
+  const rw = r => r ? "runway " + r : "the active runway", rwS = r => r ? "rwy " + r : "active rwy";
+  const list = [];
+  const add = (ph, sub, nets, voice, text) => list.push({ ph, sub, nets, voice, text });
+  // --- departure (both networks) ---
+  add("Taxi", "before moving", "both", `${dep} traffic, ${cs}, taxi ${rw(dr)}.`, `${dep} traffic, taxi ${rwS(dr)}.`);
+  add("Line-up + go", "entering runway", "both",
+    `${dep} traffic, ${cs}, lining up and departing ${rw(dr)}${sid ? ", " + sid + " departure" : dir ? ", " + dir : ""}.`,
+    `${dep} traffic, lining up + departing ${rwS(dr)}${sid ? ", " + sid : dir ? ", " + dir : ""}.`);
+  add("Airborne", "clear of the field", "both",
+    `${dep} traffic, ${cs}, airborne ${rw(dr)}, climbing${dir ? " " + dir : ""}.`,
+    `${dep} traffic, airborne ${rwS(dr)}, climbing${dir ? " " + dir : ""}.`);
+  // --- enroute (IVAO only) ---
+  add("Climb report", "enroute · IVAO", "ivao",
+    `All stations, ${cs}, climbing ${crz || "[LEVEL]"}${dir ? ", " + dir : ""}, position [FIX] at [TIME]Z, estimating [NEXT FIX] at [TIME]Z.`,
+    `All stations, climbing ${crz || "[LEVEL]"}${dir ? ", " + dir : ""}, [FIX] at [TIME]Z, est [NEXT] [TIME]Z.`);
+  add("Cruise report", "repeat enroute · IVAO", "ivao",
+    `All stations, ${cs}, ${crz || "[LEVEL]"}${dir ? ", " + dir : ""}, position [FIX] now, estimating [NEXT FIX] at [TIME]Z.`,
+    `All stations, ${crz || "[LEVEL]"}, [FIX] now, est [NEXT] [TIME]Z.`);
+  add("Level change", "before + at · IVAO", "ivao",
+    `All stations, ${cs}, leaving ${crz || "[LEVEL]"} now for [NEW LEVEL].`,
+    `All stations, leaving ${crz || "[LEVEL]"} for [NEW LEVEL].`);
+  // --- arrival ---
+  if (net === "ivao") add("Descent", "approaching · IVAO", "ivao",
+    `${arr} traffic, ${cs}, descending [LEVEL], inbound ${appr} ${rw(ar)}, estimating the field at [TIME]Z.`,
+    `${arr} traffic, descending [LEVEL], inbound ${appr} ${rwS(ar)}.`);
+  add("Inbound", "~25 nm out", "both",
+    `${arr} traffic, ${cs}, 25 miles out, inbound ${appr} ${rw(ar)}.`,
+    `${arr} traffic, 25mi out, inbound ${appr} ${rwS(ar)}.`);
+  add("Final", "turning final", "both",
+    `${arr} traffic, ${cs}, turning final, ${rw(ar)}.`,
+    `${arr} traffic, final ${rwS(ar)}.`);
+  add("Clear", "after landing", "both",
+    `${arr} traffic, ${cs}, clear of ${rw(ar)}, taxiing to the cargo ramp.`,
+    `${arr} traffic, clear ${rwS(ar)}, taxi to ramp.`);
+  return list.filter(c => c.nets === "both" || c.nets === net);
+}
+function render() {
+  $("#modeHint").textContent = mode === "text"
+    ? "Text mode: your callsign is left out — the pilot client adds it when you send on 122.800."
+    : "Voice mode: your callsign is included so you can read the call aloud.";
+  const rows = calls().map((c, i) => {
+    const t = mode === "voice" ? c.voice : c.text;
+    return `<div class="call-row"><div class="call-ph">${c.ph}<small>${c.sub}</small></div>
+      <div class="call-txt" id="ct${i}">${esc(t)}</div><button class="cp" data-i="${i}">Copy</button></div>`;
+  }).join("");
+  $("#calls").innerHTML = rows;
+  $("#calls").querySelectorAll(".cp").forEach(b => b.onclick = () => {
+    const t = $("#ct" + b.dataset.i).textContent;
+    copy(t, b);
+  });
+}
+function copy(t, btn) {
+  const done = () => { if (btn) { const o = btn.textContent; btn.textContent = "Copied"; btn.classList.add("done"); setTimeout(() => { btn.textContent = o; btn.classList.remove("done"); }, 1200); } };
+  if (navigator.clipboard) navigator.clipboard.writeText(t).then(done, () => fallback(t, done));
+  else fallback(t, done);
+}
+function fallback(t, done) { const a = document.createElement("textarea"); a.value = t; document.body.appendChild(a); a.select(); try { document.execCommand("copy"); done(); } catch (e) {} a.remove(); }
+function esc(s) { return String(s).replace(/[&<>]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c])); }
+$("#copyAll").onclick = e => { const all = [...$("#calls").querySelectorAll(".call-txt")].map(x => x.textContent).join("\n"); copy(all, null); const o = e.target.textContent; e.target.textContent = "Copied all"; setTimeout(() => e.target.textContent = o, 1200); };
+document.querySelectorAll(".seg button").forEach(b => b.onclick = () => {
+  const t = b.dataset.t, grp = b.parentElement;
+  grp.querySelectorAll("button").forEach(x => x.setAttribute("aria-pressed", x === b));
+  if (t === "net") net = b.dataset.v; else mode = b.dataset.v;
+  render();
+});
+Object.values(F).forEach(el => el.addEventListener("input", render));
+// set initial network toggle from query
+document.querySelectorAll('.seg.net button').forEach(b => b.setAttribute("aria-pressed", b.dataset.v === net));
+render();
+</script>
+</body>
+</html>

@@ -91,6 +91,7 @@ dialog.sign .msg { color: #C80000; font-size: 14px; min-height: 1em; margin: 6px
   <label>Jump to <select id="jumpTo" aria-label="Jump to a section of the release"><option value="">Section…</option></select></label>
   <label>NOTAM print scope <select id="notamScope"><option value="airports">Airports</option><option value="all">All imported</option><option value="none">Omit imported NOTAMs</option></select></label>
   <button id="hoppieBtn" hidden title="Send the loadsheet to your aircraft's ACARS over Hoppie">📡 Send loadsheet to cockpit</button>
+  <button id="unicomBtn" hidden title="Ready-to-send Unicom calls for this flight, for when no ATC is online">📻 Unicom calls</button>
   <label id="hoppieAutoLbl" hidden title="PAC sends the loadsheet by itself when you start PAC ACARS, and again if you sign a new edition at the gate" style="display:inline-flex;gap:6px;align-items:center;font-size:13px;color:inherit"><input type="checkbox" id="hoppieAuto"> Auto-send</label>
   <button class="primary" id="printBtn" onclick="print()">Print / save as PDF</button></div>
 <div class="amended" id="amended" hidden>Your SimBrief plan changed the fuel and weights, so this is an amended release. Review it and sign again.</div>
@@ -640,6 +641,23 @@ function handlingLines(d) {
   return out;
 }
 
+/* ---------------- Unicom calls for this flight (no ATC) ---------------- */
+function setupUnicom(d, pid) {
+  if (pid) return;                 // only on the live dispatch release, not a past PIREP's copy
+  const b = $("#unicomBtn"); if (!b) return;
+  b.hidden = false;
+  b.onclick = () => {
+    const p = d.paper || {}, q = new URLSearchParams();
+    const cs = p.atc_callsign || String(p.callsign || "").split(" ")[0] || "";
+    if (cs) q.set("cs", cs);
+    if (d.origin?.icao) q.set("dep", d.origin.icao);
+    if (d.destination?.icao) q.set("arr", d.destination.icao);
+    if (d.origin?.runway) q.set("deprwy", d.origin.runway);
+    if (d.destination?.runway) q.set("arrwy", d.destination.runway);
+    if (d.cruise) q.set("crz", d.cruise);
+    window.open("/unicom/flight?" + q.toString(), "_blank", "noopener");
+  };
+}
 /* ---------------- loadsheet to the cockpit (Hoppie's ACARS) ---------------- */
 async function setupHoppie(d, pid) {
   if (pid) return;
@@ -761,6 +779,7 @@ const pageBreaks = (lines, size) => {
     $("#notamScope").onchange = () => { const cut=PAGES.findIndex(p=>p.form==='OCC-PERF / 01'||p.form==='OCC-BRF / 01'); if(cut>=0) PAGES.splice(cut); addImportedBriefing(d); renderPages(d); };
     setupSigning(d, pid);
     setupHoppie(d, pid);
+    setupUnicom(d, pid);
     if (qs.get("sign") && !d.signed && !pid) $("#signBtn").click();
   } catch (e) {
     $("#doc").innerHTML = `<div class="err"><h2 style="margin-top:0">No dispatch paperwork</h2><p>${esc(e.message)}</p><p><a href="/#missions">Go to the mission board</a></p></div>`;
