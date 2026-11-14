@@ -99,6 +99,7 @@ if (qp.get("appr")) { const a = decodeURIComponent(qp.get("appr")); [...F.appr.o
 let net = (qp.get("net") || "vatsim").toLowerCase(), mode = "text";
 const CITY = {};          // ICAO -> spoken city name, filled from the server
 let liveStatus = null;    // the live flight phase + OOOI, if PAC ACARS is running
+let LN = null;            // live navigation: next fix + ETA for the IVAO enroute calls
 
 // Look up each airport's spoken name and the wind-favoured runway. Fill a blank runway box with the suggestion.
 async function lookupAirport(which) {
@@ -135,12 +136,14 @@ function calls() {
     `${field(dep)}, ${cs}, airborne ${rw(dr)}, climbing${dir ? " " + dir : ""}.`,
     `${dep} traffic, airborne ${rwS(dr)}, climbing${dir ? " " + dir : ""}.`);
   // --- enroute (IVAO only) ---
+  const pf = (LN && LN.posFix) || "[FIX]", nf = (LN && LN.nextFix) || "[NEXT FIX]", nfs = (LN && LN.nextFix) || "[NEXT]",
+        nz = (LN && LN.nowZ) || "[TIME]Z", ne = (LN && LN.nextEta) || "[TIME]Z";
   add("Climb report", "enroute · IVAO", "ivao",
-    `All stations, ${cs}, climbing ${crz || "[LEVEL]"}${dir ? ", " + dir : ""}, position [FIX] at [TIME]Z, estimating [NEXT FIX] at [TIME]Z.`,
-    `All stations, climbing ${crz || "[LEVEL]"}${dir ? ", " + dir : ""}, [FIX] at [TIME]Z, est [NEXT] [TIME]Z.`);
+    `All stations, ${cs}, climbing ${crz || "[LEVEL]"}${dir ? ", " + dir : ""}, position ${pf} at ${nz}, estimating ${nf} at ${ne}.`,
+    `All stations, climbing ${crz || "[LEVEL]"}${dir ? ", " + dir : ""}, ${pf} at ${nz}, est ${nfs} ${ne}.`);
   add("Cruise report", "repeat enroute · IVAO", "ivao",
-    `All stations, ${cs}, ${crz || "[LEVEL]"}${dir ? ", " + dir : ""}, position [FIX] now, estimating [NEXT FIX] at [TIME]Z.`,
-    `All stations, ${crz || "[LEVEL]"}, [FIX] now, est [NEXT] [TIME]Z.`);
+    `All stations, ${cs}, ${crz || "[LEVEL]"}${dir ? ", " + dir : ""}, position ${pf} now, estimating ${nf} at ${ne}.`,
+    `All stations, ${crz || "[LEVEL]"}, ${pf} now, est ${nfs} ${ne}.`);
   add("Level change", "before + at · IVAO", "ivao",
     `All stations, ${cs}, leaving ${crz || "[LEVEL]"} now for [NEW LEVEL].`,
     `All stations, leaving ${crz || "[LEVEL]"} for [NEW LEVEL].`);
@@ -220,12 +223,27 @@ function resolvePhase(list) {
   for (const w of want) if (avail.has(w)) return w;
   return null;
 }
+function hav(a, b, c, d) { const R = 3440.065, r = Math.PI / 180, dLa = (c - a) * r, dLo = (d - b) * r;
+  const x = Math.sin(dLa / 2) ** 2 + Math.cos(a * r) * Math.cos(c * r) * Math.sin(dLo / 2) ** 2; return 2 * R * Math.asin(Math.sqrt(x)); }
+function zulu(ts) { const d = new Date(ts); return String(d.getUTCHours()).padStart(2, "0") + String(d.getUTCMinutes()).padStart(2, "0") + "Z"; }
+function navFromStatus(st) {
+  const live = st.live, rp = st.booking && st.booking.ofp && st.booking.ofp.route_points;
+  if (!live || live.lat == null || !Array.isArray(rp) || rp.length < 2 || !(live.gs > 40)) return null;
+  const dest = rp[rp.length - 1], dcur = hav(live.lat, live.lon, dest[0], dest[1]);
+  const wps = rp.filter(p => p[2]).map(p => ({ id: p[2], dd: hav(p[0], p[1], dest[0], dest[1]) }));
+  const ahead = wps.filter(w => w.dd < dcur - 1).sort((a, b) => b.dd - a.dd);
+  const behind = wps.filter(w => w.dd > dcur + 1).sort((a, b) => a.dd - b.dd);
+  const now = Date.now(), eta = w => zulu(now + ((dcur - w.dd) / live.gs) * 3600000);
+  return { posFix: behind[0] ? behind[0].id : (ahead[0] ? ahead[0].id : null),
+    nextFix: ahead[0] ? ahead[0].id : null, nextEta: ahead[0] ? eta(ahead[0]) : null, nowZ: zulu(now) };
+}
 async function pollPhase() {
   try {
     const st = await (await fetch("/api/acars/status", { credentials: "same-origin" })).json();
-    const next = (st && (st.tracking || st.oooi || st.phase)) ? { phase: st.phase, oooi: st.oooi, tracking: st.tracking } : null;
-    liveStatus = next; render();
-  } catch (e) { if (liveStatus) { liveStatus = null; render(); } }
+    liveStatus = (st && (st.tracking || st.oooi || st.phase)) ? { phase: st.phase, oooi: st.oooi, tracking: st.tracking } : null;
+    LN = (st && st.live) ? navFromStatus(st) : null;
+    render();
+  } catch (e) { if (liveStatus || LN) { liveStatus = null; LN = null; render(); } }
 }
 pollPhase(); setInterval(pollPhase, 20000);
 </script>
