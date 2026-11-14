@@ -124,8 +124,9 @@ def _site(st, fallback=""):
     return auth.site_address(st.get("public_url") or fallback or "https://pac-va.com")
 
 
-def build_email(first, category, tag, site, unsub_url):
-    """(subject, text, html) for one nudge. Tone escalates gently; nothing guilt-trips."""
+def build_email(first, category, tag, site, unsub_url, discord=""):
+    """(subject, text, html) for one nudge. Tone escalates gently; nothing guilt-trips. When a Discord invite is set it's
+    included with the /link instruction, so pilots who got an expired invite in their welcome email get a working one."""
     site = (site or "").rstrip("/")
     first = (first or "Captain").split()[0]
     if category == "never":
@@ -156,8 +157,11 @@ def build_email(first, category, tag, site, unsub_url):
                          "Whenever you're ready, the Missions board is the place to start."]),
         }[tag]
     subject, lines = body
-    lines = [f"Hi {first},", ""] + lines + ["", "Fly safe,", "PAC Operations Control", "", site or "", "",
-                                            f"Don't want these reminders? {unsub_url}"]
+    disc = (["", "Join the crew on Discord for flight posts, screenshots and help:", discord,
+             "Once you're in, connect your pilot account with the /link command (your code is in Settings on the website)."]
+            if discord else [])
+    lines = [f"Hi {first},", ""] + lines + disc + ["", "Fly safe,", "PAC Operations Control", "", site or "", "",
+                                                   f"Don't want these reminders? {unsub_url}"]
     text = "\n".join(lines)
     inner = "".join(f"<p style='margin:0 0 4px;white-space:pre-wrap;font-family:{'monospace' if l.startswith('  ') else 'Arial,sans-serif'}'>"
                     f"{html.escape(l) or '&nbsp;'}</p>" for l in lines[:-1])
@@ -206,7 +210,7 @@ def tick(con, st, secret, now=None):
         if _already(con, c["pilot_id"], c["tag"], "email"):
             continue
         unsub = f"{site}/unsubscribe/reminders?p={c['pilot_id']}&t={unsub_token(secret, c['pilot_id'])}"
-        subject, text, htm = build_email(c["name"], c["category"], c["tag"], site, unsub)
+        subject, text, htm = build_email(c["name"], c["category"], c["tag"], site, unsub, st.get("discord_invite") or "")
         _record(con, c["pilot_id"], c["tag"], "email", now)
         mailer.send(st, c["email"], subject, text, htm)
         sent += 1
@@ -318,7 +322,7 @@ def send_manual(con, st, secret, pid, now=None):
     tag = _due_tag(category, since) or ("new3" if category == "never" else "lapse30")   # welcome even a brand-new pilot
     site = _site(st)
     unsub = f"{site}/unsubscribe/reminders?p={pid}&t={unsub_token(secret, pid)}"
-    subject, text, htm = build_email(row["name"], category, tag, site, unsub)
+    subject, text, htm = build_email(row["name"], category, tag, site, unsub, st.get("discord_invite") or "")
     ok, err = mailer.send(st, row["email"], subject, text, htm, wait=True)
     if ok:
         _record(con, pid, tag, "email", now)
@@ -386,7 +390,7 @@ def register(app, g):
         category = "never" if tag.startswith("new") else "lapsed"
         site = _site(st)
         unsub = f"{site}/unsubscribe/reminders?p={me}&t={unsub_token(app.secret_key, me)}"
-        subject, text, htm = build_email((row["name"] if row else "Captain"), category, tag, site, unsub)
+        subject, text, htm = build_email((row["name"] if row else "Captain"), category, tag, site, unsub, st.get("discord_invite") or "")
         ok, err = mailer.send(st, to, "[TEST] " + subject, text, htm, wait=True)
         return (jsonify({"ok": True, "message": f"Test reminder sent to {to}. Check your inbox (and spam)."}) if ok
                 else (jsonify({"error": f"It couldn't be sent: {err}"}), 502))

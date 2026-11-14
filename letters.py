@@ -70,6 +70,7 @@ Pagani Air Cargo — Operations Control, Cincinnati
 DISCORD_BLOCK = """
 Our Discord
 Crew talk, screenshots and live flight posts: {discord}
+Once you've joined, connect your pilot account with the /link command — your code is in Settings on the website.
 """
 
 REASON_BLOCK = """
