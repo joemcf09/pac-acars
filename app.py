@@ -4258,6 +4258,24 @@ def unicom_airport():
                     "crosswind_kt": rw.get("crosswind_kt"), "gust_kt": rw.get("gust_kt")})
 
 
+@app.get("/api/unicom/atc")
+def unicom_atc_online():
+    """Field controllers online now for this flight's departure/arrival (for the 'contact ATC' nudge)."""
+    import unicom_atc
+    net = (request.args.get("net") or "vatsim").lower()
+    if net not in unicom_atc.FEEDS:
+        net = "vatsim"
+    dep = (request.args.get("dep") or "").upper()
+    arr = (request.args.get("arr") or "").upper()
+    return jsonify({"net": net, "online": unicom_atc.covering(net, dep, arr) if (dep or arr) else []})
+
+
+@app.get("/api/staff/unicom/atc-selftest")
+def unicom_atc_selftest():
+    import unicom_atc
+    return jsonify({n: unicom_atc.selftest(n) for n in unicom_atc.FEEDS})
+
+
 @app.get("/unicom/flight")
 def unicom_flight_page():
     """Unicom calls generated for a specific flight (prefilled from the booking via query string)."""

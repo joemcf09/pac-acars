@@ -41,6 +41,8 @@ input:focus,select:focus{outline:none;border-color:var(--red)}
 .btn{font:700 14px var(--font);background:var(--red);color:#fff;border:2px solid var(--red);border-radius:5px;padding:8px 16px;cursor:pointer;text-decoration:none;display:inline-block}
 .btn.ghost{background:#fff;color:var(--red)}
 .hint{background:#fff7e0;color:#7A5600;border-radius:6px;padding:10px 13px;margin:12px 0;font-weight:600;font-size:14px}
+#atcBanner{background:#fdeaea;border:2px solid #c80000;color:#9A0000;border-radius:8px;padding:12px 15px;margin:12px 0;font-weight:700;font-size:15px}
+#atcBanner small{display:block;font-weight:600;color:#7a2a2a;margin-top:3px}
 .sugg{font-size:11px;font-weight:600;color:#1f7a3d;text-transform:none;letter-spacing:0;margin-top:2px}
 .call-row.now{background:#eef7f0;border-radius:8px;margin:0 -8px;padding-left:8px;padding-right:8px}
 .call-row.now .call-txt{border-left-color:#1f7a3d}
@@ -59,6 +61,7 @@ small.src{color:var(--steel);font-size:12px}
 <div class="wrap">
   <h1>Your Unicom calls, ready to send</h1>
   <p class="sub">No controller online? These are built from your flight. Edit anything, pick your network, then copy each call straight into VATSIM or IVAO. <span class="freq">122.800</span></p>
+  <div id="atcBanner" style="display:none"></div>
 
   <div class="panel">
     <div class="fields">
@@ -192,11 +195,11 @@ document.querySelectorAll(".seg button").forEach(b => b.onclick = () => {
   const t = b.dataset.t, grp = b.parentElement;
   grp.querySelectorAll("button").forEach(x => x.setAttribute("aria-pressed", x === b));
   if (t === "net") net = b.dataset.v; else mode = b.dataset.v;
-  render();
+  render(); if (t === "net") pollATC();
 });
 Object.values(F).forEach(el => el.addEventListener("input", render));
-F.dep.addEventListener("change", () => { delete F.deprwy.dataset.sugg; lookupAirport("dep"); });
-F.arr.addEventListener("change", () => { delete F.arrwy.dataset.sugg; lookupAirport("arr"); });
+F.dep.addEventListener("change", () => { delete F.deprwy.dataset.sugg; lookupAirport("dep"); pollATC(); });
+F.arr.addEventListener("change", () => { delete F.arrwy.dataset.sugg; lookupAirport("arr"); pollATC(); });
 // set initial network toggle from query
 document.querySelectorAll('.seg.net button').forEach(b => b.setAttribute("aria-pressed", b.dataset.v === net));
 render();
@@ -246,6 +249,24 @@ async function pollPhase() {
   } catch (e) { if (liveStatus || LN) { liveStatus = null; LN = null; render(); } }
 }
 pollPhase(); setInterval(pollPhase, 20000);
+
+// If a controller for the departure or arrival field comes online, nudge the pilot to contact them.
+async function pollATC() {
+  const dep = val("dep"), arr = val("arr"), el = document.getElementById("atcBanner");
+  if (!el || (!dep && !arr)) return;
+  try {
+    const r = await fetch(`/api/unicom/atc?net=${net}&dep=${encodeURIComponent(dep)}&arr=${encodeURIComponent(arr)}`, { credentials: "same-origin" });
+    const d = await r.json();
+    const list = (d.online || []);
+    if (!list.length) { el.style.display = "none"; return; }
+    const one = list[0], where = one.where === "arrival" ? arr : dep;
+    el.innerHTML = `⚠️ ${esc(where)} ${esc(one.type)} is online${one.freq ? " on " + esc(one.freq) : ""} — contact ATC and stop self-announcing.`
+      + (list.length > 1 ? `<small>Also online: ${esc(list.slice(1).map(c => c.callsign).join(", "))}</small>`
+        : `<small>${esc(one.callsign)} · Unicom is only for when no controller covers you.</small>`);
+    el.style.display = "block";
+  } catch (e) { el.style.display = "none"; }
+}
+pollATC(); setInterval(pollATC, 60000);
 </script>
 </body>
 </html>
