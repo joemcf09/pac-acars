@@ -1,0 +1,179 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>IVAO Unicom cheat sheet · Pagani Air Cargo</title>
+<style>
+:root{--red:#C80000;--red-deep:#9A0000;--red-wash:#FBEAEA;--ink:#1E2126;--steel:#5E6470;--line:#D9DCE1;--paper:#F3F4F6;--white:#fff;
+  --ok:#17693C;--ok-wash:#E3F4EA;--warn:#7A5600;--warn-wash:#FFF1CC;--ivao:#124a8c;--ivao-wash:#e7effb;--font:"Saira",system-ui,-apple-system,"Segoe UI",sans-serif;--mono:"IBM Plex Mono",ui-monospace,Consolas,monospace}
+*{box-sizing:border-box}html,body{margin:0}
+body{font-family:var(--font);color:var(--ink);background:var(--paper);font-size:15px;line-height:1.5}
+header{background:var(--red);color:#fff;display:flex;align-items:center;gap:14px;padding:14px 24px;flex-wrap:wrap}
+header img{height:24px}
+header .hdr-nav{margin-left:auto;display:flex;gap:16px;flex-wrap:wrap}
+header .hdr-nav a{color:#fff;font-weight:700;text-decoration:none;font-size:14px}
+header .hdr-nav a:hover{text-decoration:underline}
+.wrap{max-width:1040px;margin:0 auto;padding:24px 20px 60px}
+h1{font-size:30px;margin:14px 0 2px}
+.sub{color:var(--steel);margin:0 0 8px}
+.badge-ivao{display:inline-block;background:var(--ivao);color:#fff;font:800 12px var(--font);letter-spacing:.08em;text-transform:uppercase;padding:3px 10px;border-radius:20px;vertical-align:middle;margin-left:6px}
+.freq{display:inline-block;background:var(--ink);color:#fff;font:800 20px var(--mono);letter-spacing:.06em;padding:6px 14px;border-radius:6px;margin:8px 0}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:18px;margin:18px 0}
+.card{background:#fff;border:1px solid var(--line);border-radius:8px;padding:16px 18px}
+.card h2{font-size:18px;margin:0 0 10px;display:flex;align-items:center;gap:8px}
+.card h2 .n{background:var(--ivao);color:#fff;width:26px;height:26px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:14px;flex:none}
+.rules li{margin:6px 0}
+.call{background:var(--paper);border-left:3px solid var(--ivao);border-radius:4px;padding:8px 12px;margin:8px 0;font:600 14px var(--mono);white-space:pre-wrap;word-break:break-word}
+.call b{color:var(--ivao)}
+.phase{border:1px solid var(--line);border-radius:8px;overflow:hidden;margin:10px 0;background:#fff}
+.phase>summary{cursor:pointer;padding:12px 16px;font-weight:800;list-style:none;display:flex;justify-content:space-between;align-items:center;gap:10px}
+.phase>summary::-webkit-details-marker{display:none}
+.phase>summary::after{content:"＋";color:var(--ivao);font-weight:800}
+.phase[open]>summary::after{content:"－"}
+.phase .body{padding:0 16px 14px}
+.note{background:var(--warn-wash);color:var(--warn);border-radius:6px;padding:12px 14px;margin:14px 0;font-weight:600}
+.ok{background:var(--ok-wash);color:var(--ok);border-radius:6px;padding:12px 14px;margin:14px 0}
+.addr{background:var(--ivao-wash);color:var(--ivao);border-radius:6px;padding:12px 14px;margin:14px 0}
+table{border-collapse:collapse;width:100%;margin:8px 0;font-size:14px}
+th,td{text-align:left;padding:7px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+th{background:var(--paper)}
+.toolbar{display:flex;gap:10px;flex-wrap:wrap;margin:10px 0 0;align-items:center}
+.btn{font:700 14px var(--font);background:var(--red);color:#fff;border:2px solid var(--red);border-radius:4px;padding:8px 16px;cursor:pointer;text-decoration:none;display:inline-block}
+.btn.ghost{background:#fff;color:var(--red)}
+.steps{counter-reset:s;padding-left:0;list-style:none}
+.steps li{counter-increment:s;margin:7px 0;padding-left:34px;position:relative}
+.steps li::before{content:counter(s);position:absolute;left:0;top:0;background:var(--ivao);color:#fff;width:24px;height:24px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:13px;font-weight:700}
+small.src{color:var(--steel);font-size:12px}
+@media print{
+  header,.toolbar,.hdr-nav{display:none}
+  body{background:#fff;font-size:11.5pt}
+  .wrap{max-width:none;padding:0}
+  .phase{break-inside:avoid}.card{break-inside:avoid;border-color:#bbb}
+  .phase .body{display:block!important}
+  .phase>summary::after{content:""}
+  a[href]::after{content:""}
+}
+</style>
+</head>
+<body>
+<header>
+  <a href="/" aria-label="PAC home"><img src="/static/pac-wordmark-white.png" alt="PAC"></a>
+  <span style="font-weight:800">IVAO Unicom cheat sheet</span>
+  <nav class="hdr-nav"><a href="/#home" onclick="if(document.referrer.indexOf(location.host)>-1&&history.length>1){history.back();return false}">← Back to PAC</a>
+    <a href="/unicom">VATSIM / combined sheet</a><a href="/#downloads">Downloads</a></nav>
+</header>
+<div class="wrap">
+  <h1>Flying IVAO with no ATC <span class="badge-ivao">IVAO</span></h1>
+  <p class="sub">On IVAO, Unicom is a <b>self-announcing</b> system (their version of TIBA). When no controller is online you report your position and intentions — on the ground <em>and</em> enroute — so other pilots can avoid you.</p>
+  <div class="freq">UNICOM 122.800</div>
+  <div class="toolbar">
+    <button class="btn" onclick="print()">🖨 Print / save as PDF</button>
+    <a class="btn ghost" href="/unicom">On VATSIM instead? →</a>
+  </div>
+
+  <div class="grid">
+    <div class="card">
+      <h2><span class="n">1</span> First: is anyone really off?</h2>
+      <ul class="rules">
+        <li>Check your pilot client for any controller serving your area or field. A higher position (APP, CTR) may still cover you — call <em>them</em>.</li>
+        <li>Only self-announce on <b>122.800</b> when no ATC is available.</li>
+        <li><b>Keep monitoring</b> Unicom and re-check regularly — a controller can connect at any time, and other aircraft log on near you.</li>
+        <li>Read incoming <b>text</b> messages in the client; they may affect you.</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h2><span class="n">2</span> IVAO conventions</h2>
+      <ul class="rules">
+        <li><b>Voice or text</b> are both allowed on IVAO Unicom.</li>
+        <li><b>English only.</b> All times in <b>UTC (Zulu)</b>.</li>
+        <li>In text you <b>don't type your callsign</b> — the client adds it automatically.</li>
+        <li><b>No one acknowledges</b> your calls unless there's a collision risk. Silence is normal.</li>
+        <li>Transponder on <b>Charlie / TX</b> and TCAS on, or others won't see you.</li>
+        <li>Keep messages simple; standard aviation abbreviations are fine.</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="addr">
+    <b>Who to address:</b> enroute, start with <b>“All stations”</b>. Near an aerodrome, use <b>“[ICAO] traffic”</b> (e.g. “OMDW traffic”). That's the one habit that tells IVAO pilots apart from VATSIM pilots.
+  </div>
+
+  <div class="card">
+    <h2>The message, element by element</h2>
+    <p class="sub">Build each enroute call from these. Drop any that aren't needed to stay clear.</p>
+    <table>
+      <tr><th>#</th><th>Element</th><th>Example</th></tr>
+      <tr><td>1</td><td>Who you're calling</td><td>All stations / OMDW traffic</td></tr>
+      <tr><td>2</td><td>Flight level or altitude</td><td>FL340 / 2000 ft</td></tr>
+      <tr><td>3</td><td>Direction</td><td>southbound</td></tr>
+      <tr><td>4</td><td>Route or “direct”</td><td>airway UM603 / direct PEDUL to NOSMI</td></tr>
+      <tr><td>5</td><td>Position + time (UTC)</td><td>position PEDUL at 1512Z</td></tr>
+      <tr><td>6</td><td>Estimate for next point + time</td><td>estimating NOSMI at 1538Z</td></tr>
+      <tr><td>7</td><td>Planned level change, if any</td><td>climbing FL360</td></tr>
+    </table>
+  </div>
+
+  <h2 style="margin-top:22px">When to announce</h2>
+  <ul class="rules">
+    <li>Any time traffic is within <b>20 NM</b> (watch TCAS).</li>
+    <li>About <b>10 min before</b> a reporting point, joining or crossing an ATS route/airway, or entering special airspace.</li>
+    <li><b>2–5 min before</b> a flight-level change, and again <b>at</b> the change.</li>
+    <li>Repeat your call <b>periodically</b> on a long leg — someone new may have logged on.</li>
+  </ul>
+
+  <h2 style="margin-top:22px">The calls, phase by phase</h2>
+
+  <details class="phase" open><summary>On the ground (push, taxi, line-up, departure)</summary>
+    <div class="body">
+      <div class="call"><b>OMDW traffic,</b> pushing back stand A7, taxi for runway 30.</div>
+      <div class="call"><b>OMDW traffic,</b> lining up and departing runway 30, following the filed SID.</div>
+      <div class="call"><b>OMDW traffic,</b> airborne runway 30, climbing, leaving the circuit to the east.</div>
+    </div>
+  </details>
+
+  <details class="phase"><summary>Climb &amp; enroute position reports</summary>
+    <div class="body">
+      <p>Switch to <b>“All stations”</b> once you leave the field's area.</p>
+      <div class="call"><b>All stations,</b> climbing FL340, southbound, airway M677, position PEDUL at 1512Z, estimating NOSMI at 1538Z.</div>
+      <div class="call"><b>All stations,</b> FL340, direct NOSMI to BOTAM, position NOSMI now, estimating BOTAM at 1604Z.</div>
+    </div>
+  </details>
+
+  <details class="phase"><summary>Flight-level changes</summary>
+    <div class="body">
+      <p>Call <b>before</b> (2–5 min out) and again <b>at</b> the change.</p>
+      <div class="call"><b>All stations,</b> airway M677, leaving FL340 now for FL360.</div>
+      <div class="call"><b>All stations,</b> maintaining FL360.</div>
+    </div>
+  </details>
+
+  <details class="phase" open><summary>Descent, approach &amp; landing</summary>
+    <div class="body">
+      <p>Back to <b>“[ICAO] traffic”</b> as you near the destination.</p>
+      <div class="call"><b>OOMS traffic,</b> descending FL190, northwest, direct GOGLU to RONIX, estimating ILS runway 26L interception at 1620Z.</div>
+      <div class="call"><b>OOMS traffic,</b> 25 miles north, inbound ILS runway 26L.</div>
+      <div class="call"><b>OOMS traffic,</b> turning final, runway 26L.</div>
+      <div class="call"><b>OOMS traffic,</b> clear of runway 26L, taxiing to the cargo ramp.</div>
+    </div>
+  </details>
+
+  <div class="note">⚠️ Expect <b>no replies</b>. Self-announcing is one-way: you're painting a picture for anyone nearby, not asking permission. Keep flying the plan.</div>
+
+  <div class="ok">
+    <b>One full IVAO flight, OMDW → OOMS, no ATC:</b>
+    <ol class="steps" style="margin:10px 0 0">
+      <li><span style="font-family:var(--mono)">OMDW traffic — push A7, taxi rwy 30</span></li>
+      <li><span style="font-family:var(--mono)">OMDW traffic — lining up + departing rwy 30, filed SID</span></li>
+      <li><span style="font-family:var(--mono)">All stations — climbing FL340 S'bound, [airway], [fix] at [time]Z, est [next] [time]Z</span></li>
+      <li><span style="font-family:var(--mono)">All stations — leaving FL340 for FL360 → maintaining FL360</span></li>
+      <li><span style="font-family:var(--mono)">OOMS traffic — descending, est ILS 26L at [time]Z</span></li>
+      <li><span style="font-family:var(--mono)">OOMS traffic — 25mi N, inbound ILS 26L → final 26L</span></li>
+      <li><span style="font-family:var(--mono)">OOMS traffic — clear rwy 26L, taxi to ramp</span></li>
+    </ol>
+  </div>
+
+  <p style="margin-top:22px"><small class="src">Summarised from IVAO's own guidance; procedures can change — follow IVAO's current rules and your pilot client's documentation. Sources: IVAO wiki “UNICOM” and “Self-announcing procedure”. VATSIM differs (airport-focused, no enroute reports) — see the VATSIM sheet at /unicom.</small></p>
+</div>
+</body>
+</html>
