@@ -94,6 +94,7 @@ dialog.sign .msg { color: #C80000; font-size: 14px; min-height: 1em; margin: 6px
   <button id="unicomBtn" hidden title="Ready-to-send Unicom calls for this flight, for when no ATC is online">📻 Unicom calls</button>
   <label id="hoppieAutoLbl" hidden title="PAC sends the loadsheet by itself when you start PAC ACARS, and again if you sign a new edition at the gate" style="display:inline-flex;gap:6px;align-items:center;font-size:13px;color:inherit"><input type="checkbox" id="hoppieAuto"> Auto-send</label>
   <button class="primary" id="printBtn" onclick="print()">Print / save as PDF</button></div>
+<div id="hoppieHint" hidden style="font-size:13px;margin:6px 0 0;color:inherit"></div>
 <div class="amended" id="amended" hidden>Your SimBrief plan changed the fuel and weights, so this is an amended release. Review it and sign again.</div>
 <main id="doc"><div class="err">Loading the release…</div></main>
 <dialog class="sign" id="signDlg"><form method="dialog" class="in" id="signForm">
@@ -664,21 +665,36 @@ async function setupHoppie(d, pid) {
   if (!d.hoppie) return;
   const b = $("#hoppieBtn"); b.hidden = false;
   const al = $("#hoppieAutoLbl"), ab = $("#hoppieAuto"); al.hidden = false; ab.checked = !!d.hoppie_auto;
+  const netCs = (d.paper && d.paper.atc_callsign) || "";   // the network callsign PAC sends the telex to (e.g. PGI2004)
+  const hint = $("#hoppieHint");
+  const renderHint = () => {
+    const l = d.hoppie_last;
+    let last = "";
+    if (l) {
+      const t = new Date(l.at * 1000).toISOString().substr(11, 5) + "Z";
+      last = l.ok ? ` <span style="color:#1a7f37">· last uplink: EDNO ${l.edno} → ${l.callsign} at ${t} ✓</span>`
+                  : ` <span style="color:#c80000">· last uplink failed → ${l.callsign} at ${t}: ${l.why || "not sent"}</span>`;
+    }
+    hint.hidden = false;
+    hint.innerHTML = `📡 <b>Log on to Hoppie in the aircraft as <span style="font-family:monospace">${netCs}</span></b> — your network callsign, not the PAC… number you see on the website. Then the loadsheet reaches the cockpit.${last}`;
+  };
+  renderHint();
   ab.onchange = async () => {
     let cs = d.hoppie_callsign || "";
-    if (ab.checked) { cs = prompt("Callsign you log on with in the aircraft (leave empty to use each flight's ATC callsign):", cs) ?? null; if (cs === null) { ab.checked = false; return; } }
+    if (ab.checked) { cs = prompt(`Callsign your aircraft is logged on to Hoppie with.\nLeave empty to use each flight's network callsign (${netCs}).`, cs || netCs) ?? null; if (cs === null) { ab.checked = false; return; } }
     try { await fetch("/api/dispatch/hoppie/auto", { method: "POST", headers: { "Content-Type": "application/json" }, credentials: "same-origin", body: JSON.stringify({ on: ab.checked, callsign: cs }) }); d.hoppie_callsign = cs; }
     catch (e) { ab.checked = !ab.checked; alert("It couldn't be saved."); }
   };
   b.onclick = async () => {
-    const cs = prompt("Callsign you're logged on with in the aircraft's ACARS:", (d.paper && d.paper.atc_callsign) || "");
+    const cs = prompt("Callsign your aircraft is logged on to Hoppie with (this must match the aircraft exactly):", netCs);
     if (!cs) return;
     b.disabled = true; b.textContent = "📡 Sending…";
     try {
       const r = await fetch("/api/dispatch/hoppie", { method: "POST", headers: { "Content-Type": "application/json" }, credentials: "same-origin", body: JSON.stringify({ callsign: cs }) });
       const j = await r.json();
       b.textContent = r.ok ? `✓ Sent to ${j.callsign} (EDNO ${j.edno})` : "📡 Send loadsheet to cockpit";
-      if (!r.ok) alert(j.error || "It couldn't be sent.");
+      if (r.ok) { d.hoppie_last = { edno: j.edno, callsign: j.callsign, ok: true, at: Date.now() / 1000 }; renderHint(); }
+      else alert(j.error || "It couldn't be sent.");
     } catch (e) { b.textContent = "📡 Send loadsheet to cockpit"; alert("It couldn't be sent. Use the printed loadsheet."); }
     b.disabled = false;
   };

@@ -1899,6 +1899,7 @@ def dispatch_current():
     d["signature_required"] = signature_required(booking)
     d["hoppie"] = bool(__import__("hoppie").logon(DATA))
     d["hoppie_auto"], d["hoppie_callsign"] = hoppie_auto_pref()
+    d["hoppie_last"] = booking.get("hoppie_last")
     return jsonify(d)
 
 
@@ -2055,7 +2056,9 @@ def hoppie_send_loadsheet(booking, cs, pid=None):
     why = hoppie.send(hoppie.logon(DATA), cs, text)
     if not why:
         booking["hoppie_edno"] = edno
-        save_booking(booking, pid, notify=False)
+    # record the result either way, so the pilot can see what was sent, to which callsign, and any failure reason
+    booking["hoppie_last"] = {"edno": edno, "callsign": cs, "ok": not why, "why": why, "at": time.time()}
+    save_booking(booking, pid, notify=False)
     return why, edno, text
 
 
