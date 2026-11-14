@@ -4240,6 +4240,24 @@ def network_api():
 import cargo_track  # noqa: E402  (public air waybill tracking)
 
 
+@app.get("/api/unicom/airport")
+def unicom_airport():
+    """For the Unicom generator: an airport's spoken city name and the runway the wind favours right now."""
+    icao = (request.args.get("icao") or "").strip().upper()
+    a = AIRPORTS.get(icao)
+    if not a:
+        return jsonify({"icao": icao, "city": None, "runway": None})
+    wx = None
+    try:
+        wx = (weather.metars([icao]) or {}).get(icao)
+    except Exception:
+        wx = None
+    rw = pick_runway(icao, 0, wx)
+    return jsonify({"icao": icao, "city": STATION_CITY.get(icao, a.get("city")), "runway": rw.get("runway"),
+                    "note": rw.get("note"), "wind": rw.get("wind"), "headwind_kt": rw.get("headwind_kt"),
+                    "crosswind_kt": rw.get("crosswind_kt"), "gust_kt": rw.get("gust_kt")})
+
+
 @app.get("/unicom/flight")
 def unicom_flight_page():
     """Unicom calls generated for a specific flight (prefilled from the booking via query string)."""

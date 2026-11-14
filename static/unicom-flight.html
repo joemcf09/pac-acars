@@ -41,6 +41,10 @@ input:focus,select:focus{outline:none;border-color:var(--red)}
 .btn{font:700 14px var(--font);background:var(--red);color:#fff;border:2px solid var(--red);border-radius:5px;padding:8px 16px;cursor:pointer;text-decoration:none;display:inline-block}
 .btn.ghost{background:#fff;color:var(--red)}
 .hint{background:#fff7e0;color:#7A5600;border-radius:6px;padding:10px 13px;margin:12px 0;font-weight:600;font-size:14px}
+.sugg{font-size:11px;font-weight:600;color:#1f7a3d;text-transform:none;letter-spacing:0;margin-top:2px}
+.call-row.now{background:#eef7f0;border-radius:8px;margin:0 -8px;padding-left:8px;padding-right:8px}
+.call-row.now .call-txt{border-left-color:#1f7a3d}
+.nowtag{flex:none;align-self:center;font:700 11px var(--font);background:#1f7a3d;color:#fff;border-radius:20px;padding:3px 9px;white-space:nowrap}
 small.src{color:var(--steel);font-size:12px}
 @media print{header,.toolbar,.toggles,.cp,.hint{display:none}body{background:#fff}.panel{border-color:#bbb}.call-txt{background:#fff}}
 </style>
@@ -73,6 +77,7 @@ small.src{color:var(--steel);font-size:12px}
       <span class="seg mode" role="group" aria-label="Voice or text"><button data-t="mode" data-v="text" aria-pressed="true">Text (paste)</button><button data-t="mode" data-v="voice" aria-pressed="false">Voice (read)</button></span>
     </div>
     <p class="hint" id="modeHint"></p>
+    <p class="sugg" id="suggNote" style="margin:0 2px"></p>
   </div>
 
   <div class="toolbar">
@@ -92,8 +97,28 @@ const F = {};
   const v = qp.get(k); if (v) el.value = decodeURIComponent(v).toUpperCase(); });
 if (qp.get("appr")) { const a = decodeURIComponent(qp.get("appr")); [...F.appr.options].forEach(o => { if (o.value.toUpperCase() === a.toUpperCase()) F.appr.value = o.value; }); }
 let net = (qp.get("net") || "vatsim").toLowerCase(), mode = "text";
+const CITY = {};          // ICAO -> spoken city name, filled from the server
+let liveStatus = null;    // the live flight phase + OOOI, if PAC ACARS is running
+
+// Look up each airport's spoken name and the wind-favoured runway. Fill a blank runway box with the suggestion.
+async function lookupAirport(which) {
+  const icao = val(which === "dep" ? "dep" : "arr");
+  if (!/^[A-Z]{3,4}$/.test(icao)) return;
+  try {
+    const r = await fetch("/api/unicom/airport?icao=" + icao, { credentials: "same-origin" });
+    const d = await r.json();
+    if (d.city) CITY[icao] = d.city;
+    const rwField = which === "dep" ? F.deprwy : F.arrwy;
+    if (d.runway && !rwField.value.trim()) {
+      rwField.value = d.runway;
+      rwField.dataset.sugg = d.headwind_kt != null ? `likely rwy ${d.runway} (wind ${d.wind || "?"}) — confirm` : `likely rwy ${d.runway} — confirm`;
+    }
+    render();
+  } catch (e) { /* offline: leave blank, calls say "the active runway" */ }
+}
 
 const val = k => (F[k].value || "").trim().toUpperCase();
+const field = icao => (mode === "voice" && CITY[icao]) ? CITY[icao].toUpperCase() + " traffic" : icao + " traffic";
 function calls() {
   const cs = val("cs") || "[CALLSIGN]", dep = val("dep") || "[DEP]", arr = val("arr") || "[ARR]";
   const dr = val("deprwy"), ar = val("arrwy"), sid = val("sid"), crz = val("crz"), dir = (F.dir.value || "").trim().toLowerCase();
@@ -102,12 +127,12 @@ function calls() {
   const list = [];
   const add = (ph, sub, nets, voice, text) => list.push({ ph, sub, nets, voice, text });
   // --- departure (both networks) ---
-  add("Taxi", "before moving", "both", `${dep} traffic, ${cs}, taxi ${rw(dr)}.`, `${dep} traffic, taxi ${rwS(dr)}.`);
+  add("Taxi", "before moving", "both", `${field(dep)}, ${cs}, taxi ${rw(dr)}.`, `${dep} traffic, taxi ${rwS(dr)}.`);
   add("Line-up + go", "entering runway", "both",
-    `${dep} traffic, ${cs}, lining up and departing ${rw(dr)}${sid ? ", " + sid + " departure" : dir ? ", " + dir : ""}.`,
+    `${field(dep)}, ${cs}, lining up and departing ${rw(dr)}${sid ? ", " + sid + " departure" : dir ? ", " + dir : ""}.`,
     `${dep} traffic, lining up + departing ${rwS(dr)}${sid ? ", " + sid : dir ? ", " + dir : ""}.`);
   add("Airborne", "clear of the field", "both",
-    `${dep} traffic, ${cs}, airborne ${rw(dr)}, climbing${dir ? " " + dir : ""}.`,
+    `${field(dep)}, ${cs}, airborne ${rw(dr)}, climbing${dir ? " " + dir : ""}.`,
     `${dep} traffic, airborne ${rwS(dr)}, climbing${dir ? " " + dir : ""}.`);
   // --- enroute (IVAO only) ---
   add("Climb report", "enroute · IVAO", "ivao",
@@ -121,16 +146,16 @@ function calls() {
     `All stations, leaving ${crz || "[LEVEL]"} for [NEW LEVEL].`);
   // --- arrival ---
   if (net === "ivao") add("Descent", "approaching · IVAO", "ivao",
-    `${arr} traffic, ${cs}, descending [LEVEL], inbound ${appr} ${rw(ar)}, estimating the field at [TIME]Z.`,
+    `${field(arr)}, ${cs}, descending [LEVEL], inbound ${appr} ${rw(ar)}, estimating the field at [TIME]Z.`,
     `${arr} traffic, descending [LEVEL], inbound ${appr} ${rwS(ar)}.`);
   add("Inbound", "~25 nm out", "both",
-    `${arr} traffic, ${cs}, 25 miles out, inbound ${appr} ${rw(ar)}.`,
+    `${field(arr)}, ${cs}, 25 miles out, inbound ${appr} ${rw(ar)}.`,
     `${arr} traffic, 25mi out, inbound ${appr} ${rwS(ar)}.`);
   add("Final", "turning final", "both",
-    `${arr} traffic, ${cs}, turning final, ${rw(ar)}.`,
+    `${field(arr)}, ${cs}, turning final, ${rw(ar)}.`,
     `${arr} traffic, final ${rwS(ar)}.`);
   add("Clear", "after landing", "both",
-    `${arr} traffic, ${cs}, clear of ${rw(ar)}, taxiing to the cargo ramp.`,
+    `${field(arr)}, ${cs}, clear of ${rw(ar)}, taxiing to the cargo ramp.`,
     `${arr} traffic, clear ${rwS(ar)}, taxi to ramp.`);
   return list.filter(c => c.nets === "both" || c.nets === net);
 }
@@ -138,10 +163,13 @@ function render() {
   $("#modeHint").textContent = mode === "text"
     ? "Text mode: your callsign is left out — the pilot client adds it when you send on 122.800."
     : "Voice mode: your callsign is included so you can read the call aloud.";
+  const sg = [F.deprwy.dataset.sugg && F.deprwy.value ? "Dep " + F.deprwy.dataset.sugg : "", F.arrwy.dataset.sugg && F.arrwy.value ? "Arr " + F.arrwy.dataset.sugg : ""].filter(Boolean).join("  ·  ");
+  $("#suggNote").textContent = sg;
+  const livePhase = resolvePhase(calls());
   const rows = calls().map((c, i) => {
-    const t = mode === "voice" ? c.voice : c.text;
-    return `<div class="call-row"><div class="call-ph">${c.ph}<small>${c.sub}</small></div>
-      <div class="call-txt" id="ct${i}">${esc(t)}</div><button class="cp" data-i="${i}">Copy</button></div>`;
+    const t = mode === "voice" ? c.voice : c.text, now = livePhase && c.ph === livePhase;
+    return `<div class="call-row${now ? " now" : ""}"><div class="call-ph">${c.ph}<small>${c.sub}</small></div>
+      <div class="call-txt" id="ct${i}">${esc(t)}</div>${now ? `<span class="nowtag">← you're here</span>` : ""}<button class="cp" data-i="${i}">Copy</button></div>`;
   }).join("");
   $("#calls").innerHTML = rows;
   $("#calls").querySelectorAll(".cp").forEach(b => b.onclick = () => {
@@ -164,9 +192,42 @@ document.querySelectorAll(".seg button").forEach(b => b.onclick = () => {
   render();
 });
 Object.values(F).forEach(el => el.addEventListener("input", render));
+F.dep.addEventListener("change", () => { delete F.deprwy.dataset.sugg; lookupAirport("dep"); });
+F.arr.addEventListener("change", () => { delete F.arrwy.dataset.sugg; lookupAirport("arr"); });
 // set initial network toggle from query
 document.querySelectorAll('.seg.net button').forEach(b => b.setAttribute("aria-pressed", b.dataset.v === net));
 render();
+lookupAirport("dep"); lookupAirport("arr");
+
+// Follow the live flight (if PAC ACARS is running) and highlight the matching call.
+const PHASE_CALLS = {               // flight phase -> ordered call phases to try
+  PREFLIGHT: ["Taxi"], PUSHBACK: ["Taxi"], TAXI: ["Taxi"], TAXI_OUT: ["Taxi"],
+  TAKEOFF: ["Line-up + go", "Airborne"], TAKEOFF_ROLL: ["Line-up + go", "Airborne"], DEPARTURE: ["Line-up + go", "Airborne"],
+  INITIAL_CLIMB: ["Airborne", "Climb report"], CLIMB: ["Climb report", "Airborne"],
+  CRUISE: ["Cruise report"], DESCENT: ["Descent", "Inbound"], ARRIVAL: ["Descent", "Inbound"],
+  APPROACH: ["Inbound"], FINAL: ["Final"], LANDING: ["Final"],
+  ROLLOUT: ["Clear"], LANDED: ["Clear"], TAXI_IN: ["Clear"], ARRIVED: ["Clear"], COMPLETE: ["Clear"], ONBLOCK: ["Clear"]
+};
+function resolvePhase(list) {
+  const st = liveStatus; if (!st) return null;
+  const oooi = st.oooi || {};
+  if (st.tracking === false && !oooi.out) return null;      // not actually flying
+  const avail = new Set(list.map(c => c.ph));
+  let want;
+  if (oooi.in || oooi.on) want = ["Clear"];
+  else if (oooi.off) want = PHASE_CALLS[(st.phase || "CRUISE").toUpperCase()] || (net === "ivao" ? ["Cruise report"] : []);
+  else want = PHASE_CALLS[(st.phase || "PREFLIGHT").toUpperCase()] || ["Taxi"];
+  for (const w of want) if (avail.has(w)) return w;
+  return null;
+}
+async function pollPhase() {
+  try {
+    const st = await (await fetch("/api/acars/status", { credentials: "same-origin" })).json();
+    const next = (st && (st.tracking || st.oooi || st.phase)) ? { phase: st.phase, oooi: st.oooi, tracking: st.tracking } : null;
+    liveStatus = next; render();
+  } catch (e) { if (liveStatus) { liveStatus = null; render(); } }
+}
+pollPhase(); setInterval(pollPhase, 20000);
 </script>
 </body>
 </html>

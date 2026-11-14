@@ -1613,6 +1613,7 @@ function renderAcars() {
       <div class="controls">
         <span class="conn" id="conn"><i></i><span>Not tracking</span></span>
         <a class="btn ghost" href="/dispatch" target="_blank" rel="noopener" id="dispatchBtn">${needsSignature(b) ? "Review and sign paperwork" : "Dispatch release"}</a>
+        <a class="btn ghost" id="unicomBtn" target="_blank" rel="noopener" title="Ready-to-send Unicom calls for this flight, for when no ATC is online">📻 Unicom calls</a>
         ${navigraphBtn(b.ofp)}
         <a class="btn" id="openApp" href="${appLink(b)}" title="Opens PAC ACARS on this PC with this flight loaded">Open in PAC ACARS</a>
         <button class="btn ghost" id="cancelBtn">Cancel mission</button>
@@ -1631,6 +1632,16 @@ function renderAcars() {
         <div class="hint" id="hint"></div>
       </div>
     </div></div>`;
+  (function () {
+    const ub = $("#unicomBtn"); if (!ub) return;
+    const q = new URLSearchParams();
+    const cs = (o && o.callsign) || b.flight_number || "";
+    if (cs) q.set("cs", cs);
+    if (m.origin?.icao) q.set("dep", m.origin.icao);
+    if (m.destination?.icao) q.set("arr", m.destination.icao);
+    if (o?.cruise_ft) q.set("crz", "FL" + String(Math.round(o.cruise_ft / 100)).padStart(3, "0"));
+    ub.href = "/unicom/flight?" + q.toString();
+  })();
   $("#openApp").onclick = () => {
     setTimeout(async () => {
       const app = await checkApp();
@@ -7850,6 +7861,7 @@ document.addEventListener('click',async e=>{
  catch(err){toast(err.message);b.disabled=false;}finally{patchSaving=false;}
 });
 const PAC_UPDATES=[
+ {"id": "20261114-unicom-live", "date": "November 14, 2026", "kind": "Improvement", "title": "Unicom calls: smarter and on the ACARS page", "body": "The Unicom call generator now fills your runway automatically from the wind, says the airport\u2019s spoken name in Voice mode (\u201cMemphis traffic\u201d), and \u2014 while PAC ACARS is running \u2014 highlights the exact call for your current phase of flight. There\u2019s also a \ud83d\udcfb Unicom calls button right on the ACARS page now, not just the dispatch release.", "view": "acars", "label": "Open ACARS"},
  {"id": "20261114-unicom-gen", "date": "November 14, 2026", "kind": "New feature", "title": "Unicom calls built from your flight", "body": "No controller online? Open your dispatch release and hit \u201c\ud83d\udcfb Unicom calls\u201d \u2014 it builds every call for you, prefilled with your callsign, airports, runways and cruise. Pick VATSIM or IVAO and Text or Voice, then copy each call straight into the sim. Also at /unicom/flight.", "view": "downloads", "label": "Open Downloads"},
  {"id": "20261113-unicom", "date": "November 13, 2026", "kind": "New feature", "title": "Unicom cheat sheet (no ATC online)", "body": "Flying on VATSIM or IVAO with no controller on? There's a new printable cheat sheet for Unicom 122.800: what to do and exactly what to say, phase by phase, with copy-paste text calls. Find it under Learn \u2192 Downloads & cheat sheets, or open /unicom.", "view": "downloads", "label": "Open Downloads"},
  {"id": "20261113-status", "date": "November 13, 2026", "kind": "New feature", "title": "/status in Discord", "body": "Type /status anywhere in the PAC Discord to see your day at a glance: where you are, where you're sleeping tonight, your booked flight or trip leg, your wallet and what's left for your next rank. Only you see the reply. Link your account first with /link (the code is in Settings)."},
