@@ -987,9 +987,15 @@ function renderDossier() {
   $("#requestNoOfp").onclick = () => { if (confirm("Fly without an OFP? Fuel and timing will be scored against the mission target only.")) requestMission(null); };
   if (S.ofp && !S.ofpErrors.length) wireVatsimFiling(d, m, m.charter ? m.aircraft[0] : S.aircraft, S.ofp);
 }
+function gravelNote(m) {
+  if (!m.gravel_kit) return "";
+  const names = (m.aircraft || []).map(a => S.fleet[a]?.name || a).join(" or ") || "Boeing 737-200C Advanced";
+  return `<div class="notice" style="margin-bottom:10px;border-color:#b06a00;background:rgba(176,106,0,.08)">
+    <b>❄ Gravel strip — gravel kit required.</b> This mission operates to or from an unpaved gravel runway. Only the <b>${esc(names)}</b> fitted with the gravel kit is cleared here, so it's the only type offered.</div>`;
+}
 function paneBrief(m) {
   const ok = !dossierBlockers(m) && !S.booking;
-  return `${missionCargoBrief(m)}
+  return `${gravelNote(m)}${missionCargoBrief(m)}
     <div id="zoneBrief" data-for="${esc(m.id)}">${zoneBriefing(m, null)}</div>
     ${m.rotation ? rotationStrip(m) : ""}${specialBoxes(m)}
     ${m.contract && m.operator?.logo ? `<div class="dp-operator"><img src="${esc(m.operator.logo)}" alt=""><span><b>${esc(m.operator.name)}</b> is short of a qualified captain: ${esc(m.shortage_reason || "crew shortage")}. PAC pilot hired to fill in.</span></div>` : ""}
@@ -1002,6 +1008,7 @@ function paneBrief(m) {
 function paneAircraft(m) {
   const types = m.charter ? `<p class="dp-lead">Charter aircraft: <b>${esc(S.fleet[m.aircraft[0]].name)}</b>. Change it in the charter form and rebuild.</p>` : `
     <h3 class="dp-h">Aircraft type</h3>
+    ${gravelNote(m)}
     <p class="muted dp-sub">${m.tour || m.rotation || m.types_only || m.category === "Checkride" ? "This flight is for the types listed here." : "Any aircraft in the fleet can fly this mission. Starred types are the best fit for the load and airports."}</p>
     <div class="ac-pick" role="radiogroup" aria-label="Aircraft">${fleetOrder(m).map(a => { const lock = lockedByRank(m, a);
       return `<label title="${lock ? "Unlocks at " + esc(rankFor(a)) : ""}" style="${lock ? "opacity:.5" : ""}"><input type="radio" name="ac" value="${a}" ${S.aircraft === a ? "checked" : ""} ${lock ? "disabled" : ""}>${esc(S.fleet[a].name)}${m.aircraft.includes(a) ? " ★" : ""}${S.fleet[a].sim === "X-Plane" ? ' <small class="muted">XP</small>' : ""}${lock ? " · " + esc(rankFor(a)) : needsRating(m, a) ? ` · <small class="muted" title="Fly the ${esc(needsRating(m, a))} type checkride from Career › Qualifications first">needs ${esc(needsRating(m, a))} rating</small>` : ""}</label>`; }).join("")}</div>

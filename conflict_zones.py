@@ -63,16 +63,26 @@ CUSTOM_SHAPES = {
 }
 
 
+def _prep(ring):
+    """Precompute a ring for point-in-polygon tests, as (bbox, ring, wrapped). A ring that straddles the
+    antimeridian (eastern Russia's Chukotka) is unwrapped to a continuous span east of 0 degrees, so the test
+    isn't smeared back across the Pacific and over Alaska. Rings that don't cross the date line are left alone."""
+    xs = [p[0] for p in ring]
+    wrapped = max(xs) - min(xs) > 180
+    r = _unwrap(ring) if wrapped else ring
+    return (_bbox(r), r, wrapped)
+
+
 def load_shapes(data_dir):
     global _shapes
     if _shapes is None:
         try:
             raw = json.loads((Path(data_dir) / "conflict_zones_shapes.json").read_text(encoding="utf-8"))
-            _shapes = {k: [(_bbox(r), r) for r in rings] for k, rings in raw["shapes"].items()}
+            _shapes = {k: [_prep(r) for r in rings] for k, rings in raw["shapes"].items()}
         except (OSError, ValueError, KeyError):
             _shapes = {}
         for k, rings in CUSTOM_SHAPES.items():
-            _shapes[k] = [(_bbox(r), r) for r in rings]
+            _shapes[k] = [_prep(r) for r in rings]
     return _shapes
 
 
@@ -97,9 +107,11 @@ def zone_at(lat, lon, shapes, ids):
     if lat is None or lon is None:
         return None
     lon = ((lon + 180) % 360) - 180
+    lon_w = lon + 360 if lon < 0 else lon   # same frame as an unwrapped, antimeridian-crossing ring
     for zid in ids:
-        for (x0, y0, x1, y1), ring in shapes.get(zid, ()):
-            if x0 <= lon <= x1 and y0 <= lat <= y1 and _inside(lon, lat, ring):
+        for (x0, y0, x1, y1), ring, wrapped in shapes.get(zid, ()):
+            x = lon_w if wrapped else lon
+            if x0 <= x <= x1 and y0 <= lat <= y1 and _inside(x, lat, ring):
                 return zid
     return None
 
@@ -233,5 +245,5 @@ def geojson(settings, data_dir):
             continue
         feats.append({"type": "Feature",
                       "properties": {"id": z["id"], "name": z["name"], "level": z["level"], "pct": z["pct"], "note": z["note"]},
-                      "geometry": {"type": "MultiPolygon", "coordinates": [[_unwrap(ring)] for _, ring in shapes[z["id"]]]}})
+                      "geometry": {"type": "MultiPolygon", "coordinates": [[ring] for _bb, ring, _w in shapes[z["id"]]]}})
     return {"type": "FeatureCollection", "features": feats}

@@ -103,6 +103,9 @@ MISSIONS = {m["id"]: m for m in json.loads((RESOURCE_DATA / "missions.json").rea
 _partners_file = json.loads((RESOURCE_DATA / "partners.json").read_text(encoding="utf-8")) if (RESOURCE_DATA / "partners.json").exists() else {"partners": {}}
 PARTNERS = _partners_file["partners"]
 ROUTES = {r["id"]: r for r in load_json_file(RESOURCE_DATA / "routes.json", [])} if (RESOURCE_DATA / "routes.json").exists() else {}
+for _r in ROUTES.values():
+    if _r.get("gravel_kit"):
+        _r["types_only"] = True   # unpaved gravel strip: only the gravel-kit aircraft listed can serve it
 _ap = json.loads((RESOURCE_DATA / "airports.json").read_text(encoding="utf-8"))
 AIRPORTS = {r[0]: dict(zip(_ap["fields"], r)) for r in _ap["rows"]}
 del _ap

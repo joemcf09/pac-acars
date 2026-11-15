@@ -1807,6 +1807,8 @@ def check_booking(m, ac, reg, st):
         prog = rotation_progress(pid)[m["rotation"]]
         if prog["next"] != m["id"]:
             return f"Fly leg {prog['completed'] + 1} of this rotation next.", None
+    if m.get("gravel_kit") and ac not in m["aircraft"]:
+        return f"This is an unpaved gravel strip: fly it with the {' or '.join(C['FLEET'][a]['name'] for a in m['aircraft'])} and its gravel kit.", None
     if m.get("types_only") and ac not in m["aircraft"]:
         return f"This flight is for the {' or '.join(C['FLEET'][a]['name'] for a in m['aircraft'])}.", None
     if m.get("contract") and ac not in m["aircraft"]:
