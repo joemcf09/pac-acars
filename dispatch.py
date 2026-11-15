@@ -226,7 +226,7 @@ def generate(booking, fleet, pilot, now=None):
                 qty = spec["qty"][0] if spec["qty"][0] == spec["qty"][1] else rng.randint(*spec["qty"])
                 entry = {"un": spec["un"], "name": spec["name"], "cls": spec["cls"], "sub": spec.get("sub", ""), "imp": spec["imp"],
                          "pieces": 1 if spec["unit"] == "pc" else rng.randint(1, 12), "net": f"{qty} {spec['unit']}",
-                         "pos": pos, "awb": positions[-1]["awb"], "cao": spec["cls"] in ("2.2",) or dgkey in ("rli", "rli0")}
+                         "pos": pos, "awb": positions[-1]["awb"], "cao": dgkey == "rli0"}
                 dgs.append(entry)
                 positions[-1]["dg"] = spec["imp"]
                 if spec["imp"] not in positions[-1]["shc"]:
