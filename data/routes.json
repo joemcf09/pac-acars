@@ -37178,5 +37178,137 @@
   "distance_nm": 169,
   "briefing": "Scheduled Americas rotation, 169 nm. Ekati diamond mine strip in the NWT barrens. Unpaved gravel runway — 737-200 with gravel kit required.",
   "gravel_kit": true
+ },
+ {
+  "id": "PAC2524",
+  "title": "Anchorage to Red Dog",
+  "category": "Scheduled",
+  "region": "Americas",
+  "priority": "High",
+  "origin": {
+   "icao": "PANC",
+   "name": "Ted Stevens Anchorage International Airport",
+   "city": "Anchorage",
+   "country": "US",
+   "lat": 61.179,
+   "lon": -149.9926
+  },
+  "destination": {
+   "icao": "PADG",
+   "name": "Red Dog Airport",
+   "city": "Red Dog",
+   "country": "US",
+   "lat": 68.0321,
+   "lon": -162.899
+  },
+  "aircraft": [
+   "B732F"
+  ],
+  "cargo": "Red Dog Mine resupply — crew, parts and provisions",
+  "payload_lbs": 28000,
+  "target_block_min": 110,
+  "reward": 282,
+  "distance_nm": 527,
+  "gravel_kit": true,
+  "briefing": "Scheduled Americas rotation, 527 nm. The Red Dog zinc mine, one of the worlds largest, off your Anchorage hub. Unpaved gravel runway — 737-200 with gravel kit required."
+ },
+ {
+  "id": "PAC2525",
+  "title": "Red Dog to Anchorage",
+  "category": "Scheduled",
+  "region": "Americas",
+  "priority": "High",
+  "origin": {
+   "icao": "PADG",
+   "name": "Red Dog Airport",
+   "city": "Red Dog",
+   "country": "US",
+   "lat": 68.0321,
+   "lon": -162.899
+  },
+  "destination": {
+   "icao": "PANC",
+   "name": "Ted Stevens Anchorage International Airport",
+   "city": "Anchorage",
+   "country": "US",
+   "lat": 61.179,
+   "lon": -149.9926
+  },
+  "aircraft": [
+   "B732F"
+  ],
+  "cargo": "Red Dog Mine resupply — crew, parts and provisions",
+  "payload_lbs": 28000,
+  "target_block_min": 110,
+  "reward": 282,
+  "distance_nm": 527,
+  "gravel_kit": true,
+  "briefing": "Scheduled Americas rotation, 527 nm. The Red Dog zinc mine, one of the worlds largest, off your Anchorage hub. Unpaved gravel runway — 737-200 with gravel kit required."
+ },
+ {
+  "id": "PAC2526",
+  "title": "Pituffik to Alert",
+  "category": "Scheduled",
+  "region": "Americas",
+  "priority": "High",
+  "origin": {
+   "icao": "BGTL",
+   "name": "Pituffik Space Base",
+   "city": "Pituffik",
+   "country": "GL",
+   "lat": 76.5306,
+   "lon": -68.7005
+  },
+  "destination": {
+   "icao": "CYLT",
+   "name": "Alert Airport",
+   "city": "Alert",
+   "country": "CA",
+   "lat": 82.5173,
+   "lon": -62.283
+  },
+  "aircraft": [
+   "B732F"
+  ],
+  "cargo": "CFS Alert resupply, staged through Thule",
+  "payload_lbs": 24000,
+  "target_block_min": 87,
+  "reward": 242,
+  "distance_nm": 366,
+  "gravel_kit": true,
+  "briefing": "Scheduled Americas rotation, 366 nm. The real Operation Boxtop routing: Pituffik (Thule), Greenland up to Alert. Unpaved gravel runway — 737-200 with gravel kit required."
+ },
+ {
+  "id": "PAC2527",
+  "title": "Alert to Pituffik",
+  "category": "Scheduled",
+  "region": "Americas",
+  "priority": "High",
+  "origin": {
+   "icao": "CYLT",
+   "name": "Alert Airport",
+   "city": "Alert",
+   "country": "CA",
+   "lat": 82.5173,
+   "lon": -62.283
+  },
+  "destination": {
+   "icao": "BGTL",
+   "name": "Pituffik Space Base",
+   "city": "Pituffik",
+   "country": "GL",
+   "lat": 76.5306,
+   "lon": -68.7005
+  },
+  "aircraft": [
+   "B732F"
+  ],
+  "cargo": "CFS Alert resupply, staged through Thule",
+  "payload_lbs": 24000,
+  "target_block_min": 87,
+  "reward": 242,
+  "distance_nm": 366,
+  "gravel_kit": true,
+  "briefing": "Scheduled Americas rotation, 366 nm. The real Operation Boxtop routing: Pituffik (Thule), Greenland up to Alert. Unpaved gravel runway — 737-200 with gravel kit required."
  }
 ]
