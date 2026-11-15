@@ -1063,11 +1063,17 @@ html[data-theme="dark"] .gate-table td.ok{color:#7FD9A2}html[data-theme="dark"] 
 .lanyard .clip::after{content:"";position:absolute;left:8px;right:8px;top:7px;bottom:5px;background:var(--paper);border-radius:2px}
 .crewid{width:260px;height:400px;perspective:1200px;cursor:pointer;margin-top:-4px;background:none;border:0;padding:0}
 .crewid:focus-visible{outline:2px solid var(--red);outline-offset:4px}
-.crewid-inner{position:relative;width:100%;height:100%;transform-style:preserve-3d;transition:transform .6s cubic-bezier(.2,.7,.3,1)}
+.crewid-inner{position:relative;width:100%;height:100%;transform-style:preserve-3d;-webkit-transform-style:preserve-3d;transition:transform .6s cubic-bezier(.2,.7,.3,1)}
 .crewid.flipped .crewid-inner{transform:rotateY(180deg)}
 .crewid-face{position:absolute;inset:0;backface-visibility:hidden;-webkit-backface-visibility:hidden;background:#fff;color:#1E2126;
   border-radius:12px;box-shadow:0 6px 18px rgba(0,0,0,.22);overflow:hidden;display:flex;flex-direction:column}
-.crewid-back{transform:rotateY(180deg)}
+.crewid-back{transform:rotateY(180deg);visibility:hidden}
+/* iOS Safari can flatten the 3D flip and ignore backface-visibility, showing both faces at once and mirrored.
+   Fallback: hard-hide the inactive face, swapping at the flip midpoint (0.3s into the 0.6s turn) where the card is
+   edge-on, so the change is invisible. The PNG download is a separate canvas redraw and isn't affected by this. */
+.crewid-face{transition:visibility 0s linear .3s}
+.crewid.flipped .crewid-front{visibility:hidden}
+.crewid.flipped .crewid-back{visibility:visible}
 .crewid-top{background:var(--red);height:40px;display:flex;align-items:center;justify-content:space-between;padding:0 12px}
 .crewid-top img{height:14px}
 .crewid-top span{color:#fff;font:800 15px var(--font);letter-spacing:.1em}
@@ -1100,7 +1106,7 @@ html[data-theme="dark"] .gate-table td.ok{color:#7FD9A2}html[data-theme="dark"] 
 .crewid-sign i{max-width:62%;display:block;height:22px;border-bottom:1px solid #9aa0a8}
 .crewid-backtext small{font-size:9px;color:#8a9099;line-height:1.4}
 .crewid-actions{margin-top:14px;justify-content:center}
-@media (prefers-reduced-motion:reduce){.crewid-inner{transition:none}}
+@media (prefers-reduced-motion:reduce){.crewid-inner{transition:none}.crewid-face{transition-delay:0s}}
 
 /* ============ Official letters ============ */
 #letterDlg{max-width:760px;width:94vw}
