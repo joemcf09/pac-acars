@@ -3,9 +3,11 @@
   * On a trip (a bid trip pairing): the company books and pays the hotel at the crew contract rate. The pilot pays nothing.
   * KCVG headquarters has 6 crew rest rooms: free for any pilot who isn't based there, first come, first served. Every
     pilot sleeping at HQ saves PAC a hotel night.
-  * Sitting away from base by choice (not on a trip, not at home, HQ full or another city): the first night after landing
-    is free (a normal turnaround); nights 2 to 4 are paid by the pilot from their wallet at the city's hotel rate; after
-    that the pilot counts as off duty and charges stop, so nobody comes back from a break to an empty wallet.
+  * Sitting away from base by choice (not on a trip, not at home, HQ full or another city): the first two nights after
+    landing are free (a normal turnaround plus a buffer, so flying even once every couple of days is never charged);
+    nights 3 to 4 are paid by the pilot from their wallet at the city's hotel rate, but a night only ever draws a wallet
+    down to zero and never pushes it negative; after night 4 the pilot counts as off duty and charges stop, so nobody
+    comes back from a break to an empty wallet.
 A night is counted every 24 hours after the pilot's last landing at that station."""
 from __future__ import annotations
 
@@ -14,8 +16,8 @@ import time
 
 HQ = "KCVG"
 HQ_ROOMS = 6
-FREE_NIGHTS = 1
-CHARGED_NIGHTS = 3                      # nights 2-4
+FREE_NIGHTS = 2
+CHARGED_NIGHTS = 2                      # nights 3-4
 ACTIVE_DAYS = 14                        # a pilot without a flight in this long is at home, not in a hotel
 CONTRACT = 0.6                          # crew contract rate: 60% of the walk-in price
 # typical walk-in airport-hotel night, US dollars
@@ -85,7 +87,13 @@ def tick(con, add_tx, now=None):
                 company.post(con, "hotel", -round(rate(station) * CONTRACT), f"Crew hotel {station}, {pid} (trip layover, night {n})",
                              f"hotel-{pid}-{int(since)}-{n}", None, since + n * 86400)
             elif kind == "own" and FREE_NIGHTS < n <= FREE_NIGHTS + CHARGED_NIGHTS:
-                add_tx(pid, "hotel", -rate(station), f"Hotel at {station}, night {n} (away from base, not on a trip)", None, con)
+                try:
+                    bal = con.execute("SELECT COALESCE(SUM(amount),0) FROM wallet WHERE pilot_id=?", (pid,)).fetchone()[0] or 0
+                    charge = min(rate(station), max(0, bal))  # a hotel night can empty a wallet but never put it in the red
+                except Exception:
+                    charge = rate(station)                    # wallet not reachable here: fall back to the full rate
+                if charge > 0:
+                    add_tx(pid, "hotel", -charge, f"Hotel at {station}, night {n} (away from base, not on a trip)", None, con)
         con.execute("UPDATE crew_rest SET nights=?, kind=?, updated=? WHERE pilot_id=?", (max(nights, due), kind, now, pid))
 
 
@@ -104,7 +112,7 @@ def status(con, pid, now=None):
     elif kind == "hq":
         out["text"] = "Sleeping in the KCVG crew rest rooms at headquarters, free of charge."
     elif n <= FREE_NIGHTS:
-        out["text"] = f"First night at {station} is free. From tomorrow you pay ${rate(station)} a night unless you fly on or head home."
+        out["text"] = f"Your first {FREE_NIGHTS} nights at {station} are free. After that it's ${rate(station)} a night unless you fly on or head home."
     elif n <= FREE_NIGHTS + CHARGED_NIGHTS:
         out["text"] = f"Hotel at {station}: ${rate(station)} a night from your wallet (night {n}). Charges stop after night {FREE_NIGHTS + CHARGED_NIGHTS}."
     else:
