@@ -7227,15 +7227,15 @@
    "lon": -94.9694
   },
   "aircraft": [
-   "B752F",
-   "B733F"
+   "B732F"
   ],
   "cargo": "High Arctic research station resupply",
-  "payload_lbs": 73500,
+  "payload_lbs": 28000,
   "target_block_min": 161,
   "reward": 240,
   "distance_nm": 851,
-  "briefing": "Scheduled Americas rotation, 851 nm. High Arctic research station resupply on a typical load of 73,500 lb. Shortest runway on the sector is 6,500 ft."
+  "briefing": "Scheduled Americas rotation, 851 nm. High Arctic research station resupply on a typical load of 73,500 lb. Shortest runway on the sector is 6,500 ft. Unpaved gravel runway — 737-200 with gravel kit required.",
+  "gravel_kit": true
  },
  {
   "id": "PAC2115",
@@ -26496,15 +26496,15 @@
    "lon": -68.5558
   },
   "aircraft": [
-   "B752F",
-   "B733F"
+   "B732F"
   ],
   "cargo": "General cargo and empty ULDs",
-  "payload_lbs": 73500,
+  "payload_lbs": 28000,
   "target_block_min": 161,
   "reward": 240,
   "distance_nm": 851,
-  "briefing": "Scheduled return freight from CYRB to CYFB. Plan the return sector in SimBrief and check departure and arrival performance, weather, and fuel."
+  "briefing": "Scheduled return freight from CYRB to CYFB. Plan the return sector in SimBrief and check departure and arrival performance, weather, and fuel. Unpaved gravel runway — 737-200 with gravel kit required.",
+  "gravel_kit": true
  },
  {
   "id": "PAC1196",
@@ -36712,5 +36712,471 @@
   "reward": 280,
   "distance_nm": 1253,
   "briefing": "Scheduled Americas rotation, 1253 nm, about 3h22. Feeds Anchorage cargo south to Edmonton and the northern Canada network. Both Edmonton and Anchorage are full-service cargo hubs with long runways."
+ },
+ {
+  "id": "PAC2510",
+  "title": "Iqaluit to Rankin Inlet",
+  "category": "Scheduled",
+  "region": "Americas",
+  "priority": "High",
+  "origin": {
+   "icao": "CYFB",
+   "name": "Iqaluit Airport",
+   "city": "Iqaluit",
+   "country": "CA",
+   "lat": 63.7564,
+   "lon": -68.5558
+  },
+  "destination": {
+   "icao": "CYRT",
+   "name": "Rankin Inlet Airport",
+   "city": "Rankin Inlet",
+   "country": "CA",
+   "lat": 62.8114,
+   "lon": -92.1158
+  },
+  "aircraft": [
+   "B738F",
+   "B733F",
+   "B732F",
+   "B752F"
+  ],
+  "cargo": "Kivalliq regional connection",
+  "payload_lbs": 26000,
+  "target_block_min": 126,
+  "reward": 219,
+  "distance_nm": 635,
+  "briefing": "Scheduled Americas rotation, 635 nm. Paved gateway hop feeding the eastern gravel network."
+ },
+ {
+  "id": "PAC2511",
+  "title": "Rankin Inlet to Iqaluit",
+  "category": "Scheduled",
+  "region": "Americas",
+  "priority": "High",
+  "origin": {
+   "icao": "CYRT",
+   "name": "Rankin Inlet Airport",
+   "city": "Rankin Inlet",
+   "country": "CA",
+   "lat": 62.8114,
+   "lon": -92.1158
+  },
+  "destination": {
+   "icao": "CYFB",
+   "name": "Iqaluit Airport",
+   "city": "Iqaluit",
+   "country": "CA",
+   "lat": 63.7564,
+   "lon": -68.5558
+  },
+  "aircraft": [
+   "B738F",
+   "B733F",
+   "B732F",
+   "B752F"
+  ],
+  "cargo": "Kivalliq regional connection",
+  "payload_lbs": 26000,
+  "target_block_min": 126,
+  "reward": 219,
+  "distance_nm": 635,
+  "briefing": "Scheduled Americas rotation, 635 nm. Paved gateway hop feeding the eastern gravel network."
+ },
+ {
+  "id": "PAC2512",
+  "title": "Iqaluit to Sanirajak",
+  "category": "Scheduled",
+  "region": "Americas",
+  "priority": "High",
+  "origin": {
+   "icao": "CYFB",
+   "name": "Iqaluit Airport",
+   "city": "Iqaluit",
+   "country": "CA",
+   "lat": 63.7564,
+   "lon": -68.5558
+  },
+  "destination": {
+   "icao": "CYUX",
+   "name": "Hall Beach Airport",
+   "city": "Sanirajak",
+   "country": "CA",
+   "lat": 68.7761,
+   "lon": -81.2425
+  },
+  "aircraft": [
+   "B732F"
+  ],
+  "cargo": "Northern community resupply — dry goods and mail",
+  "payload_lbs": 22000,
+  "target_block_min": 96,
+  "reward": 257,
+  "distance_nm": 428,
+  "briefing": "Scheduled Americas rotation, 428 nm. Hall Beach (Sanirajak) on the Melville Peninsula. Unpaved gravel runway — 737-200 with gravel kit required. Shortest runway on the sector is 5,410 ft; plan a light load.",
+  "gravel_kit": true
+ },
+ {
+  "id": "PAC2513",
+  "title": "Sanirajak to Iqaluit",
+  "category": "Scheduled",
+  "region": "Americas",
+  "priority": "High",
+  "origin": {
+   "icao": "CYUX",
+   "name": "Hall Beach Airport",
+   "city": "Sanirajak",
+   "country": "CA",
+   "lat": 68.7761,
+   "lon": -81.2425
+  },
+  "destination": {
+   "icao": "CYFB",
+   "name": "Iqaluit Airport",
+   "city": "Iqaluit",
+   "country": "CA",
+   "lat": 63.7564,
+   "lon": -68.5558
+  },
+  "aircraft": [
+   "B732F"
+  ],
+  "cargo": "Northern community resupply — dry goods and mail",
+  "payload_lbs": 22000,
+  "target_block_min": 96,
+  "reward": 257,
+  "distance_nm": 428,
+  "briefing": "Scheduled Americas rotation, 428 nm. Hall Beach (Sanirajak) on the Melville Peninsula. Unpaved gravel runway — 737-200 with gravel kit required. Shortest runway on the sector is 5,410 ft; plan a light load.",
+  "gravel_kit": true
+ },
+ {
+  "id": "PAC2514",
+  "title": "Rankin Inlet to Baker Lake",
+  "category": "Scheduled",
+  "region": "Americas",
+  "priority": "High",
+  "origin": {
+   "icao": "CYRT",
+   "name": "Rankin Inlet Airport",
+   "city": "Rankin Inlet",
+   "country": "CA",
+   "lat": 62.8114,
+   "lon": -92.1158
+  },
+  "destination": {
+   "icao": "CYBK",
+   "name": "Baker Lake Airport",
+   "city": "Baker Lake",
+   "country": "CA",
+   "lat": 64.2989,
+   "lon": -96.0778
+  },
+  "aircraft": [
+   "B732F"
+  ],
+  "cargo": "Mine and community resupply",
+  "payload_lbs": 16000,
+  "target_block_min": 55,
+  "reward": 185,
+  "distance_nm": 139,
+  "briefing": "Scheduled Americas rotation, 139 nm. Baker Lake, the only inland Nunavut community. Unpaved gravel runway — 737-200 with gravel kit required. Shortest runway on the sector is 4,200 ft; plan a light load.",
+  "gravel_kit": true
+ },
+ {
+  "id": "PAC2515",
+  "title": "Baker Lake to Rankin Inlet",
+  "category": "Scheduled",
+  "region": "Americas",
+  "priority": "High",
+  "origin": {
+   "icao": "CYBK",
+   "name": "Baker Lake Airport",
+   "city": "Baker Lake",
+   "country": "CA",
+   "lat": 64.2989,
+   "lon": -96.0778
+  },
+  "destination": {
+   "icao": "CYRT",
+   "name": "Rankin Inlet Airport",
+   "city": "Rankin Inlet",
+   "country": "CA",
+   "lat": 62.8114,
+   "lon": -92.1158
+  },
+  "aircraft": [
+   "B732F"
+  ],
+  "cargo": "Mine and community resupply",
+  "payload_lbs": 16000,
+  "target_block_min": 55,
+  "reward": 185,
+  "distance_nm": 139,
+  "briefing": "Scheduled Americas rotation, 139 nm. Baker Lake, the only inland Nunavut community. Unpaved gravel runway — 737-200 with gravel kit required. Shortest runway on the sector is 4,200 ft; plan a light load.",
+  "gravel_kit": true
+ },
+ {
+  "id": "PAC2516",
+  "title": "Rankin Inlet to Coral Harbour",
+  "category": "Scheduled",
+  "region": "Americas",
+  "priority": "High",
+  "origin": {
+   "icao": "CYRT",
+   "name": "Rankin Inlet Airport",
+   "city": "Rankin Inlet",
+   "country": "CA",
+   "lat": 62.8114,
+   "lon": -92.1158
+  },
+  "destination": {
+   "icao": "CYZS",
+   "name": "Coral Harbour Airport",
+   "city": "Coral Harbour",
+   "country": "CA",
+   "lat": 64.1933,
+   "lon": -83.3594
+  },
+  "aircraft": [
+   "B732F"
+  ],
+  "cargo": "Community resupply, Southampton Island",
+  "payload_lbs": 20000,
+  "target_block_min": 71,
+  "reward": 212,
+  "distance_nm": 249,
+  "briefing": "Scheduled Americas rotation, 249 nm. Coral Harbour on Southampton Island. Unpaved gravel runway — 737-200 with gravel kit required. Shortest runway on the sector is 5,000 ft; plan a light load.",
+  "gravel_kit": true
+ },
+ {
+  "id": "PAC2517",
+  "title": "Coral Harbour to Rankin Inlet",
+  "category": "Scheduled",
+  "region": "Americas",
+  "priority": "High",
+  "origin": {
+   "icao": "CYZS",
+   "name": "Coral Harbour Airport",
+   "city": "Coral Harbour",
+   "country": "CA",
+   "lat": 64.1933,
+   "lon": -83.3594
+  },
+  "destination": {
+   "icao": "CYRT",
+   "name": "Rankin Inlet Airport",
+   "city": "Rankin Inlet",
+   "country": "CA",
+   "lat": 62.8114,
+   "lon": -92.1158
+  },
+  "aircraft": [
+   "B732F"
+  ],
+  "cargo": "Community resupply, Southampton Island",
+  "payload_lbs": 20000,
+  "target_block_min": 71,
+  "reward": 212,
+  "distance_nm": 249,
+  "briefing": "Scheduled Americas rotation, 249 nm. Coral Harbour on Southampton Island. Unpaved gravel runway — 737-200 with gravel kit required. Shortest runway on the sector is 5,000 ft; plan a light load.",
+  "gravel_kit": true
+ },
+ {
+  "id": "PAC2518",
+  "title": "Resolute Bay to Alert",
+  "category": "Scheduled",
+  "region": "Americas",
+  "priority": "High",
+  "origin": {
+   "icao": "CYRB",
+   "name": "Resolute Bay Airport",
+   "city": "Resolute Bay",
+   "country": "CA",
+   "lat": 74.7169,
+   "lon": -94.9694
+  },
+  "destination": {
+   "icao": "CYLT",
+   "name": "Alert Airport",
+   "city": "Alert",
+   "country": "CA",
+   "lat": 82.5173,
+   "lon": -62.283
+  },
+  "aircraft": [
+   "B732F"
+  ],
+  "cargo": "CFS Alert resupply",
+  "payload_lbs": 24000,
+  "target_block_min": 119,
+  "reward": 298,
+  "distance_nm": 590,
+  "briefing": "Scheduled Americas rotation, 590 nm. Staging the worlds northernmost airfield, 82 degrees north. Unpaved gravel runway — 737-200 with gravel kit required.",
+  "gravel_kit": true
+ },
+ {
+  "id": "PAC2519",
+  "title": "Alert to Resolute Bay",
+  "category": "Scheduled",
+  "region": "Americas",
+  "priority": "High",
+  "origin": {
+   "icao": "CYLT",
+   "name": "Alert Airport",
+   "city": "Alert",
+   "country": "CA",
+   "lat": 82.5173,
+   "lon": -62.283
+  },
+  "destination": {
+   "icao": "CYRB",
+   "name": "Resolute Bay Airport",
+   "city": "Resolute Bay",
+   "country": "CA",
+   "lat": 74.7169,
+   "lon": -94.9694
+  },
+  "aircraft": [
+   "B732F"
+  ],
+  "cargo": "CFS Alert resupply",
+  "payload_lbs": 24000,
+  "target_block_min": 119,
+  "reward": 298,
+  "distance_nm": 590,
+  "briefing": "Scheduled Americas rotation, 590 nm. Staging the worlds northernmost airfield, 82 degrees north. Unpaved gravel runway — 737-200 with gravel kit required.",
+  "gravel_kit": true
+ },
+ {
+  "id": "PAC2520",
+  "title": "Yellowknife to Cambridge Bay",
+  "category": "Scheduled",
+  "region": "Americas",
+  "priority": "High",
+  "origin": {
+   "icao": "CYZF",
+   "name": "Yellowknife International Airport",
+   "city": "Yellowknife",
+   "country": "CA",
+   "lat": 62.4628,
+   "lon": -114.44
+  },
+  "destination": {
+   "icao": "CYCB",
+   "name": "Cambridge Bay Airport",
+   "city": "Cambridge Bay",
+   "country": "CA",
+   "lat": 69.1081,
+   "lon": -105.138
+  },
+  "aircraft": [
+   "B732F"
+  ],
+  "cargo": "Kitikmeot community resupply",
+  "payload_lbs": 20000,
+  "target_block_min": 101,
+  "reward": 265,
+  "distance_nm": 459,
+  "briefing": "Scheduled Americas rotation, 459 nm. Cambridge Bay, the Kitikmeot regional hub. Unpaved gravel runway — 737-200 with gravel kit required. Shortest runway on the sector is 5,000 ft; plan a light load.",
+  "gravel_kit": true
+ },
+ {
+  "id": "PAC2521",
+  "title": "Cambridge Bay to Yellowknife",
+  "category": "Scheduled",
+  "region": "Americas",
+  "priority": "High",
+  "origin": {
+   "icao": "CYCB",
+   "name": "Cambridge Bay Airport",
+   "city": "Cambridge Bay",
+   "country": "CA",
+   "lat": 69.1081,
+   "lon": -105.138
+  },
+  "destination": {
+   "icao": "CYZF",
+   "name": "Yellowknife International Airport",
+   "city": "Yellowknife",
+   "country": "CA",
+   "lat": 62.4628,
+   "lon": -114.44
+  },
+  "aircraft": [
+   "B732F"
+  ],
+  "cargo": "Kitikmeot community resupply",
+  "payload_lbs": 20000,
+  "target_block_min": 101,
+  "reward": 265,
+  "distance_nm": 459,
+  "briefing": "Scheduled Americas rotation, 459 nm. Cambridge Bay, the Kitikmeot regional hub. Unpaved gravel runway — 737-200 with gravel kit required. Shortest runway on the sector is 5,000 ft; plan a light load.",
+  "gravel_kit": true
+ },
+ {
+  "id": "PAC2522",
+  "title": "Yellowknife to Ekati",
+  "category": "Scheduled",
+  "region": "Americas",
+  "priority": "High",
+  "origin": {
+   "icao": "CYZF",
+   "name": "Yellowknife International Airport",
+   "city": "Yellowknife",
+   "country": "CA",
+   "lat": 62.4628,
+   "lon": -114.44
+  },
+  "destination": {
+   "icao": "CYOA",
+   "name": "Ekati Airport",
+   "city": "Ekati",
+   "country": "CA",
+   "lat": 64.6989,
+   "lon": -110.615
+  },
+  "aircraft": [
+   "B732F"
+  ],
+  "cargo": "Diamond mine resupply — crew rotation and parts",
+  "payload_lbs": 28000,
+  "target_block_min": 59,
+  "reward": 192,
+  "distance_nm": 169,
+  "briefing": "Scheduled Americas rotation, 169 nm. Ekati diamond mine strip in the NWT barrens. Unpaved gravel runway — 737-200 with gravel kit required.",
+  "gravel_kit": true
+ },
+ {
+  "id": "PAC2523",
+  "title": "Ekati to Yellowknife",
+  "category": "Scheduled",
+  "region": "Americas",
+  "priority": "High",
+  "origin": {
+   "icao": "CYOA",
+   "name": "Ekati Airport",
+   "city": "Ekati",
+   "country": "CA",
+   "lat": 64.6989,
+   "lon": -110.615
+  },
+  "destination": {
+   "icao": "CYZF",
+   "name": "Yellowknife International Airport",
+   "city": "Yellowknife",
+   "country": "CA",
+   "lat": 62.4628,
+   "lon": -114.44
+  },
+  "aircraft": [
+   "B732F"
+  ],
+  "cargo": "Diamond mine resupply — crew rotation and parts",
+  "payload_lbs": 28000,
+  "target_block_min": 59,
+  "reward": 192,
+  "distance_nm": 169,
+  "briefing": "Scheduled Americas rotation, 169 nm. Ekati diamond mine strip in the NWT barrens. Unpaved gravel runway — 737-200 with gravel kit required.",
+  "gravel_kit": true
  }
 ]
