@@ -183,6 +183,7 @@ DEFAULT_SITE = {
     "public_url": "",              # the address pilots reach PAC at (sign-in links use it)
     "letters_from": "",            # who the letters are signed by; blank uses the staff member's own name
     "discord_widget": "1556081575215636492",  # Discord server ID for the live widget on the home page (blank hides it)
+    "interline_badge": False,      # show the "Founding Member of Interline Freight Partners" badge in the footer
 
     "tagline": "Relief, medicine and critical freight. Anywhere, on time.",
     "intro": ("Pagani Air Cargo is a virtual cargo airline for flight simulator pilots. We fly humanitarian relief, "
@@ -3896,7 +3897,10 @@ def staff_event_delete(eid):
 @bp.post("/api/staff/site")
 def staff_site():
     b = request.json or {}
-    s = {k: C["clean_text"](b.get(k), 3000) for k in DEFAULT_SITE if k in b}
+    s = {k: C["clean_text"](b.get(k), 3000) for k in DEFAULT_SITE if k in b and not isinstance(DEFAULT_SITE[k], bool)}
+    for k in DEFAULT_SITE:      # booleans (toggles) are stored as real booleans, not cleaned text
+        if isinstance(DEFAULT_SITE[k], bool) and k in b:
+            s[k] = bool(b[k])
     if "discord_widget" in s:   # accepts the server ID or the whole widget code from Discord
         _m = re.search(r"\d{17,20}", s["discord_widget"]); s["discord_widget"] = _m.group(0) if _m else ""
     C["save_json"](C["DATA"] / "site.json", {**C["load_json"](C["DATA"] / "site.json", {}), **s})

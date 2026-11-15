@@ -5543,6 +5543,9 @@ function siteFooter(site) {
       <div class="sf-links" role="navigation" aria-label="Contact"><h3>Contact</h3><a href="mailto:${mail}">${mail}</a>${discord ? `<a href="${esc(discord)}" target="_blank" rel="noopener">PAC on Discord</a>` : ""}<a href="#privacy" onclick="show('privacy');return false">Privacy policy</a><a href="#piracy" onclick="show('piracy');return false">Anti-piracy policy</a></div>
       <div class="sf-small"><h3>Credits</h3><p>Weather: NOAA Aviation Weather Center. Maps: &copy; OpenStreetMap contributors and Esri. Radar: RainViewer. Flight planning: SimBrief by Navigraph. Partner aircraft photos: Wikimedia Commons, credited on each card.</p></div>
     </div>
+    ${site?.interline_badge ? `<div style="margin:20px 0 0"><a href="https://interline.pac-va.com" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:11px;text-decoration:none;padding:10px 15px;border:1px solid #2c3037;border-radius:9px;background:#0E2A47">
+      <svg width="40" height="22" viewBox="0 0 92 48" aria-hidden="true"><path d="M 40.69 40.71 A 18 18 0 1 1 49.86 32.51" fill="none" stroke="#fff" stroke-width="7" stroke-linecap="round"/><path d="M 51.31 7.29 A 18 18 0 1 1 42.14 15.49" fill="none" stroke="#D8AD53" stroke-width="7" stroke-linecap="round"/></svg>
+      <span style="line-height:1.25"><span style="display:block;font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:#9fb0cf;font-weight:700">Founding Member of</span><span style="display:block;font-size:13px;font-weight:700;color:#fff;letter-spacing:.03em">INTERLINE FREIGHT PARTNERS</span></span></a></div>` : ""}
     <p class="sf-legal">Airline names, logos and aircraft types belong to their owners; partner operations are simulated and imply no endorsement. For flight simulation only: not for real-world navigation or flight planning.</p>
     <p class="sf-legal">&copy; ${year} Pagani Air Cargo · pac-va.com</p>
   </footer>`;
@@ -6440,6 +6443,8 @@ function staffSite() {
       ${[["public_url", "Website address pilots use", "https://fly.paganiaircargo.com"], ["discord_invite", "Discord invite", "https://discord.gg/…"], ["discord_widget", "Discord server ID (live widget on the home page; blank hides it)", "Paste the server ID or Discord's widget code"],
          ["letters_from", "Letters signed by", "Capt. Joseph Pagani"]].map(([k, l, ph]) =>
         `<div class="field"><label for="site_${k}">${l}</label><input id="site_${k}" name="${k}" placeholder="${ph}" value="${esc(st?.[k] || "")}" style="width:100%;border:1px solid var(--line);border-radius:3px;padding:8px 10px;font:inherit;background:var(--white);color:var(--ink)"></div>`).join("")}
+      <h2 style="padding:14px 0 0;margin:0">Alliances</h2>
+      <label class="field" style="display:flex;flex-direction:row;align-items:center;gap:8px;cursor:pointer"><input type="checkbox" id="site_interline_badge" name="interline_badge" ${st?.interline_badge ? "checked" : ""}> <span>Show the “Founding Member of Interline Freight Partners” badge in the site footer</span></label>
       <div class="row"><button class="btn" type="submit">Save home page and letters</button>
         <button class="btn ghost small" type="button" id="previewAccept">Preview the welcome letter</button></div></form></div>`;
   loadMailBox();
@@ -6531,7 +6536,10 @@ function staffSite() {
   };
   if ($("#hoppieBox")) hoppieBox();
   $("#siteForm").onsubmit = async e => {
-    e.preventDefault(); S.staff.site = await api("/api/staff/site", { method: "POST", body: Object.fromEntries(new FormData(e.target).entries()) }); toast("Home page updated.");
+    e.preventDefault();
+    const body = Object.fromEntries(new FormData(e.target).entries());
+    body.interline_badge = $("#site_interline_badge").checked;   // checkboxes are absent from FormData when off; send the real state
+    S.staff.site = await api("/api/staff/site", { method: "POST", body }); toast("Home page updated.");
   };
 }
 
