@@ -105,6 +105,13 @@ st_ = A.settings(); st_["conflict_zones_since"] = __import__("time").time() + 36
 need, b, p = fly_route("PAC5039", "HAAB", "HSSK")
 check("a restricted flight booked before the rules started isn't rejected", p.get("review_status") != "Rejected", (p.get("review_status"), p.get("flags")))
 
+print("restricted_airport: keeps generated work (checkrides, jobs) out of restricted airspace")
+check("Lviv (Ukraine) is restricted when the feature is on", Z.restricted_airport("UKLL", {"conflict_zones_enabled": True}))
+check("Tehran (Iran) is restricted when the feature is on", Z.restricted_airport("OIIE", {"conflict_zones_enabled": True}))
+check("Cincinnati is never restricted", not Z.restricted_airport("KCVG", {"conflict_zones_enabled": True}))
+check("a caution zone (Somalia) is flyable, not restricted", not Z.restricted_airport("HCMM", {"conflict_zones_enabled": True}))
+check("nothing is restricted while the feature is off", not Z.restricted_airport("UKLL", {}))
+
 print()
 print("All conflict zone checks passed." if not failures else f"{len(failures)} failed: {failures}")
 sys.exit(1 if failures else 0)

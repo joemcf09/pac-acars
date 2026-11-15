@@ -144,6 +144,15 @@ def airport_zone(icao, zlist):
     return None
 
 
+def restricted_airport(icao, settings):
+    """True when the feature is on and this airport sits in a restricted zone, so a flight that departs from or lands
+    at it is auto-rejected. Used to keep generated work (checkrides, jobs) out of airspace nobody could legally fly."""
+    if not enabled(settings):
+        return False
+    z = airport_zone(str(icao or "").upper(), zones(settings))
+    return bool(z and z["level"] == "restricted")
+
+
 def _gc_points(lat1, lon1, lat2, lon2, step_nm=SAMPLE_NM):
     p1, l1, p2, l2 = map(math.radians, (lat1, lon1, lat2, lon2))
     d = 2 * math.asin(math.sqrt(math.sin((p2 - p1) / 2) ** 2 + math.cos(p1) * math.cos(p2) * math.sin((l2 - l1) / 2) ** 2))

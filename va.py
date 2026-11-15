@@ -859,7 +859,8 @@ def _ferry_job(rng, frame, used, con):
 def _contract_job(rng, partner, regions, used, con, origin_icao=None, expires=None):
     """A partner is short of qualified crew for one rotation and hires a PAC captain to fly its aircraft under its callsign."""
     F = C["FLEET"]
-    st = [x for x in partner["network"] if x in C["AIRPORTS"]]
+    import conflict_zones as _cz
+    st = [x for x in partner["network"] if x in C["AIRPORTS"] and not _cz.restricted_airport(x, C["settings"]())]
     if len(st) < 2:
         return None
     o = C["airport_obj"](origin_icao or (partner["hub"] if rng.random() < 0.5 else rng.choice(st)))
@@ -910,8 +911,11 @@ def refresh_jobs_today(here=None):
         have = con.execute("SELECT COUNT(*) FROM jobs WHERE day=?", (day,)).fetchone()[0]
         rng = random.Random(day + "|" + str(have))
         used = set()
-        stations = sorted(_stations())
-        big = [a["icao"] for a in C["AIRPORTS"].values() if a["size"] == "L" and (a["rwy_ft"] or 0) >= 8000]
+        import conflict_zones as _cz
+        _st = C["settings"]()
+        stations = [s for s in sorted(_stations()) if not _cz.restricted_airport(s, _st)]
+        big = [a["icao"] for a in C["AIRPORTS"].values() if a["size"] == "L" and (a["rwy_ft"] or 0) >= 8000
+               and not _cz.restricted_airport(a["icao"], _st)]
         new = []
         if have == 0:
             origins = [here] * 5 + list(LIVE_HUBS) * 2
@@ -2296,6 +2300,8 @@ def checkride_mission(pilot_id, mission_id, origin=None, aircraft=None, _career=
     unlocked = ([aircraft] if aircraft in types else []) if aircraft else ([t for t in types if t in (_career if _career is not None else career(pilot_id))["unlocked"]] or types)
     if not unlocked: return None
     here = origin or pilot_location(pilot_id)
+    import conflict_zones as _cz
+    st = C["settings"]()
     with C["db"]() as con:
         local_types = {r[0] for r in con.execute("SELECT type FROM airframes WHERE location=? AND status='Available'", (here,))}
     unlocked.sort(key=lambda t: t not in local_types)
@@ -2306,14 +2312,15 @@ def checkride_mission(pilot_id, mission_id, origin=None, aircraft=None, _career=
     seed = sum(map(ord, pilot_id + fam))
     routes = sorted((r for r in C["ROUTES"].values() if r["origin"]["icao"] == here and any(t in r["aircraft"] for t in unlocked)
                      and r["destination"]["icao"] not in CHECKRIDE_AVOID_DEST
+                     and not _cz.restricted_airport(here, st) and not _cz.restricted_airport(r["destination"]["icao"], st)
                      and (A.get(r["destination"]["icao"], {}).get("rwy_ft") or 0) >= min_rwy
                      and lo <= (r.get("distance_nm") or 0) <= hi), key=lambda r: r["id"])
     if routes:
         base = dict(routes[seed % len(routes)])
     else:
         # the pilot's airport if its runway suits the type, otherwise the nearest PAC hub that does
-        start = here if (A.get(here, {}).get("rwy_ft") or 0) >= min_rwy else min(
-            (h for h in DELIVERY_HUBS_LIST if (A.get(h, {}).get("rwy_ft") or 0) >= min_rwy and h in A),
+        start = here if ((A.get(here, {}).get("rwy_ft") or 0) >= min_rwy and not _cz.restricted_airport(here, st)) else min(
+            (h for h in DELIVERY_HUBS_LIST if (A.get(h, {}).get("rwy_ft") or 0) >= min_rwy and h in A and not _cz.restricted_airport(h, st)),
             key=lambda h: C["gc_distance_nm"](A[here]["lat"], A[here]["lon"], A[h]["lat"], A[h]["lon"]) if here in A else 0)
         o = A[start]
         ck_key = (start, min_rwy, bool(aircraft), len(A))
@@ -2324,6 +2331,7 @@ def checkride_mission(pilot_id, mission_id, origin=None, aircraft=None, _career=
             if len(_CK_CANDS) > 200:
                 _CK_CANDS.clear()
             _CK_CANDS[ck_key] = cands
+        cands = [c for c in cands if not _cz.restricted_airport(c, st)]   # never send a checkride into restricted airspace
         if not cands:
             return None
         dest = cands[seed % len(cands)]
