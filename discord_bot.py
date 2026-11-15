@@ -475,6 +475,10 @@ def run(cfg):
             bt = butter_text(d, cfg.get("butter_fpm", 100))
             if bt and channel("butter"):                       # the butter board: soft landings, posted automatically
                 await post("butter", bt)
+        elif kind == "butter":                                 # webhook posted the arrival; the bot still owns the butter board
+            bt = butter_text(d, cfg.get("butter_fpm", 100))
+            if bt and channel("butter"):
+                await post("butter", bt)
         elif kind == "departed":
             await post("flights", card=departed_card(d, site))
         elif kind == "promotion":

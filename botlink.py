@@ -83,6 +83,13 @@ def pirep_accepted(pirep_id):
     ac = FLEET.get(r["aircraft"], {})
     s_ = C["settings"]() if C.get("settings") else {}
     if s_.get("discord_webhook") and s_.get("discord_arrivals", True):
+        # The webhook already posted this arrival, so don't emit the full pirep (that would duplicate it).
+        # The butter board is bot-only, though, so still hand the bot a butter-only event for soft landings.
+        if r["landing_rate"] is not None and r["landing_rate"] < 0:
+            emit("butter", {"flight": r["flight_number"], "arr": r["arr"],
+                            "aircraft": ac.get("icao") or r["aircraft"], "aircraft_name": ac.get("name", ""),
+                            "pilot": p["name"], "discord_id": p.get("discord_id"),
+                            "landing_rate": r["landing_rate"], "status": r["status"]})
         check_promotion(r["pilot_id"])      # the webhook already posted this arrival: never twice
         return
     emit("pirep", {"pirep_id": r["id"], "flight": r["flight_number"], "dep": r["dep"], "arr": r["arr"],
