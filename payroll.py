@@ -30,6 +30,9 @@ LABELS = {"flight_pay": "Flight pay", "profit_share": "Profit share", "skill_bon
           "gear_bonus": "Crew gear bonus", "mentoring": "Mentoring", "freight_delivered": "Freight delivered",
           "adjustment": "Adjustment", "jumpseat": "Jumpseat travel", "shop": "PAC shop", "hotel": "Crew hotel",
           "training_travel": "Training travel"}
+# A pay statement is about pay. These are the pilot's own wallet spending, not payroll, so they stay in the wallet
+# ledger and off the paycheck: the statement shows what PAC paid, and net pay never dips because someone went shopping.
+SPENDING = {"shop", "jumpseat", "hotel", "training_travel"}
 
 
 def migrate(con):
@@ -137,6 +140,8 @@ def statement(con, pid, period=None, now=None):
     earn, ded = {}, {}
     for r in con.execute("""SELECT kind, COALESCE(SUM(amount),0) a FROM wallet WHERE pilot_id=? AND time>=? AND time<?
             AND kind!='base_pay' GROUP BY kind""", (pid, ws, we)):
+        if r["kind"] in SPENDING:          # the pilot's own wallet spending is not pay: keep it off the paycheck
+            continue
         amt = round(r["a"], 2)
         if amt:
             (earn if amt > 0 else ded)[r["kind"]] = amt

@@ -43,10 +43,17 @@ ded = {d["kind"]: d["amount"] for d in s["deductions"]}
 check("flight pay in earnings", earn.get("flight_pay") == 420, earn)
 check("profit share in earnings", earn.get("profit_share") == 55, earn)
 check("base pay counted from the payroll run, not double", earn.get("base_pay") == 2500, earn)
-check("shop is a deduction", ded.get("shop") == -200, ded)
+check("shop spending is kept off the paycheck (not a deduction)", "shop" not in ded, ded)
 check("gross = 420+55+2500", s["gross"] == 2975, s["gross"])
-check("net = gross - 200", s["net"] == 2775, s["net"])
+check("net = gross (personal spending does not reduce pay)", s["net"] == 2975, s["net"])
 check("flights and block hours reflect the week", s["flights"] == 1 and s["block_hours"] == 1.5, (s["flights"], s["block_hours"]))
+
+# a negative staff adjustment IS a real pay deduction and still counts against net
+con.execute("INSERT INTO wallet VALUES ('PAC0007',?,'adjustment',-100,'correction',NULL)", (ws + 8000,))
+s2 = payroll.statement(con, "PAC0007", key)
+ded2 = {d["kind"]: d["amount"] for d in s2["deductions"]}
+check("a negative staff adjustment stays a deduction", ded2.get("adjustment") == -100, ded2)
+check("net reflects a real pay deduction", s2["net"] == 2875, s2["net"])
 check("period label present", bool(s["period_label"]), s["period_label"])
 
 # notifications: one pending until marked
