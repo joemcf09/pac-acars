@@ -1614,6 +1614,7 @@ function renderAcars() {
   const m = b.mission, o = b.ofp;
   a.innerHTML = `<div id="acarsReady">
     <div id="releasePreflight">${paperNote(b)}</div>
+    <p class="muted" style="font-size:13px;margin:6px 0 0">🗒️ Radio cheat sheet is ready — <a id="radioReady" target="_blank" rel="noopener">download for this flight</a>. Gate to gate, prefilled with your callsign, airports and runways.</p>
     <div class="strip">
       <div><div class="fn">${esc(b.flight_number)}</div></div>
       <div class="rt"><b>${m.origin.icao}</b> to <b>${m.destination.icao}</b>${o?.alternate ? ` · alternate ${o.alternate.icao}` : ""}<br>${esc(S.fleet[b.aircraft].name)}${b.airframe ? " · " + esc(b.airframe) : b.partner_reg ? " · " + esc(b.partner_reg) : o?.registration ? " · " + esc(o.registration) : ""} · ${fmt(o?.payload_lbs || Math.min(m.payload_lbs, S.fleet[b.aircraft].max_payload_lbs))} lb ${esc(m.category.toLowerCase())} cargo</div>
@@ -1621,6 +1622,7 @@ function renderAcars() {
         <span class="conn" id="conn"><i></i><span>Not tracking</span></span>
         <a class="btn ghost" href="/dispatch" target="_blank" rel="noopener" id="dispatchBtn">${needsSignature(b) ? "Review and sign paperwork" : "Dispatch release"}</a>
         <a class="btn ghost" id="unicomBtn" target="_blank" rel="noopener" title="Ready-to-send Unicom calls for this flight, for when no ATC is online">📻 Unicom calls</a>
+        <a class="btn ghost" id="radioBtn" target="_blank" rel="noopener" title="Full gate-to-gate ATC radio cheat sheet, filled for this flight">🗒️ Radio cheat sheet</a>
         ${navigraphBtn(b.ofp)}
         <a class="btn" id="openApp" href="${appLink(b)}" title="Opens PAC ACARS on this PC with this flight loaded">Open in PAC ACARS</a>
         <button class="btn ghost" id="cancelBtn">Cancel mission</button>
@@ -1648,6 +1650,19 @@ function renderAcars() {
     if (m.destination?.icao) q.set("arr", m.destination.icao);
     if (o?.cruise_ft) q.set("crz", "FL" + String(Math.round(o.cruise_ft / 100)).padStart(3, "0"));
     ub.href = "/unicom/flight?" + q.toString();
+    // Radio cheat sheet: same flight data, with the spoken callsign built from the filing code and telephony word.
+    const rq = new URLSearchParams();
+    const digits = String(b.flight_number || "").replace(/\D/g, "");
+    const code = (o && o.airline) || "PGI";
+    const telRaw = (o && o.callsign) || "PAGANI";
+    const tel = telRaw.charAt(0).toUpperCase() + telRaw.slice(1).toLowerCase();
+    if (code && digits) rq.set("fn", code + digits);
+    rq.set("callword", tel + (digits ? " " + digits : ""));
+    if (m.origin?.icao) rq.set("dep", m.origin.icao);
+    if (m.destination?.icao) rq.set("arr", m.destination.icao);
+    const rurl = "/radio/flight?" + rq.toString();
+    const rb = $("#radioBtn"); if (rb) rb.href = rurl;
+    const rr = $("#radioReady"); if (rr) rr.href = rurl;
   })();
   $("#openApp").onclick = () => {
     setTimeout(async () => {
@@ -7935,6 +7950,7 @@ document.addEventListener('click',async e=>{
  catch(err){toast(err.message);b.disabled=false;}finally{patchSaving=false;}
 });
 const PAC_UPDATES=[
+ {"id": "20261115-radio-cheatsheet", "date": "November 15, 2026", "kind": "New feature", "title": "Radio cheat sheet, built for your flight", "body": "New to talking to ATC on VATSIM? Open your dispatch release and grab the 🗒️ Radio cheat sheet — a full gate-to-gate guide (clearance, push, taxi, takeoff, handoffs, approach, landing) with exactly what to say and what you’ll hear back, prefilled with your callsign, airports and wind-favoured runways. Anything ATC assigns stays as a [bracket] to fill in. Print it or save as PDF. Also at /radio.", "view": "acars", "label": "Open ACARS"},
  {"id": "20261114-unicom-live", "date": "November 14, 2026", "kind": "Improvement", "title": "Unicom calls: smarter and on the ACARS page", "body": "The Unicom call generator now fills your runway automatically from the wind, says the airport\u2019s spoken name in Voice mode (\u201cMemphis traffic\u201d), and \u2014 while PAC ACARS is running \u2014 highlights the exact call for your current phase of flight \u2014 and on IVAO it fills in your next waypoint and ETA on the enroute calls. There\u2019s also a \ud83d\udcfb Unicom calls button right on the ACARS page now, not just the dispatch release.", "view": "acars", "label": "Open ACARS"},
  {"id": "20261114-unicom-gen", "date": "November 14, 2026", "kind": "New feature", "title": "Unicom calls built from your flight", "body": "No controller online? Open your dispatch release and hit \u201c\ud83d\udcfb Unicom calls\u201d \u2014 it builds every call for you, prefilled with your callsign, airports, runways and cruise. Pick VATSIM or IVAO and Text or Voice, then copy each call straight into the sim. Also at /unicom/flight.", "view": "downloads", "label": "Open Downloads"},
  {"id": "20261113-unicom", "date": "November 13, 2026", "kind": "New feature", "title": "Unicom cheat sheet (no ATC online)", "body": "Flying on VATSIM or IVAO with no controller on? There's a new printable cheat sheet for Unicom 122.800: what to do and exactly what to say, phase by phase, with copy-paste text calls. Find it under Learn \u2192 Downloads & cheat sheets, or open /unicom.", "view": "downloads", "label": "Open Downloads"},

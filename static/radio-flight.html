@@ -1,0 +1,198 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Radio cheat sheet for your flight · Pagani Air Cargo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Saira:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;600&display=swap">
+<style>
+:root{--red:#C80000;--red-deep:#9A0000;--red-wash:#FBEAEA;--ink:#1E2126;--steel:#5E6470;--line:#D9DCE1;--paper:#F3F4F6;--white:#fff;
+  --font:"Saira",system-ui,-apple-system,"Segoe UI",sans-serif;--mono:"IBM Plex Mono",ui-monospace,Consolas,monospace}
+*{box-sizing:border-box}html,body{margin:0}
+body{font-family:var(--font);color:var(--ink);background:var(--paper);font-size:15px;line-height:1.5}
+header{background:var(--red);color:#fff;display:flex;align-items:center;gap:16px;padding:14px 24px;flex-wrap:wrap}
+header img{height:26px}
+header .ttl{font-weight:800;font-size:20px;line-height:1.1}
+header .ttl small{display:block;font-weight:500;font-size:12.5px;opacity:.9;margin-top:2px}
+header .flt{margin-left:auto;text-align:right;font:700 15px var(--mono);letter-spacing:.04em}
+header .flt .ex{display:block;font:700 10px var(--font);letter-spacing:.12em;opacity:.85}
+.hdr-nav{width:100%;display:flex;gap:16px;flex-wrap:wrap;margin-top:2px}
+.hdr-nav a{color:#fff;font-weight:700;text-decoration:none;font-size:13px}
+.hdr-nav a:hover{text-decoration:underline}
+.wrap{max-width:1040px;margin:0 auto;padding:16px 20px 56px}
+.toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:4px 0 14px}
+.btn{font:700 14px var(--font);background:var(--red);color:#fff;border:2px solid var(--red);border-radius:4px;padding:7px 15px;cursor:pointer;text-decoration:none;display:inline-block}
+.btn.ghost{background:#fff;color:var(--red)}
+.legend{color:var(--steel);font-size:13px}
+.legend b{color:var(--ink)}.legend .you{color:var(--red-deep);font-weight:800}.legend .atc{color:var(--steel);font-weight:800}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:16px;margin:12px 0}
+.card{background:#fff;border:1px solid var(--line);border-radius:8px;padding:14px 16px;break-inside:avoid}
+.card h2{font-size:15px;margin:0 0 8px;display:flex;align-items:center;gap:9px;text-transform:uppercase;letter-spacing:.03em}
+.card h2 .n{background:var(--red);color:#fff;width:24px;height:24px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:13px;flex:none;font-weight:800}
+.line{margin:6px 0;font-size:13.5px;line-height:1.45}
+.line .who{font-weight:800;font-size:10.5px;letter-spacing:.05em;margin-right:6px}
+.line.you .who{color:var(--red-deep)}
+.line.atc .who{color:var(--steel)}
+.line.you .t{color:var(--ink);font-weight:600}
+.line.atc .t{color:var(--steel)}
+.fill{color:var(--steel);font-style:italic}
+.tip{color:var(--steel);font-size:12.5px;margin:8px 0 0;font-style:italic}
+.full{grid-column:1/-1}
+.unicom{border:2px solid var(--red)}
+.foot{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;color:var(--steel);font-size:12.5px;border-top:1px solid var(--line);margin-top:18px;padding-top:12px}
+@media print{
+  header .hdr-nav,.toolbar{display:none}
+  body{background:#fff;font-size:10.5pt}
+  .wrap{max-width:none;padding:0}
+  .card{border-color:#bbb}
+  a[href]::after{content:""}
+}
+</style>
+</head>
+<body>
+<header>
+  <a href="/" aria-label="PAC home"><img src="/static/pac-wordmark-white.png" alt="PAC"></a>
+  <div class="ttl">Radio Call Cheat Sheet<small id="subttl">A PAC flight on VATSIM, gate to gate</small></div>
+  <div class="flt"><span class="ex" id="exLabel"></span><span id="fltLine"></span></div>
+  <nav class="hdr-nav"><a href="/#home" onclick="if(document.referrer.indexOf(location.host)>-1&&history.length>1){history.back();return false}">← Back to PAC</a>
+    <a href="/unicom">Unicom (no ATC) sheet</a><a href="/#downloads">Downloads</a></nav>
+</header>
+<div class="wrap">
+  <div class="toolbar">
+    <button class="btn" onclick="print()">🖨 Print / save as PDF</button>
+    <span class="legend"><span class="you">YOU</span> what you say &nbsp; <span class="atc">ATC</span> what you will hear &nbsp; <b>[brackets]</b> = fill in your own</span>
+  </div>
+  <div class="grid" id="grid"></div>
+  <div class="foot"><span>Pagani Air Cargo · pac-va.com</span><span>Phraseology simplified for flight simulation. Always follow what ATC actually tells you.</span></div>
+</div>
+
+<script>
+const qp = new URLSearchParams(location.search);
+const up = s => (s || "").toString().trim();
+// Flight data from the release link; falls back to the example flight when opened on its own.
+const hasFlight = !!(qp.get("fn") || qp.get("dep") || qp.get("arr") || qp.get("callword"));
+const digitsOf = s => (s || "").replace(/\D/g, "");
+let FN = up(qp.get("fn")).toUpperCase() || "PGI8692";
+let DEP = up(qp.get("dep")).toUpperCase() || "KCVG";
+let ARR = up(qp.get("arr")).toUpperCase() || "KJFK";
+let CW = up(qp.get("callword")) || ("Pagani " + (digitsOf(FN) || "8692"));   // spoken callsign, e.g. "Pagani 8692"
+const PREFIX = (FN.match(/^[A-Z]+/) || ["PGI"])[0];                           // filing code, e.g. PGI
+const TEL = CW.replace(/\s*\d+$/, "") || "Pagani";                            // telephony word, e.g. Pagani
+// City names and wind-favoured runways, filled from the server when available.
+let DC = null, AC = null, DR = null, AR = null;
+
+const B = s => `<span class="fill">${s}</span>`;   // a [bracket] fill-in
+const rwy = r => r ? ("runway " + r) : B("[runway]");
+
+function cards() {
+  const dc = DC || DEP, ac = AC || ARR;             // facility prefix, e.g. "Cincinnati" / "Kennedy"
+  const L = (who, t) => `<div class="line ${who}"><span class="who">${who === "you" ? "YOU" : "ATC"}</span><span class="t">${t}</span></div>`;
+  const tip = t => `<p class="tip">${t}</p>`;
+  const card = (n, title, inner) => `<div class="card"><h2><span class="n">${n}</span>${title}</h2>${inner}</div>`;
+
+  let html = "";
+  html += card(1, "Clearance",
+    L("you", `${dc} Delivery, ${CW}, at gate ${B("[gate]")}, information ${B("[ATIS]")}, IFR to ${ac}.`) +
+    L("atc", `${CW}, cleared to ${ac} as filed, climb via SID, squawk ${B("[squawk]")}.`) +
+    L("you", `Cleared to ${ac} as filed, climb via SID, squawk ${B("[squawk]")}, ${CW}.`) +
+    tip("Read back: route, altitude, squawk. Write it down first."));
+
+  html += card(2, "Push and start",
+    L("you", `${dc} Ground, ${CW}, gate ${B("[gate]")}, request push and start.`) +
+    L("atc", `${CW}, push and start approved, tail ${B("[east/west]")}.`) +
+    L("you", `Push and start approved, tail ${B("[east/west]")}, ${CW}.`));
+
+  html += card(3, "Taxi",
+    L("you", `Ground, ${CW}, ready to taxi.`) +
+    L("atc", `${CW}, ${rwy(DR)}, taxi via ${B("[taxiways]")}, hold short of ${B("[runway]")}.`) +
+    L("you", `${DR ? "Runway " + DR : B("[runway]")} via ${B("[taxiways]")}, hold short of ${B("[runway]")}, ${CW}.`) +
+    tip('Always read back the runway and any "hold short."'));
+
+  html += card(4, "Takeoff",
+    L("you", `${dc} Tower, ${CW}, holding short ${DR ? DR : B("[runway]")}, ready.`) +
+    L("atc", `${CW}, wind ${B("[wind]")}, ${rwy(DR)}, cleared for takeoff.`) +
+    L("you", `Cleared for takeoff ${DR ? DR : B("[runway]")}, ${CW}.`));
+
+  html += card(5, "Departure and center",
+    L("you", `${dc} Departure, ${CW}, passing ${B("[altitude]")} for ${B("[altitude]")}.`) +
+    L("atc", `${CW}, radar contact, climb and maintain ${B("[level]")}.`) +
+    L("you", `Climb and maintain ${B("[level]")}, ${CW}.`) +
+    tip("Each new frequency: who you are, what altitude, where you're going."));
+
+  html += card(6, "Handoffs",
+    L("atc", `${CW}, contact ${B("[facility]")} ${B("[frequency]")}.`) +
+    L("you", `${B("[facility]")} ${B("[frequency]")}, ${CW}.`) +
+    L("you", `${B("[facility]")}, ${CW}, ${B("[level]")} climbing ${B("[level]")}.`));
+
+  html += card(7, "Descent",
+    L("atc", `${CW}, cross ${B("[fix]")} at and maintain ${B("[altitude]")}.`) +
+    L("you", `Cross ${B("[fix]")} at and maintain ${B("[altitude]")}, ${CW}.`) +
+    tip("Get the ATIS before you call Approach."));
+
+  html += card(8, "Approach",
+    L("you", `${ac} Approach, ${CW}, ${B("[altitude]")}, information ${B("[ATIS]")}.`) +
+    L("atc", `${CW}, cleared ILS ${AR ? AR : B("[runway]")}, maintain ${B("[altitude]")} until established.`) +
+    L("you", `Cleared ILS ${AR ? AR : B("[runway]")}, ${B("[altitude]")} until established, ${CW}.`));
+
+  html += card(9, "Landing",
+    L("you", `${ac} Tower, ${CW}, ILS ${AR ? AR : B("[runway]")}.`) +
+    L("atc", `${CW}, ${rwy(AR)}, cleared to land.`) +
+    L("you", `Cleared to land ${AR ? AR : B("[runway]")}, ${CW}.`));
+
+  html += card(10, "Taxi in",
+    L("you", `${ac} Ground, ${CW}, clear of ${AR ? AR : B("[runway]")} at ${B("[taxiway]")}, to the cargo ramp.`) +
+    L("atc", `${CW}, taxi via ${B("[taxiways]")} to the ramp.`) +
+    L("you", `Via ${B("[taxiways]")} to the ramp, ${CW}.`));
+
+  // Unicom — no ATC online (full width)
+  html += `<div class="card unicom full"><h2><span class="n">!</span>No ATC online? Talk on Unicom 122.800</h2>` +
+    `<p class="tip" style="margin:0 0 6px">Type <b>.ctaf ${DEP}</b> in the client to see who's around. CTAF traffic calls are required.</p>` +
+    L("you", `${dc} traffic, ${CW} departing ${rwy(DR)}, ${B("[direction]")}, ${dc}.`) +
+    L("you", `${ac} traffic, ${CW} 5-mile final ${rwy(AR)}, ${ac}.`) +
+    L("you", `${ac} traffic, ${CW} clear of ${AR ? AR : B("[runway]")}, ${ac}.`) +
+    tip("Before lining up, look at final. If someone's there, wait.") + `</div>`;
+
+  // Lifesaver phrases + flight plan remarks
+  html += card("?", "Lifesaver phrases",
+    L("you", `Say again, ${CW}.`) +
+    L("you", `Unable, ${CW}.`) +
+    L("you", `${CW}, new to VATSIM, please go slow.`) +
+    L("you", `${CW}, request descent.`) +
+    L("you", `Wilco, ${CW}. ${B("(will comply)")}`));
+
+  html += `<div class="card"><h2><span class="n">i</span>Flight plan remarks</h2>` +
+    `<div class="line you"><span class="t"><b>/V/</b> voice, send and receive</span></div>` +
+    `<div class="line you"><span class="t"><b>/R/</b> listen on voice, reply by text (great middle step)</span></div>` +
+    `<div class="line you"><span class="t"><b>/T/</b> text only</span></div>` +
+    tip("Listen to the frequency for a minute before you key up. Short is better than perfect. Controllers expect newcomers.") + `</div>`;
+
+  return html;
+}
+
+function render() {
+  document.getElementById("grid").innerHTML = cards();
+  document.getElementById("subttl").textContent = `A PAC flight on VATSIM, gate to gate · Callsign ${PREFIX}, spoken "${TEL}"`;
+  document.getElementById("fltLine").textContent = `${FN} · ${DEP} → ${ARR}`;
+  document.getElementById("exLabel").textContent = hasFlight ? "" : "EXAMPLE";
+}
+
+// Spoken city name + wind-favoured runway for each airport, same source the Unicom generator uses.
+async function lookup(icao, isDep) {
+  if (!/^[A-Z]{3,4}$/.test(icao)) return;
+  try {
+    const r = await fetch("/api/unicom/airport?icao=" + icao, { credentials: "same-origin" });
+    const d = await r.json();
+    if (isDep) { if (d.city) DC = d.city; if (d.runway) DR = d.runway; }
+    else { if (d.city) AC = d.city; if (d.runway) AR = d.runway; }
+    render();
+  } catch (e) { /* offline: leave city/runway blank, brackets stay */ }
+}
+
+render();
+lookup(DEP, true);
+lookup(ARR, false);
+</script>
+</body>
+</html>

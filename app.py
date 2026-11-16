@@ -4300,6 +4300,18 @@ def unicom_page():
     return send_from_directory(app.static_folder, "unicom.html")
 
 
+@app.get("/radio/flight")
+def radio_flight_page():
+    """Full gate-to-gate ATC radio cheat sheet, filled for a specific flight (prefilled from the booking via query string)."""
+    return send_from_directory(app.static_folder, "radio-flight.html")
+
+
+@app.get("/radio")
+def radio_page():
+    """The gate-to-gate radio cheat sheet as a standalone reference (example flight when opened without a booking)."""
+    return send_from_directory(app.static_folder, "radio-flight.html")
+
+
 @app.get("/track")
 @app.get("/track/<path:awb>")
 def track_page(awb=None):
