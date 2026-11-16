@@ -1425,8 +1425,9 @@ def _fill(text, **kw):
     return out[:1].upper() + out[1:]          # "the Bay Area's team…" still starts with a capital
 
 
-def _scenario_mission(rng, scen, con, here, recent, origin=None):
-    """One mission from a scenario, or None if no leg works (unknown airport, out of range, repeated route)."""
+def _scenario_mission(rng, scen, con, here, recent, origin=None, dest=None):
+    """One mission from a scenario, or None if no leg works (unknown airport, out of range, repeated route).
+    A forced origin/dest (e.g. a calendar-driven race flyaway) pins the route and skips the repeat check."""
     import missiongen as MG
     A, F = C["AIRPORTS"], C["FLEET"]
     big = [i for i, a in A.items() if a.get("size") == "L" and (a.get("rwy_ft") or 0) >= 8000]
@@ -1435,7 +1436,9 @@ def _scenario_mission(rng, scen, con, here, recent, origin=None):
         o = C["airport_obj"](oc) if oc in A else None
         if not o:
             continue
-        if scen["to"] == MG.ANY:
+        if dest is not None:
+            dc = dest
+        elif scen["to"] == MG.ANY:
             for _ in range(30):
                 dc = rng.choice(big)
                 dd = C["gc_distance_nm"](o["lat"], o["lon"], A[dc]["lat"], A[dc]["lon"])
@@ -1445,7 +1448,7 @@ def _scenario_mission(rng, scen, con, here, recent, origin=None):
                 continue
         else:
             dc = rng.choice(scen["to"])
-        if dc == oc or dc not in A or f"{scen['key']}|{oc}|{dc}" in recent:
+        if dc == oc or dc not in A or (dest is None and f"{scen['key']}|{oc}|{dc}" in recent):
             continue
         d = C["airport_obj"](dc)
         dist = C["gc_distance_nm"](o["lat"], o["lon"], d["lat"], d["lon"])
@@ -1494,6 +1497,22 @@ def _scenario_mission(rng, scen, con, here, recent, origin=None):
     return None
 
 
+def _race_flyaway_leg(now_dt):
+    """The active Grand Prix flyaway leg: from the circuit that just raced to the next round's, in the days after a race."""
+    import missiongen as MG
+    cal = getattr(MG, "RACE_CALENDAR", [])
+    today = now_dt.date()
+    for i in range(len(cal) - 1):
+        mo, day, oc = cal[i]
+        try:
+            race = dt.date(today.year, mo, day)
+        except ValueError:
+            continue
+        if race < today <= race + dt.timedelta(days=4):
+            return oc, cal[i + 1][2]
+    return None
+
+
 def _new_live_id(con, rng):
     for _ in range(200):
         mid = f"PAC{rng.randint(6000, 8999)}"
@@ -1514,6 +1533,24 @@ def refresh_mission_board(here=None):
         con.execute("DELETE FROM live_missions WHERE status IN ('expired','completed') AND created < ?", (now - 30 * 86400,))
         open_ = [dict(r) for r in con.execute("SELECT * FROM live_missions WHERE status='open' ORDER BY created")]
         recent = {r[0] for r in con.execute("SELECT scenario_key FROM live_missions WHERE created > ?", (now - LIVE_NO_REPEAT_DAYS * 86400,))}
+        # Grand Prix season: in the days after a race, make sure the flyaway leg to the next circuit is on the board.
+        leg = _race_flyaway_leg(dt.datetime.now(dt.timezone.utc))
+        if leg:
+            oc, dc = leg
+            lkey = f"motorsport|{oc}|{dc}"
+            ms = next((s for s in MG.SCENARIOS if s["key"] == "motorsport"), None)
+            if ms and oc in C["AIRPORTS"] and dc in C["AIRPORTS"] and not con.execute(
+                    "SELECT 1 FROM live_missions WHERE scenario_key=? AND status IN ('open','booked')", (lkey,)).fetchone():
+                rng2 = random.Random(f"ms|{oc}|{dc}")
+                fm = _scenario_mission(rng2, ms, con, here, recent, origin=oc, dest=dc)
+                fid = _new_live_id(con, rng2) if fm else None
+                if fid:
+                    exp = now + 5 * 86400
+                    fm.update(id=fid, live=True, created=now, expires=exp)
+                    con.execute("INSERT OR REPLACE INTO live_missions (id, data, scenario_key, created, expires, status) VALUES (?,?,?,?,?, 'open')",
+                                (fid, json.dumps(fm), lkey, now, exp))
+                    recent.add(lkey)
+                    open_.append({"data": json.dumps(fm), "scenario_key": lkey})
         need = LIVE_BOARD_SIZE - len(open_)
         if need > 0:
             rng = random.Random(f"{now // 600}|{len(open_)}|{here}")

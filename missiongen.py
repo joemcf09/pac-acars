@@ -580,6 +580,34 @@ SCENARIOS = [
      "briefs": ["{Cargo} for {dc}. {challenge}"]},
 ]
 
+# Grand Prix season: each round's race date (month, day) and the airport serving that circuit, in calendar order.
+# The "motorsport" flyaway leg appears in the days right after each race, routing from the circuit that just hosted
+# to the next round's circuit, so a pilot can follow the season. Legs beyond a freighter's range simply don't appear.
+RACE_CALENDAR = [
+    (3, 8, "YMML"),    # Australia (Melbourne)
+    (3, 22, "ZSPD"),   # China (Shanghai)
+    (4, 5, "RJGG"),    # Japan (Suzuka / Chubu Centrair)
+    (4, 19, "OBBI"),   # Bahrain
+    (5, 3, "OEJN"),    # Saudi Arabia (Jeddah)
+    (5, 17, "KMIA"),   # Miami
+    (5, 31, "LEBL"),   # Spain (Barcelona)
+    (6, 14, "CYUL"),   # Canada (Montreal)
+    (6, 28, "LOWW"),   # Austria (Spielberg / Vienna)
+    (7, 5, "EGSS"),    # Britain (Silverstone / London Stansted)
+    (7, 26, "LHBP"),   # Hungary (Budapest)
+    (8, 2, "EBLG"),    # Belgium (Spa / Liège)
+    (8, 30, "EHAM"),   # Netherlands (Zandvoort / Amsterdam)
+    (9, 6, "LIMC"),    # Italy (Monza / Milan Malpensa)
+    (9, 20, "UBBB"),   # Azerbaijan (Baku)
+    (10, 4, "WSSS"),   # Singapore
+    (10, 18, "KAUS"),  # United States (Austin / COTA)
+    (10, 25, "MMMX"),  # Mexico (Mexico City)
+    (11, 8, "SBGR"),   # Brazil (São Paulo / Interlagos)
+    (11, 21, "KLAS"),  # Las Vegas
+    (11, 28, "OTHH"),  # Qatar (Lusail / Doha)
+    (12, 6, "OMAA"),   # Abu Dhabi (Yas Marina)
+]
+
 # The airports the challenge missions use and what makes each one hard. Shown in the briefing and in the dossier.
 CHALLENGES = {
     "SLLP": ("High altitude", "El Alto sits at 13,355 ft, the highest international airport in the Americas. True airspeeds are high, "
