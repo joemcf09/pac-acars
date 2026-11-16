@@ -24,12 +24,12 @@ def compute(con, now=None):
     """{shipper name: {...}} for shippers with at least one finished shipment in the window."""
     now = now or time.time()
     rows = con.execute("""SELECT shipper, status, COUNT(*) n, MAX(updated_at) last FROM cargo_shipments
-        WHERE status IN ('DELIVERED','DELIVERED_LATE','EXCEPTION') AND updated_at>=? AND COALESCE(shipper,'')!=''
+        WHERE status IN ('DELIVERED','DELIVERED_LATE','EXCEPTION','WITHDRAWN') AND updated_at>=? AND COALESCE(shipper,'')!=''
         GROUP BY shipper, status""", (now - WINDOW_S,)).fetchall()
     out = {}
     for r in rows:
-        a = out.setdefault(r["shipper"], {"shipper": r["shipper"], "on_time": 0, "late": 0, "failed": 0, "last": 0})
-        key = {"DELIVERED": "on_time", "DELIVERED_LATE": "late", "EXCEPTION": "failed"}[r["status"]]
+        a = out.setdefault(r["shipper"], {"shipper": r["shipper"], "on_time": 0, "late": 0, "failed": 0, "rolled": 0, "last": 0})
+        key = {"DELIVERED": "on_time", "DELIVERED_LATE": "late", "EXCEPTION": "failed", "WITHDRAWN": "rolled"}[r["status"]]
         a[key] += r["n"]
         a["last"] = max(a["last"], r["last"] or 0)
     try:
@@ -38,9 +38,12 @@ def compute(con, now=None):
     except Exception:
         adj = {}
     for a in out.values():
-        a["shipments"] = a["on_time"] + a["late"] + a["failed"]
+        a.setdefault("rolled", 0)
+        a["shipments"] = a["on_time"] + a["late"] + a["failed"] + a["rolled"]
         a["adjust"] = adj.get(a["shipper"], 0)
-        a["score"] = int(max(0, min(100, round(BASE + 3 * a["on_time"] - 6 * a["late"] - 10 * a["failed"] + a["adjust"]))))
+        # a rolled consignment (PAC never uplifted tendered freight) is a serious service failure: between a late
+        # delivery and an outright exception. It lowers standing, so the shipper tenders less freight to PAC after.
+        a["score"] = int(max(0, min(100, round(BASE + 3 * a["on_time"] - 6 * a["late"] - 10 * a["failed"] - 8 * a["rolled"] + a["adjust"]))))
         a["tier"] = tier(a["score"])
     return out
 

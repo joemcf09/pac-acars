@@ -1963,10 +1963,12 @@ html[data-design="loadsheet"] :is(.relief-draft,.relief-notice,.relief-checks){b
 /* pay statement + "you've been paid" notice */
 .paystub-dlg{width:min(600px,96vw)}
 .paystub{padding:22px 24px 20px;background:var(--white);color:var(--ink)}
-.ps-head{display:flex;align-items:center;justify-content:space-between;gap:16px;border-bottom:2px solid var(--ink);padding-bottom:14px}
-.ps-head img{height:34px;width:auto}
+.ps-head{display:flex;align-items:center;justify-content:space-between;gap:16px;border-bottom:3px solid var(--red);padding-bottom:14px;background:var(--white);color:var(--ink)}
+.ps-brand{display:flex;align-items:center;gap:12px}
+.ps-logo{height:40px;width:auto;border-radius:5px}
+.ps-name{font-weight:800;font-size:17px;letter-spacing:.02em;color:var(--ink)}
 .ps-title{text-align:right}
-.ps-title h2{margin:0;font-size:20px;letter-spacing:.01em}
+.ps-title h2{margin:0;font-size:20px;letter-spacing:.01em;color:var(--ink)}
 .ps-meta{display:grid;grid-template-columns:1fr 1fr;gap:10px 18px;margin:16px 0}
 .ps-meta span{display:block;font-size:11.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--steel)}
 .ps-meta b{font-size:14px}

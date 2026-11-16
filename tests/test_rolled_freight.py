@@ -1,5 +1,6 @@
-"""Rolled freight: waiting orders that sit past deadline are withdrawn to another carrier, PAC forfeits the
-revenue to the company ledger (never the pilots), and a digest news post is written."""
+"""Rolled freight (realistic model): waiting orders that sit past deadline are withdrawn to another carrier. The
+box still moves, PAC loses the revenue it could have flown (reported, no cash debit), and the shipper's account
+standing drops so it tenders less freight afterwards. Pilots are never charged."""
 import json
 import os
 import sqlite3
@@ -9,7 +10,7 @@ import time
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import cargo_orders
-import company
+import accounts
 
 con = sqlite3.connect(":memory:")
 con.row_factory = sqlite3.Row
@@ -28,15 +29,14 @@ def check(name, ok, got=None):
     if not ok:
         fails.append(name)
 
-def add_order(sid, service, chg_kg, deadline):
+def add_order(sid, service, chg_kg, deadline, shipper="Globe Pharma Ltd"):
     data = {"deadline": deadline, "service": service, "agent": "Kuehne+Nagel"}
     con.execute("""INSERT INTO cargo_shipments (id, awb, booking_key, origin, destination, current_station, status,
-        gross_weight_lbs, chargeable_weight_kg, priority, reserved_booking_key, data, created_at, updated_at)
-        VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
-        (sid, "123-"+sid, f"ORDER:{sid}", "VHHH", "ELLX", "VHHH", "AT_STATION", chg_kg*2.20462, chg_kg, service, None,
+        shipper, gross_weight_lbs, chargeable_weight_kg, priority, reserved_booking_key, data, created_at, updated_at)
+        VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+        (sid, "123-"+sid, f"ORDER:{sid}", "VHHH", "ELLX", "VHHH", "AT_STATION", shipper, chg_kg*2.20462, chg_kg, service, None,
          json.dumps(data), now, now))
 
-# one shipment fresh (not past deadline), one well past deadline+1day
 add_order("fresh", "EXPRESS", 1000, now + 10 * 3600)
 add_order("stale", "EXPRESS", 2000, now - 2 * 86400)
 
@@ -47,24 +47,28 @@ statuses = {r["id"]: r["status"] for r in con.execute("SELECT id, status FROM ca
 check("stale order is WITHDRAWN", statuses["stale"] == "WITHDRAWN", statuses)
 check("fresh order is untouched", statuses["fresh"] == "AT_STATION", statuses)
 
-# EXPRESS rate midpoint is (5.5+8.5)/2 = 7.0 per chargeable kg; 2000 kg -> ~14,000
-ledger = con.execute("SELECT kind, amount, description FROM company_ledger").fetchall()
-check("one rolled_freight ledger line", len(ledger) == 1 and ledger[0]["kind"] == "rolled_freight", [dict(r) for r in ledger])
-check("the loss is negative (company pays, ~ -14000)", ledger and ledger[0]["amount"] < 0 and abs(ledger[0]["amount"] + 14000) < 1, ledger and ledger[0]["amount"])
-check("ledger total matches the forfeit", round(company.ledger_total(con)) == round(ledger[0]["amount"]), company.ledger_total(con))
+# realism: NO cash leaves the treasury (no company_ledger activity from a rollover)
+has_ledger = con.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='company_ledger'").fetchone()
+check("no treasury debit: company_ledger not even created by a rollover", has_ledger is None, has_ledger)
 
 mv = con.execute("SELECT details FROM cargo_movements WHERE shipment_id='stale'").fetchone()
 det = json.loads(mv["details"]) if mv else {}
-check("movement names a carrier and the forfeit", det.get("carrier") in cargo_orders.CARRIERS and det.get("forfeited") > 0, det)
+# EXPRESS midpoint (5.5+8.5)/2 = 7.0/kg x 2000kg = ~14,000 lost revenue (reported, not debited)
+check("movement names a carrier and the lost revenue", det.get("carrier") in cargo_orders.CARRIERS and abs(det.get("lost_revenue", 0) - 14000) < 1, det)
 
 news = con.execute("SELECT title, body FROM news").fetchall()
 check("a digest news post is written", len(news) == 1 and "rolled" in news[0]["title"].lower(), [dict(r) for r in news])
-check("news names the forfeited revenue", news and "$" in news[0]["body"], news and news[0]["body"])
+check("news frames it as lost revenue AND lost accounts", news and "revenue" in news[0]["body"].lower() and "tender" in news[0]["body"].lower(), news and news[0]["body"])
 
-# idempotency: running again rolls nothing new (stale already WITHDRAWN)
+# the shipper's account standing drops because PAC failed to uplift tendered freight
+acc = accounts.compute(con, now)
+globe = acc.get("Globe Pharma Ltd")
+check("the shipper has a rolled consignment on record", globe and globe["rolled"] == 1, globe)
+check("a rollover lowers the account below the 70 baseline", globe and globe["score"] == 62, globe and globe["score"])
+
+# idempotency
 gone2 = cargo_orders.withdraw_stale(con, now)
 check("second run rolls nothing (idempotent)", gone2 == 0, gone2)
-check("still just one ledger line", con.execute("SELECT COUNT(*) FROM company_ledger").fetchone()[0] == 1)
 
 print("\n" + ("ALL PASS" if not fails else f"{len(fails)} FAILED: {fails}"))
 sys.exit(1 if fails else 0)

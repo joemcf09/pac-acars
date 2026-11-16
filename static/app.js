@@ -3667,8 +3667,8 @@ function paystubHTML(s) {
   const me = S.me || {};
   const row = l => `<tr><td>${esc(l.label)}</td><td class="r ${moneyCls(l.amount)}"><b>${l.amount > 0 ? "+" : ""}${money(l.amount, true)}</b></td></tr>`;
   return `<article class="paystub">
-    <header class="ps-head"><img src="/static/pac-wordmark-red.png" alt="Pagani Air Cargo" width="150">
-      <div class="ps-title"><h2>Pay Statement</h2><div class="muted">${esc(s.period || "")}</div></div></header>
+    <div class="ps-head"><div class="ps-brand"><img class="ps-logo" src="/static/pac-logo.png" alt="PAC"><span class="ps-name">Pagani Air Cargo</span></div>
+      <div class="ps-title"><h2>Pay Statement</h2><div class="muted">${esc(s.period || "")}</div></div></div>
     <div class="ps-meta">
       <div><span>Pilot</span><b>${esc(me.id || "")} · ${esc(displayName(S.profile) || me.name || "")}</b></div>
       <div><span>Rank</span><b>${esc(s.rank || me.rank || "")}</b></div>
