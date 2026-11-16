@@ -96,7 +96,10 @@ POOLS = [
     (("bullion", "banknote"), [("Valuable cargo, escorted", ["VAL"], None)]),
     (("helicopter",), [("Helicopter on skid frame, blades removed", ["BIG", "HEA"], None, 1), ("Rotor blades and spares", ["BIG"], None)]),
     (("tyre", "tire"), [("Mining-truck tires", ["BIG", "HEA"], None)]),
-    (("stage", "staging", "lighting", "touring", "motorsport", "concert", "backline", "team gear"), [("{cargo}", ["GEN"], None)]),
+    (("stage", "staging", "lighting", "touring", "concert", "backline"), [("{cargo}", ["GEN"], None)]),
+    (("formula 1", "grand prix", "race team", "race cars", "motorsport", "racing", "paddock", "pit crew"),
+     [("Race cars in fitted transport cradles", ["BIG", "VAL"], None, 2), ("Pit wall, garage and paddock equipment", ["GEN"], None),
+      ("Tyres, drained fuel cells and spares", ["GEN"], None, 2), ("Team hospitality and freight", ["GEN"], None)]),
     (("wine", "beaujolais", "champagne"), [("Beaujolais Nouveau wine, palletized", ["EAT"], None), ("Wine in insulated pallet covers", ["EAT", "CRT"], None)]),
 ]
 GENERAL = [("General cargo", ["GEN"], None), ("Consolidated freight", ["GEN"], None), ("Machinery spares", ["GEN"], None)]

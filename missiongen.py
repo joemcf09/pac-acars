@@ -168,6 +168,15 @@ SCENARIOS = [
      "cargo": ["Antarctic program supplies and science equipment"], "load": (0.6, 0.9),
      "titles": ["Antarctic season: supplies to Christchurch"],
      "briefs": ["Christchurch is the gateway to the Antarctic research stations. This season's science equipment and supplies are staged there for the ice flights."]},
+    {"key": "motorsport", "category": "Premium", "priority": "High", "months": [3, 4, 5, 6, 7, 8, 9, 10, 11], "weight": 2, "size": "heavy",
+     "from": ["OBBI", "OEJN", "YMML", "RJGG", "ZSPD", "CYUL", "KMIA", "KAUS", "MMMX", "SBGR", "KLAS", "OTHH", "OMAA"],
+     "to": ["OBBI", "OEJN", "YMML", "RJGG", "ZSPD", "CYUL", "KMIA", "KAUS", "MMMX", "SBGR", "KLAS", "OTHH", "OMAA"],
+     "cargo": ["Formula 1 race cars, pit wall and garage freight", "A Grand Prix team's cars, pit gear and paddock freight"], "load": (0.35, 0.6),
+     "titles": ["Race flyaway: {oc} to {dc}", "Grand Prix freight: {oc} to {dc}", "Back-to-back: team move to {dc}"],
+     "briefs": ["Scuderia Ferrari races at {dc} next weekend, straight off the round at {oc}. Their two cars, pit wall and garage have to clear customs and be built before the cars are unloaded. Outsized and high value: main deck only, careful restraint, no hard landing.",
+                "McLaren's flyaway freight moves from {oc} to {dc} for the next Grand Prix. Cars, tyres and paddock equipment on a tight back-to-back turnaround, the garage goes up before the cars arrive.",
+                "Red Bull Racing's team move: cars, pit wall and hospitality from {oc} to {dc}. A back-to-back weekend leaves no slack, so the freight has to be on the ground on schedule.",
+                "Mercedes-AMG Petronas is on a flyaway round at {dc}, their cars and garage flying in from {oc}. Irreplaceable outsized pieces: gentle handling and a smooth landing."]},
 
     # ------------------------------------------------------------------ premium and special
     {"key": "racehorses", "max_lbs": 40000, "category": "Premium", "priority": "High", "months": [2, 3, 5, 6, 10, 11], "weight": 1, "size": "heavy",
