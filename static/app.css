@@ -657,6 +657,12 @@ img.insignia{display:block;aspect-ratio:3/5;object-fit:contain;background:#14141
 .partner-strip img{width:100%;height:56px;object-fit:contain}
 .js-opt img{height:20px;width:auto;vertical-align:middle;margin-right:6px}
 @media (max-width:900px){.partner-strip{grid-template-columns:repeat(3,1fr)}}
+.tech-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:14px;margin:4px 0 0}
+.tech-card{display:flex;flex-direction:column;gap:6px;background:var(--white);border:1px solid var(--line);border-radius:6px;padding:16px 18px;text-decoration:none;color:var(--ink);transition:border-color .15s,box-shadow .15s}
+.tech-card:hover{border-color:var(--red);box-shadow:0 1px 0 var(--red)}
+.tech-card .tech-kind{font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--red-deep)}
+.tech-card b{font-size:17px}
+.tech-card .tech-desc{color:var(--steel);font-size:13.5px;line-height:1.45}
 
 /* ============ News, NOTAMs, gallery ============ */
 .notam-bar{display:flex;gap:12px;align-items:flex-start;background:#1E2126;color:#fff;border-left:6px solid #FFC845;padding:10px 16px;margin-bottom:14px;border-radius:2px;font-size:14px}

@@ -5175,6 +5175,22 @@ async function fillHomeCampaigns() {
         <button class="btn small" onclick="S.boardCampaignId='${Number(c.id)}';show('missions')">Find flights to ${esc(c.destinations[0])} and more →</button></div></div>`; }).join("")}` : "";
   } catch (e) { el.innerHTML = ""; }
 }
+// Real-world tools and platforms PAC flies with. Edit freely. "kind" is the little label on each card.
+const TECH_PARTNERS = [
+  { name: "SayIntentions.AI", kind: "Integration", url: "https://www.sayintentions.ai",
+    desc: "AI air traffic control. PAC links to it through VA-Link, so the flights you fly there log straight back to your PAC logbook." },
+  { name: "SimBrief by Navigraph", kind: "Dispatch", url: "https://www.simbrief.com",
+    desc: "Every PAC dispatch release is built on a SimBrief OFP: real fuel, weights and routing for your flight." },
+  { name: "TFDi Design", kind: "Fleet", url: "https://www.tfdidesign.com",
+    desc: "The study-level MD-11, flown in PAC colours as the MD-11F." },
+  { name: "iniBuilds", kind: "Fleet", url: "https://www.inibuilds.com",
+    desc: "The A300-600F, one of PAC's widebody freighters." },
+  { name: "VATSIM", kind: "Network", url: "https://vatsim.net",
+    desc: 'Fly PAC online with live human ATC. On the network you are PGI, spoken "Pagani".' },
+  { name: "IVAO", kind: "Network", url: "https://ivao.aero",
+    desc: "PAC also flies on IVAO's online network." },
+];
+
 async function renderHome(h, st) {
   const t = h.totals, f = h.founder || {}, site = h.site;
   const codes = fleetCodes();
@@ -5280,6 +5296,10 @@ async function renderHome(h, st) {
   <p class="muted" style="font-size:12px;margin:6px 0 0">Partnerships are simulated for Pagani Air Cargo, a flight simulation virtual airline. Names and logos are trademarks of their owners and don't imply endorsement.</p>` : ""}
 
   ${networkPartners(h)}
+
+  <div class="section-h"><div><div class="kicker">Tools &amp; technology</div><h2>What PAC flies with</h2><p>The platforms and add-ons behind every PAC flight. We integrate directly with some of them.</p></div></div>
+  <div class="tech-grid">${TECH_PARTNERS.map(p => `<a class="tech-card"${p.url ? ` href="${esc(p.url)}" target="_blank" rel="noopener"` : ""}><span class="tech-kind">${esc(p.kind)}</span><b>${esc(p.name)}</b><span class="tech-desc">${esc(p.desc)}</span></a>`).join("")}</div>
+  <p class="muted" style="font-size:12px;margin:8px 0 0">Product and company names are trademarks of their respective owners. Pagani Air Cargo is a non-commercial flight-simulation community; these references don't imply endorsement or affiliation beyond the integrations noted.</p>
 
   ${(() => { const de = S.settings?.direct_entry_checkrides !== false;   // direct entry: aircraft come from checkrides, not rank
     return `<div class="section-h"><div><div class="kicker">Career path</div><h2>From cadet to Senior Captain</h2><p>${de
