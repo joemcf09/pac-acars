@@ -3818,10 +3818,12 @@ def finance():
         mb["revenue"] += r["revenue"]; mb["cost"] += r["cost"]; mb["profit"] += r["profit"]; mb["flights"] += 1
     with db() as con:
         shares = con.execute("SELECT COALESCE(SUM(amount),0) FROM wallet WHERE kind='profit_share'").fetchone()[0]
+        base_pay = con.execute("SELECT COALESCE(SUM(amount),0) FROM wallet WHERE kind='base_pay'").fetchone()[0]
         import company
         ledger = company.ledger_total(con)
         statements = company.statements(con, 6)
     cash -= shares
+    cash -= base_pay                    # weekly pilot base pay comes out of the treasury
     cash += ledger                      # aircraft purchases, leases, goodwill and other non-flight money
     this_month = _dt.datetime.now(_dt.timezone.utc).strftime("%Y-%m")
     tot = {"revenue": sum(r["revenue"] for r in rows), "cost": sum(r["cost"] for r in rows), "profit": sum(r["profit"] for r in rows)}

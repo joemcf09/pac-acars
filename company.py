@@ -104,8 +104,8 @@ def statements(con, months=6):
         for k, v in costs.items():
             lbl = COST_LINE.get(k, k.replace("_", " ").capitalize())
             s["operating"][lbl] = s["operating"].get(lbl, 0) + v
-    for r in con.execute("SELECT time, kind, amount FROM wallet WHERE kind IN ('per_diem','profit_share','campaign')"):
-        lbl = {"per_diem": "Per diem", "profit_share": "Pilot profit share", "campaign": "Campaign rewards"}[r[1]]
+    for r in con.execute("SELECT time, kind, amount FROM wallet WHERE kind IN ('per_diem','profit_share','campaign','base_pay')"):
+        lbl = {"per_diem": "Per diem", "profit_share": "Pilot profit share", "campaign": "Campaign rewards", "base_pay": "Pilot base pay"}[r[1]]
         s = m(_month(r[0])); s["people"][lbl] = s["people"].get(lbl, 0) + (r[2] or 0)
     for r in con.execute("SELECT time, kind, amount FROM company_ledger"):
         lbl = LEDGER_LINE.get(r[1], r[1])

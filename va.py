@@ -3424,6 +3424,8 @@ def enforce_overdue():
             hotels.tick(con, add_tx, now)
             import hubs
             hubs.tick(con, now)
+            import payroll
+            payroll.tick(con, add_tx, lambda _pid, _c: career(_pid, _c)["rank"], now)
             import monthly_report
             monthly_report.tick(con, C["settings"](), C.get("secret") or "", now)
             import engagement
