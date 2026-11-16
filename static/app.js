@@ -5546,7 +5546,7 @@ function siteFooter(site) {
     ${site?.interline_badge ? `<div style="margin:20px 0 0"><a href="https://interline.pac-va.com" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:11px;text-decoration:none;padding:10px 15px;border:1px solid #2c3037;border-radius:9px;background:#0E2A47">
       <svg width="40" height="22" viewBox="0 0 92 48" aria-hidden="true"><path d="M 40.69 40.71 A 18 18 0 1 1 49.86 32.51" fill="none" stroke="#fff" stroke-width="7" stroke-linecap="round"/><path d="M 51.31 7.29 A 18 18 0 1 1 42.14 15.49" fill="none" stroke="#D8AD53" stroke-width="7" stroke-linecap="round"/></svg>
       <span style="line-height:1.25"><span style="display:block;font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:#9fb0cf;font-weight:700">Founding Member of</span><span style="display:block;font-size:13px;font-weight:700;color:#fff;letter-spacing:.03em">INTERLINE FREIGHT PARTNERS</span></span></a></div>` : ""}
-    <p class="sf-legal">Airline names, logos and aircraft types belong to their owners; partner operations are simulated and imply no endorsement. For flight simulation only: not for real-world navigation or flight planning.</p>
+    <p class="sf-legal">Airline, team, series and brand names, logos and aircraft types belong to their owners; partnerships and sponsorships are simulated and referenced for realism only, implying no affiliation or endorsement. For flight simulation only: not for real-world navigation or flight planning.</p>
     <p class="sf-legal">&copy; ${year} Pagani Air Cargo · pac-va.com</p>
   </footer>`;
 }
