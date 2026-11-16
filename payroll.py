@@ -96,7 +96,20 @@ def tick(con, add_tx, rank_of, now=None):
                         (pid, key, now, base, rank))
             paid.append({"pilot_id": pid, "period": key, "base": base, "rank": rank,
                          "period_start": ws, "period_end": we, "period_label": period_label(start)})
+    coalesce_notices(con)
     return paid
+
+
+def coalesce_notices(con):
+    """A catch-up should ping a pilot once, for their latest paycheck, not once per backfilled week. Mark every
+    run except each pilot's most recent as already notified and DMed, so only the newest paycheck announces itself.
+    The pay itself is untouched: all the base payments stay in the wallet and the P&L; this only collapses the
+    notifications. Runs each tick, so a quiet server that backfills several weeks still pings only once."""
+    migrate(con)
+    con.execute("""UPDATE payroll_runs SET notified=1 WHERE notified=0 AND period < (
+        SELECT MAX(period) FROM payroll_runs p2 WHERE p2.pilot_id=payroll_runs.pilot_id)""")
+    con.execute("""UPDATE payroll_runs SET dm_sent=1 WHERE dm_sent=0 AND period < (
+        SELECT MAX(period) FROM payroll_runs p2 WHERE p2.pilot_id=payroll_runs.pilot_id)""")
 
 
 def _period_bounds(key):
