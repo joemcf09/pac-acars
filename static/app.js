@@ -2551,11 +2551,24 @@ async function loadCargo() {
       <div class="aar-wrap"><table class="aar-table"><thead><tr><th>Lane</th><th>Standing</th><th class="r">Score</th><th class="r">Flights</th><th class="r">On time</th><th class="r">Late</th><th class="r">Freight issues</th></tr></thead><tbody>
       ${weak.length ? `<tr><td colspan="7"><b>Needs attention</b></td></tr>${weak.map(row).join("")}` : ""}${strong.length ? `<tr><td colspan="7"><b>Strongest lanes</b></td></tr>${strong.map(row).join("")}` : ""}</tbody></table></div>` : "";
     const acc = S.accountList || [];
-    if (acc.length) el.insertAdjacentHTML("beforeend", `<h2>Customer accounts</h2><p class="muted" style="max-width:90ch">Each shipper remembers how PAC handled its freight over the last 90 days. On-time deliveries raise the account; late and failed shipments lower it. Accounts under review or at risk send more of their freight to other carriers, so their orders thin out.</p>
-      <div class="aar-wrap"><table class="aar-table"><thead><tr><th>Customer</th><th>Standing</th><th class="r">Score</th><th class="r">Shipments</th><th class="r">On time</th><th class="r">Late</th><th class="r">Failed</th></tr></thead><tbody>
-      ${acc.slice(0, 12).map(a => `<tr><td><b>${esc(a.shipper)}</b></td><td><span class="tag ${({ Preferred: "lane-pref", Good: "lane-good", "Under review": "lane-review", "At risk": "lane-risk" })[a.tier]}">${esc(a.tier)}</span></td>
-        <td class="r mono">${a.score}</td><td class="r">${a.shipments}</td><td class="r">${a.on_time}</td><td class="r">${a.late}</td><td class="r">${a.failed}</td></tr>`).join("")}</tbody></table></div>
-      <p class="muted" style="font-size:12px">Company names are used for flight simulation only and imply no relationship with PAC.</p>`);
+    const weakAcc = acc.filter(a => a.tier === "Under review" || a.tier === "At risk");
+    const actionable = weakAcc.filter(a => a.station && a.waiting), idle = weakAcc.filter(a => !(a.station && a.waiting));
+    const chip = a => a.tier === "At risk" ? `<span class="acct-chip risk">Slipping away</span>` : `<span class="acct-chip review">Needs a win</span>`;
+    if (weakAcc.length) {
+      el.insertAdjacentHTML("beforeend", `<h2>Accounts that need you</h2><p class="muted" style="max-width:90ch">These shippers have been let down lately, so they're sending more of their freight to other carriers. Fly their cargo and deliver it on time to win them back.</p>
+        ${actionable.length ? `<div class="acct-grid">${actionable.map(a => `<article class="acct-card ${a.tier === "At risk" ? "risk" : "review"}">
+          <div class="acct-top"><b>${esc(a.shipper)}</b>${chip(a)}</div>
+          <p class="muted">${a.waiting} shipment${a.waiting === 1 ? "" : "s"} waiting at <b>${esc(a.station)}</b></p>
+          <button type="button" class="btn small" data-acct-fly="${esc(a.station)}">Find their freight →</button></article>`).join("")}</div>` : `<p class="muted">None of the slipping accounts have freight waiting right now. Their cargo will be back on the boards as stations restock.</p>`}
+        ${idle.length ? `<p class="muted" style="font-size:13px">${idle.length} more account${idle.length === 1 ? "" : "s"} slipping (${idle.slice(0, 5).map(a => esc(a.shipper)).join(", ")}${idle.length > 5 ? "…" : ""}) with no freight waiting from them right now.</p>` : ""}
+        <p class="muted" style="font-size:12px">Company names are used for flight simulation only and imply no relationship with PAC.</p>`);
+    } else if (acc.length) {
+      el.insertAdjacentHTML("beforeend", `<h2>Customer accounts</h2><p class="muted">Every shipper is happy with PAC right now. Keep delivering on time to keep it that way.</p>`);
+    }
+    el.querySelectorAll("[data-acct-fly]").forEach(b => b.onclick = () => {
+      resetMissionFilters(); Object.assign(S, { board: "all", parkedOrigin: b.dataset.acctFly, shipmentFilterTitle: `Freight waiting at ${b.dataset.acctFly}` });
+      show("missions");
+    });
   });
   $("#cgoSeasons").innerHTML = (overview.seasons || []).length ? `<h2>In season now</h2><div class="cgo-season-grid">${overview.seasons.map(x => `<article class="cgo-season-card">
       <div class="kicker">Until ${esc(x.until)}</div><h3>${esc(x.name)}</h3><p>${esc(x.blurb)}</p>

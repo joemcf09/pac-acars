@@ -4038,7 +4038,18 @@ def lanes_api():
     import accounts
     with db() as con:
         acc = sorted(accounts.compute(con).values(), key=lambda a: (-a["shipments"], -a["score"]))
-    return jsonify({"lanes": out, "base": lane_rep.BASE, "window_days": lane_rep.WINDOW_S // 86400, "accounts": acc[:30]})
+        # where each shipper's freight is waiting right now, so the pilot view can point the crew straight at it
+        wait = {}
+        for r in con.execute("""SELECT shipper, current_station s, COUNT(*) n FROM cargo_shipments
+                WHERE status IN ('AT_STATION','HELD_AT_STATION') AND reserved_booking_key IS NULL AND COALESCE(shipper,'')!=''
+                GROUP BY shipper, current_station"""):
+            cur = wait.get(r["shipper"])
+            if not cur or r["n"] > cur[1]:
+                wait[r["shipper"]] = (r["s"], r["n"])
+    for a in acc:
+        st_w = wait.get(a["shipper"])
+        a["station"], a["waiting"] = (st_w[0], st_w[1]) if st_w else (None, 0)
+    return jsonify({"lanes": out, "base": lane_rep.BASE, "window_days": lane_rep.WINDOW_S // 86400, "accounts": acc[:60]})
 
 
 @app.get("/api/staff/cargo-stock")
