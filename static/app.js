@@ -3653,7 +3653,7 @@ async function quoteJump(to) {
 }
 function walletPanel(me, wallet) {
   if (!me) return "";
-  const kinds = { flight_pay: "Flight pay", profit_share: "Profit share", skill_bonus: "Skill bonus", contract_bonus: "Shortage bonus", ferry_bonus: "Ferry bonus", hazard_pay: "Hazard pay", jumpseat: "Travel", shop: "PAC shop", gear_bonus: "Gear bonus", adjustment: "Staff adjustment", campaign: "Campaign reward", per_diem: "Per diem", mentoring: "Mentoring bonus", hotel: "Hotel stay" };
+  const kinds = { flight_pay: "Flight pay", profit_share: "Profit share", skill_bonus: "Skill bonus", contract_bonus: "Shortage bonus", ferry_bonus: "Ferry bonus", hazard_pay: "Hazard pay", jumpseat: "Travel", shop: "PAC shop", gear_bonus: "Gear bonus", adjustment: "Staff adjustment", campaign: "Campaign reward", per_diem: "Per diem", mentoring: "Mentoring bonus", hotel: "Hotel stay", base_pay: "Weekly base pay", training_travel: "Training travel" };
   const entries = wallet?.transactions || [];
   const pager = wallet && wallet.pages > 1 ? `<nav class="wallet-pages" aria-label="Wallet transaction pages" style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:12px 14px;border-top:1px solid var(--line)">
     <span class="muted" role="status">Transactions ${(wallet.page - 1) * wallet.per_page + 1}–${Math.min(wallet.page * wallet.per_page, wallet.total)} of ${wallet.total}</span>
