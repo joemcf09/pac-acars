@@ -5,9 +5,10 @@ cargo airline's warehouse always has freight booked by forwarders. Orders are bu
 as a booked flight (units, handling codes, dangerous goods, air waybill), stored as persistent shipments at the
 station, and loaded onto a flight like any other waiting freight.
 
-Each order has a deadline. One nobody picks up goes to "another carrier" a day after its deadline: it leaves the
-inventory with a logged movement and costs no one anything. Stocking runs at most every 30 minutes, when someone
-opens a cargo page, so there's no background process to keep alive.
+Each order has a deadline. One nobody picks up is rolled to "another carrier" a day after its deadline: the box
+still gets delivered, but PAC forfeits the freight revenue, and that loss lands on the company books (the ledger),
+never on the pilots. Stocking runs at most every 30 minutes, when someone opens a cargo page, so there's no
+background process to keep alive.
 """
 from __future__ import annotations
 
@@ -23,6 +24,7 @@ import accounts
 import seasons
 import warehouses
 import shipments
+import company
 
 ORDER_PILOT = "PAC-OPS"
 TICK_S = 30 * 60
@@ -139,22 +141,68 @@ def make_order(con, route, fleet, pilot, rng, now, season=None):
     return made
 
 
+# Real freighter operators a forwarder might re-book onto. Named for immersion only; no affiliation or
+# endorsement is implied, and nothing here reflects on the real carriers.
+CARRIERS = ("Cargolux", "Atlas Air", "Kalitta Air", "Nippon Cargo Airlines", "Silk Way West",
+            "Cathay Cargo", "Emirates SkyCargo", "Qatar Airways Cargo", "China Airlines Cargo", "ABX Air")
+
+
+def _forfeit(service, chg_kg, gross_lbs):
+    """What PAC leaves on the table when a waiting shipment rolls to another carrier: the freight charge it
+    would have earned, from the chargeable weight and the per-kg rate for that service (shipments.RATE)."""
+    lo, hi, _cls = shipments.RATE.get((service or "").upper(), shipments.DEFAULT_RATE)
+    kg = chg_kg or (gross_lbs or 0) / 2.20462
+    return round(max(0.0, kg) * (lo + hi) / 2)
+
+
+def _roll_news(con, n, forfeited, now):
+    try:
+        s = "" if n == 1 else "s"
+        them = "it" if n == 1 else "them"
+        con.execute("INSERT INTO news (time, kind, title, body, important, expires, author) VALUES (?,?,?,?,?,?,?)",
+            (now, "news", f"{n} shipment{s} rolled to another carrier",
+             f"{n} consignment{s} sat past deadline, so the forwarders moved {them} to other carriers. The freight still gets "
+             f"delivered, but PAC forfeited about ${forfeited:,.0f} in revenue. Clear the backlog on the Cargo inventory to keep it ours.",
+             0, now + 7 * 86400, "PAC Operations"))
+    except Exception as e:      # no news table in a bare test database: the rollover still happens
+        print("roll news:", e)
+
+
 def withdraw_stale(con, now):
-    """Orders nobody took within a day of their deadline go to another carrier."""
-    gone = 0
-    for row in con.execute("""SELECT id, current_station, data FROM cargo_shipments WHERE booking_key LIKE 'ORDER:%'
+    """Orders nobody took within a day of their deadline are rolled to another carrier. The box still gets
+    delivered, but PAC forfeits the revenue and the loss lands on the company books (not the pilots)."""
+    gone, forfeited = 0, 0
+    for row in con.execute("""SELECT id, current_station, chargeable_weight_kg, gross_weight_lbs, priority, data
+            FROM cargo_shipments WHERE booking_key LIKE 'ORDER:%'
             AND status='AT_STATION' AND reserved_booking_key IS NULL AND current_station=origin""").fetchall():
         try:
-            deadline = json.loads(row["data"]).get("deadline") or 0
+            data = json.loads(row["data"]) if row["data"] else {}
         except (TypeError, ValueError):
+            data = {}
+        deadline = data.get("deadline") or 0
+        if not (deadline and now > deadline + 86400):
             continue
-        if deadline and now > deadline + 86400:
-            con.execute("UPDATE cargo_shipments SET status='WITHDRAWN', updated_at=? WHERE id=?", (now, row["id"]))
-            con.execute("""INSERT OR IGNORE INTO cargo_movements (shipment_id, event_key, event_type, event_time, from_station, to_station,
-                pilot_id, status, details) VALUES (?,?,?,?,?,?,?,?,?)""",
-                (row["id"], f"withdrawn:{row['id']}", "ORDER_WITHDRAWN", now, row["current_station"], None, ORDER_PILOT, "WITHDRAWN",
-                 json.dumps({"reason": "Not picked up before its deadline; the forwarder moved it to another carrier."})))
-            gone += 1
+        service = data.get("service") or row["priority"]
+        loss = _forfeit(service, row["chargeable_weight_kg"], row["gross_weight_lbs"])
+        carrier = random.Random(f"roll|{row['id']}").choice(CARRIERS)
+        forwarder = data.get("agent") or data.get("forwarder") or "the forwarder"
+        con.execute("UPDATE cargo_shipments SET status='WITHDRAWN', updated_at=? WHERE id=?", (now, row["id"]))
+        con.execute("""INSERT OR IGNORE INTO cargo_movements (shipment_id, event_key, event_type, event_time, from_station, to_station,
+            pilot_id, status, details) VALUES (?,?,?,?,?,?,?,?,?)""",
+            (row["id"], f"withdrawn:{row['id']}", "ORDER_WITHDRAWN", now, row["current_station"], None, ORDER_PILOT, "WITHDRAWN",
+             json.dumps({"reason": f"Not picked up before its deadline; {forwarder} rolled it to {carrier}.",
+                         "carrier": carrier, "forfeited": loss})))
+        if loss > 0:
+            try:
+                company.post(con, "rolled_freight", -loss,
+                             f"Rolled freight at {row['current_station']}: {service or 'cargo'} to {carrier}, revenue forfeited",
+                             ref=row["id"], by=ORDER_PILOT, when=now)
+            except Exception as e:      # the ledger must never stop the rollover
+                print("rolled freight ledger:", e)
+        gone += 1
+        forfeited += loss
+    if gone:
+        _roll_news(con, gone, forfeited, now)
     return gone
 
 

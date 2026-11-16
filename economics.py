@@ -15,7 +15,7 @@ from __future__ import annotations
 import math
 
 DEFAULT_FUEL_PRICE = 2.85        # USD per US gallon of Jet-A
-DEFAULT_START_CAPITAL = 25_000_000
+DEFAULT_START_CAPITAL = 100_000_000
 LB_PER_GAL = 6.7
 WIDEBODIES = {"A306F", "B763F", "MD11F", "B77F", "B742F", "B748F"}
 THREE_CREW = {"B722F", "B742F"}
