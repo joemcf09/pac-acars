@@ -22,10 +22,11 @@
    "lon": -118.408
   },
   "aircraft": [
-   "A306F",
-   "B752F",
    "B738F",
-   "B722F"
+   "B722F",
+   "B752F",
+   "A306F",
+   "B763F"
   ],
   "cargo": "Overnight express parcels",
   "payload_lbs": 69000,
@@ -57,10 +58,11 @@
    "lon": -117.601
   },
   "aircraft": [
-   "A306F",
-   "B752F",
    "B738F",
-   "B722F"
+   "B722F",
+   "B752F",
+   "A306F",
+   "B763F"
   ],
   "cargo": "Overnight express parcels",
   "payload_lbs": 81500,
@@ -127,10 +129,11 @@
    "lon": -122.3103
   },
   "aircraft": [
-   "A306F",
-   "B752F",
    "B738F",
-   "B722F"
+   "B722F",
+   "B752F",
+   "A306F",
+   "B763F"
   ],
   "cargo": "Overnight express parcels",
   "payload_lbs": 83500,
@@ -162,10 +165,11 @@
    "lon": -122.598
   },
   "aircraft": [
-   "A306F",
-   "B752F",
    "B738F",
-   "B722F"
+   "B722F",
+   "B752F",
+   "A306F",
+   "B763F"
   ],
   "cargo": "Overnight express parcels",
   "payload_lbs": 76500,
@@ -197,10 +201,12 @@
    "lon": -112.0059
   },
   "aircraft": [
-   "A306F",
-   "B752F",
+   "B733F",
    "B738F",
-   "B722F"
+   "B722F",
+   "B752F",
+   "A306F",
+   "B763F"
   ],
   "cargo": "Overnight express parcels",
   "payload_lbs": 80500,
@@ -232,10 +238,12 @@
    "lon": -104.6738
   },
   "aircraft": [
-   "A306F",
-   "B752F",
+   "B733F",
    "B738F",
-   "B722F"
+   "B722F",
+   "B752F",
+   "A306F",
+   "B763F"
   ],
   "cargo": "Overnight express parcels",
   "payload_lbs": 81500,
@@ -267,10 +275,13 @@
    "lon": -111.9799
   },
   "aircraft": [
-   "A306F",
-   "B752F",
+   "B732F",
+   "B733F",
    "B738F",
-   "B722F"
+   "B722F",
+   "B752F",
+   "A306F",
+   "B763F"
   ],
   "cargo": "Overnight express parcels",
   "payload_lbs": 65500,
@@ -302,10 +313,13 @@
    "lon": -97.038
   },
   "aircraft": [
-   "A306F",
-   "B752F",
+   "B732F",
+   "B733F",
    "B738F",
-   "B722F"
+   "B722F",
+   "B752F",
+   "A306F",
+   "B763F"
   ],
   "cargo": "Overnight express parcels",
   "payload_lbs": 64500,
@@ -337,10 +351,12 @@
    "lon": -95.3414
   },
   "aircraft": [
-   "A306F",
-   "B752F",
+   "B733F",
    "B738F",
-   "B722F"
+   "B722F",
+   "B752F",
+   "A306F",
+   "B763F"
   ],
   "cargo": "Overnight express parcels",
   "payload_lbs": 76500,
@@ -372,10 +388,13 @@
    "lon": -98.4698
   },
   "aircraft": [
-   "A306F",
-   "B752F",
+   "B732F",
+   "B733F",
    "B738F",
-   "B722F"
+   "B722F",
+   "B752F",
+   "A306F",
+   "B763F"
   ],
   "cargo": "Overnight express parcels",
   "payload_lbs": 72000,
@@ -407,10 +426,11 @@
    "lon": -94.7139
   },
   "aircraft": [
+   "B732F",
+   "B733F",
    "B738F",
    "B722F",
-   "B733F",
-   "B732F"
+   "B752F"
   ],
   "cargo": "Overnight express parcels",
   "payload_lbs": 41500,
@@ -442,10 +462,11 @@
    "lon": -93.2217
   },
   "aircraft": [
+   "B732F",
+   "B733F",
    "B738F",
    "B722F",
-   "B733F",
-   "B732F"
+   "B752F"
   ],
   "cargo": "Overnight express parcels",
   "payload_lbs": 40000,
@@ -582,10 +603,11 @@
    "lon": -73.7793
   },
   "aircraft": [
+   "B732F",
+   "B733F",
    "B738F",
    "B722F",
-   "B733F",
-   "B732F"
+   "B752F"
   ],
   "cargo": "Overnight express parcels",
   "payload_lbs": 43000,
@@ -792,10 +814,11 @@
    "lon": -81.309
   },
   "aircraft": [
+   "B732F",
+   "B733F",
    "B738F",
    "B722F",
-   "B733F",
-   "B732F"
+   "B752F"
   ],
   "cargo": "Overnight express parcels",
   "payload_lbs": 45000,
@@ -827,10 +850,12 @@
    "lon": -80.2898
   },
   "aircraft": [
-   "A306F",
-   "B752F",
+   "B733F",
    "B738F",
-   "B722F"
+   "B722F",
+   "B752F",
+   "A306F",
+   "B763F"
   ],
   "cargo": "Overnight express parcels",
   "payload_lbs": 81500,
@@ -932,10 +957,12 @@
    "lon": -106.6089
   },
   "aircraft": [
-   "A306F",
-   "B752F",
+   "B733F",
    "B738F",
-   "B722F"
+   "B722F",
+   "B752F",
+   "A306F",
+   "B763F"
   ],
   "cargo": "Overnight express parcels",
   "payload_lbs": 78500,
@@ -1002,10 +1029,11 @@
    "lon": -90.37
   },
   "aircraft": [
+   "B732F",
+   "B733F",
    "B738F",
    "B722F",
-   "B733F",
-   "B732F"
+   "B752F"
   ],
   "cargo": "Overnight express parcels",
   "payload_lbs": 41500,
@@ -1037,10 +1065,11 @@
    "lon": -115.1518
   },
   "aircraft": [
-   "A306F",
-   "B752F",
    "B738F",
-   "B722F"
+   "B722F",
+   "B752F",
+   "A306F",
+   "B763F"
   ],
   "cargo": "Overnight express parcels",
   "payload_lbs": 63500,
@@ -1072,10 +1101,13 @@
    "lon": -106.3756
   },
   "aircraft": [
-   "A306F",
-   "B752F",
+   "B732F",
+   "B733F",
    "B738F",
-   "B722F"
+   "B722F",
+   "B752F",
+   "A306F",
+   "B763F"
   ],
   "cargo": "Overnight express parcels",
   "payload_lbs": 64500,
@@ -1107,10 +1139,11 @@
    "lon": -95.8941
   },
   "aircraft": [
+   "B732F",
+   "B733F",
    "B738F",
    "B722F",
-   "B733F",
-   "B732F"
+   "B752F"
   ],
   "cargo": "Overnight express parcels",
   "payload_lbs": 44000,
@@ -1142,10 +1175,11 @@
    "lon": -116.223
   },
   "aircraft": [
-   "A306F",
-   "B752F",
    "B738F",
-   "B722F"
+   "B722F",
+   "B752F",
+   "A306F",
+   "B763F"
   ],
   "cargo": "Overnight express parcels",
   "payload_lbs": 85000,
@@ -1177,10 +1211,11 @@
    "lon": -117.19
   },
   "aircraft": [
-   "A306F",
-   "B752F",
    "B738F",
-   "B722F"
+   "B722F",
+   "B752F",
+   "A306F",
+   "B763F"
   ],
   "cargo": "Overnight express parcels",
   "payload_lbs": 65500,
@@ -1212,10 +1247,11 @@
    "lon": -84.6678
   },
   "aircraft": [
-   "A306F",
-   "B752F",
    "B738F",
-   "B722F"
+   "B722F",
+   "B752F",
+   "A306F",
+   "B763F"
   ],
   "cargo": "E-commerce parcels",
   "payload_lbs": 69000,
@@ -1247,10 +1283,11 @@
    "lon": -84.6678
   },
   "aircraft": [
-   "A306F",
-   "B752F",
    "B738F",
-   "B722F"
+   "B722F",
+   "B752F",
+   "A306F",
+   "B763F"
   ],
   "cargo": "E-commerce parcels",
   "payload_lbs": 81500,
@@ -1317,10 +1354,11 @@
    "lon": -84.6678
   },
   "aircraft": [
-   "A306F",
-   "B752F",
    "B738F",
-   "B722F"
+   "B722F",
+   "B752F",
+   "A306F",
+   "B763F"
   ],
   "cargo": "E-commerce parcels",
   "payload_lbs": 83500,
@@ -1352,10 +1390,13 @@
    "lon": -84.6678
   },
   "aircraft": [
-   "A306F",
-   "B752F",
+   "B732F",
+   "B733F",
    "B738F",
-   "B722F"
+   "B722F",
+   "B752F",
+   "A306F",
+   "B763F"
   ],
   "cargo": "E-commerce parcels",
   "payload_lbs": 64500,
@@ -1387,10 +1428,12 @@
    "lon": -84.6678
   },
   "aircraft": [
-   "A306F",
-   "B752F",
+   "B733F",
    "B738F",
-   "B722F"
+   "B722F",
+   "B752F",
+   "A306F",
+   "B763F"
   ],
   "cargo": "E-commerce parcels",
   "payload_lbs": 76500,
@@ -1492,10 +1535,11 @@
    "lon": -84.6678
   },
   "aircraft": [
+   "B732F",
+   "B733F",
    "B738F",
    "B722F",
-   "B733F",
-   "B732F"
+   "B752F"
   ],
   "cargo": "E-commerce parcels",
   "payload_lbs": 43000,
@@ -1562,10 +1606,12 @@
    "lon": -84.6678
   },
   "aircraft": [
-   "A306F",
-   "B752F",
+   "B733F",
    "B738F",
-   "B722F"
+   "B722F",
+   "B752F",
+   "A306F",
+   "B763F"
   ],
   "cargo": "E-commerce parcels",
   "payload_lbs": 81500,
@@ -1597,10 +1643,12 @@
    "lon": -84.6678
   },
   "aircraft": [
-   "A306F",
-   "B752F",
+   "B733F",
    "B738F",
-   "B722F"
+   "B722F",
+   "B752F",
+   "A306F",
+   "B763F"
   ],
   "cargo": "E-commerce parcels",
   "payload_lbs": 80500,
@@ -1632,10 +1680,12 @@
    "lon": -84.6678
   },
   "aircraft": [
-   "A306F",
-   "B752F",
+   "B733F",
    "B738F",
-   "B722F"
+   "B722F",
+   "B752F",
+   "A306F",
+   "B763F"
   ],
   "cargo": "E-commerce parcels",
   "payload_lbs": 81500,
@@ -1702,10 +1752,12 @@
    "lon": -73.7793
   },
   "aircraft": [
-   "A306F",
-   "B752F",
+   "B733F",
    "B738F",
-   "B722F"
+   "B722F",
+   "B752F",
+   "A306F",
+   "B763F"
   ],
   "cargo": "Fresh-cut flowers redistributed from South America",
   "payload_lbs": 76500,
@@ -1737,10 +1789,12 @@
    "lon": -87.9048
   },
   "aircraft": [
-   "A306F",
-   "B752F",
+   "B733F",
    "B738F",
-   "B722F"
+   "B722F",
+   "B752F",
+   "A306F",
+   "B763F"
   ],
   "cargo": "Perishables and flowers",
   "payload_lbs": 87000,
@@ -1842,10 +1896,13 @@
    "lon": -157.9257
   },
   "aircraft": [
-   "B77F",
-   "B748F",
+   "B752F",
+   "A306F",
+   "B763F",
    "MD11F",
-   "B742F"
+   "B77F",
+   "B742F",
+   "B748F"
   ],
   "cargo": "General cargo and US mail",
   "payload_lbs": 162000,
@@ -1877,10 +1934,13 @@
    "lon": -157.9257
   },
   "aircraft": [
-   "B77F",
-   "B748F",
+   "B752F",
+   "A306F",
+   "B763F",
    "MD11F",
-   "B742F"
+   "B77F",
+   "B742F",
+   "B748F"
   ],
   "cargo": "Retail resupply and mail",
   "payload_lbs": 189000,
@@ -1912,10 +1972,13 @@
    "lon": -118.408
   },
   "aircraft": [
-   "B77F",
-   "B748F",
+   "B752F",
+   "A306F",
+   "B763F",
    "MD11F",
-   "B742F"
+   "B77F",
+   "B742F",
+   "B748F"
   ],
   "cargo": "Tropical fruit and returns",
   "payload_lbs": 162000,
@@ -1947,10 +2010,13 @@
    "lon": -149.9926
   },
   "aircraft": [
-   "A306F",
-   "B752F",
+   "B732F",
+   "B733F",
    "B738F",
-   "B722F"
+   "B722F",
+   "B752F",
+   "A306F",
+   "B763F"
   ],
   "cargo": "Alaska resupply: groceries and hardware",
   "payload_lbs": 74000,
@@ -1982,10 +2048,11 @@
    "lon": -147.856
   },
   "aircraft": [
+   "B732F",
+   "B733F",
    "B738F",
    "B722F",
-   "B733F",
-   "B732F"
+   "B752F"
   ],
   "cargo": "Interior Alaska freight and mail",
   "payload_lbs": 44500,
@@ -2081,10 +2148,13 @@
    "lon": -66.0018
   },
   "aircraft": [
-   "A306F",
-   "B752F",
+   "B732F",
+   "B733F",
    "B738F",
-   "B722F"
+   "B722F",
+   "B752F",
+   "A306F",
+   "B763F"
   ],
   "cargo": "Pharmaceutical materials and retail goods",
   "payload_lbs": 71000,
@@ -2116,10 +2186,13 @@
    "lon": -80.2898
   },
   "aircraft": [
-   "A306F",
-   "B752F",
+   "B732F",
+   "B733F",
    "B738F",
-   "B722F"
+   "B722F",
+   "B752F",
+   "A306F",
+   "B763F"
   ],
   "cargo": "Finished pharmaceuticals",
   "payload_lbs": 71000,
@@ -2151,10 +2224,11 @@
    "lon": -152.494
   },
   "aircraft": [
+   "B732F",
+   "B733F",
    "B738F",
-   "B752F",
    "B722F",
-   "B733F"
+   "B752F"
   ],
   "cargo": "Kodiak resupply: groceries, hardware and mail",
   "payload_lbs": 38000,
@@ -2186,10 +2260,11 @@
    "lon": -149.9926
   },
   "aircraft": [
+   "B732F",
+   "B733F",
    "B738F",
-   "B752F",
    "B722F",
-   "B733F"
+   "B752F"
   ],
   "cargo": "Fresh Kodiak seafood",
   "payload_lbs": 38000,
@@ -2221,10 +2296,11 @@
    "lon": -156.652
   },
   "aircraft": [
-   "B738F",
+   "B732F",
    "B733F",
+   "B738F",
    "B722F",
-   "B732F"
+   "B752F"
   ],
   "cargo": "Bristol Bay cannery supplies",
   "payload_lbs": 40000,
@@ -2256,10 +2332,11 @@
    "lon": -149.9926
   },
   "aircraft": [
-   "B738F",
+   "B732F",
    "B733F",
+   "B738F",
    "B722F",
-   "B732F"
+   "B752F"
   ],
   "cargo": "Fresh sockeye salmon (summer season)",
   "payload_lbs": 40000,
@@ -2324,6 +2401,7 @@
   },
   "aircraft": [
    "B732F",
+   "B733F",
    "B738F",
    "B752F"
   ],
@@ -2424,8 +2502,9 @@
    "lon": -148.465
   },
   "aircraft": [
-   "B752F",
-   "B733F"
+   "B732F",
+   "B733F",
+   "B752F"
   ],
   "cargo": "Oil-field spares and camp supplies",
   "payload_lbs": 55500,
@@ -2457,10 +2536,11 @@
    "lon": -131.714
   },
   "aircraft": [
+   "B732F",
+   "B733F",
    "B738F",
-   "B752F",
    "B722F",
-   "B733F"
+   "B752F"
   ],
   "cargo": "Southeast Alaska resupply",
   "payload_lbs": 44500,
@@ -2492,10 +2572,11 @@
    "lon": -122.3103
   },
   "aircraft": [
+   "B732F",
+   "B733F",
    "B738F",
-   "B752F",
    "B722F",
-   "B733F"
+   "B752F"
   ],
   "cargo": "Fresh salmon and halibut",
   "payload_lbs": 44500,
@@ -2528,6 +2609,8 @@
   },
   "aircraft": [
    "B732F",
+   "B733F",
+   "B738F",
    "B722F",
    "B752F",
    "A306F"
@@ -2562,10 +2645,13 @@
    "lon": -149.9926
   },
   "aircraft": [
+   "B732F",
+   "B733F",
+   "B738F",
+   "B722F",
    "B752F",
    "A306F",
-   "B733F",
-   "B738F"
+   "B763F"
   ],
   "cargo": "Inter-Alaska freight",
   "payload_lbs": 66000,
@@ -2667,8 +2753,9 @@
    "lon": -156.4318
   },
   "aircraft": [
-   "B752F",
-   "B733F"
+   "B732F",
+   "B733F",
+   "B752F"
   ],
   "cargo": "Inter-island freight",
   "payload_lbs": 61500,
@@ -2700,8 +2787,9 @@
    "lon": -157.9257
   },
   "aircraft": [
-   "B752F",
-   "B733F"
+   "B732F",
+   "B733F",
+   "B752F"
   ],
   "cargo": "Pineapples and produce",
   "payload_lbs": 61500,
@@ -2733,8 +2821,9 @@
    "lon": -73.7793
   },
   "aircraft": [
-   "A306F",
    "B752F",
+   "A306F",
+   "B763F",
    "B77F",
    "B742F"
   ],
@@ -2768,8 +2857,9 @@
    "lon": -118.408
   },
   "aircraft": [
-   "A306F",
    "B752F",
+   "A306F",
+   "B763F",
    "B77F",
    "B742F"
   ],
@@ -2803,9 +2893,10 @@
    "lon": -118.408
   },
   "aircraft": [
-   "A306F",
-   "B752F",
    "B738F",
+   "B722F",
+   "B752F",
+   "A306F",
    "B763F"
   ],
   "cargo": "Pharmaceuticals and machinery",
@@ -2838,10 +2929,13 @@
    "lon": -118.408
   },
   "aircraft": [
-   "MD11F",
-   "B763F",
+   "B752F",
    "A306F",
-   "B752F"
+   "B763F",
+   "MD11F",
+   "B77F",
+   "B742F",
+   "B748F"
   ],
   "cargo": "Fresh-cut flowers redistributed west",
   "payload_lbs": 166000,
@@ -2873,10 +2967,13 @@
    "lon": -80.2898
   },
   "aircraft": [
+   "B732F",
+   "B733F",
+   "B738F",
+   "B722F",
    "B752F",
    "A306F",
-   "B763F",
-   "B738F"
+   "B763F"
   ],
   "cargo": "Retail and pharmaceutical freight",
   "payload_lbs": 57000,
@@ -2908,10 +3005,16 @@
    "lon": -80.2898
   },
   "aircraft": [
-   "MD11F",
+   "B732F",
    "B733F",
    "B722F",
-   "B732F"
+   "B752F",
+   "A306F",
+   "B763F",
+   "MD11F",
+   "B77F",
+   "B742F",
+   "B748F"
   ],
   "cargo": "Oil-field equipment for Latin America",
   "payload_lbs": 158000,
@@ -2943,9 +3046,10 @@
    "lon": -118.408
   },
   "aircraft": [
-   "A306F",
-   "B752F",
    "B738F",
+   "B722F",
+   "B752F",
+   "A306F",
    "B763F"
   ],
   "cargo": "Automotive and retail freight",
@@ -2978,9 +3082,12 @@
    "lon": -117.601
   },
   "aircraft": [
-   "B763F",
-   "B738F",
    "B733F",
+   "B738F",
+   "B722F",
+   "B752F",
+   "A306F",
+   "B763F",
    "MD11F"
   ],
   "cargo": "E-commerce parcels",
@@ -3013,9 +3120,12 @@
    "lon": -97.3195
   },
   "aircraft": [
-   "B763F",
-   "B738F",
    "B733F",
+   "B738F",
+   "B722F",
+   "B752F",
+   "A306F",
+   "B763F",
    "MD11F"
   ],
   "cargo": "Retail distribution freight",
@@ -3048,10 +3158,14 @@
    "lon": -122.3103
   },
   "aircraft": [
-   "MD11F",
-   "B752F",
    "B722F",
-   "B763F"
+   "B752F",
+   "A306F",
+   "B763F",
+   "MD11F",
+   "B77F",
+   "B742F",
+   "B748F"
   ],
   "cargo": "Overnight express parcels",
   "payload_lbs": 158000,
@@ -3083,10 +3197,12 @@
    "lon": -104.6738
   },
   "aircraft": [
-   "B722F",
    "B732F",
-   "A306F",
-   "B752F"
+   "B733F",
+   "B738F",
+   "B722F",
+   "B752F",
+   "A306F"
   ],
   "cargo": "Overnight express parcels",
   "payload_lbs": 46500,
@@ -3118,9 +3234,10 @@
    "lon": -122.2212
   },
   "aircraft": [
-   "A306F",
-   "B752F",
    "B738F",
+   "B722F",
+   "B752F",
+   "A306F",
    "B763F"
   ],
   "cargo": "Overnight express parcels",
@@ -3153,9 +3270,10 @@
    "lon": -118.408
   },
   "aircraft": [
-   "A306F",
-   "B752F",
    "B738F",
+   "B722F",
+   "B752F",
+   "A306F",
    "B763F"
   ],
   "cargo": "Overnight express parcels",
@@ -3188,10 +3306,12 @@
    "lon": -80.2898
   },
   "aircraft": [
-   "B722F",
    "B732F",
-   "A306F",
-   "B752F"
+   "B733F",
+   "B738F",
+   "B722F",
+   "B752F",
+   "A306F"
   ],
   "cargo": "Overnight express parcels",
   "payload_lbs": 50500,
@@ -3293,10 +3413,12 @@
    "lon": -80.2898
   },
   "aircraft": [
-   "A306F",
-   "B752F",
+   "B733F",
    "B738F",
-   "B722F"
+   "B722F",
+   "B752F",
+   "A306F",
+   "B763F"
   ],
   "cargo": "Fresh-cut roses and carnations",
   "payload_lbs": 86000,
@@ -3328,10 +3450,11 @@
    "lon": -80.2898
   },
   "aircraft": [
-   "A306F",
-   "B752F",
    "B738F",
-   "B722F"
+   "B722F",
+   "B752F",
+   "A306F",
+   "B763F"
   ],
   "cargo": "Long-stem roses",
   "payload_lbs": 65500,
@@ -3363,10 +3486,11 @@
    "lon": -80.2898
   },
   "aircraft": [
-   "A306F",
-   "B752F",
    "B738F",
-   "B722F"
+   "B722F",
+   "B752F",
+   "A306F",
+   "B763F"
   ],
   "cargo": "Shrimp and tropical fruit",
   "payload_lbs": 63500,
@@ -3398,10 +3522,13 @@
    "lon": -80.2898
   },
   "aircraft": [
-   "B77F",
-   "B748F",
+   "B752F",
+   "A306F",
+   "B763F",
    "MD11F",
-   "B742F"
+   "B77F",
+   "B742F",
+   "B748F"
   ],
   "cargo": "Asparagus, blueberries and avocados",
   "payload_lbs": 184500,
@@ -3536,10 +3663,12 @@
    "lon": -80.2898
   },
   "aircraft": [
-   "A306F",
-   "B752F",
+   "B733F",
    "B738F",
-   "B722F"
+   "B722F",
+   "B752F",
+   "A306F",
+   "B763F"
   ],
   "cargo": "Medical devices and pineapples",
   "payload_lbs": 88000,
@@ -3571,10 +3700,12 @@
    "lon": -80.2898
   },
   "aircraft": [
-   "A306F",
-   "B752F",
+   "B733F",
    "B738F",
-   "B722F"
+   "B722F",
+   "B752F",
+   "A306F",
+   "B763F"
   ],
   "cargo": "Coffee, textiles and produce",
   "payload_lbs": 86000,
@@ -3606,10 +3737,13 @@
    "lon": -118.408
   },
   "aircraft": [
-   "A306F",
-   "B752F",
+   "B732F",
+   "B733F",
    "B738F",
-   "B722F"
+   "B722F",
+   "B752F",
+   "A306F",
+   "B763F"
   ],
   "cargo": "Electronics and berries",
   "payload_lbs": 71000,
@@ -3641,10 +3775,12 @@
    "lon": -84.6678
   },
   "aircraft": [
-   "A306F",
-   "B752F",
+   "B733F",
    "B738F",
-   "B722F"
+   "B722F",
+   "B752F",
+   "A306F",
+   "B763F"
   ],
   "cargo": "Automotive components (just-in-time)",
   "payload_lbs": 86000,
@@ -3676,10 +3812,12 @@
    "lon": -100.107
   },
   "aircraft": [
-   "A306F",
-   "B752F",
+   "B733F",
    "B738F",
-   "B722F"
+   "B722F",
+   "B752F",
+   "A306F",
+   "B763F"
   ],
   "cargo": "Automotive components (just-in-time)",
   "payload_lbs": 86000,
@@ -3781,10 +3919,12 @@
    "lon": -74.1469
   },
   "aircraft": [
-   "A306F",
-   "B752F",
+   "B733F",
    "B738F",
-   "B722F"
+   "B722F",
+   "B752F",
+   "A306F",
+   "B763F"
   ],
   "cargo": "Electronics and consumer goods",
   "payload_lbs": 86000,
@@ -3816,10 +3956,13 @@
    "lon": -77.1143
   },
   "aircraft": [
-   "B77F",
-   "B748F",
+   "B752F",
+   "A306F",
+   "B763F",
    "MD11F",
-   "B742F"
+   "B77F",
+   "B742F",
+   "B748F"
   ],
   "cargo": "Mining equipment spares",
   "payload_lbs": 184500,
@@ -3884,10 +4027,12 @@
    "lon": -79.3835
   },
   "aircraft": [
-   "A306F",
-   "B752F",
+   "B733F",
    "B738F",
-   "B722F"
+   "B722F",
+   "B752F",
+   "A306F",
+   "B763F"
   ],
   "cargo": "Regional distribution freight",
   "payload_lbs": 76500,
@@ -3919,10 +4064,12 @@
    "lon": -99.0703
   },
   "aircraft": [
-   "A306F",
-   "B752F",
+   "B733F",
    "B738F",
-   "B722F"
+   "B722F",
+   "B752F",
+   "A306F",
+   "B763F"
   ],
   "cargo": "Consumer electronics",
   "payload_lbs": 75500,
@@ -3954,10 +4101,12 @@
    "lon": -69.6689
   },
   "aircraft": [
-   "A306F",
-   "B752F",
+   "B733F",
    "B738F",
-   "B722F"
+   "B722F",
+   "B752F",
+   "A306F",
+   "B763F"
   ],
   "cargo": "Textile inputs and general cargo",
   "payload_lbs": 78500,
@@ -3989,10 +4138,11 @@
    "lon": -76.7875
   },
   "aircraft": [
+   "B732F",
+   "B733F",
    "B738F",
    "B722F",
-   "B733F",
-   "B732F"
+   "B752F"
   ],
   "cargo": "Retail and food service freight",
   "payload_lbs": 44500,
@@ -4024,10 +4174,12 @@
    "lon": -68.9598
   },
   "aircraft": [
-   "A306F",
-   "B752F",
+   "B733F",
    "B738F",
-   "B722F"
+   "B722F",
+   "B752F",
+   "A306F",
+   "B763F"
   ],
   "cargo": "General cargo and mail",
   "payload_lbs": 78500,
@@ -4094,10 +4246,13 @@
    "lon": -89.0558
   },
   "aircraft": [
-   "A306F",
-   "B752F",
+   "B732F",
+   "B733F",
    "B738F",
-   "B722F"
+   "B722F",
+   "B752F",
+   "A306F",
+   "B763F"
   ],
   "cargo": "Apparel inputs",
   "payload_lbs": 72000,
@@ -4234,10 +4389,12 @@
    "lon": -149.9926
   },
   "aircraft": [
-   "A306F",
-   "B752F",
+   "B733F",
    "B738F",
-   "B722F"
+   "B722F",
+   "B752F",
+   "A306F",
+   "B763F"
   ],
   "cargo": "Seafood and general cargo",
   "payload_lbs": 80500,
@@ -4304,6 +4461,7 @@
    "lon": -80.2898
   },
   "aircraft": [
+   "MD11F",
    "B77F",
    "B742F",
    "B748F"
@@ -4338,6 +4496,7 @@
    "lon": -80.2898
   },
   "aircraft": [
+   "MD11F",
    "B77F",
    "B742F",
    "B748F"
@@ -4506,6 +4665,7 @@
   },
   "aircraft": [
    "B733F",
+   "B738F",
    "B722F",
    "B752F",
    "A306F"
@@ -4541,6 +4701,7 @@
   },
   "aircraft": [
    "B733F",
+   "B738F",
    "B722F",
    "B752F",
    "A306F"
@@ -4576,6 +4737,8 @@
   },
   "aircraft": [
    "B732F",
+   "B733F",
+   "B738F",
    "B722F",
    "B752F",
    "A306F"
@@ -4611,6 +4774,8 @@
   },
   "aircraft": [
    "B732F",
+   "B733F",
+   "B738F",
    "B722F",
    "B752F",
    "A306F"
@@ -4645,10 +4810,13 @@
    "lon": -70.7858
   },
   "aircraft": [
-   "A306F",
-   "B752F",
+   "B732F",
+   "B733F",
    "B738F",
-   "B733F"
+   "B722F",
+   "B752F",
+   "A306F",
+   "B763F"
   ],
   "cargo": "General cargo",
   "payload_lbs": 68000,
@@ -4681,6 +4849,7 @@
   },
   "aircraft": [
    "B732F",
+   "B733F",
    "B722F",
    "B752F",
    "A306F"
@@ -4716,6 +4885,7 @@
   },
   "aircraft": [
    "B732F",
+   "B733F",
    "B722F",
    "B752F",
    "A306F"
@@ -4751,6 +4921,7 @@
   },
   "aircraft": [
    "B732F",
+   "B733F",
    "B722F",
    "B752F",
    "A306F"
@@ -4786,6 +4957,7 @@
   },
   "aircraft": [
    "B732F",
+   "B733F",
    "B722F",
    "B752F",
    "A306F"
@@ -4820,10 +4992,12 @@
    "lon": -79.3835
   },
   "aircraft": [
+   "B733F",
+   "B738F",
+   "B722F",
    "B752F",
    "A306F",
-   "B733F",
-   "B738F"
+   "B763F"
   ],
   "cargo": "Fresh flowers for transshipment",
   "payload_lbs": 74500,
@@ -4855,10 +5029,12 @@
    "lon": -74.1469
   },
   "aircraft": [
+   "B733F",
+   "B738F",
+   "B722F",
    "B752F",
    "A306F",
-   "B733F",
-   "B738F"
+   "B763F"
   ],
   "cargo": "Electronics from the Colón free zone",
   "payload_lbs": 74500,
@@ -4926,6 +5102,7 @@
   },
   "aircraft": [
    "B732F",
+   "B733F",
    "B722F",
    "B752F",
    "A306F"
@@ -4960,10 +5137,12 @@
    "lon": -90.5275
   },
   "aircraft": [
+   "B733F",
+   "B738F",
+   "B722F",
    "B752F",
    "A306F",
-   "B733F",
-   "B738F"
+   "B763F"
   ],
   "cargo": "Free-zone consumer goods",
   "payload_lbs": 74500,
@@ -4995,10 +5174,12 @@
    "lon": -69.6689
   },
   "aircraft": [
-   "B722F",
    "B732F",
-   "A306F",
-   "B752F"
+   "B733F",
+   "B738F",
+   "B722F",
+   "B752F",
+   "A306F"
   ],
   "cargo": "Free-zone consumer goods",
   "payload_lbs": 49000,
@@ -5030,9 +5211,12 @@
    "lon": -77.1143
   },
   "aircraft": [
-   "A306F",
-   "B752F",
+   "B732F",
+   "B733F",
    "B738F",
+   "B722F",
+   "B752F",
+   "A306F",
    "B763F"
   ],
   "cargo": "Electronics and apparel",
@@ -5065,10 +5249,12 @@
    "lon": -79.3835
   },
   "aircraft": [
-   "B722F",
    "B732F",
-   "A306F",
-   "B752F"
+   "B733F",
+   "B738F",
+   "B722F",
+   "B752F",
+   "A306F"
   ],
   "cargo": "Regional transshipment freight",
   "payload_lbs": 49000,
@@ -5100,9 +5286,13 @@
    "lon": -80.2898
   },
   "aircraft": [
-   "B763F",
-   "B738F",
+   "B732F",
    "B733F",
+   "B738F",
+   "B722F",
+   "B752F",
+   "A306F",
+   "B763F",
    "MD11F"
   ],
   "cargo": "Medellín flowers and textiles",
@@ -5135,10 +5325,12 @@
    "lon": -80.2898
   },
   "aircraft": [
+   "B733F",
+   "B738F",
+   "B722F",
    "B752F",
    "A306F",
-   "B763F",
-   "B738F"
+   "B763F"
   ],
   "cargo": "Flowers and cane-sugar products",
   "payload_lbs": 69500,
@@ -5170,9 +5362,13 @@
    "lon": -75.4231
   },
   "aircraft": [
-   "B763F",
-   "B738F",
+   "B732F",
    "B733F",
+   "B738F",
+   "B722F",
+   "B752F",
+   "A306F",
+   "B763F",
    "MD11F"
   ],
   "cargo": "Textile inputs",
@@ -5238,6 +5434,7 @@
    "lon": -80.2898
   },
   "aircraft": [
+   "MD11F",
    "B77F",
    "B742F",
    "B748F"
@@ -5272,6 +5469,7 @@
    "lon": -57.5192
   },
   "aircraft": [
+   "MD11F",
    "B77F",
    "B742F",
    "B748F"
@@ -5306,10 +5504,11 @@
    "lon": -80.2898
   },
   "aircraft": [
-   "B742F",
-   "B77F",
    "B763F",
-   "MD11F"
+   "MD11F",
+   "B77F",
+   "B742F",
+   "B748F"
   ],
   "cargo": "Brazil nuts and quinoa",
   "payload_lbs": 191000,
@@ -5341,10 +5540,11 @@
    "lon": -63.1354
   },
   "aircraft": [
-   "B742F",
-   "B77F",
    "B763F",
-   "MD11F"
+   "MD11F",
+   "B77F",
+   "B742F",
+   "B748F"
   ],
   "cargo": "Agricultural machinery spares",
   "payload_lbs": 191000,
@@ -5376,10 +5576,11 @@
    "lon": -68.1894
   },
   "aircraft": [
-   "B738F",
+   "B732F",
    "B733F",
+   "B738F",
    "B722F",
-   "B732F"
+   "B752F"
   ],
   "cargo": "Fresh produce up to the Altiplano",
   "payload_lbs": 41000,
@@ -5411,10 +5612,11 @@
    "lon": -63.1354
   },
   "aircraft": [
-   "B738F",
+   "B732F",
    "B733F",
+   "B738F",
    "B722F",
-   "B732F"
+   "B752F"
   ],
   "cargo": "Quinoa and tin concentrate samples",
   "payload_lbs": 41000,
@@ -5516,10 +5718,11 @@
    "lon": -90.2659
   },
   "aircraft": [
+   "B732F",
+   "B733F",
    "B738F",
-   "B752F",
    "B722F",
-   "B733F"
+   "B752F"
   ],
   "cargo": "Galápagos island resupply",
   "payload_lbs": 40000,
@@ -5551,10 +5754,11 @@
    "lon": -79.8836
   },
   "aircraft": [
-   "B738F",
+   "B732F",
    "B733F",
+   "B738F",
    "B722F",
-   "B732F"
+   "B752F"
   ],
   "cargo": "Domestic express freight",
   "payload_lbs": 42000,
@@ -5587,6 +5791,7 @@
   },
   "aircraft": [
    "B733F",
+   "B738F",
    "B722F",
    "B752F",
    "A306F"
@@ -5621,10 +5826,13 @@
    "lon": -80.2898
   },
   "aircraft": [
+   "B732F",
+   "B733F",
+   "B738F",
+   "B722F",
    "B752F",
    "A306F",
-   "B763F",
-   "B738F"
+   "B763F"
   ],
   "cargo": "Fresh produce and electronics",
   "payload_lbs": 62500,
@@ -5692,6 +5900,7 @@
   },
   "aircraft": [
    "B732F",
+   "B733F",
    "B722F",
    "B752F",
    "A306F"
@@ -5726,9 +5935,11 @@
    "lon": -84.6678
   },
   "aircraft": [
-   "A306F",
-   "B752F",
+   "B733F",
    "B738F",
+   "B722F",
+   "B752F",
+   "A306F",
    "B763F"
   ],
   "cargo": "Aerospace and automotive components",
@@ -5761,9 +5972,11 @@
    "lon": -100.1864
   },
   "aircraft": [
-   "A306F",
-   "B752F",
+   "B733F",
    "B738F",
+   "B722F",
+   "B752F",
+   "A306F",
    "B763F"
   ],
   "cargo": "Automotive components (just-in-time)",
@@ -5797,6 +6010,7 @@
   },
   "aircraft": [
    "B732F",
+   "B733F",
    "B722F",
    "B752F",
    "A306F"
@@ -5831,10 +6045,12 @@
    "lon": -99.0703
   },
   "aircraft": [
-   "A306F",
-   "B752F",
+   "B733F",
    "B738F",
-   "B733F"
+   "B722F",
+   "B752F",
+   "A306F",
+   "B763F"
   ],
   "cargo": "Electronics",
   "payload_lbs": 87000,
@@ -5866,9 +6082,12 @@
    "lon": -118.408
   },
   "aircraft": [
-   "A306F",
-   "B752F",
+   "B732F",
+   "B733F",
    "B738F",
+   "B722F",
+   "B752F",
+   "A306F",
    "B763F"
   ],
   "cargo": "Appliances and electronics",
@@ -5901,10 +6120,13 @@
    "lon": -90.5275
   },
   "aircraft": [
-   "B722F",
    "B732F",
+   "B733F",
+   "B738F",
+   "B722F",
+   "B752F",
    "A306F",
-   "B752F"
+   "B763F"
   ],
   "cargo": "Consumer goods",
   "payload_lbs": 53000,
@@ -5936,10 +6158,12 @@
    "lon": -80.2898
   },
   "aircraft": [
-   "B722F",
    "B732F",
-   "A306F",
-   "B752F"
+   "B733F",
+   "B738F",
+   "B722F",
+   "B752F",
+   "A306F"
   ],
   "cargo": "Bananas and garments",
   "payload_lbs": 50500,
@@ -5971,10 +6195,12 @@
    "lon": -87.9236
   },
   "aircraft": [
-   "B722F",
    "B732F",
-   "A306F",
-   "B752F"
+   "B733F",
+   "B738F",
+   "B722F",
+   "B752F",
+   "A306F"
   ],
   "cargo": "Apparel inputs",
   "payload_lbs": 50500,
@@ -6006,10 +6232,12 @@
    "lon": -80.2898
   },
   "aircraft": [
-   "B752F",
-   "A306F",
+   "B732F",
    "B733F",
-   "B738F"
+   "B738F",
+   "B722F",
+   "B752F",
+   "A306F"
   ],
   "cargo": "Coffee, cigars and fresh beef",
   "payload_lbs": 71000,
@@ -6042,6 +6270,8 @@
   },
   "aircraft": [
    "B732F",
+   "B733F",
+   "B738F",
    "B722F",
    "B752F",
    "A306F"
@@ -6077,6 +6307,8 @@
   },
   "aircraft": [
    "B732F",
+   "B733F",
+   "B738F",
    "B722F",
    "B752F",
    "A306F"
@@ -6112,6 +6344,7 @@
   },
   "aircraft": [
    "B732F",
+   "B733F",
    "B722F",
    "B752F",
    "A306F"
@@ -6146,10 +6379,15 @@
    "lon": -59.491
   },
   "aircraft": [
-   "MD11F",
-   "B763F",
+   "B733F",
    "B722F",
-   "B733F"
+   "B752F",
+   "A306F",
+   "B763F",
+   "MD11F",
+   "B77F",
+   "B742F",
+   "B748F"
   ],
   "cargo": "General cargo and mail",
   "payload_lbs": 150000,
@@ -6216,9 +6454,11 @@
    "lon": -80.2898
   },
   "aircraft": [
-   "A306F",
-   "B752F",
+   "B733F",
    "B738F",
+   "B722F",
+   "B752F",
+   "A306F",
    "B763F"
   ],
   "cargo": "Seafood and energy-sector returns",
@@ -6251,9 +6491,11 @@
    "lon": -61.3376
   },
   "aircraft": [
-   "A306F",
-   "B752F",
+   "B733F",
    "B738F",
+   "B722F",
+   "B752F",
+   "A306F",
    "B763F"
   ],
   "cargo": "Energy-sector equipment",
@@ -6321,8 +6563,9 @@
    "lon": -64.9773
   },
   "aircraft": [
-   "B738F",
    "B732F",
+   "B733F",
+   "B738F",
    "B752F"
   ],
   "cargo": "US Virgin Islands resupply and mail",
@@ -6356,6 +6599,7 @@
   },
   "aircraft": [
    "B732F",
+   "B733F",
    "B722F",
    "B752F",
    "A306F"
@@ -6530,10 +6774,13 @@
    "lon": -72.2683
   },
   "aircraft": [
+   "B732F",
+   "B733F",
+   "B738F",
+   "B722F",
    "B752F",
    "A306F",
-   "B733F",
-   "B738F"
+   "B763F"
   ],
   "cargo": "Resort supplies",
   "payload_lbs": 53500,
@@ -6566,6 +6813,7 @@
   },
   "aircraft": [
    "B732F",
+   "B733F",
    "B722F",
    "B752F",
    "A306F"
@@ -6600,10 +6848,13 @@
    "lon": -64.6782
   },
   "aircraft": [
+   "B732F",
+   "B733F",
+   "B738F",
+   "B722F",
    "B752F",
    "A306F",
-   "B733F",
-   "B738F"
+   "B763F"
   ],
   "cargo": "Bermuda mail and retail freight",
   "payload_lbs": 64000,
@@ -6635,10 +6886,13 @@
    "lon": -72.2926
   },
   "aircraft": [
+   "B732F",
+   "B733F",
+   "B738F",
+   "B722F",
    "B752F",
    "A306F",
-   "B733F",
-   "B738F"
+   "B763F"
   ],
   "cargo": "Humanitarian relief and food",
   "payload_lbs": 64000,
@@ -6705,10 +6959,13 @@
    "lon": -70.6044
   },
   "aircraft": [
-   "A306F",
-   "B752F",
+   "B732F",
+   "B733F",
    "B738F",
-   "B733F"
+   "B722F",
+   "B752F",
+   "A306F",
+   "B763F"
   ],
   "cargo": "Apparel inputs and electronics",
   "payload_lbs": 68000,
@@ -6740,10 +6997,13 @@
    "lon": -80.2898
   },
   "aircraft": [
-   "A306F",
-   "B752F",
+   "B732F",
+   "B733F",
    "B738F",
-   "B733F"
+   "B722F",
+   "B752F",
+   "A306F",
+   "B763F"
   ],
   "cargo": "Cigars and cocoa",
   "payload_lbs": 68000,
@@ -6810,10 +7070,11 @@
    "lon": -58.2541
   },
   "aircraft": [
+   "B738F",
+   "B722F",
    "B752F",
    "A306F",
-   "B763F",
-   "B738F"
+   "B763F"
   ],
   "cargo": "Offshore oil-field equipment",
   "payload_lbs": 57000,
@@ -6845,10 +7106,11 @@
    "lon": -80.2898
   },
   "aircraft": [
+   "B738F",
+   "B722F",
    "B752F",
    "A306F",
-   "B763F",
-   "B738F"
+   "B763F"
   ],
   "cargo": "Seafood and rum",
   "payload_lbs": 57000,
@@ -6880,6 +7142,9 @@
    "lon": -70.0143
   },
   "aircraft": [
+   "B732F",
+   "B733F",
+   "B738F",
    "B722F",
    "B752F",
    "A306F",
@@ -6915,10 +7180,11 @@
    "lon": -123.184
   },
   "aircraft": [
-   "B763F",
-   "MD11F",
+   "B738F",
    "B752F",
-   "A306F"
+   "A306F",
+   "B763F",
+   "MD11F"
   ],
   "cargo": "Domestic express freight",
   "payload_lbs": 80000,
@@ -6950,10 +7216,11 @@
    "lon": -79.6294
   },
   "aircraft": [
-   "B763F",
-   "MD11F",
+   "B738F",
    "B752F",
-   "A306F"
+   "A306F",
+   "B763F",
+   "MD11F"
   ],
   "cargo": "Seafood and e-commerce parcels",
   "payload_lbs": 80000,
@@ -6985,10 +7252,12 @@
    "lon": -114.0099
   },
   "aircraft": [
-   "B763F",
+   "B738F",
    "B722F",
    "B752F",
-   "A306F"
+   "A306F",
+   "B763F",
+   "MD11F"
   ],
   "cargo": "Domestic express freight",
   "payload_lbs": 96500,
@@ -7020,10 +7289,12 @@
    "lon": -79.6294
   },
   "aircraft": [
-   "B763F",
+   "B738F",
    "B722F",
    "B752F",
-   "A306F"
+   "A306F",
+   "B763F",
+   "MD11F"
   ],
   "cargo": "Fresh Alberta beef",
   "payload_lbs": 96500,
@@ -7056,6 +7327,8 @@
   },
   "aircraft": [
    "B732F",
+   "B733F",
+   "B738F",
    "B722F",
    "B752F",
    "A306F"
@@ -7125,10 +7398,12 @@
    "lon": -94.065
   },
   "aircraft": [
-   "B722F",
    "B732F",
-   "A306F",
-   "B752F"
+   "B733F",
+   "B738F",
+   "B722F",
+   "B752F",
+   "A306F"
   ],
   "cargo": "Hudson Bay resupply",
   "payload_lbs": 48000,
@@ -7192,10 +7467,13 @@
    "lon": -73.7423
   },
   "aircraft": [
+   "B732F",
+   "B733F",
+   "B738F",
+   "B722F",
    "B752F",
    "A306F",
-   "B733F",
-   "B738F"
+   "B763F"
   ],
   "cargo": "Live lobster and seafood",
   "payload_lbs": 62500,
@@ -7227,7 +7505,8 @@
    "lon": -94.9694
   },
   "aircraft": [
-   "B732F"
+   "B732F",
+   "B733F"
   ],
   "cargo": "High Arctic research station resupply",
   "payload_lbs": 28000,
@@ -7260,10 +7539,12 @@
    "lon": -73.7423
   },
   "aircraft": [
-   "B722F",
    "B732F",
-   "A306F",
-   "B752F"
+   "B733F",
+   "B738F",
+   "B722F",
+   "B752F",
+   "A306F"
   ],
   "cargo": "Overnight express parcels",
   "payload_lbs": 49000,
@@ -7295,10 +7576,11 @@
    "lon": -123.184
   },
   "aircraft": [
-   "B763F",
-   "MD11F",
+   "B738F",
    "B752F",
-   "A306F"
+   "A306F",
+   "B763F",
+   "MD11F"
   ],
   "cargo": "Overnight express parcels",
   "payload_lbs": 98500,
@@ -7330,9 +7612,13 @@
    "lon": -80.2898
   },
   "aircraft": [
-   "B763F",
-   "B738F",
+   "B732F",
    "B733F",
+   "B738F",
+   "B722F",
+   "B752F",
+   "A306F",
+   "B763F",
    "MD11F"
   ],
   "cargo": "Pharmaceuticals and consumer goods",
@@ -7365,10 +7651,12 @@
    "lon": -70.7858
   },
   "aircraft": [
+   "B733F",
+   "B738F",
+   "B722F",
    "B752F",
    "A306F",
-   "B763F",
-   "B738F"
+   "B763F"
   ],
   "cargo": "Machinery",
   "payload_lbs": 74500,
@@ -7400,10 +7688,13 @@
    "lon": -58.5358
   },
   "aircraft": [
+   "B732F",
+   "B733F",
+   "B738F",
+   "B722F",
    "B752F",
    "A306F",
-   "B763F",
-   "B738F"
+   "B763F"
   ],
   "cargo": "Pharmaceuticals",
   "payload_lbs": 62500,
@@ -7435,10 +7726,13 @@
    "lon": -74.1469
   },
   "aircraft": [
-   "B742F",
-   "B77F",
+   "B752F",
+   "A306F",
    "B763F",
-   "MD11F"
+   "MD11F",
+   "B77F",
+   "B742F",
+   "B748F"
   ],
   "cargo": "Electronics",
   "payload_lbs": 162000,
@@ -7505,10 +7799,11 @@
    "lon": -60.0497
   },
   "aircraft": [
+   "B738F",
+   "B722F",
    "B752F",
    "A306F",
-   "B763F",
-   "B738F"
+   "B763F"
   ],
   "cargo": "Inputs for the Manaus free zone",
   "payload_lbs": 69500,
@@ -7540,10 +7835,11 @@
    "lon": -46.47
   },
   "aircraft": [
+   "B738F",
+   "B722F",
    "B752F",
    "A306F",
-   "B763F",
-   "B738F"
+   "B763F"
   ],
   "cargo": "Motorcycles and electronics from Manaus",
   "payload_lbs": 69500,
@@ -7610,10 +7906,12 @@
    "lon": -51.1675
   },
   "aircraft": [
-   "A306F",
-   "B752F",
+   "B733F",
    "B738F",
-   "B733F"
+   "B722F",
+   "B752F",
+   "A306F",
+   "B763F"
   ],
   "cargo": "Domestic express freight",
   "payload_lbs": 89000,
@@ -7645,10 +7943,12 @@
    "lon": -46.47
   },
   "aircraft": [
-   "A306F",
-   "B752F",
+   "B733F",
    "B738F",
-   "B733F"
+   "B722F",
+   "B752F",
+   "A306F",
+   "B763F"
   ],
   "cargo": "Leather and machinery",
   "payload_lbs": 89000,
@@ -7680,10 +7980,11 @@
    "lon": -43.9669
   },
   "aircraft": [
-   "B738F",
+   "B732F",
    "B733F",
+   "B738F",
    "B722F",
-   "B732F"
+   "B752F"
   ],
   "cargo": "Domestic express freight",
   "payload_lbs": 40000,
@@ -7715,10 +8016,11 @@
    "lon": -46.47
   },
   "aircraft": [
-   "B738F",
+   "B732F",
    "B733F",
+   "B738F",
    "B722F",
-   "B732F"
+   "B752F"
   ],
   "cargo": "Gemstones and automotive parts",
   "payload_lbs": 40000,
@@ -7751,6 +8053,8 @@
   },
   "aircraft": [
    "B732F",
+   "B733F",
+   "B738F",
    "B722F",
    "B752F",
    "A306F"
@@ -7819,10 +8123,12 @@
    "lon": -70.4452
   },
   "aircraft": [
-   "B722F",
    "B732F",
-   "A306F",
-   "B752F"
+   "B733F",
+   "B738F",
+   "B722F",
+   "B752F",
+   "A306F"
   ],
   "cargo": "Mining spares for the Atacama",
   "payload_lbs": 43000,
@@ -7854,10 +8160,12 @@
    "lon": -70.7858
   },
   "aircraft": [
-   "B722F",
    "B732F",
-   "A306F",
-   "B752F"
+   "B733F",
+   "B738F",
+   "B722F",
+   "B752F",
+   "A306F"
   ],
   "cargo": "Mining returns and assay samples",
   "payload_lbs": 43000,
@@ -7889,10 +8197,13 @@
    "lon": -70.8546
   },
   "aircraft": [
+   "B732F",
+   "B733F",
+   "B738F",
+   "B722F",
    "B752F",
    "A306F",
-   "B763F",
-   "B738F"
+   "B763F"
   ],
   "cargo": "Patagonian resupply",
   "payload_lbs": 64000,
@@ -7924,10 +8235,13 @@
    "lon": -70.7858
   },
   "aircraft": [
+   "B732F",
+   "B733F",
+   "B738F",
+   "B722F",
    "B752F",
    "A306F",
-   "B763F",
-   "B738F"
+   "B763F"
   ],
   "cargo": "Fresh king crab and lamb",
   "payload_lbs": 64000,
@@ -7959,10 +8273,12 @@
    "lon": -68.2958
   },
   "aircraft": [
-   "B722F",
+   "B732F",
    "B733F",
-   "A306F",
-   "B732F"
+   "B738F",
+   "B722F",
+   "B752F",
+   "A306F"
   ],
   "cargo": "Tierra del Fuego resupply",
   "payload_lbs": 48000,
@@ -7994,10 +8310,12 @@
    "lon": -58.5358
   },
   "aircraft": [
-   "B722F",
+   "B732F",
    "B733F",
-   "A306F",
-   "B732F"
+   "B738F",
+   "B722F",
+   "B752F",
+   "A306F"
   ],
   "cargo": "Fresh king crab",
   "payload_lbs": 48000,
@@ -8030,6 +8348,7 @@
   },
   "aircraft": [
    "B732F",
+   "B733F",
    "B722F",
    "B752F",
    "A306F"
@@ -8065,6 +8384,7 @@
   },
   "aircraft": [
    "B732F",
+   "B733F",
    "B722F",
    "B752F",
    "A306F"
@@ -8100,6 +8420,8 @@
   },
   "aircraft": [
    "B732F",
+   "B733F",
+   "B738F",
    "B722F",
    "B752F",
    "A306F"
@@ -8134,8 +8456,9 @@
    "lon": -109.421
   },
   "aircraft": [
-   "A306F",
    "B752F",
+   "A306F",
+   "B763F",
    "B77F",
    "B742F"
   ],
@@ -8574,10 +8897,12 @@
    "lon": -73.7793
   },
   "aircraft": [
-   "B77F",
-   "B748F",
+   "B752F",
+   "A306F",
+   "B763F",
    "MD11F",
-   "B763F"
+   "B77F",
+   "B748F"
   ],
   "cargo": "Fresh Icelandic seafood",
   "payload_lbs": 148500,
@@ -8737,9 +9062,10 @@
    "lon": -73.7793
   },
   "aircraft": [
+   "MD11F",
+   "B77F",
    "B742F",
-   "B748F",
-   "MD11F"
+   "B748F"
   ],
   "cargo": "Pharmaceuticals and machinery",
   "payload_lbs": 201000,
@@ -8771,9 +9097,10 @@
    "lon": 8.5584
   },
   "aircraft": [
+   "MD11F",
+   "B77F",
    "B742F",
-   "B748F",
-   "MD11F"
+   "B748F"
   ],
   "cargo": "Aircraft parts and pharmaceuticals",
   "payload_lbs": 201000,
@@ -8937,8 +9264,9 @@
    "lon": -84.6678
   },
   "aircraft": [
-   "B748F",
-   "MD11F"
+   "MD11F",
+   "B77F",
+   "B748F"
   ],
   "cargo": "E-commerce parcels",
   "payload_lbs": 197500,
@@ -8970,8 +9298,9 @@
    "lon": 0.235
   },
   "aircraft": [
-   "B748F",
-   "MD11F"
+   "MD11F",
+   "B77F",
+   "B748F"
   ],
   "cargo": "Transatlantic express parcels",
   "payload_lbs": 197500,
@@ -9003,10 +9332,11 @@
    "lon": -73.7793
   },
   "aircraft": [
-   "MD11F",
    "B763F",
+   "MD11F",
    "B77F",
-   "B742F"
+   "B742F",
+   "B748F"
   ],
   "cargo": "Pharmaceuticals and priority documents",
   "payload_lbs": 150000,
@@ -9038,10 +9368,11 @@
    "lon": -0.4599
   },
   "aircraft": [
-   "MD11F",
    "B763F",
+   "MD11F",
    "B77F",
-   "B742F"
+   "B742F",
+   "B748F"
   ],
   "cargo": "Financial documents and electronics",
   "payload_lbs": 150000,
@@ -9073,6 +9404,7 @@
    "lon": -87.9048
   },
   "aircraft": [
+   "MD11F",
    "B77F",
    "B748F"
   ],
@@ -9106,9 +9438,10 @@
    "lon": -73.7793
   },
   "aircraft": [
-   "B742F",
    "MD11F",
-   "B77F"
+   "B77F",
+   "B742F",
+   "B748F"
   ],
   "cargo": "Luxury goods and wine",
   "payload_lbs": 191000,
@@ -9140,9 +9473,10 @@
    "lon": 2.5541
   },
   "aircraft": [
-   "B742F",
    "MD11F",
-   "B77F"
+   "B77F",
+   "B742F",
+   "B748F"
   ],
   "cargo": "Aerospace parts",
   "payload_lbs": 191000,
@@ -9174,9 +9508,10 @@
    "lon": -61.5328
   },
   "aircraft": [
-   "B742F",
    "MD11F",
-   "B77F"
+   "B77F",
+   "B742F",
+   "B748F"
   ],
   "cargo": "Guadeloupe resupply",
   "payload_lbs": 138500,
@@ -9307,9 +9642,10 @@
    "lon": -73.7793
   },
   "aircraft": [
-   "B742F",
+   "MD11F",
    "B77F",
-   "MD11F"
+   "B742F",
+   "B748F"
   ],
   "cargo": "Flowers and pharmaceuticals",
   "payload_lbs": 157500,
@@ -9342,8 +9678,9 @@
   },
   "aircraft": [
    "MD11F",
+   "B77F",
    "B742F",
-   "B77F"
+   "B748F"
   ],
   "cargo": "Pharmaceuticals",
   "payload_lbs": 158000,
@@ -9408,10 +9745,11 @@
    "lon": -73.7793
   },
   "aircraft": [
-   "MD11F",
+   "B752F",
    "B763F",
+   "MD11F",
    "B77F",
-   "B752F"
+   "B748F"
   ],
   "cargo": "Medical devices",
   "payload_lbs": 162000,
@@ -9575,6 +9913,7 @@
    "lon": -79.6294
   },
   "aircraft": [
+   "MD11F",
    "B77F",
    "B742F",
    "B748F"
@@ -9609,6 +9948,7 @@
    "lon": 8.7281
   },
   "aircraft": [
+   "MD11F",
    "B77F",
    "B742F",
    "B748F"
@@ -9676,6 +10016,7 @@
    "lon": -77.4558
   },
   "aircraft": [
+   "MD11F",
    "B77F",
    "B742F",
    "B748F"
@@ -9711,9 +10052,10 @@
   },
   "aircraft": [
    "B752F",
-   "B77F",
+   "A306F",
    "B763F",
-   "MD11F"
+   "MD11F",
+   "B77F"
   ],
   "cargo": "Fresh Icelandic seafood",
   "payload_lbs": 66000,
@@ -9745,10 +10087,12 @@
    "lon": -22.6056
   },
   "aircraft": [
-   "B77F",
+   "B752F",
+   "A306F",
    "B763F",
    "MD11F",
-   "B752F"
+   "B77F",
+   "B748F"
   ],
   "cargo": "Retail goods and mail",
   "payload_lbs": 148500,
@@ -9815,9 +10159,10 @@
    "lon": -51.6791
   },
   "aircraft": [
-   "B738F",
+   "B732F",
    "B733F",
-   "B732F"
+   "B738F",
+   "B752F"
   ],
   "cargo": "Nuuk resupply",
   "payload_lbs": 44500,
@@ -9914,6 +10259,7 @@
    "lon": -79.6294
   },
   "aircraft": [
+   "MD11F",
    "B77F",
    "B742F",
    "B748F"
@@ -9948,6 +10294,7 @@
    "lon": 8.5584
   },
   "aircraft": [
+   "MD11F",
    "B77F",
    "B742F",
    "B748F"
@@ -9982,10 +10329,11 @@
    "lon": 2.5541
   },
   "aircraft": [
-   "MD11F",
    "B763F",
+   "MD11F",
    "B77F",
-   "B742F"
+   "B742F",
+   "B748F"
   ],
   "cargo": "Aerospace parts",
   "payload_lbs": 154000,
@@ -10017,10 +10365,11 @@
    "lon": -73.7423
   },
   "aircraft": [
-   "MD11F",
    "B763F",
+   "MD11F",
    "B77F",
-   "B742F"
+   "B742F",
+   "B748F"
   ],
   "cargo": "Pharmaceuticals and wine",
   "payload_lbs": 154000,
@@ -10151,10 +10500,13 @@
    "lon": -27.0908
   },
   "aircraft": [
+   "B732F",
+   "B733F",
+   "B738F",
+   "B722F",
    "B752F",
    "A306F",
-   "B733F",
-   "B738F"
+   "B763F"
   ],
   "cargo": "Azores resupply",
   "payload_lbs": 69500,
@@ -10256,10 +10608,11 @@
    "lon": 8.5584
   },
   "aircraft": [
+   "B732F",
+   "B733F",
    "B738F",
    "B722F",
-   "B733F",
-   "B732F"
+   "B752F"
   ],
   "cargo": "Express freight and road-feeder overflow",
   "payload_lbs": 43500,
@@ -10361,10 +10714,11 @@
    "lon": 2.5541
   },
   "aircraft": [
+   "B732F",
+   "B733F",
    "B738F",
    "B722F",
-   "B733F",
-   "B732F"
+   "B752F"
   ],
   "cargo": "Express freight and road-feeder overflow",
   "payload_lbs": 41000,
@@ -10536,10 +10890,11 @@
    "lon": 16.5697
   },
   "aircraft": [
+   "B732F",
+   "B733F",
    "B738F",
    "B722F",
-   "B733F",
-   "B732F"
+   "B752F"
   ],
   "cargo": "Express freight and road-feeder overflow",
   "payload_lbs": 44500,
@@ -10606,10 +10961,11 @@
    "lon": 20.9671
   },
   "aircraft": [
+   "B732F",
+   "B733F",
    "B738F",
    "B722F",
-   "B733F",
-   "B732F"
+   "B752F"
   ],
   "cargo": "Express freight and road-feeder overflow",
   "payload_lbs": 43500,
@@ -10641,10 +10997,13 @@
    "lon": 28.7321
   },
   "aircraft": [
-   "A306F",
-   "B752F",
+   "B732F",
+   "B733F",
    "B738F",
-   "B722F"
+   "B722F",
+   "B752F",
+   "A306F",
+   "B763F"
   ],
   "cargo": "Express freight and road-feeder overflow",
   "payload_lbs": 65500,
@@ -10676,10 +11035,12 @@
    "lon": 23.9445
   },
   "aircraft": [
-   "A306F",
-   "B752F",
+   "B733F",
    "B738F",
-   "B722F"
+   "B722F",
+   "B752F",
+   "A306F",
+   "B763F"
   ],
   "cargo": "Express freight and road-feeder overflow",
   "payload_lbs": 83500,
@@ -10711,10 +11072,11 @@
    "lon": 12.252
   },
   "aircraft": [
+   "B732F",
+   "B733F",
    "B738F",
    "B722F",
-   "B733F",
-   "B732F"
+   "B752F"
   ],
   "cargo": "Express freight and road-feeder overflow",
   "payload_lbs": 43500,
@@ -10781,10 +11143,12 @@
    "lon": 17.9288
   },
   "aircraft": [
-   "A306F",
-   "B752F",
+   "B733F",
    "B738F",
-   "B722F"
+   "B722F",
+   "B752F",
+   "A306F",
+   "B763F"
   ],
   "cargo": "Express freight and road-feeder overflow",
   "payload_lbs": 86000,
@@ -10816,10 +11180,12 @@
    "lon": -6.2621
   },
   "aircraft": [
-   "A306F",
-   "B752F",
+   "B733F",
    "B738F",
-   "B722F"
+   "B722F",
+   "B752F",
+   "A306F",
+   "B763F"
   ],
   "cargo": "Express freight and road-feeder overflow",
   "payload_lbs": 82500,
@@ -10851,10 +11217,12 @@
    "lon": -9.1359
   },
   "aircraft": [
-   "A306F",
-   "B752F",
+   "B733F",
    "B738F",
-   "B722F"
+   "B722F",
+   "B752F",
+   "A306F",
+   "B763F"
   ],
   "cargo": "Express freight and road-feeder overflow",
   "payload_lbs": 79500,
@@ -10921,10 +11289,12 @@
    "lon": 26.1033
   },
   "aircraft": [
-   "A306F",
-   "B752F",
+   "B733F",
    "B738F",
-   "B722F"
+   "B722F",
+   "B752F",
+   "A306F",
+   "B763F"
   ],
   "cargo": "Express freight and road-feeder overflow",
   "payload_lbs": 76500,
@@ -11096,10 +11466,11 @@
    "lon": 8.7281
   },
   "aircraft": [
+   "B732F",
+   "B733F",
    "B738F",
    "B722F",
-   "B733F",
-   "B732F"
+   "B752F"
   ],
   "cargo": "E-commerce parcels",
   "payload_lbs": 41000,
@@ -11131,10 +11502,13 @@
    "lon": 8.7281
   },
   "aircraft": [
-   "A306F",
-   "B752F",
+   "B732F",
+   "B733F",
    "B738F",
-   "B722F"
+   "B722F",
+   "B752F",
+   "A306F",
+   "B763F"
   ],
   "cargo": "E-commerce parcels",
   "payload_lbs": 65500,
@@ -11166,10 +11540,12 @@
    "lon": 8.7281
   },
   "aircraft": [
-   "A306F",
-   "B752F",
+   "B733F",
    "B738F",
-   "B722F"
+   "B722F",
+   "B752F",
+   "A306F",
+   "B763F"
   ],
   "cargo": "Fresh Norwegian salmon",
   "payload_lbs": 80500,
@@ -11201,10 +11577,12 @@
    "lon": 0.235
   },
   "aircraft": [
-   "A306F",
-   "B752F",
+   "B733F",
    "B738F",
-   "B722F"
+   "B722F",
+   "B752F",
+   "A306F",
+   "B763F"
   ],
   "cargo": "Fresh seafood",
   "payload_lbs": 82500,
@@ -11271,10 +11649,13 @@
    "lon": 2.0785
   },
   "aircraft": [
-   "A306F",
-   "B752F",
+   "B732F",
+   "B733F",
    "B738F",
-   "B733F"
+   "B722F",
+   "B752F",
+   "A306F",
+   "B763F"
   ],
   "cargo": "Express parcels",
   "payload_lbs": 63500,
@@ -11306,10 +11687,12 @@
    "lon": 12.252
   },
   "aircraft": [
-   "B722F",
    "B732F",
-   "A306F",
-   "B752F"
+   "B733F",
+   "B738F",
+   "B722F",
+   "B752F",
+   "A306F"
   ],
   "cargo": "Express parcels",
   "payload_lbs": 46500,
@@ -11341,10 +11724,12 @@
    "lon": 20.9671
   },
   "aircraft": [
-   "B722F",
    "B732F",
-   "A306F",
-   "B752F"
+   "B733F",
+   "B738F",
+   "B722F",
+   "B752F",
+   "A306F"
   ],
   "cargo": "Express parcels",
   "payload_lbs": 46500,
@@ -11376,10 +11761,12 @@
    "lon": 14.2599
   },
   "aircraft": [
-   "B722F",
    "B732F",
-   "A306F",
-   "B752F"
+   "B733F",
+   "B738F",
+   "B722F",
+   "B752F",
+   "A306F"
   ],
   "cargo": "Express parcels",
   "payload_lbs": 38000,
@@ -11411,10 +11798,12 @@
    "lon": 23.4177
   },
   "aircraft": [
-   "B722F",
    "B732F",
-   "A306F",
-   "B752F"
+   "B733F",
+   "B738F",
+   "B722F",
+   "B752F",
+   "A306F"
   ],
   "cargo": "Express parcels",
   "payload_lbs": 43000,
@@ -11446,10 +11835,13 @@
    "lon": 23.9707
   },
   "aircraft": [
+   "B732F",
+   "B733F",
+   "B738F",
+   "B722F",
    "B752F",
    "A306F",
-   "B733F",
-   "B738F"
+   "B763F"
   ],
   "cargo": "Express parcels",
   "payload_lbs": 66000,
@@ -11481,10 +11873,12 @@
    "lon": 25.2858
   },
   "aircraft": [
-   "A306F",
-   "B752F",
+   "B732F",
+   "B733F",
    "B738F",
-   "B733F"
+   "B722F",
+   "B752F",
+   "A306F"
   ],
   "cargo": "Express parcels",
   "payload_lbs": 68000,
@@ -11552,6 +11946,8 @@
   },
   "aircraft": [
    "B732F",
+   "B733F",
+   "B738F",
    "B722F",
    "B752F",
    "A306F"
@@ -11586,10 +11982,12 @@
    "lon": 16.0688
   },
   "aircraft": [
-   "A306F",
-   "B752F",
+   "B733F",
    "B738F",
-   "B733F"
+   "B722F",
+   "B752F",
+   "A306F",
+   "B763F"
   ],
   "cargo": "Express parcels",
   "payload_lbs": 76500,
@@ -11656,10 +12054,13 @@
    "lon": 26.1033
   },
   "aircraft": [
-   "A306F",
-   "B752F",
+   "B732F",
+   "B733F",
    "B738F",
-   "B733F"
+   "B722F",
+   "B752F",
+   "A306F",
+   "B763F"
   ],
   "cargo": "Express parcels",
   "payload_lbs": 68000,
@@ -11691,10 +12092,16 @@
    "lon": -9.1359
   },
   "aircraft": [
-   "MD11F",
+   "B732F",
    "B733F",
+   "B738F",
    "B722F",
-   "B732F"
+   "B752F",
+   "A306F",
+   "B763F",
+   "MD11F",
+   "B77F",
+   "B742F"
   ],
   "cargo": "E-commerce parcels",
   "payload_lbs": 129500,
@@ -11726,10 +12133,13 @@
    "lon": -3.5722
   },
   "aircraft": [
-   "A306F",
-   "B752F",
+   "B732F",
+   "B733F",
    "B738F",
-   "B733F"
+   "B722F",
+   "B752F",
+   "A306F",
+   "B763F"
   ],
   "cargo": "E-commerce parcels",
   "payload_lbs": 63500,
@@ -11762,6 +12172,8 @@
   },
   "aircraft": [
    "B732F",
+   "B733F",
+   "B738F",
    "B722F",
    "B752F",
    "A306F"
@@ -11796,9 +12208,12 @@
    "lon": 23.9445
   },
   "aircraft": [
-   "A306F",
-   "B752F",
+   "B732F",
+   "B733F",
    "B738F",
+   "B722F",
+   "B752F",
+   "A306F",
    "B763F"
   ],
   "cargo": "E-commerce parcels",
@@ -11831,9 +12246,12 @@
    "lon": 28.7321
   },
   "aircraft": [
-   "B763F",
-   "B738F",
    "B733F",
+   "B738F",
+   "B722F",
+   "B752F",
+   "A306F",
+   "B763F",
    "MD11F"
   ],
   "cargo": "E-commerce parcels",
@@ -11968,10 +12386,12 @@
    "lon": 7.1427
   },
   "aircraft": [
-   "B722F",
    "B732F",
-   "A306F",
-   "B752F"
+   "B733F",
+   "B738F",
+   "B722F",
+   "B752F",
+   "A306F"
   ],
   "cargo": "Express parcels",
   "payload_lbs": 46500,
@@ -12003,10 +12423,13 @@
    "lon": 14.4915
   },
   "aircraft": [
+   "B732F",
+   "B733F",
+   "B738F",
+   "B722F",
    "B752F",
    "A306F",
-   "B733F",
-   "B738F"
+   "B763F"
   ],
   "cargo": "Island resupply",
   "payload_lbs": 53500,
@@ -12073,10 +12496,12 @@
    "lon": 9.0543
   },
   "aircraft": [
-   "B722F",
    "B732F",
-   "A306F",
-   "B752F"
+   "B733F",
+   "B738F",
+   "B722F",
+   "B752F",
+   "A306F"
   ],
   "cargo": "Sardinia resupply",
   "payload_lbs": 43000,
@@ -12179,6 +12604,8 @@
   },
   "aircraft": [
    "B732F",
+   "B733F",
+   "B738F",
    "B722F",
    "B752F",
    "A306F"
@@ -12213,10 +12640,16 @@
    "lon": 50.0509
   },
   "aircraft": [
-   "MD11F",
+   "B732F",
    "B733F",
    "B722F",
-   "B732F"
+   "B752F",
+   "A306F",
+   "B763F",
+   "MD11F",
+   "B77F",
+   "B742F",
+   "B748F"
   ],
   "cargo": "General cargo",
   "payload_lbs": 158000,
@@ -12249,6 +12682,8 @@
   },
   "aircraft": [
    "B732F",
+   "B733F",
+   "B738F",
    "B722F",
    "B752F",
    "A306F"
@@ -12284,6 +12719,7 @@
   },
   "aircraft": [
    "B732F",
+   "B733F",
    "B722F",
    "B752F",
    "A306F"
@@ -12353,10 +12789,13 @@
    "lon": 14.3653
   },
   "aircraft": [
+   "B732F",
+   "B733F",
+   "B738F",
+   "B722F",
    "B752F",
    "A306F",
-   "B733F",
-   "B738F"
+   "B763F"
   ],
   "cargo": "North Norway resupply",
   "payload_lbs": 66000,
@@ -12388,10 +12827,11 @@
    "lon": 18.9189
   },
   "aircraft": [
-   "A306F",
-   "B752F",
+   "B733F",
    "B738F",
-   "B733F"
+   "B722F",
+   "B752F",
+   "A306F"
   ],
   "cargo": "Arctic Norway freight",
   "payload_lbs": 82500,
@@ -12423,10 +12863,11 @@
    "lon": 15.4656
   },
   "aircraft": [
-   "B738F",
+   "B732F",
    "B733F",
+   "B738F",
    "B722F",
-   "B732F"
+   "B752F"
   ],
   "cargo": "Svalbard resupply",
   "payload_lbs": 43500,
@@ -12458,10 +12899,11 @@
    "lon": 18.9189
   },
   "aircraft": [
-   "B738F",
+   "B732F",
    "B733F",
+   "B738F",
    "B722F",
-   "B732F"
+   "B752F"
   ],
   "cargo": "Research samples and returns",
   "payload_lbs": 43500,
@@ -12493,10 +12935,13 @@
    "lon": 10.924
   },
   "aircraft": [
+   "B732F",
+   "B733F",
+   "B738F",
+   "B722F",
    "B752F",
    "A306F",
-   "B733F",
-   "B738F"
+   "B763F"
   ],
   "cargo": "Domestic express freight",
   "payload_lbs": 71000,
@@ -12528,10 +12973,11 @@
    "lon": 8.7281
   },
   "aircraft": [
-   "B738F",
+   "B732F",
    "B733F",
+   "B738F",
    "B722F",
-   "B732F"
+   "B752F"
   ],
   "cargo": "Fresh Norwegian salmon",
   "payload_lbs": 40000,
@@ -12563,10 +13009,12 @@
    "lon": 17.9288
   },
   "aircraft": [
-   "B722F",
    "B732F",
-   "A306F",
-   "B752F"
+   "B733F",
+   "B738F",
+   "B722F",
+   "B752F",
+   "A306F"
   ],
   "cargo": "Express parcels",
   "payload_lbs": 46500,
@@ -12662,10 +13110,13 @@
    "lon": -22.6056
   },
   "aircraft": [
+   "B732F",
+   "B733F",
+   "B738F",
+   "B722F",
    "B752F",
    "A306F",
-   "B763F",
-   "B738F"
+   "B763F"
   ],
   "cargo": "Iceland resupply",
   "payload_lbs": 71000,
@@ -12793,10 +13244,12 @@
    "lon": 18.3315
   },
   "aircraft": [
-   "B722F",
    "B732F",
-   "A306F",
-   "B752F"
+   "B733F",
+   "B738F",
+   "B722F",
+   "B752F",
+   "A306F"
   ],
   "cargo": "General cargo",
   "payload_lbs": 44000,
@@ -12828,10 +13281,13 @@
    "lon": 21.6226
   },
   "aircraft": [
-   "A306F",
-   "B752F",
+   "B732F",
+   "B733F",
    "B738F",
-   "B733F"
+   "B722F",
+   "B752F",
+   "A306F",
+   "B763F"
   ],
   "cargo": "General cargo",
   "payload_lbs": 63500,
@@ -12898,10 +13354,12 @@
    "lon": 28.9317
   },
   "aircraft": [
-   "B722F",
    "B732F",
-   "A306F",
-   "B752F"
+   "B733F",
+   "B738F",
+   "B722F",
+   "B752F",
+   "A306F"
   ],
   "cargo": "General cargo",
   "payload_lbs": 40500,
@@ -12933,10 +13391,13 @@
    "lon": 12.2327
   },
   "aircraft": [
+   "B732F",
+   "B733F",
+   "B738F",
+   "B722F",
    "B752F",
    "A306F",
-   "B733F",
-   "B738F"
+   "B763F"
   ],
   "cargo": "E-commerce parcels",
   "payload_lbs": 71000,
@@ -12968,10 +13429,11 @@
    "lon": -16.7746
   },
   "aircraft": [
-   "B738F",
+   "B732F",
    "B733F",
+   "B738F",
    "B722F",
-   "B732F"
+   "B752F"
   ],
   "cargo": "Madeira resupply",
   "payload_lbs": 42000,
@@ -13003,9 +13465,11 @@
    "lon": -15.3866
   },
   "aircraft": [
-   "A306F",
-   "B752F",
+   "B733F",
    "B738F",
+   "B722F",
+   "B752F",
+   "A306F",
    "B763F"
   ],
   "cargo": "Canary Islands resupply",
@@ -13038,9 +13502,11 @@
    "lon": -3.5722
   },
   "aircraft": [
-   "A306F",
-   "B752F",
+   "B733F",
    "B738F",
+   "B722F",
+   "B752F",
+   "A306F",
    "B763F"
   ],
   "cargo": "Tomatoes and fresh fish",
@@ -13074,6 +13540,7 @@
   },
   "aircraft": [
    "B732F",
+   "B733F",
    "B722F",
    "B752F",
    "A306F"
@@ -13143,9 +13610,12 @@
    "lon": 28.7321
   },
   "aircraft": [
-   "A306F",
-   "B752F",
+   "B732F",
+   "B733F",
    "B738F",
+   "B722F",
+   "B752F",
+   "A306F",
    "B763F"
   ],
   "cargo": "Machinery",
@@ -13178,10 +13648,13 @@
    "lon": 0.235
   },
   "aircraft": [
+   "B732F",
+   "B733F",
+   "B738F",
+   "B722F",
    "B752F",
    "A306F",
-   "B733F",
-   "B738F"
+   "B763F"
   ],
   "cargo": "Express freight",
   "payload_lbs": 60500,
@@ -13213,10 +13686,12 @@
    "lon": 55.1624
   },
   "aircraft": [
-   "B77F",
-   "B748F",
+   "B752F",
+   "B763F",
    "MD11F",
-   "B742F"
+   "B77F",
+   "B742F",
+   "B748F"
   ],
   "cargo": "Machinery and luxury goods",
   "payload_lbs": 148500,
@@ -13248,10 +13723,13 @@
    "lon": 51.6081
   },
   "aircraft": [
-   "B77F",
-   "B748F",
+   "B752F",
+   "A306F",
+   "B763F",
    "MD11F",
-   "B742F"
+   "B77F",
+   "B742F",
+   "B748F"
   ],
   "cargo": "Industrial equipment",
   "payload_lbs": 139500,
@@ -13283,10 +13761,13 @@
    "lon": 46.6988
   },
   "aircraft": [
-   "B77F",
-   "B748F",
+   "B752F",
+   "A306F",
+   "B763F",
    "MD11F",
-   "B742F"
+   "B77F",
+   "B742F",
+   "B748F"
   ],
   "cargo": "Construction and energy equipment",
   "payload_lbs": 135000,
@@ -13318,10 +13799,12 @@
    "lon": 31.3967
   },
   "aircraft": [
-   "A306F",
-   "B752F",
+   "B733F",
    "B738F",
-   "B722F"
+   "B722F",
+   "B752F",
+   "A306F",
+   "B763F"
   ],
   "cargo": "Pharmaceuticals",
   "payload_lbs": 85000,
@@ -13353,10 +13836,11 @@
    "lon": 10.2272
   },
   "aircraft": [
+   "B732F",
+   "B733F",
    "B738F",
    "B722F",
-   "B733F",
-   "B732F"
+   "B752F"
   ],
   "cargo": "Textile inputs",
   "payload_lbs": 43500,
@@ -13388,10 +13872,12 @@
    "lon": -7.59
   },
   "aircraft": [
-   "A306F",
-   "B752F",
+   "B733F",
    "B738F",
-   "B722F"
+   "B722F",
+   "B752F",
+   "A306F",
+   "B763F"
   ],
   "cargo": "Automotive components",
   "payload_lbs": 89000,
@@ -13423,10 +13909,13 @@
    "lon": 3.3212
   },
   "aircraft": [
-   "B77F",
-   "B748F",
+   "B752F",
+   "A306F",
+   "B763F",
    "MD11F",
-   "B742F"
+   "B77F",
+   "B742F",
+   "B748F"
   ],
   "cargo": "Machinery and consumer goods",
   "payload_lbs": 182000,
@@ -13458,10 +13947,12 @@
    "lon": 38.7993
   },
   "aircraft": [
-   "B77F",
-   "B748F",
+   "B752F",
+   "B763F",
    "MD11F",
-   "B742F"
+   "B77F",
+   "B742F",
+   "B748F"
   ],
   "cargo": "Humanitarian and medical supplies",
   "payload_lbs": 168500,
@@ -13561,10 +14052,13 @@
    "lon": -0.1668
   },
   "aircraft": [
-   "B77F",
-   "B748F",
+   "B752F",
+   "A306F",
+   "B763F",
    "MD11F",
-   "B742F"
+   "B77F",
+   "B742F",
+   "B748F"
   ],
   "cargo": "Medical supplies and consumer goods",
   "payload_lbs": 171000,
@@ -13596,10 +14090,13 @@
    "lon": -17.0728
   },
   "aircraft": [
-   "B77F",
-   "B748F",
+   "B752F",
+   "A306F",
+   "B763F",
    "MD11F",
-   "B742F"
+   "B77F",
+   "B742F",
+   "B748F"
   ],
   "cargo": "General cargo",
   "payload_lbs": 146000,
@@ -13800,10 +14297,12 @@
    "lon": 8.7281
   },
   "aircraft": [
-   "B77F",
-   "B748F",
+   "B752F",
+   "B763F",
    "MD11F",
-   "B742F"
+   "B77F",
+   "B742F",
+   "B748F"
   ],
   "cargo": "Transshipped Asian electronics",
   "payload_lbs": 148500,
@@ -13835,10 +14334,12 @@
    "lon": 5.4439
   },
   "aircraft": [
-   "B77F",
-   "B748F",
+   "B752F",
+   "B763F",
    "MD11F",
-   "B742F"
+   "B77F",
+   "B742F",
+   "B748F"
   ],
   "cargo": "E-commerce parcels",
   "payload_lbs": 182000,
@@ -13940,10 +14441,12 @@
    "lon": 38.7993
   },
   "aircraft": [
-   "A306F",
-   "B752F",
+   "B733F",
    "B738F",
-   "B722F"
+   "B722F",
+   "B752F",
+   "A306F",
+   "B763F"
   ],
   "cargo": "Humanitarian relief stock",
   "payload_lbs": 71000,
@@ -13975,10 +14478,11 @@
    "lon": 15.4446
   },
   "aircraft": [
-   "B77F",
-   "B748F",
+   "B763F",
    "MD11F",
-   "B742F"
+   "B77F",
+   "B742F",
+   "B748F"
   ],
   "cargo": "Mining spares and relief supplies",
   "payload_lbs": 141500,
@@ -14045,10 +14549,13 @@
    "lon": 35.9932
   },
   "aircraft": [
-   "A306F",
-   "B752F",
+   "B732F",
+   "B733F",
    "B738F",
-   "B722F"
+   "B722F",
+   "B752F",
+   "A306F",
+   "B763F"
   ],
   "cargo": "Relief and consumer goods",
   "payload_lbs": 68000,
@@ -14080,10 +14587,11 @@
    "lon": 50.6376
   },
   "aircraft": [
+   "B732F",
+   "B733F",
    "B738F",
    "B722F",
-   "B733F",
-   "B732F"
+   "B752F"
   ],
   "cargo": "Regional feeder freight",
   "payload_lbs": 44000,
@@ -14150,10 +14658,12 @@
    "lon": 39.1574
   },
   "aircraft": [
-   "A306F",
-   "B752F",
+   "B733F",
    "B738F",
-   "B722F"
+   "B722F",
+   "B752F",
+   "A306F",
+   "B763F"
   ],
   "cargo": "Consumer goods and food",
   "payload_lbs": 77500,
@@ -14185,10 +14695,12 @@
    "lon": 31.3967
   },
   "aircraft": [
-   "A306F",
-   "B752F",
+   "B733F",
    "B738F",
-   "B722F"
+   "B722F",
+   "B752F",
+   "A306F",
+   "B763F"
   ],
   "cargo": "General cargo",
   "payload_lbs": 76500,
@@ -14220,10 +14732,11 @@
    "lon": 8.7281
   },
   "aircraft": [
-   "A306F",
-   "B752F",
    "B738F",
-   "B722F"
+   "B722F",
+   "B752F",
+   "A306F",
+   "B763F"
   ],
   "cargo": "Medical devices and electronics",
   "payload_lbs": 74000,
@@ -14255,10 +14768,11 @@
    "lon": 55.1624
   },
   "aircraft": [
-   "B77F",
-   "B748F",
+   "B752F",
+   "B763F",
    "MD11F",
-   "B763F"
+   "B77F",
+   "B748F"
   ],
   "cargo": "Vanilla and textiles",
   "payload_lbs": 157500,
@@ -14290,10 +14804,11 @@
    "lon": 36.9282
   },
   "aircraft": [
-   "B738F",
+   "B732F",
    "B733F",
+   "B738F",
    "B722F",
-   "B732F"
+   "B752F"
   ],
   "cargo": "Regional express freight",
   "payload_lbs": 41000,
@@ -14325,10 +14840,11 @@
    "lon": 38.7993
   },
   "aircraft": [
-   "B738F",
+   "B732F",
    "B733F",
+   "B738F",
    "B722F",
-   "B732F"
+   "B752F"
   ],
   "cargo": "Flowers for onward connection",
   "payload_lbs": 41000,
@@ -14360,10 +14876,13 @@
    "lon": 28.2468
   },
   "aircraft": [
-   "MD11F",
-   "B763F",
+   "B752F",
    "A306F",
-   "B752F"
+   "B763F",
+   "MD11F",
+   "B77F",
+   "B742F",
+   "B748F"
   ],
   "cargo": "Consumer goods",
   "payload_lbs": 158000,
@@ -14395,10 +14914,13 @@
    "lon": 38.7993
   },
   "aircraft": [
-   "MD11F",
-   "B763F",
+   "B752F",
    "A306F",
-   "B752F"
+   "B763F",
+   "MD11F",
+   "B77F",
+   "B742F",
+   "B748F"
   ],
   "cargo": "Mining spares",
   "payload_lbs": 158000,
@@ -14430,8 +14952,9 @@
    "lon": 3.3212
   },
   "aircraft": [
-   "A306F",
    "B752F",
+   "A306F",
+   "B763F",
    "B77F",
    "B742F"
   ],
@@ -14500,9 +15023,10 @@
    "lon": 15.4446
   },
   "aircraft": [
-   "A306F",
-   "B752F",
    "B738F",
+   "B722F",
+   "B752F",
+   "A306F",
    "B763F"
   ],
   "cargo": "Relief supplies",
@@ -14535,10 +15059,13 @@
    "lon": 32.5532
   },
   "aircraft": [
+   "B732F",
+   "B733F",
+   "B738F",
+   "B722F",
    "B752F",
    "A306F",
-   "B733F",
-   "B738F"
+   "B763F"
   ],
   "cargo": "Humanitarian relief",
   "payload_lbs": 60500,
@@ -14605,10 +15132,12 @@
    "lon": 43.1595
   },
   "aircraft": [
-   "B722F",
    "B732F",
-   "A306F",
-   "B752F"
+   "B733F",
+   "B738F",
+   "B722F",
+   "B752F",
+   "A306F"
   ],
   "cargo": "Port transshipment freight",
   "payload_lbs": 40500,
@@ -14640,10 +15169,13 @@
    "lon": 30.1395
   },
   "aircraft": [
+   "B732F",
+   "B733F",
+   "B738F",
+   "B722F",
    "B752F",
    "A306F",
-   "B733F",
-   "B738F"
+   "B763F"
   ],
   "cargo": "General cargo",
   "payload_lbs": 71000,
@@ -14675,9 +15207,10 @@
    "lon": 28.4527
   },
   "aircraft": [
-   "A306F",
-   "B752F",
    "B738F",
+   "B722F",
+   "B752F",
+   "A306F",
    "B763F"
   ],
   "cargo": "General cargo",
@@ -14710,10 +15243,13 @@
    "lon": 32.4435
   },
   "aircraft": [
-   "A306F",
-   "B752F",
+   "B732F",
+   "B733F",
    "B738F",
-   "B733F"
+   "B722F",
+   "B752F",
+   "A306F",
+   "B763F"
   ],
   "cargo": "General cargo",
   "payload_lbs": 63500,
@@ -14745,9 +15281,10 @@
    "lon": 13.2312
   },
   "aircraft": [
-   "B763F",
    "B738F",
    "B752F",
+   "A306F",
+   "B763F",
    "MD11F"
   ],
   "cargo": "Oil-field spares",
@@ -14780,10 +15317,12 @@
    "lon": 8.7281
   },
   "aircraft": [
+   "B752F",
    "B763F",
    "MD11F",
-   "B752F",
-   "B77F"
+   "B77F",
+   "B742F",
+   "B748F"
   ],
   "cargo": "Fresh flowers and vegetables",
   "payload_lbs": 87000,
@@ -14815,10 +15354,11 @@
    "lon": 5.4439
   },
   "aircraft": [
-   "MD11F",
    "B763F",
+   "MD11F",
    "B77F",
-   "B742F"
+   "B742F",
+   "B748F"
   ],
   "cargo": "Ethiopian roses",
   "payload_lbs": 129500,
@@ -14850,10 +15390,12 @@
    "lon": 55.1624
   },
   "aircraft": [
+   "B733F",
+   "B738F",
+   "B722F",
    "B752F",
    "A306F",
-   "B763F",
-   "B738F"
+   "B763F"
   ],
   "cargo": "Coffee and leather goods",
   "payload_lbs": 59000,
@@ -14885,10 +15427,13 @@
    "lon": 39.5942
   },
   "aircraft": [
+   "B732F",
+   "B733F",
+   "B738F",
+   "B722F",
    "B752F",
    "A306F",
-   "B733F",
-   "B738F"
+   "B763F"
   ],
   "cargo": "Domestic express freight",
   "payload_lbs": 53500,
@@ -14991,6 +15536,7 @@
   },
   "aircraft": [
    "B732F",
+   "B733F",
    "B722F",
    "B752F",
    "A306F"
@@ -15025,9 +15571,10 @@
    "lon": 28.2468
   },
   "aircraft": [
-   "A306F",
-   "B752F",
    "B738F",
+   "B722F",
+   "B752F",
+   "A306F",
    "B763F"
   ],
   "cargo": "Flowers and tea",
@@ -15095,9 +15642,10 @@
    "lon": 55.1624
   },
   "aircraft": [
-   "B763F",
    "B738F",
    "B752F",
+   "A306F",
+   "B763F",
    "MD11F"
   ],
   "cargo": "Avocados and green beans",
@@ -15130,8 +15678,9 @@
    "lon": 0.235
   },
   "aircraft": [
-   "B748F",
-   "MD11F"
+   "MD11F",
+   "B77F",
+   "B748F"
   ],
   "cargo": "Green beans and baby corn",
   "payload_lbs": 166000,
@@ -15198,10 +15747,12 @@
    "lon": 36.9282
   },
   "aircraft": [
-   "B722F",
    "B732F",
-   "A306F",
-   "B752F"
+   "B733F",
+   "B738F",
+   "B722F",
+   "B752F",
+   "A306F"
   ],
   "cargo": "Fresh Lake Victoria fish",
   "payload_lbs": 49000,
@@ -15233,10 +15784,11 @@
    "lon": 55.1624
   },
   "aircraft": [
-   "MD11F",
-   "B763F",
+   "B752F",
    "A306F",
-   "B752F"
+   "B763F",
+   "MD11F",
+   "B77F"
   ],
   "cargo": "Cashews and spices",
   "payload_lbs": 125500,
@@ -15339,6 +15891,8 @@
   },
   "aircraft": [
    "B732F",
+   "B733F",
+   "B738F",
    "B722F",
    "B752F",
    "A306F"
@@ -15373,10 +15927,12 @@
    "lon": 28.4527
   },
   "aircraft": [
-   "B722F",
    "B732F",
-   "A306F",
-   "B752F"
+   "B733F",
+   "B738F",
+   "B722F",
+   "B752F",
+   "A306F"
   ],
   "cargo": "Mining spares",
   "payload_lbs": 50500,
@@ -15408,10 +15964,13 @@
    "lon": 31.0928
   },
   "aircraft": [
+   "B732F",
+   "B733F",
+   "B738F",
+   "B722F",
    "B752F",
    "A306F",
-   "B733F",
-   "B738F"
+   "B763F"
   ],
   "cargo": "General cargo",
   "payload_lbs": 59000,
@@ -15444,6 +16003,7 @@
   },
   "aircraft": [
    "B732F",
+   "B733F",
    "B722F",
    "B752F",
    "A306F"
@@ -15478,10 +16038,12 @@
    "lon": 17.4709
   },
   "aircraft": [
-   "A306F",
-   "B752F",
+   "B733F",
    "B738F",
-   "B733F"
+   "B722F",
+   "B752F",
+   "A306F",
+   "B763F"
   ],
   "cargo": "General cargo",
   "payload_lbs": 80500,
@@ -15513,10 +16075,12 @@
    "lon": 28.2468
   },
   "aircraft": [
-   "A306F",
-   "B752F",
+   "B733F",
    "B738F",
-   "B733F"
+   "B722F",
+   "B752F",
+   "A306F",
+   "B763F"
   ],
   "cargo": "Rough diamonds (high-value consignment)",
   "payload_lbs": 82500,
@@ -15548,10 +16112,13 @@
    "lon": 27.5308
   },
   "aircraft": [
-   "A306F",
-   "B752F",
+   "B732F",
+   "B733F",
    "B738F",
-   "B733F"
+   "B722F",
+   "B752F",
+   "A306F",
+   "B763F"
   ],
   "cargo": "Mining equipment for the Copperbelt",
   "payload_lbs": 68000,
@@ -15583,10 +16150,13 @@
    "lon": 28.2468
   },
   "aircraft": [
-   "A306F",
-   "B752F",
+   "B732F",
+   "B733F",
    "B738F",
-   "B733F"
+   "B722F",
+   "B752F",
+   "A306F",
+   "B763F"
   ],
   "cargo": "Copper cathode samples and returns",
   "payload_lbs": 68000,
@@ -15618,9 +16188,10 @@
    "lon": 57.6836
   },
   "aircraft": [
-   "A306F",
-   "B752F",
    "B738F",
+   "B722F",
+   "B752F",
+   "A306F",
    "B763F"
   ],
   "cargo": "General cargo",
@@ -15653,9 +16224,12 @@
    "lon": 47.4788
   },
   "aircraft": [
-   "B763F",
-   "B738F",
    "B733F",
+   "B738F",
+   "B722F",
+   "B752F",
+   "A306F",
+   "B763F",
    "MD11F"
   ],
   "cargo": "General cargo",
@@ -15690,6 +16264,7 @@
   "aircraft": [
    "B733F",
    "B738F",
+   "B722F",
    "B752F",
    "MD11F"
   ],
@@ -15723,10 +16298,13 @@
    "lon": 3.3212
   },
   "aircraft": [
+   "B752F",
+   "A306F",
+   "B763F",
+   "MD11F",
    "B77F",
    "B742F",
-   "MD11F",
-   "B763F"
+   "B748F"
   ],
   "cargo": "General cargo",
   "payload_lbs": 189000,
@@ -15861,10 +16439,13 @@
    "lon": -0.1668
   },
   "aircraft": [
+   "B732F",
+   "B733F",
+   "B738F",
+   "B722F",
    "B752F",
    "A306F",
-   "B733F",
-   "B738F"
+   "B763F"
   ],
   "cargo": "Regional freight",
   "payload_lbs": 73000,
@@ -15931,10 +16512,12 @@
    "lon": -3.9263
   },
   "aircraft": [
-   "B722F",
    "B732F",
-   "A306F",
-   "B752F"
+   "B733F",
+   "B738F",
+   "B722F",
+   "B752F",
+   "A306F"
   ],
   "cargo": "Regional freight",
   "payload_lbs": 46500,
@@ -16001,10 +16584,13 @@
    "lon": 2.5541
   },
   "aircraft": [
-   "B742F",
-   "B77F",
+   "B752F",
+   "A306F",
    "B763F",
-   "MD11F"
+   "MD11F",
+   "B77F",
+   "B742F",
+   "B748F"
   ],
   "cargo": "Fresh vegetables and fish",
   "payload_lbs": 167000,
@@ -16036,9 +16622,11 @@
    "lon": -17.0728
   },
   "aircraft": [
-   "A306F",
-   "B752F",
+   "B733F",
    "B738F",
+   "B722F",
+   "B752F",
+   "A306F",
    "B763F"
   ],
   "cargo": "Regional freight",
@@ -16071,9 +16659,12 @@
    "lon": 2.5541
   },
   "aircraft": [
-   "A306F",
-   "B752F",
+   "B732F",
+   "B733F",
    "B738F",
+   "B722F",
+   "B752F",
+   "A306F",
    "B763F"
   ],
   "cargo": "Automotive wiring and textiles",
@@ -16107,6 +16698,8 @@
   },
   "aircraft": [
    "B732F",
+   "B733F",
+   "B738F",
    "B722F",
    "B752F",
    "A306F"
@@ -16141,10 +16734,15 @@
    "lon": 2.5541
   },
   "aircraft": [
-   "MD11F",
+   "B732F",
    "B733F",
    "B722F",
-   "B732F"
+   "B752F",
+   "A306F",
+   "B763F",
+   "MD11F",
+   "B77F",
+   "B748F"
   ],
   "cargo": "Handicrafts and fresh produce",
   "payload_lbs": 146000,
@@ -16176,10 +16774,12 @@
    "lon": 2.5541
   },
   "aircraft": [
-   "A306F",
-   "B752F",
+   "B733F",
    "B738F",
-   "B733F"
+   "B722F",
+   "B752F",
+   "A306F",
+   "B763F"
   ],
   "cargo": "General cargo",
   "payload_lbs": 85000,
@@ -16211,10 +16811,11 @@
    "lon": 5.4439
   },
   "aircraft": [
+   "B738F",
+   "B722F",
    "B752F",
    "A306F",
-   "B763F",
-   "B738F"
+   "B763F"
   ],
   "cargo": "Fresh vegetables and citrus",
   "payload_lbs": 60500,
@@ -16246,9 +16847,11 @@
    "lon": 55.1624
   },
   "aircraft": [
-   "A306F",
-   "B752F",
+   "B733F",
    "B738F",
+   "B722F",
+   "B752F",
+   "A306F",
    "B763F"
   ],
   "cargo": "Textiles and produce",
@@ -16281,10 +16884,13 @@
    "lon": 46.6988
   },
   "aircraft": [
-   "A306F",
-   "B752F",
+   "B732F",
+   "B733F",
    "B738F",
-   "B733F"
+   "B722F",
+   "B752F",
+   "A306F",
+   "B763F"
   ],
   "cargo": "General cargo",
   "payload_lbs": 70000,
@@ -16351,10 +16957,13 @@
    "lon": 44.2346
   },
   "aircraft": [
+   "B732F",
+   "B733F",
+   "B738F",
+   "B722F",
    "B752F",
    "A306F",
-   "B733F",
-   "B738F"
+   "B763F"
   ],
   "cargo": "Reconstruction supplies",
   "payload_lbs": 64000,
@@ -16386,10 +16995,12 @@
    "lon": 43.9466
   },
   "aircraft": [
+   "B733F",
+   "B738F",
+   "B722F",
    "B752F",
    "A306F",
-   "B733F",
-   "B738F"
+   "B763F"
   ],
   "cargo": "Oil-field equipment",
   "payload_lbs": 74500,
@@ -16456,10 +17067,12 @@
    "lon": 35.4874
   },
   "aircraft": [
+   "B733F",
+   "B738F",
+   "B722F",
    "B752F",
    "A306F",
-   "B763F",
-   "B738F"
+   "B763F"
   ],
   "cargo": "Relief and consumer goods",
   "payload_lbs": 74500,
@@ -16526,9 +17139,11 @@
    "lon": 32.5532
   },
   "aircraft": [
-   "A306F",
-   "B752F",
+   "B733F",
    "B738F",
+   "B722F",
+   "B752F",
+   "A306F",
    "B763F"
   ],
   "cargo": "Humanitarian relief",
@@ -16561,9 +17176,10 @@
    "lon": 45.3047
   },
   "aircraft": [
-   "A306F",
-   "B752F",
    "B738F",
+   "B722F",
+   "B752F",
+   "A306F",
    "B763F"
   ],
   "cargo": "Humanitarian food aid",
@@ -16596,9 +17212,12 @@
    "lon": 43.1595
   },
   "aircraft": [
-   "B763F",
-   "B738F",
    "B733F",
+   "B738F",
+   "B722F",
+   "B752F",
+   "A306F",
+   "B763F",
    "MD11F"
   ],
   "cargo": "Port transshipment freight",
@@ -16631,10 +17250,13 @@
    "lon": 45.03
   },
   "aircraft": [
+   "B732F",
+   "B733F",
+   "B738F",
+   "B722F",
    "B752F",
    "A306F",
-   "B763F",
-   "B738F"
+   "B763F"
   ],
   "cargo": "Humanitarian relief and medical supplies",
   "payload_lbs": 62500,
@@ -16666,10 +17288,11 @@
    "lon": 51.6081
   },
   "aircraft": [
-   "B738F",
+   "B732F",
    "B733F",
+   "B738F",
    "B722F",
-   "B732F"
+   "B752F"
   ],
   "cargo": "Regional feeder freight",
   "payload_lbs": 42000,
@@ -16736,10 +17359,12 @@
    "lon": 8.7281
   },
   "aircraft": [
-   "MD11F",
-   "B763F",
+   "B752F",
    "A306F",
-   "B752F"
+   "B763F",
+   "MD11F",
+   "B77F",
+   "B742F"
   ],
   "cargo": "Fresh food and consumer goods",
   "payload_lbs": 125500,
@@ -16771,10 +17396,13 @@
    "lon": 39.1574
   },
   "aircraft": [
+   "B732F",
+   "B733F",
+   "B738F",
+   "B722F",
    "B752F",
    "A306F",
-   "B733F",
-   "B738F"
+   "B763F"
   ],
   "cargo": "Domestic express freight",
   "payload_lbs": 59000,
@@ -16806,10 +17434,13 @@
    "lon": 46.6988
   },
   "aircraft": [
+   "B732F",
+   "B733F",
+   "B738F",
+   "B722F",
    "B752F",
    "A306F",
-   "B733F",
-   "B738F"
+   "B763F"
   ],
   "cargo": "Domestic express freight",
   "payload_lbs": 59000,
@@ -16841,10 +17472,12 @@
    "lon": 38.7993
   },
   "aircraft": [
-   "B722F",
    "B732F",
-   "A306F",
-   "B752F"
+   "B733F",
+   "B738F",
+   "B722F",
+   "B752F",
+   "A306F"
   ],
   "cargo": "General cargo",
   "payload_lbs": 51500,
@@ -16877,6 +17510,8 @@
   },
   "aircraft": [
    "B732F",
+   "B733F",
+   "B738F",
    "B722F",
    "B752F",
    "A306F"
@@ -16911,10 +17546,12 @@
    "lon": 8.7281
   },
   "aircraft": [
+   "B733F",
+   "B738F",
+   "B722F",
    "B752F",
    "A306F",
-   "B763F",
-   "B738F"
+   "B763F"
   ],
   "cargo": "Fresh produce and jewellery",
   "payload_lbs": 59000,
@@ -16946,10 +17583,12 @@
    "lon": 3.2145
   },
   "aircraft": [
-   "B722F",
    "B732F",
-   "A306F",
-   "B752F"
+   "B733F",
+   "B738F",
+   "B722F",
+   "B752F",
+   "A306F"
   ],
   "cargo": "Machinery",
   "payload_lbs": 48000,
@@ -16981,9 +17620,12 @@
    "lon": -8.0358
   },
   "aircraft": [
-   "A306F",
-   "B752F",
+   "B732F",
+   "B733F",
    "B738F",
+   "B722F",
+   "B752F",
+   "A306F",
    "B763F"
   ],
   "cargo": "Consumer goods",
@@ -17016,10 +17658,12 @@
    "lon": 35.4874
   },
   "aircraft": [
+   "B733F",
+   "B738F",
+   "B722F",
    "B752F",
    "A306F",
-   "B763F",
-   "B738F"
+   "B763F"
   ],
   "cargo": "Pharmaceuticals",
   "payload_lbs": 59000,
@@ -17051,9 +17695,10 @@
    "lon": 34.8867
   },
   "aircraft": [
-   "A306F",
-   "B752F",
    "B738F",
+   "B722F",
+   "B752F",
+   "A306F",
    "B763F"
   ],
   "cargo": "Machinery and pharmaceuticals",
@@ -17088,8 +17733,9 @@
   "aircraft": [
    "B752F",
    "A306F",
-   "B742F",
-   "B77F"
+   "B763F",
+   "B77F",
+   "B742F"
   ],
   "cargo": "Aluminium industry spares",
   "payload_lbs": 57000,
@@ -17157,6 +17803,8 @@
   },
   "aircraft": [
    "B732F",
+   "B733F",
+   "B738F",
    "B722F",
    "B752F",
    "A306F"
@@ -17325,10 +17973,12 @@
    "lon": 103.994
   },
   "aircraft": [
-   "A306F",
-   "B752F",
+   "B733F",
    "B738F",
-   "B722F"
+   "B722F",
+   "B752F",
+   "A306F",
+   "B763F"
   ],
   "cargo": "Electronics and components",
   "payload_lbs": 78500,
@@ -17360,10 +18010,12 @@
    "lon": 113.9149
   },
   "aircraft": [
-   "A306F",
-   "B752F",
+   "B733F",
    "B738F",
-   "B722F"
+   "B722F",
+   "B752F",
+   "A306F",
+   "B763F"
   ],
   "cargo": "Semiconductors",
   "payload_lbs": 78500,
@@ -17395,10 +18047,11 @@
    "lon": 121.233
   },
   "aircraft": [
+   "B732F",
+   "B733F",
    "B738F",
    "B722F",
-   "B733F",
-   "B732F"
+   "B752F"
   ],
   "cargo": "Components and parcels",
   "payload_lbs": 40500,
@@ -17430,10 +18083,11 @@
    "lon": 121.02
   },
   "aircraft": [
+   "B732F",
+   "B733F",
    "B738F",
    "B722F",
-   "B733F",
-   "B732F"
+   "B752F"
   ],
   "cargo": "Consumer goods",
   "payload_lbs": 41000,
@@ -17465,10 +18119,11 @@
    "lon": 113.9149
   },
   "aircraft": [
+   "B732F",
+   "B733F",
    "B738F",
    "B722F",
-   "B733F",
-   "B732F"
+   "B752F"
   ],
   "cargo": "Smartphones and electronics",
   "payload_lbs": 42000,
@@ -17500,10 +18155,12 @@
    "lon": 113.9149
   },
   "aircraft": [
-   "A306F",
-   "B752F",
+   "B733F",
    "B738F",
-   "B722F"
+   "B722F",
+   "B752F",
+   "A306F",
+   "B763F"
   ],
   "cargo": "Garments and electronics",
   "payload_lbs": 81500,
@@ -17535,10 +18192,12 @@
    "lon": 113.9149
   },
   "aircraft": [
-   "A306F",
-   "B752F",
+   "B733F",
    "B738F",
-   "B722F"
+   "B722F",
+   "B752F",
+   "A306F",
+   "B763F"
   ],
   "cargo": "Hard drives and fresh fruit",
   "payload_lbs": 88000,
@@ -17570,10 +18229,12 @@
    "lon": 113.9149
   },
   "aircraft": [
-   "A306F",
-   "B752F",
+   "B733F",
    "B738F",
-   "B722F"
+   "B722F",
+   "B752F",
+   "A306F",
+   "B763F"
   ],
   "cargo": "Semiconductors and rubber gloves",
   "payload_lbs": 82500,
@@ -17808,10 +18469,12 @@
    "lon": 55.1624
   },
   "aircraft": [
-   "A306F",
-   "B752F",
+   "B733F",
    "B738F",
-   "B722F"
+   "B722F",
+   "B752F",
+   "A306F",
+   "B763F"
   ],
   "cargo": "Pharmaceuticals and fresh produce",
   "payload_lbs": 87000,
@@ -17843,10 +18506,11 @@
    "lon": 55.1624
   },
   "aircraft": [
-   "A306F",
-   "B752F",
    "B738F",
-   "B722F"
+   "B722F",
+   "B752F",
+   "A306F",
+   "B763F"
   ],
   "cargo": "Automotive parts",
   "payload_lbs": 70000,
@@ -17981,10 +18645,11 @@
    "lon": 103.994
   },
   "aircraft": [
+   "B732F",
+   "B733F",
    "B738F",
    "B722F",
-   "B733F",
-   "B732F"
+   "B752F"
   ],
   "cargo": "Consumer goods",
   "payload_lbs": 41000,
@@ -18083,10 +18748,12 @@
    "lon": 174.7863
   },
   "aircraft": [
-   "A306F",
-   "B752F",
+   "B733F",
    "B738F",
-   "B722F"
+   "B722F",
+   "B752F",
+   "A306F",
+   "B763F"
   ],
   "cargo": "Mail and general cargo",
   "payload_lbs": 82500,
@@ -18118,10 +18785,12 @@
    "lon": 151.177
   },
   "aircraft": [
-   "A306F",
-   "B752F",
+   "B733F",
    "B738F",
-   "B722F"
+   "B722F",
+   "B752F",
+   "A306F",
+   "B763F"
   ],
   "cargo": "Dairy and kiwifruit",
   "payload_lbs": 82500,
@@ -18323,10 +18992,12 @@
    "lon": 166.213
   },
   "aircraft": [
-   "A306F",
-   "B752F",
+   "B733F",
    "B738F",
-   "B722F"
+   "B722F",
+   "B752F",
+   "A306F",
+   "B763F"
   ],
   "cargo": "Island resupply",
   "payload_lbs": 78500,
@@ -18358,10 +19029,11 @@
    "lon": 177.4378
   },
   "aircraft": [
-   "A306F",
-   "B752F",
    "B738F",
-   "B722F"
+   "B722F",
+   "B752F",
+   "A306F",
+   "B763F"
   ],
   "cargo": "Island resupply and mail",
   "payload_lbs": 80500,
@@ -18393,10 +19065,13 @@
    "lon": -149.6069
   },
   "aircraft": [
-   "B77F",
-   "B748F",
+   "B752F",
+   "A306F",
+   "B763F",
    "MD11F",
-   "B742F"
+   "B77F",
+   "B742F",
+   "B748F"
   ],
   "cargo": "Island resupply",
   "payload_lbs": 175500,
@@ -18463,10 +19138,12 @@
    "lon": 121.02
   },
   "aircraft": [
-   "A306F",
-   "B752F",
+   "B733F",
    "B738F",
-   "B722F"
+   "B722F",
+   "B752F",
+   "A306F",
+   "B763F"
   ],
   "cargo": "General cargo",
   "payload_lbs": 67000,
@@ -18499,6 +19176,7 @@
   },
   "aircraft": [
    "B732F",
+   "B733F",
    "B722F",
    "B752F",
    "A306F"
@@ -18534,6 +19212,7 @@
   },
   "aircraft": [
    "B732F",
+   "B733F",
    "B722F",
    "B752F",
    "A306F"
@@ -18568,10 +19247,11 @@
    "lon": 103.946
   },
   "aircraft": [
-   "B738F",
+   "B732F",
    "B733F",
+   "B738F",
    "B722F",
-   "B732F"
+   "B752F"
   ],
   "cargo": "Consumer electronics",
   "payload_lbs": 44500,
@@ -18603,10 +19283,11 @@
    "lon": 113.299
   },
   "aircraft": [
-   "B738F",
+   "B732F",
    "B733F",
+   "B738F",
    "B722F",
-   "B732F"
+   "B752F"
   ],
   "cargo": "Laptops and electronics",
   "payload_lbs": 44500,
@@ -18638,10 +19319,12 @@
    "lon": 121.805
   },
   "aircraft": [
-   "A306F",
-   "B752F",
+   "B733F",
    "B738F",
-   "B733F"
+   "B722F",
+   "B752F",
+   "A306F",
+   "B763F"
   ],
   "cargo": "Laptops and electronics",
   "payload_lbs": 78500,
@@ -18708,10 +19391,12 @@
    "lon": 121.805
   },
   "aircraft": [
-   "B722F",
    "B732F",
-   "A306F",
-   "B752F"
+   "B733F",
+   "B738F",
+   "B722F",
+   "B752F",
+   "A306F"
   ],
   "cargo": "Semiconductors",
   "payload_lbs": 46500,
@@ -18743,10 +19428,12 @@
    "lon": 116.5967
   },
   "aircraft": [
-   "B722F",
    "B732F",
-   "A306F",
-   "B752F"
+   "B733F",
+   "B738F",
+   "B722F",
+   "B752F",
+   "A306F"
   ],
   "cargo": "E-commerce parcels",
   "payload_lbs": 38000,
@@ -18778,10 +19465,13 @@
    "lon": 113.8033
   },
   "aircraft": [
+   "B732F",
+   "B733F",
+   "B738F",
+   "B722F",
    "B752F",
    "A306F",
-   "B733F",
-   "B738F"
+   "B763F"
   ],
   "cargo": "Electronics",
   "payload_lbs": 60500,
@@ -18813,10 +19503,13 @@
    "lon": 121.805
   },
   "aircraft": [
+   "B732F",
+   "B733F",
+   "B738F",
+   "B722F",
    "B752F",
    "A306F",
-   "B733F",
-   "B738F"
+   "B763F"
   ],
   "cargo": "Automotive parts",
   "payload_lbs": 62500,
@@ -18848,9 +19541,13 @@
    "lon": 140.3887
   },
   "aircraft": [
-   "B763F",
-   "B738F",
+   "B732F",
    "B733F",
+   "B738F",
+   "B722F",
+   "B752F",
+   "A306F",
+   "B763F",
    "MD11F"
   ],
   "cargo": "Seafood and electronics",
@@ -18883,10 +19580,13 @@
    "lon": 126.451
   },
   "aircraft": [
+   "B732F",
+   "B733F",
+   "B738F",
+   "B722F",
    "B752F",
    "A306F",
-   "B733F",
-   "B738F"
+   "B763F"
   ],
   "cargo": "Seafood and textiles",
   "payload_lbs": 62500,
@@ -18918,10 +19618,12 @@
    "lon": 121.233
   },
   "aircraft": [
-   "B722F",
    "B732F",
-   "A306F",
-   "B752F"
+   "B733F",
+   "B738F",
+   "B722F",
+   "B752F",
+   "A306F"
   ],
   "cargo": "Electronics and textiles",
   "payload_lbs": 40500,
@@ -18953,10 +19655,13 @@
    "lon": 126.451
   },
   "aircraft": [
+   "B732F",
+   "B733F",
+   "B738F",
+   "B722F",
    "B752F",
    "A306F",
-   "B733F",
-   "B738F"
+   "B763F"
   ],
   "cargo": "Precision parts",
   "payload_lbs": 53500,
@@ -18988,10 +19693,13 @@
    "lon": 140.3887
   },
   "aircraft": [
+   "B732F",
+   "B733F",
+   "B738F",
+   "B722F",
    "B752F",
    "A306F",
-   "B733F",
-   "B738F"
+   "B763F"
   ],
   "cargo": "Semiconductors and electronics",
   "payload_lbs": 53500,
@@ -19024,6 +19732,7 @@
   },
   "aircraft": [
    "B732F",
+   "B733F",
    "B722F",
    "B752F",
    "A306F"
@@ -19093,10 +19802,12 @@
    "lon": 135.244
   },
   "aircraft": [
-   "A306F",
-   "B752F",
+   "B733F",
    "B738F",
-   "B733F"
+   "B722F",
+   "B752F",
+   "A306F",
+   "B763F"
   ],
   "cargo": "Semiconductors",
   "payload_lbs": 76500,
@@ -19163,10 +19874,12 @@
    "lon": 121.805
   },
   "aircraft": [
-   "B722F",
    "B732F",
-   "A306F",
-   "B752F"
+   "B733F",
+   "B738F",
+   "B722F",
+   "B752F",
+   "A306F"
   ],
   "cargo": "Semiconductors and displays",
   "payload_lbs": 44000,
@@ -19198,10 +19911,13 @@
    "lon": 113.9149
   },
   "aircraft": [
+   "B732F",
+   "B733F",
+   "B738F",
+   "B722F",
    "B752F",
    "A306F",
-   "B763F",
-   "B738F"
+   "B763F"
   ],
   "cargo": "Semiconductors and displays",
   "payload_lbs": 67500,
@@ -19233,9 +19949,10 @@
    "lon": 113.9149
   },
   "aircraft": [
-   "A306F",
-   "B752F",
    "B738F",
+   "B722F",
+   "B752F",
+   "A306F",
    "B763F"
   ],
   "cargo": "Precision parts and cosmetics",
@@ -19269,6 +19986,7 @@
   },
   "aircraft": [
    "B732F",
+   "B733F",
    "B722F",
    "B752F",
    "A306F"
@@ -19303,9 +20021,12 @@
    "lon": 140.3887
   },
   "aircraft": [
-   "A306F",
-   "B752F",
+   "B732F",
+   "B733F",
    "B738F",
+   "B722F",
+   "B752F",
+   "A306F",
    "B763F"
   ],
   "cargo": "Semiconductors",
@@ -19338,9 +20059,13 @@
    "lon": 135.244
   },
   "aircraft": [
-   "B763F",
-   "B738F",
+   "B732F",
    "B733F",
+   "B738F",
+   "B722F",
+   "B752F",
+   "A306F",
+   "B763F",
    "MD11F"
   ],
   "cargo": "Semiconductors",
@@ -19408,10 +20133,13 @@
    "lon": 101.71
   },
   "aircraft": [
-   "A306F",
-   "B752F",
+   "B732F",
+   "B733F",
    "B738F",
-   "B733F"
+   "B722F",
+   "B752F",
+   "A306F",
+   "B763F"
   ],
   "cargo": "Electronics components",
   "payload_lbs": 63500,
@@ -19443,10 +20171,13 @@
    "lon": 103.994
   },
   "aircraft": [
-   "A306F",
-   "B752F",
+   "B732F",
+   "B733F",
    "B738F",
-   "B733F"
+   "B722F",
+   "B752F",
+   "A306F",
+   "B763F"
   ],
   "cargo": "Semiconductors",
   "payload_lbs": 63500,
@@ -19478,10 +20209,11 @@
    "lon": 106.656
   },
   "aircraft": [
-   "B738F",
+   "B732F",
    "B733F",
+   "B738F",
    "B722F",
-   "B732F"
+   "B752F"
   ],
   "cargo": "Consumer goods",
   "payload_lbs": 41000,
@@ -19514,6 +20246,7 @@
   },
   "aircraft": [
    "B732F",
+   "B733F",
    "B722F",
    "B752F",
    "A306F"
@@ -19549,6 +20282,7 @@
   },
   "aircraft": [
    "B732F",
+   "B733F",
    "B722F",
    "B752F",
    "A306F"
@@ -19688,10 +20422,11 @@
    "lon": 96.1332
   },
   "aircraft": [
-   "B738F",
+   "B732F",
    "B733F",
+   "B738F",
    "B722F",
-   "B732F"
+   "B752F"
   ],
   "cargo": "General cargo",
   "payload_lbs": 43500,
@@ -19723,10 +20458,11 @@
    "lon": 100.747
   },
   "aircraft": [
-   "B738F",
+   "B732F",
    "B733F",
+   "B738F",
    "B722F",
-   "B732F"
+   "B752F"
   ],
   "cargo": "Garments and seafood",
   "payload_lbs": 43500,
@@ -19794,6 +20530,8 @@
   },
   "aircraft": [
    "B732F",
+   "B733F",
+   "B738F",
    "B722F",
    "B752F",
    "A306F"
@@ -19933,9 +20671,12 @@
    "lon": 103.994
   },
   "aircraft": [
-   "A306F",
-   "B752F",
+   "B732F",
+   "B733F",
    "B738F",
+   "B722F",
+   "B752F",
+   "A306F",
    "B763F"
   ],
   "cargo": "Fresh tuna",
@@ -19968,9 +20709,12 @@
    "lon": 115.1671
   },
   "aircraft": [
-   "A306F",
-   "B752F",
+   "B732F",
+   "B733F",
    "B738F",
+   "B722F",
+   "B752F",
+   "A306F",
    "B763F"
   ],
   "cargo": "Hotel and resort supplies",
@@ -20003,10 +20747,13 @@
    "lon": 101.71
   },
   "aircraft": [
+   "B732F",
+   "B733F",
+   "B738F",
+   "B722F",
    "B752F",
    "A306F",
-   "B733F",
-   "B738F"
+   "B763F"
   ],
   "cargo": "General cargo",
   "payload_lbs": 69500,
@@ -20108,10 +20855,12 @@
    "lon": 72.8679
   },
   "aircraft": [
-   "A306F",
-   "B752F",
+   "B733F",
    "B738F",
-   "B733F"
+   "B722F",
+   "B752F",
+   "A306F",
+   "B763F"
   ],
   "cargo": "Domestic express freight",
   "payload_lbs": 82500,
@@ -20143,10 +20892,12 @@
    "lon": 77.0952
   },
   "aircraft": [
-   "A306F",
-   "B752F",
+   "B733F",
    "B738F",
-   "B733F"
+   "B722F",
+   "B752F",
+   "A306F",
+   "B763F"
   ],
   "cargo": "Domestic express freight",
   "payload_lbs": 82500,
@@ -20178,10 +20929,16 @@
    "lon": 77.0952
   },
   "aircraft": [
-   "MD11F",
+   "B732F",
    "B733F",
    "B722F",
-   "B732F"
+   "B752F",
+   "A306F",
+   "B763F",
+   "MD11F",
+   "B77F",
+   "B742F",
+   "B748F"
   ],
   "cargo": "Electronics and pharmaceuticals",
   "payload_lbs": 154000,
@@ -20213,9 +20970,10 @@
    "lon": 55.1624
   },
   "aircraft": [
-   "A306F",
-   "B752F",
    "B738F",
+   "B722F",
+   "B752F",
+   "A306F",
    "B763F"
   ],
   "cargo": "Fresh fish and vegetables",
@@ -20248,10 +21006,12 @@
    "lon": 55.1624
   },
   "aircraft": [
-   "B763F",
-   "B722F",
    "B733F",
-   "A306F"
+   "B738F",
+   "B722F",
+   "B752F",
+   "A306F",
+   "B763F"
   ],
   "cargo": "Pharmaceuticals",
   "payload_lbs": 77500,
@@ -20284,6 +21044,7 @@
   },
   "aircraft": [
    "B732F",
+   "B733F",
    "B722F",
    "B752F",
    "A306F"
@@ -20319,6 +21080,7 @@
   },
   "aircraft": [
    "B732F",
+   "B733F",
    "B722F",
    "B752F",
    "A306F"
@@ -20353,10 +21115,13 @@
    "lon": 77.0952
   },
   "aircraft": [
+   "B732F",
+   "B733F",
+   "B738F",
+   "B722F",
    "B752F",
    "A306F",
-   "B733F",
-   "B738F"
+   "B763F"
   ],
   "cargo": "Assam tea",
   "payload_lbs": 69500,
@@ -20388,10 +21153,13 @@
    "lon": 79.8841
   },
   "aircraft": [
+   "B732F",
+   "B733F",
+   "B738F",
+   "B722F",
    "B752F",
    "A306F",
-   "B733F",
-   "B738F"
+   "B763F"
   ],
   "cargo": "General cargo",
   "payload_lbs": 55500,
@@ -20423,10 +21191,16 @@
    "lon": 113.9149
   },
   "aircraft": [
-   "MD11F",
+   "B732F",
    "B733F",
    "B722F",
-   "B732F"
+   "B752F",
+   "A306F",
+   "B763F",
+   "MD11F",
+   "B77F",
+   "B742F",
+   "B748F"
   ],
   "cargo": "Garments",
   "payload_lbs": 154000,
@@ -20458,9 +21232,10 @@
    "lon": 89.4246
   },
   "aircraft": [
-   "B738F",
+   "B732F",
    "B733F",
-   "B732F"
+   "B738F",
+   "B752F"
   ],
   "cargo": "Bhutan resupply",
   "payload_lbs": 42000,
@@ -20492,10 +21267,11 @@
    "lon": 55.1624
   },
   "aircraft": [
+   "B738F",
+   "B722F",
    "B752F",
    "A306F",
-   "B763F",
-   "B738F"
+   "B763F"
   ],
   "cargo": "Consumer goods",
   "payload_lbs": 69500,
@@ -20528,9 +21304,11 @@
   },
   "aircraft": [
    "B752F",
+   "B763F",
+   "MD11F",
    "B77F",
    "B742F",
-   "MD11F"
+   "B748F"
   ],
   "cargo": "Asia–Europe e-commerce",
   "payload_lbs": 69500,
@@ -20633,6 +21411,8 @@
   },
   "aircraft": [
    "B732F",
+   "B733F",
+   "B738F",
    "B722F",
    "B752F",
    "A306F"
@@ -20667,10 +21447,11 @@
    "lon": 115.967
   },
   "aircraft": [
-   "B763F",
-   "MD11F",
+   "B738F",
    "B752F",
-   "A306F"
+   "A306F",
+   "B763F",
+   "MD11F"
   ],
   "cargo": "Domestic express freight",
   "payload_lbs": 87000,
@@ -20702,10 +21483,11 @@
    "lon": 151.177
   },
   "aircraft": [
-   "B763F",
-   "MD11F",
+   "B738F",
    "B752F",
-   "A306F"
+   "A306F",
+   "B763F",
+   "MD11F"
   ],
   "cargo": "Crayfish and mining returns",
   "payload_lbs": 87000,
@@ -20737,9 +21519,10 @@
    "lon": 115.967
   },
   "aircraft": [
-   "A306F",
-   "B752F",
    "B738F",
+   "B722F",
+   "B752F",
+   "A306F",
    "B763F"
   ],
   "cargo": "Domestic express freight",
@@ -20772,10 +21555,11 @@
    "lon": 130.8818
   },
   "aircraft": [
-   "B763F",
+   "B738F",
    "B722F",
    "B752F",
-   "A306F"
+   "A306F",
+   "B763F"
   ],
   "cargo": "Top End resupply",
   "payload_lbs": 80000,
@@ -20841,10 +21625,11 @@
    "lon": 118.6298
   },
   "aircraft": [
-   "A306F",
-   "B752F",
+   "B733F",
    "B738F",
-   "B733F"
+   "B722F",
+   "B752F",
+   "A306F"
   ],
   "cargo": "Iron-ore mining spares",
   "payload_lbs": 78500,
@@ -20876,10 +21661,12 @@
    "lon": 145.7495
   },
   "aircraft": [
-   "B722F",
    "B732F",
-   "A306F",
-   "B752F"
+   "B733F",
+   "B738F",
+   "B722F",
+   "B752F",
+   "A306F"
   ],
   "cargo": "Far North Queensland freight",
   "payload_lbs": 41500,
@@ -20911,10 +21698,12 @@
    "lon": 147.22
   },
   "aircraft": [
-   "B722F",
    "B732F",
-   "A306F",
-   "B752F"
+   "B733F",
+   "B738F",
+   "B722F",
+   "B752F",
+   "A306F"
   ],
   "cargo": "Papua New Guinea resupply",
   "payload_lbs": 40500,
@@ -20946,10 +21735,11 @@
    "lon": 147.22
   },
   "aircraft": [
-   "B738F",
+   "B732F",
    "B733F",
+   "B738F",
    "B722F",
-   "B732F"
+   "B752F"
   ],
   "cargo": "Mining spares for Papua New Guinea",
   "payload_lbs": 44500,
@@ -20981,10 +21771,13 @@
    "lon": 172.5321
   },
   "aircraft": [
+   "B732F",
+   "B733F",
+   "B738F",
+   "B722F",
    "B752F",
    "A306F",
-   "B733F",
-   "B738F"
+   "B763F"
   ],
   "cargo": "Domestic express freight",
   "payload_lbs": 59000,
@@ -21016,10 +21809,13 @@
    "lon": 174.7863
   },
   "aircraft": [
+   "B732F",
+   "B733F",
+   "B738F",
+   "B722F",
    "B752F",
    "A306F",
-   "B733F",
-   "B738F"
+   "B763F"
   ],
   "cargo": "Domestic express freight",
   "payload_lbs": 59000,
@@ -21083,9 +21879,11 @@
    "lon": 177.4378
   },
   "aircraft": [
-   "A306F",
-   "B752F",
+   "B733F",
    "B738F",
+   "B722F",
+   "B752F",
+   "A306F",
    "B763F"
   ],
   "cargo": "Island resupply",
@@ -21118,9 +21916,11 @@
    "lon": 174.7863
   },
   "aircraft": [
-   "A306F",
-   "B752F",
+   "B733F",
    "B738F",
+   "B722F",
+   "B752F",
+   "A306F",
    "B763F"
   ],
   "cargo": "Fresh fish",
@@ -21153,9 +21953,10 @@
    "lon": -172.008
   },
   "aircraft": [
-   "A306F",
-   "B752F",
    "B738F",
+   "B722F",
+   "B752F",
+   "A306F",
    "B763F"
   ],
   "cargo": "Samoa resupply",
@@ -21188,9 +21989,12 @@
    "lon": -175.1492
   },
   "aircraft": [
-   "A306F",
-   "B752F",
+   "B732F",
+   "B733F",
    "B738F",
+   "B722F",
+   "B752F",
+   "A306F",
    "B763F"
   ],
   "cargo": "Tonga resupply",
@@ -21257,10 +22061,11 @@
    "lon": 168.32
   },
   "aircraft": [
-   "B722F",
    "B733F",
-   "A306F",
-   "B752F"
+   "B738F",
+   "B722F",
+   "B752F",
+   "A306F"
   ],
   "cargo": "Vanuatu resupply",
   "payload_lbs": 40500,
@@ -21292,8 +22097,9 @@
    "lon": 160.055
   },
   "aircraft": [
-   "B738F",
    "B732F",
+   "B733F",
+   "B738F",
    "B752F"
   ],
   "cargo": "Solomon Islands resupply",
@@ -21326,10 +22132,13 @@
    "lon": -170.71
   },
   "aircraft": [
-   "A306F",
-   "B752F",
+   "B732F",
+   "B733F",
    "B738F",
-   "B733F"
+   "B722F",
+   "B752F",
+   "A306F",
+   "B763F"
   ],
   "cargo": "Island freight and mail",
   "payload_lbs": 65500,
@@ -21361,9 +22170,10 @@
    "lon": 134.5441
   },
   "aircraft": [
+   "B732F",
+   "B733F",
    "B738F",
-   "B752F",
-   "B733F"
+   "B752F"
   ],
   "cargo": "Palau resupply",
   "payload_lbs": 39000,
@@ -21427,8 +22237,9 @@
    "lon": -134.89
   },
   "aircraft": [
-   "B752F",
-   "B733F"
+   "B732F",
+   "B733F",
+   "B752F"
   ],
   "cargo": "Gambier Islands resupply",
   "payload_lbs": 53500,
@@ -21460,9 +22271,10 @@
    "lon": 151.177
   },
   "aircraft": [
-   "B748F",
+   "MD11F",
+   "B77F",
    "B742F",
-   "MD11F"
+   "B748F"
   ],
   "cargo": "Electronics and consumer goods",
   "payload_lbs": 189000,
@@ -21494,9 +22306,10 @@
    "lon": 103.994
   },
   "aircraft": [
-   "B748F",
+   "MD11F",
+   "B77F",
    "B742F",
-   "MD11F"
+   "B748F"
   ],
   "cargo": "Fresh produce and wine",
   "payload_lbs": 189000,
@@ -21595,8 +22408,9 @@
   },
   "aircraft": [
    "MD11F",
+   "B77F",
    "B742F",
-   "B77F"
+   "B748F"
   ],
   "cargo": "Pharmaceuticals",
   "payload_lbs": 114000,
@@ -21629,8 +22443,9 @@
   },
   "aircraft": [
    "MD11F",
+   "B77F",
    "B742F",
-   "B77F"
+   "B748F"
   ],
   "cargo": "Garments and pharmaceuticals",
   "payload_lbs": 142000,
@@ -21662,8 +22477,9 @@
    "lon": 5.4439
   },
   "aircraft": [
-   "B742F",
+   "MD11F",
    "B77F",
+   "B742F",
    "B748F"
   ],
   "cargo": "Pharmaceuticals",
@@ -21696,10 +22512,12 @@
    "lon": 55.1624
   },
   "aircraft": [
-   "MD11F",
+   "B752F",
    "B763F",
+   "MD11F",
    "B77F",
-   "B752F"
+   "B742F",
+   "B748F"
   ],
   "cargo": "Fresh fruit and electronics",
   "payload_lbs": 134000,
@@ -21731,9 +22549,10 @@
    "lon": 55.1624
   },
   "aircraft": [
-   "B742F",
+   "MD11F",
    "B77F",
-   "MD11F"
+   "B742F",
+   "B748F"
   ],
   "cargo": "Electronics",
   "payload_lbs": 201000,
@@ -21866,10 +22685,11 @@
    "lon": -149.9926
   },
   "aircraft": [
-   "B77F",
-   "B748F",
+   "B763F",
    "MD11F",
-   "B742F"
+   "B77F",
+   "B742F",
+   "B748F"
   ],
   "cargo": "Automotive and precision parts",
   "payload_lbs": 144000,
@@ -21968,10 +22788,13 @@
    "lon": -87.9048
   },
   "aircraft": [
-   "B77F",
-   "B748F",
+   "B752F",
+   "A306F",
+   "B763F",
    "MD11F",
-   "B742F"
+   "B77F",
+   "B742F",
+   "B748F"
   ],
   "cargo": "Transpacific electronics",
   "payload_lbs": 184500,
@@ -22003,10 +22826,12 @@
    "lon": -84.6678
   },
   "aircraft": [
-   "B77F",
-   "B748F",
+   "B752F",
+   "B763F",
    "MD11F",
-   "B742F"
+   "B77F",
+   "B742F",
+   "B748F"
   ],
   "cargo": "Transpacific e-commerce",
   "payload_lbs": 173000,
@@ -22073,10 +22898,12 @@
    "lon": -97.038
   },
   "aircraft": [
-   "B77F",
-   "B748F",
+   "B752F",
+   "B763F",
    "MD11F",
-   "B742F"
+   "B77F",
+   "B742F",
+   "B748F"
   ],
   "cargo": "Electronics and apparel",
   "payload_lbs": 175500,
@@ -22175,10 +23002,13 @@
    "lon": -149.9926
   },
   "aircraft": [
-   "B77F",
-   "B748F",
+   "B752F",
+   "A306F",
+   "B763F",
    "MD11F",
-   "B742F"
+   "B77F",
+   "B742F",
+   "B748F"
   ],
   "cargo": "Machinery and pharma for Asia",
   "payload_lbs": 184500,
@@ -22308,9 +23138,10 @@
    "lon": 126.451
   },
   "aircraft": [
-   "B742F",
    "MD11F",
-   "B77F"
+   "B77F",
+   "B742F",
+   "B748F"
   ],
   "cargo": "US exports: machinery and meat",
   "payload_lbs": 157500,
@@ -22342,10 +23173,11 @@
    "lon": 140.3887
   },
   "aircraft": [
-   "MD11F",
    "B763F",
+   "MD11F",
    "B77F",
-   "B742F"
+   "B742F",
+   "B748F"
   ],
   "cargo": "US exports: cherries and pharmaceuticals",
   "payload_lbs": 129500,
@@ -22411,10 +23243,13 @@
    "lon": -117.601
   },
   "aircraft": [
-   "MD11F",
-   "B763F",
+   "B752F",
    "A306F",
-   "B752F"
+   "B763F",
+   "MD11F",
+   "B77F",
+   "B742F",
+   "B748F"
   ],
   "cargo": "Transpacific e-commerce",
   "payload_lbs": 138000,
@@ -22446,10 +23281,12 @@
    "lon": -89.9763
   },
   "aircraft": [
-   "MD11F",
+   "B752F",
    "B763F",
+   "MD11F",
    "B77F",
-   "B752F"
+   "B742F",
+   "B748F"
   ],
   "cargo": "Transpacific express parcels",
   "payload_lbs": 154000,
@@ -22481,10 +23318,12 @@
    "lon": -85.7351
   },
   "aircraft": [
-   "MD11F",
    "B752F",
+   "B763F",
+   "MD11F",
    "B77F",
-   "B742F"
+   "B742F",
+   "B748F"
   ],
   "cargo": "Transpacific express parcels",
   "payload_lbs": 150000,
@@ -22516,10 +23355,12 @@
    "lon": -86.2944
   },
   "aircraft": [
+   "B752F",
+   "B763F",
    "MD11F",
-   "B742F",
    "B77F",
-   "B763F"
+   "B742F",
+   "B748F"
   ],
   "cargo": "Transpacific express parcels",
   "payload_lbs": 146000,
@@ -22551,10 +23392,11 @@
    "lon": -73.7793
   },
   "aircraft": [
-   "MD11F",
    "B763F",
+   "MD11F",
    "B77F",
-   "B742F"
+   "B742F",
+   "B748F"
   ],
   "cargo": "Electronics and apparel",
   "payload_lbs": 146000,
@@ -22586,10 +23428,11 @@
    "lon": -84.4281
   },
   "aircraft": [
-   "MD11F",
    "B763F",
+   "MD11F",
    "B77F",
-   "B742F"
+   "B742F",
+   "B748F"
   ],
   "cargo": "Electronics and apparel",
   "payload_lbs": 158000,
@@ -22621,10 +23464,12 @@
    "lon": -83.7921
   },
   "aircraft": [
-   "MD11F",
    "B752F",
+   "B763F",
+   "MD11F",
    "B77F",
-   "B742F"
+   "B742F",
+   "B748F"
   ],
   "cargo": "Transpacific e-commerce",
   "payload_lbs": 162000,
@@ -22657,8 +23502,9 @@
   },
   "aircraft": [
    "MD11F",
+   "B77F",
    "B742F",
-   "B77F"
+   "B748F"
   ],
   "cargo": "Automotive and precision parts",
   "payload_lbs": 134000,
@@ -22691,8 +23537,9 @@
   },
   "aircraft": [
    "MD11F",
+   "B77F",
    "B742F",
-   "B77F"
+   "B748F"
   ],
   "cargo": "Electronics",
   "payload_lbs": 129500,
@@ -22788,6 +23635,7 @@
    "lon": 140.3887
   },
   "aircraft": [
+   "MD11F",
    "B77F",
    "B742F",
    "B748F"
@@ -22822,6 +23670,7 @@
    "lon": -157.9257
   },
   "aircraft": [
+   "MD11F",
    "B77F",
    "B742F",
    "B748F"
@@ -22988,9 +23837,12 @@
    "lon": -122.3103
   },
   "aircraft": [
-   "A306F",
-   "B752F",
+   "B732F",
+   "B733F",
    "B738F",
+   "B722F",
+   "B752F",
+   "A306F",
    "B763F"
   ],
   "cargo": "Fresh Copper River salmon",
@@ -23023,10 +23875,11 @@
    "lon": -84.6678
   },
   "aircraft": [
-   "A306F",
-   "B752F",
    "B738F",
-   "B722F"
+   "B722F",
+   "B752F",
+   "A306F",
+   "B763F"
   ],
   "cargo": "General cargo and empty ULDs",
   "payload_lbs": 76500,
@@ -23058,10 +23911,13 @@
    "lon": -84.6678
   },
   "aircraft": [
-   "A306F",
-   "B752F",
+   "B732F",
+   "B733F",
    "B738F",
-   "B722F"
+   "B722F",
+   "B752F",
+   "A306F",
+   "B763F"
   ],
   "cargo": "General cargo and empty ULDs",
   "payload_lbs": 65500,
@@ -23093,10 +23949,13 @@
    "lon": -84.6678
   },
   "aircraft": [
-   "A306F",
-   "B752F",
+   "B732F",
+   "B733F",
    "B738F",
-   "B722F"
+   "B722F",
+   "B752F",
+   "A306F",
+   "B763F"
   ],
   "cargo": "General cargo and empty ULDs",
   "payload_lbs": 72000,
@@ -23128,10 +23987,11 @@
    "lon": -84.6678
   },
   "aircraft": [
+   "B732F",
+   "B733F",
    "B738F",
    "B722F",
-   "B733F",
-   "B732F"
+   "B752F"
   ],
   "cargo": "General cargo and empty ULDs",
   "payload_lbs": 41500,
@@ -23163,10 +24023,11 @@
    "lon": -84.6678
   },
   "aircraft": [
+   "B732F",
+   "B733F",
    "B738F",
    "B722F",
-   "B733F",
-   "B732F"
+   "B752F"
   ],
   "cargo": "General cargo and empty ULDs",
   "payload_lbs": 40000,
@@ -23338,10 +24199,11 @@
    "lon": -84.6678
   },
   "aircraft": [
+   "B732F",
+   "B733F",
    "B738F",
    "B722F",
-   "B733F",
-   "B732F"
+   "B752F"
   ],
   "cargo": "General cargo and empty ULDs",
   "payload_lbs": 45000,
@@ -23443,10 +24305,12 @@
    "lon": -84.6678
   },
   "aircraft": [
-   "A306F",
-   "B752F",
+   "B733F",
    "B738F",
-   "B722F"
+   "B722F",
+   "B752F",
+   "A306F",
+   "B763F"
   ],
   "cargo": "General cargo and empty ULDs",
   "payload_lbs": 78500,
@@ -23513,10 +24377,11 @@
    "lon": -84.6678
   },
   "aircraft": [
+   "B732F",
+   "B733F",
    "B738F",
    "B722F",
-   "B733F",
-   "B732F"
+   "B752F"
   ],
   "cargo": "General cargo and empty ULDs",
   "payload_lbs": 41500,
@@ -23548,10 +24413,11 @@
    "lon": -84.6678
   },
   "aircraft": [
-   "A306F",
-   "B752F",
    "B738F",
-   "B722F"
+   "B722F",
+   "B752F",
+   "A306F",
+   "B763F"
   ],
   "cargo": "General cargo and empty ULDs",
   "payload_lbs": 63500,
@@ -23583,10 +24449,13 @@
    "lon": -84.6678
   },
   "aircraft": [
-   "A306F",
-   "B752F",
+   "B732F",
+   "B733F",
    "B738F",
-   "B722F"
+   "B722F",
+   "B752F",
+   "A306F",
+   "B763F"
   ],
   "cargo": "General cargo and empty ULDs",
   "payload_lbs": 64500,
@@ -23618,10 +24487,11 @@
    "lon": -84.6678
   },
   "aircraft": [
+   "B732F",
+   "B733F",
    "B738F",
    "B722F",
-   "B733F",
-   "B732F"
+   "B752F"
   ],
   "cargo": "General cargo and empty ULDs",
   "payload_lbs": 44000,
@@ -23653,10 +24523,11 @@
    "lon": -84.6678
   },
   "aircraft": [
-   "A306F",
-   "B752F",
    "B738F",
-   "B722F"
+   "B722F",
+   "B752F",
+   "A306F",
+   "B763F"
   ],
   "cargo": "General cargo and empty ULDs",
   "payload_lbs": 85000,
@@ -23688,10 +24559,11 @@
    "lon": -84.6678
   },
   "aircraft": [
-   "A306F",
-   "B752F",
    "B738F",
-   "B722F"
+   "B722F",
+   "B752F",
+   "A306F",
+   "B763F"
   ],
   "cargo": "General cargo and empty ULDs",
   "payload_lbs": 65500,
@@ -23723,10 +24595,12 @@
    "lon": -80.2898
   },
   "aircraft": [
-   "A306F",
-   "B752F",
+   "B733F",
    "B738F",
-   "B722F"
+   "B722F",
+   "B752F",
+   "A306F",
+   "B763F"
   ],
   "cargo": "General cargo and empty ULDs",
   "payload_lbs": 76500,
@@ -23758,10 +24632,12 @@
    "lon": -80.2898
   },
   "aircraft": [
-   "A306F",
-   "B752F",
+   "B733F",
    "B738F",
-   "B722F"
+   "B722F",
+   "B752F",
+   "A306F",
+   "B763F"
   ],
   "cargo": "General cargo and empty ULDs",
   "payload_lbs": 87000,
@@ -23863,10 +24739,13 @@
    "lon": -117.601
   },
   "aircraft": [
-   "B77F",
-   "B748F",
+   "B752F",
+   "A306F",
+   "B763F",
    "MD11F",
-   "B742F"
+   "B77F",
+   "B742F",
+   "B748F"
   ],
   "cargo": "General cargo and empty ULDs",
   "payload_lbs": 189000,
@@ -23898,10 +24777,11 @@
    "lon": -149.9926
   },
   "aircraft": [
+   "B732F",
+   "B733F",
    "B738F",
    "B722F",
-   "B733F",
-   "B732F"
+   "B752F"
   ],
   "cargo": "General cargo and empty ULDs",
   "payload_lbs": 44500,
@@ -24030,6 +24910,7 @@
   },
   "aircraft": [
    "B732F",
+   "B733F",
    "B738F",
    "B752F"
   ],
@@ -24130,8 +25011,9 @@
    "lon": -147.856
   },
   "aircraft": [
-   "B752F",
-   "B733F"
+   "B732F",
+   "B733F",
+   "B752F"
   ],
   "cargo": "General cargo and empty ULDs",
   "payload_lbs": 55500,
@@ -24164,6 +25046,8 @@
   },
   "aircraft": [
    "B732F",
+   "B733F",
+   "B738F",
    "B722F",
    "B752F",
    "A306F"
@@ -24198,10 +25082,13 @@
    "lon": -134.5744
   },
   "aircraft": [
+   "B732F",
+   "B733F",
+   "B738F",
+   "B722F",
    "B752F",
    "A306F",
-   "B733F",
-   "B738F"
+   "B763F"
   ],
   "cargo": "General cargo and empty ULDs",
   "payload_lbs": 66000,
@@ -24233,9 +25120,10 @@
    "lon": -87.9048
   },
   "aircraft": [
-   "A306F",
-   "B752F",
    "B738F",
+   "B722F",
+   "B752F",
+   "A306F",
    "B763F"
   ],
   "cargo": "General cargo and empty ULDs",
@@ -24268,10 +25156,13 @@
    "lon": -80.2898
   },
   "aircraft": [
-   "MD11F",
-   "B763F",
+   "B752F",
    "A306F",
-   "B752F"
+   "B763F",
+   "MD11F",
+   "B77F",
+   "B742F",
+   "B748F"
   ],
   "cargo": "General cargo and empty ULDs",
   "payload_lbs": 166000,
@@ -24303,10 +25194,13 @@
    "lon": -74.1705
   },
   "aircraft": [
+   "B732F",
+   "B733F",
+   "B738F",
+   "B722F",
    "B752F",
    "A306F",
-   "B763F",
-   "B738F"
+   "B763F"
   ],
   "cargo": "General cargo and empty ULDs",
   "payload_lbs": 57000,
@@ -24338,10 +25232,16 @@
    "lon": -97.038
   },
   "aircraft": [
-   "MD11F",
+   "B732F",
    "B733F",
    "B722F",
-   "B732F"
+   "B752F",
+   "A306F",
+   "B763F",
+   "MD11F",
+   "B77F",
+   "B742F",
+   "B748F"
   ],
   "cargo": "General cargo and empty ULDs",
   "payload_lbs": 158000,
@@ -24373,9 +25273,10 @@
    "lon": -84.4281
   },
   "aircraft": [
-   "A306F",
-   "B752F",
    "B738F",
+   "B722F",
+   "B752F",
+   "A306F",
    "B763F"
   ],
   "cargo": "General cargo and empty ULDs",
@@ -24408,10 +25309,14 @@
    "lon": -89.9763
   },
   "aircraft": [
-   "MD11F",
-   "B752F",
    "B722F",
-   "B763F"
+   "B752F",
+   "A306F",
+   "B763F",
+   "MD11F",
+   "B77F",
+   "B742F",
+   "B748F"
   ],
   "cargo": "General cargo and empty ULDs",
   "payload_lbs": 158000,
@@ -24443,10 +25348,12 @@
    "lon": -85.7351
   },
   "aircraft": [
-   "B722F",
    "B732F",
-   "A306F",
-   "B752F"
+   "B733F",
+   "B738F",
+   "B722F",
+   "B752F",
+   "A306F"
   ],
   "cargo": "General cargo and empty ULDs",
   "payload_lbs": 46500,
@@ -24478,9 +25385,10 @@
    "lon": -86.2944
   },
   "aircraft": [
-   "A306F",
-   "B752F",
    "B738F",
+   "B722F",
+   "B752F",
+   "A306F",
    "B763F"
   ],
   "cargo": "General cargo and empty ULDs",
@@ -24513,9 +25421,10 @@
    "lon": -83.7921
   },
   "aircraft": [
-   "A306F",
-   "B752F",
    "B738F",
+   "B722F",
+   "B752F",
+   "A306F",
    "B763F"
   ],
   "cargo": "General cargo and empty ULDs",
@@ -24548,10 +25457,12 @@
    "lon": -83.7921
   },
   "aircraft": [
-   "B722F",
    "B732F",
-   "A306F",
-   "B752F"
+   "B733F",
+   "B738F",
+   "B722F",
+   "B752F",
+   "A306F"
   ],
   "cargo": "General cargo and empty ULDs",
   "payload_lbs": 50500,
@@ -24583,10 +25494,11 @@
    "lon": -78.3543
   },
   "aircraft": [
-   "A306F",
-   "B752F",
    "B738F",
-   "B722F"
+   "B722F",
+   "B752F",
+   "A306F",
+   "B763F"
   ],
   "cargo": "General cargo and empty ULDs",
   "payload_lbs": 65500,
@@ -24618,10 +25530,11 @@
    "lon": -79.8836
   },
   "aircraft": [
-   "A306F",
-   "B752F",
    "B738F",
-   "B722F"
+   "B722F",
+   "B752F",
+   "A306F",
+   "B763F"
   ],
   "cargo": "General cargo and empty ULDs",
   "payload_lbs": 63500,
@@ -24688,10 +25601,12 @@
    "lon": -84.2088
   },
   "aircraft": [
-   "A306F",
-   "B752F",
+   "B733F",
    "B738F",
-   "B722F"
+   "B722F",
+   "B752F",
+   "A306F",
+   "B763F"
   ],
   "cargo": "General cargo and empty ULDs",
   "payload_lbs": 88000,
@@ -24723,10 +25638,12 @@
    "lon": -90.5275
   },
   "aircraft": [
-   "A306F",
-   "B752F",
+   "B733F",
    "B738F",
-   "B722F"
+   "B722F",
+   "B752F",
+   "A306F",
+   "B763F"
   ],
   "cargo": "General cargo and empty ULDs",
   "payload_lbs": 86000,
@@ -24758,10 +25675,13 @@
    "lon": -103.3101
   },
   "aircraft": [
-   "A306F",
-   "B752F",
+   "B732F",
+   "B733F",
    "B738F",
-   "B722F"
+   "B722F",
+   "B752F",
+   "A306F",
+   "B763F"
   ],
   "cargo": "General cargo and empty ULDs",
   "payload_lbs": 71000,
@@ -24793,10 +25713,12 @@
    "lon": -80.2898
   },
   "aircraft": [
-   "A306F",
-   "B752F",
+   "B733F",
    "B738F",
-   "B722F"
+   "B722F",
+   "B752F",
+   "A306F",
+   "B763F"
   ],
   "cargo": "General cargo and empty ULDs",
   "payload_lbs": 76500,
@@ -24828,10 +25750,12 @@
    "lon": -80.2898
   },
   "aircraft": [
-   "A306F",
-   "B752F",
+   "B733F",
    "B738F",
-   "B722F"
+   "B722F",
+   "B752F",
+   "A306F",
+   "B763F"
   ],
   "cargo": "General cargo and empty ULDs",
   "payload_lbs": 78500,
@@ -24863,10 +25787,11 @@
    "lon": -80.2898
   },
   "aircraft": [
+   "B732F",
+   "B733F",
    "B738F",
    "B722F",
-   "B733F",
-   "B732F"
+   "B752F"
   ],
   "cargo": "General cargo and empty ULDs",
   "payload_lbs": 44500,
@@ -24898,10 +25823,12 @@
    "lon": -80.2898
   },
   "aircraft": [
-   "A306F",
-   "B752F",
+   "B733F",
    "B738F",
-   "B722F"
+   "B722F",
+   "B752F",
+   "A306F",
+   "B763F"
   ],
   "cargo": "General cargo and empty ULDs",
   "payload_lbs": 78500,
@@ -24968,10 +25895,13 @@
    "lon": -80.2898
   },
   "aircraft": [
-   "A306F",
-   "B752F",
+   "B732F",
+   "B733F",
    "B738F",
-   "B722F"
+   "B722F",
+   "B752F",
+   "A306F",
+   "B763F"
   ],
   "cargo": "General cargo and empty ULDs",
   "payload_lbs": 72000,
@@ -25038,10 +25968,12 @@
    "lon": -123.184
   },
   "aircraft": [
-   "A306F",
-   "B752F",
+   "B733F",
    "B738F",
-   "B722F"
+   "B722F",
+   "B752F",
+   "A306F",
+   "B763F"
   ],
   "cargo": "General cargo and empty ULDs",
   "payload_lbs": 80500,
@@ -25108,6 +26040,7 @@
    "lon": -43.2506
   },
   "aircraft": [
+   "MD11F",
    "B77F",
    "B742F",
    "B748F"
@@ -25207,10 +26140,13 @@
    "lon": -58.5358
   },
   "aircraft": [
-   "A306F",
-   "B752F",
+   "B732F",
+   "B733F",
    "B738F",
-   "B733F"
+   "B722F",
+   "B752F",
+   "A306F",
+   "B763F"
   ],
   "cargo": "General cargo and empty ULDs",
   "payload_lbs": 68000,
@@ -25277,10 +26213,12 @@
    "lon": -79.3835
   },
   "aircraft": [
+   "B733F",
+   "B738F",
+   "B722F",
    "B752F",
    "A306F",
-   "B733F",
-   "B738F"
+   "B763F"
   ],
   "cargo": "General cargo and empty ULDs",
   "payload_lbs": 74500,
@@ -25312,10 +26250,12 @@
    "lon": -79.3835
   },
   "aircraft": [
-   "B722F",
    "B732F",
-   "A306F",
-   "B752F"
+   "B733F",
+   "B738F",
+   "B722F",
+   "B752F",
+   "A306F"
   ],
   "cargo": "General cargo and empty ULDs",
   "payload_lbs": 49000,
@@ -25347,9 +26287,12 @@
    "lon": -79.3835
   },
   "aircraft": [
-   "A306F",
-   "B752F",
+   "B732F",
+   "B733F",
    "B738F",
+   "B722F",
+   "B752F",
+   "A306F",
    "B763F"
   ],
   "cargo": "General cargo and empty ULDs",
@@ -25382,10 +26325,12 @@
    "lon": -68.9598
   },
   "aircraft": [
-   "B722F",
    "B732F",
-   "A306F",
-   "B752F"
+   "B733F",
+   "B738F",
+   "B722F",
+   "B752F",
+   "A306F"
   ],
   "cargo": "General cargo and empty ULDs",
   "payload_lbs": 49000,
@@ -25417,10 +26362,12 @@
    "lon": -76.3819
   },
   "aircraft": [
+   "B733F",
+   "B738F",
+   "B722F",
    "B752F",
    "A306F",
-   "B763F",
-   "B738F"
+   "B763F"
   ],
   "cargo": "General cargo and empty ULDs",
   "payload_lbs": 69500,
@@ -25485,10 +26432,11 @@
    "lon": -79.8836
   },
   "aircraft": [
+   "B732F",
+   "B733F",
    "B738F",
-   "B752F",
    "B722F",
-   "B733F"
+   "B752F"
   ],
   "cargo": "General cargo and empty ULDs",
   "payload_lbs": 40000,
@@ -25520,10 +26468,11 @@
    "lon": -78.3543
   },
   "aircraft": [
-   "B738F",
+   "B732F",
    "B733F",
+   "B738F",
    "B722F",
-   "B732F"
+   "B752F"
   ],
   "cargo": "General cargo and empty ULDs",
   "payload_lbs": 42000,
@@ -25556,6 +26505,7 @@
   },
   "aircraft": [
    "B733F",
+   "B738F",
    "B722F",
    "B752F",
    "A306F"
@@ -25626,6 +26576,7 @@
   },
   "aircraft": [
    "B732F",
+   "B733F",
    "B722F",
    "B752F",
    "A306F"
@@ -25661,6 +26612,7 @@
   },
   "aircraft": [
    "B732F",
+   "B733F",
    "B722F",
    "B752F",
    "A306F"
@@ -25695,10 +26647,12 @@
    "lon": -103.3101
   },
   "aircraft": [
-   "A306F",
-   "B752F",
+   "B733F",
    "B738F",
-   "B733F"
+   "B722F",
+   "B752F",
+   "A306F",
+   "B763F"
   ],
   "cargo": "General cargo and empty ULDs",
   "payload_lbs": 87000,
@@ -25730,9 +26684,12 @@
    "lon": -100.107
   },
   "aircraft": [
-   "A306F",
-   "B752F",
+   "B732F",
+   "B733F",
    "B738F",
+   "B722F",
+   "B752F",
+   "A306F",
    "B763F"
   ],
   "cargo": "General cargo and empty ULDs",
@@ -25765,10 +26722,13 @@
    "lon": -99.0703
   },
   "aircraft": [
-   "B722F",
    "B732F",
+   "B733F",
+   "B738F",
+   "B722F",
+   "B752F",
    "A306F",
-   "B752F"
+   "B763F"
   ],
   "cargo": "General cargo and empty ULDs",
   "payload_lbs": 53000,
@@ -25800,10 +26760,12 @@
    "lon": -86.1682
   },
   "aircraft": [
-   "B752F",
-   "A306F",
+   "B732F",
    "B733F",
-   "B738F"
+   "B738F",
+   "B722F",
+   "B752F",
+   "A306F"
   ],
   "cargo": "General cargo and empty ULDs",
   "payload_lbs": 71000,
@@ -25835,10 +26797,15 @@
    "lon": -80.2898
   },
   "aircraft": [
-   "MD11F",
-   "B763F",
+   "B733F",
    "B722F",
-   "B733F"
+   "B752F",
+   "A306F",
+   "B763F",
+   "MD11F",
+   "B77F",
+   "B742F",
+   "B748F"
   ],
   "cargo": "General cargo and empty ULDs",
   "payload_lbs": 150000,
@@ -25940,8 +26907,9 @@
    "lon": -80.2898
   },
   "aircraft": [
-   "B738F",
    "B732F",
+   "B733F",
+   "B738F",
    "B752F"
   ],
   "cargo": "General cargo and empty ULDs",
@@ -25975,6 +26943,7 @@
   },
   "aircraft": [
    "B732F",
+   "B733F",
    "B722F",
    "B752F",
    "A306F"
@@ -26079,10 +27048,13 @@
    "lon": -80.2898
   },
   "aircraft": [
+   "B732F",
+   "B733F",
+   "B738F",
+   "B722F",
    "B752F",
    "A306F",
-   "B733F",
-   "B738F"
+   "B763F"
   ],
   "cargo": "General cargo and empty ULDs",
   "payload_lbs": 53500,
@@ -26115,6 +27087,7 @@
   },
   "aircraft": [
    "B732F",
+   "B733F",
    "B722F",
    "B752F",
    "A306F"
@@ -26149,10 +27122,13 @@
    "lon": -73.7793
   },
   "aircraft": [
+   "B732F",
+   "B733F",
+   "B738F",
+   "B722F",
    "B752F",
    "A306F",
-   "B733F",
-   "B738F"
+   "B763F"
   ],
   "cargo": "General cargo and empty ULDs",
   "payload_lbs": 64000,
@@ -26184,10 +27160,13 @@
    "lon": -80.2898
   },
   "aircraft": [
+   "B732F",
+   "B733F",
+   "B738F",
+   "B722F",
    "B752F",
    "A306F",
-   "B733F",
-   "B738F"
+   "B763F"
   ],
   "cargo": "General cargo and empty ULDs",
   "payload_lbs": 64000,
@@ -26289,6 +27268,9 @@
    "lon": -80.2898
   },
   "aircraft": [
+   "B732F",
+   "B733F",
+   "B738F",
    "B722F",
    "B752F",
    "A306F",
@@ -26325,6 +27307,8 @@
   },
   "aircraft": [
    "B732F",
+   "B733F",
+   "B738F",
    "B722F",
    "B752F",
    "A306F"
@@ -26394,10 +27378,12 @@
    "lon": -97.2399
   },
   "aircraft": [
-   "B722F",
    "B732F",
-   "A306F",
-   "B752F"
+   "B733F",
+   "B738F",
+   "B722F",
+   "B752F",
+   "A306F"
   ],
   "cargo": "General cargo and empty ULDs",
   "payload_lbs": 48000,
@@ -26461,10 +27447,13 @@
    "lon": -63.5086
   },
   "aircraft": [
+   "B732F",
+   "B733F",
+   "B738F",
+   "B722F",
    "B752F",
    "A306F",
-   "B733F",
-   "B738F"
+   "B763F"
   ],
   "cargo": "General cargo and empty ULDs",
   "payload_lbs": 62500,
@@ -26496,7 +27485,8 @@
    "lon": -68.5558
   },
   "aircraft": [
-   "B732F"
+   "B732F",
+   "B733F"
   ],
   "cargo": "General cargo and empty ULDs",
   "payload_lbs": 28000,
@@ -26529,10 +27519,12 @@
    "lon": -84.6678
   },
   "aircraft": [
-   "B722F",
    "B732F",
-   "A306F",
-   "B752F"
+   "B733F",
+   "B738F",
+   "B722F",
+   "B752F",
+   "A306F"
   ],
   "cargo": "General cargo and empty ULDs",
   "payload_lbs": 49000,
@@ -26564,10 +27556,11 @@
    "lon": -84.6678
   },
   "aircraft": [
-   "B763F",
-   "MD11F",
+   "B738F",
    "B752F",
-   "A306F"
+   "A306F",
+   "B763F",
+   "MD11F"
   ],
   "cargo": "General cargo and empty ULDs",
   "payload_lbs": 98500,
@@ -26599,9 +27592,13 @@
    "lon": -79.6294
   },
   "aircraft": [
-   "B763F",
-   "B738F",
+   "B732F",
    "B733F",
+   "B738F",
+   "B722F",
+   "B752F",
+   "A306F",
+   "B763F",
    "MD11F"
   ],
   "cargo": "General cargo and empty ULDs",
@@ -26634,10 +27631,12 @@
    "lon": -46.47
   },
   "aircraft": [
+   "B733F",
+   "B738F",
+   "B722F",
    "B752F",
    "A306F",
-   "B763F",
-   "B738F"
+   "B763F"
   ],
   "cargo": "General cargo and empty ULDs",
   "payload_lbs": 74500,
@@ -26669,10 +27668,13 @@
    "lon": -46.47
   },
   "aircraft": [
+   "B732F",
+   "B733F",
+   "B738F",
+   "B722F",
    "B752F",
    "A306F",
-   "B763F",
-   "B738F"
+   "B763F"
   ],
   "cargo": "General cargo and empty ULDs",
   "payload_lbs": 62500,
@@ -26704,10 +27706,13 @@
    "lon": -46.47
   },
   "aircraft": [
-   "B742F",
-   "B77F",
+   "B752F",
+   "A306F",
    "B763F",
-   "MD11F"
+   "MD11F",
+   "B77F",
+   "B742F",
+   "B748F"
   ],
   "cargo": "General cargo and empty ULDs",
   "payload_lbs": 162000,
@@ -26810,6 +27815,8 @@
   },
   "aircraft": [
    "B732F",
+   "B733F",
+   "B738F",
    "B722F",
    "B752F",
    "A306F"
@@ -26879,6 +27886,8 @@
   },
   "aircraft": [
    "B732F",
+   "B733F",
+   "B738F",
    "B722F",
    "B752F",
    "A306F"
@@ -26913,8 +27922,9 @@
    "lon": -70.7858
   },
   "aircraft": [
-   "A306F",
    "B752F",
+   "A306F",
+   "B763F",
    "B77F",
    "B742F"
   ],
@@ -27246,6 +28256,7 @@
    "lon": 0.235
   },
   "aircraft": [
+   "MD11F",
    "B77F",
    "B748F"
   ],
@@ -27279,9 +28290,10 @@
    "lon": 2.5541
   },
   "aircraft": [
-   "B742F",
    "MD11F",
-   "B77F"
+   "B77F",
+   "B742F",
+   "B748F"
   ],
   "cargo": "General cargo and empty ULDs",
   "payload_lbs": 138500,
@@ -27346,9 +28358,10 @@
    "lon": 4.7639
   },
   "aircraft": [
-   "B742F",
+   "MD11F",
    "B77F",
-   "MD11F"
+   "B742F",
+   "B748F"
   ],
   "cargo": "General cargo and empty ULDs",
   "payload_lbs": 157500,
@@ -27381,8 +28394,9 @@
   },
   "aircraft": [
    "MD11F",
+   "B77F",
    "B742F",
-   "B77F"
+   "B748F"
   ],
   "cargo": "General cargo and empty ULDs",
   "payload_lbs": 158000,
@@ -27447,10 +28461,11 @@
    "lon": -8.9248
   },
   "aircraft": [
-   "MD11F",
+   "B752F",
    "B763F",
+   "MD11F",
    "B77F",
-   "B752F"
+   "B748F"
   ],
   "cargo": "General cargo and empty ULDs",
   "payload_lbs": 162000,
@@ -27581,6 +28596,7 @@
    "lon": 8.7281
   },
   "aircraft": [
+   "MD11F",
    "B77F",
    "B742F",
    "B748F"
@@ -27616,9 +28632,10 @@
   },
   "aircraft": [
    "B752F",
-   "B77F",
+   "A306F",
    "B763F",
-   "MD11F"
+   "MD11F",
+   "B77F"
   ],
   "cargo": "General cargo and empty ULDs",
   "payload_lbs": 66000,
@@ -27685,9 +28702,10 @@
    "lon": -50.7153
   },
   "aircraft": [
-   "B738F",
+   "B732F",
    "B733F",
-   "B732F"
+   "B738F",
+   "B752F"
   ],
   "cargo": "General cargo and empty ULDs",
   "payload_lbs": 44500,
@@ -27784,10 +28802,13 @@
    "lon": -9.1359
   },
   "aircraft": [
+   "B732F",
+   "B733F",
+   "B738F",
+   "B722F",
    "B752F",
    "A306F",
-   "B733F",
-   "B738F"
+   "B763F"
   ],
   "cargo": "General cargo and empty ULDs",
   "payload_lbs": 69500,
@@ -27819,10 +28840,11 @@
    "lon": 8.7281
   },
   "aircraft": [
+   "B732F",
+   "B733F",
    "B738F",
    "B722F",
-   "B733F",
-   "B732F"
+   "B752F"
   ],
   "cargo": "General cargo and empty ULDs",
   "payload_lbs": 43500,
@@ -27994,10 +29016,11 @@
    "lon": 8.7281
   },
   "aircraft": [
+   "B732F",
+   "B733F",
    "B738F",
    "B722F",
-   "B733F",
-   "B732F"
+   "B752F"
   ],
   "cargo": "General cargo and empty ULDs",
   "payload_lbs": 44500,
@@ -28064,10 +29087,11 @@
    "lon": 8.7281
   },
   "aircraft": [
+   "B732F",
+   "B733F",
    "B738F",
    "B722F",
-   "B733F",
-   "B732F"
+   "B752F"
   ],
   "cargo": "General cargo and empty ULDs",
   "payload_lbs": 43500,
@@ -28099,10 +29123,12 @@
    "lon": 8.7281
   },
   "aircraft": [
-   "A306F",
-   "B752F",
+   "B733F",
    "B738F",
-   "B722F"
+   "B722F",
+   "B752F",
+   "A306F",
+   "B763F"
   ],
   "cargo": "General cargo and empty ULDs",
   "payload_lbs": 83500,
@@ -28134,10 +29160,11 @@
    "lon": 8.7281
   },
   "aircraft": [
+   "B732F",
+   "B733F",
    "B738F",
    "B722F",
-   "B733F",
-   "B732F"
+   "B752F"
   ],
   "cargo": "General cargo and empty ULDs",
   "payload_lbs": 43500,
@@ -28204,10 +29231,12 @@
    "lon": 8.7281
   },
   "aircraft": [
-   "A306F",
-   "B752F",
+   "B733F",
    "B738F",
-   "B722F"
+   "B722F",
+   "B752F",
+   "A306F",
+   "B763F"
   ],
   "cargo": "General cargo and empty ULDs",
   "payload_lbs": 86000,
@@ -28239,10 +29268,12 @@
    "lon": 8.7281
   },
   "aircraft": [
-   "A306F",
-   "B752F",
+   "B733F",
    "B738F",
-   "B722F"
+   "B722F",
+   "B752F",
+   "A306F",
+   "B763F"
   ],
   "cargo": "General cargo and empty ULDs",
   "payload_lbs": 82500,
@@ -28274,10 +29305,12 @@
    "lon": 8.7281
   },
   "aircraft": [
-   "A306F",
-   "B752F",
+   "B733F",
    "B738F",
-   "B722F"
+   "B722F",
+   "B752F",
+   "A306F",
+   "B763F"
   ],
   "cargo": "General cargo and empty ULDs",
   "payload_lbs": 79500,
@@ -28344,10 +29377,12 @@
    "lon": 8.7281
   },
   "aircraft": [
-   "A306F",
-   "B752F",
+   "B733F",
    "B738F",
-   "B722F"
+   "B722F",
+   "B752F",
+   "A306F",
+   "B763F"
   ],
   "cargo": "General cargo and empty ULDs",
   "payload_lbs": 76500,
@@ -28379,10 +29414,12 @@
    "lon": 11.1004
   },
   "aircraft": [
-   "A306F",
-   "B752F",
+   "B733F",
    "B738F",
-   "B722F"
+   "B722F",
+   "B752F",
+   "A306F",
+   "B763F"
   ],
   "cargo": "General cargo and empty ULDs",
   "payload_lbs": 80500,
@@ -28414,10 +29451,12 @@
    "lon": -22.6056
   },
   "aircraft": [
-   "A306F",
-   "B752F",
+   "B733F",
    "B738F",
-   "B722F"
+   "B722F",
+   "B752F",
+   "A306F",
+   "B763F"
   ],
   "cargo": "General cargo and empty ULDs",
   "payload_lbs": 82500,
@@ -28484,10 +29523,13 @@
    "lon": 12.2327
   },
   "aircraft": [
-   "A306F",
-   "B752F",
+   "B732F",
+   "B733F",
    "B738F",
-   "B733F"
+   "B722F",
+   "B752F",
+   "A306F",
+   "B763F"
   ],
   "cargo": "General cargo and empty ULDs",
   "payload_lbs": 63500,
@@ -28519,10 +29561,12 @@
    "lon": 12.2327
   },
   "aircraft": [
-   "B722F",
    "B732F",
-   "A306F",
-   "B752F"
+   "B733F",
+   "B738F",
+   "B722F",
+   "B752F",
+   "A306F"
   ],
   "cargo": "General cargo and empty ULDs",
   "payload_lbs": 46500,
@@ -28554,10 +29598,12 @@
    "lon": 12.2327
   },
   "aircraft": [
-   "B722F",
    "B732F",
-   "A306F",
-   "B752F"
+   "B733F",
+   "B738F",
+   "B722F",
+   "B752F",
+   "A306F"
   ],
   "cargo": "General cargo and empty ULDs",
   "payload_lbs": 46500,
@@ -28589,10 +29635,12 @@
    "lon": 12.2327
   },
   "aircraft": [
-   "B722F",
    "B732F",
-   "A306F",
-   "B752F"
+   "B733F",
+   "B738F",
+   "B722F",
+   "B752F",
+   "A306F"
   ],
   "cargo": "General cargo and empty ULDs",
   "payload_lbs": 38000,
@@ -28624,10 +29672,12 @@
    "lon": 12.2327
   },
   "aircraft": [
-   "B722F",
    "B732F",
-   "A306F",
-   "B752F"
+   "B733F",
+   "B738F",
+   "B722F",
+   "B752F",
+   "A306F"
   ],
   "cargo": "General cargo and empty ULDs",
   "payload_lbs": 43000,
@@ -28659,10 +29709,13 @@
    "lon": 12.2327
   },
   "aircraft": [
+   "B732F",
+   "B733F",
+   "B738F",
+   "B722F",
    "B752F",
    "A306F",
-   "B733F",
-   "B738F"
+   "B763F"
   ],
   "cargo": "General cargo and empty ULDs",
   "payload_lbs": 66000,
@@ -28694,10 +29747,12 @@
    "lon": 12.2327
   },
   "aircraft": [
-   "A306F",
-   "B752F",
+   "B732F",
+   "B733F",
    "B738F",
-   "B733F"
+   "B722F",
+   "B752F",
+   "A306F"
   ],
   "cargo": "General cargo and empty ULDs",
   "payload_lbs": 68000,
@@ -28765,6 +29820,8 @@
   },
   "aircraft": [
    "B732F",
+   "B733F",
+   "B738F",
    "B722F",
    "B752F",
    "A306F"
@@ -28799,10 +29856,12 @@
    "lon": 12.2327
   },
   "aircraft": [
-   "A306F",
-   "B752F",
+   "B733F",
    "B738F",
-   "B733F"
+   "B722F",
+   "B752F",
+   "A306F",
+   "B763F"
   ],
   "cargo": "General cargo and empty ULDs",
   "payload_lbs": 76500,
@@ -28869,10 +29928,13 @@
    "lon": 12.2327
   },
   "aircraft": [
-   "A306F",
-   "B752F",
+   "B732F",
+   "B733F",
    "B738F",
-   "B733F"
+   "B722F",
+   "B752F",
+   "A306F",
+   "B763F"
   ],
   "cargo": "General cargo and empty ULDs",
   "payload_lbs": 68000,
@@ -28904,10 +29966,16 @@
    "lon": 5.4439
   },
   "aircraft": [
-   "MD11F",
+   "B732F",
    "B733F",
+   "B738F",
    "B722F",
-   "B732F"
+   "B752F",
+   "A306F",
+   "B763F",
+   "MD11F",
+   "B77F",
+   "B742F"
   ],
   "cargo": "General cargo and empty ULDs",
   "payload_lbs": 129500,
@@ -28939,10 +30007,13 @@
    "lon": 5.4439
   },
   "aircraft": [
-   "A306F",
-   "B752F",
+   "B732F",
+   "B733F",
    "B738F",
-   "B733F"
+   "B722F",
+   "B752F",
+   "A306F",
+   "B763F"
   ],
   "cargo": "General cargo and empty ULDs",
   "payload_lbs": 63500,
@@ -28975,6 +30046,8 @@
   },
   "aircraft": [
    "B732F",
+   "B733F",
+   "B738F",
    "B722F",
    "B752F",
    "A306F"
@@ -29009,9 +30082,12 @@
    "lon": 5.4439
   },
   "aircraft": [
-   "A306F",
-   "B752F",
+   "B732F",
+   "B733F",
    "B738F",
+   "B722F",
+   "B752F",
+   "A306F",
    "B763F"
   ],
   "cargo": "General cargo and empty ULDs",
@@ -29044,9 +30120,12 @@
    "lon": 5.4439
   },
   "aircraft": [
-   "B763F",
-   "B738F",
    "B733F",
+   "B738F",
+   "B722F",
+   "B752F",
+   "A306F",
+   "B763F",
    "MD11F"
   ],
   "cargo": "General cargo and empty ULDs",
@@ -29146,10 +30225,12 @@
    "lon": -1.3281
   },
   "aircraft": [
-   "B722F",
    "B732F",
-   "A306F",
-   "B752F"
+   "B733F",
+   "B738F",
+   "B722F",
+   "B752F",
+   "A306F"
   ],
   "cargo": "General cargo and empty ULDs",
   "payload_lbs": 46500,
@@ -29181,10 +30262,13 @@
    "lon": 8.7281
   },
   "aircraft": [
+   "B732F",
+   "B733F",
+   "B738F",
+   "B722F",
    "B752F",
    "A306F",
-   "B733F",
-   "B738F"
+   "B763F"
   ],
   "cargo": "General cargo and empty ULDs",
   "payload_lbs": 53500,
@@ -29251,10 +30335,12 @@
    "lon": 8.7281
   },
   "aircraft": [
-   "B722F",
    "B732F",
-   "A306F",
-   "B752F"
+   "B733F",
+   "B738F",
+   "B722F",
+   "B752F",
+   "A306F"
   ],
   "cargo": "General cargo and empty ULDs",
   "payload_lbs": 43000,
@@ -29287,6 +30373,8 @@
   },
   "aircraft": [
    "B732F",
+   "B733F",
+   "B738F",
    "B722F",
    "B752F",
    "A306F"
@@ -29321,10 +30409,16 @@
    "lon": 28.7321
   },
   "aircraft": [
-   "MD11F",
+   "B732F",
    "B733F",
    "B722F",
-   "B732F"
+   "B752F",
+   "A306F",
+   "B763F",
+   "MD11F",
+   "B77F",
+   "B742F",
+   "B748F"
   ],
   "cargo": "General cargo and empty ULDs",
   "payload_lbs": 158000,
@@ -29357,6 +30451,8 @@
   },
   "aircraft": [
    "B732F",
+   "B733F",
+   "B738F",
    "B722F",
    "B752F",
    "A306F"
@@ -29392,6 +30488,7 @@
   },
   "aircraft": [
    "B732F",
+   "B733F",
    "B722F",
    "B752F",
    "A306F"
@@ -29461,10 +30558,13 @@
    "lon": 11.1004
   },
   "aircraft": [
+   "B732F",
+   "B733F",
+   "B738F",
+   "B722F",
    "B752F",
    "A306F",
-   "B733F",
-   "B738F"
+   "B763F"
   ],
   "cargo": "General cargo and empty ULDs",
   "payload_lbs": 66000,
@@ -29496,10 +30596,11 @@
    "lon": 14.3653
   },
   "aircraft": [
-   "A306F",
-   "B752F",
+   "B733F",
    "B738F",
-   "B733F"
+   "B722F",
+   "B752F",
+   "A306F"
   ],
   "cargo": "General cargo and empty ULDs",
   "payload_lbs": 82500,
@@ -29531,10 +30632,13 @@
    "lon": 11.1004
   },
   "aircraft": [
+   "B732F",
+   "B733F",
+   "B738F",
+   "B722F",
    "B752F",
    "A306F",
-   "B733F",
-   "B738F"
+   "B763F"
   ],
   "cargo": "General cargo and empty ULDs",
   "payload_lbs": 71000,
@@ -29566,10 +30670,11 @@
    "lon": 5.2181
   },
   "aircraft": [
-   "B738F",
+   "B732F",
    "B733F",
+   "B738F",
    "B722F",
-   "B732F"
+   "B752F"
   ],
   "cargo": "General cargo and empty ULDs",
   "payload_lbs": 40000,
@@ -29601,10 +30706,12 @@
    "lon": 24.9633
   },
   "aircraft": [
-   "B722F",
    "B732F",
-   "A306F",
-   "B752F"
+   "B733F",
+   "B738F",
+   "B722F",
+   "B752F",
+   "A306F"
   ],
   "cargo": "General cargo and empty ULDs",
   "payload_lbs": 46500,
@@ -29636,10 +30743,13 @@
    "lon": 12.656
   },
   "aircraft": [
+   "B732F",
+   "B733F",
+   "B738F",
+   "B722F",
    "B752F",
    "A306F",
-   "B763F",
-   "B738F"
+   "B763F"
   ],
   "cargo": "General cargo and empty ULDs",
   "payload_lbs": 71000,
@@ -29703,10 +30813,12 @@
    "lon": 16.5697
   },
   "aircraft": [
-   "B722F",
    "B732F",
-   "A306F",
-   "B752F"
+   "B733F",
+   "B738F",
+   "B722F",
+   "B752F",
+   "A306F"
   ],
   "cargo": "General cargo and empty ULDs",
   "payload_lbs": 44000,
@@ -29738,10 +30850,13 @@
    "lon": 16.5697
   },
   "aircraft": [
-   "A306F",
-   "B752F",
+   "B732F",
+   "B733F",
    "B738F",
-   "B733F"
+   "B722F",
+   "B752F",
+   "A306F",
+   "B763F"
   ],
   "cargo": "General cargo and empty ULDs",
   "payload_lbs": 63500,
@@ -29808,10 +30923,12 @@
    "lon": 26.1033
   },
   "aircraft": [
-   "B722F",
    "B732F",
-   "A306F",
-   "B752F"
+   "B733F",
+   "B738F",
+   "B722F",
+   "B752F",
+   "A306F"
   ],
   "cargo": "General cargo and empty ULDs",
   "payload_lbs": 40500,
@@ -29843,10 +30960,13 @@
    "lon": 19.0807
   },
   "aircraft": [
+   "B732F",
+   "B733F",
+   "B738F",
+   "B722F",
    "B752F",
    "A306F",
-   "B733F",
-   "B738F"
+   "B763F"
   ],
   "cargo": "General cargo and empty ULDs",
   "payload_lbs": 71000,
@@ -29878,10 +30998,11 @@
    "lon": -9.1359
   },
   "aircraft": [
-   "B738F",
+   "B732F",
    "B733F",
+   "B738F",
    "B722F",
-   "B732F"
+   "B752F"
   ],
   "cargo": "General cargo and empty ULDs",
   "payload_lbs": 42000,
@@ -29914,6 +31035,7 @@
   },
   "aircraft": [
    "B732F",
+   "B733F",
    "B722F",
    "B752F",
    "A306F"
@@ -29948,9 +31070,12 @@
    "lon": 8.5584
   },
   "aircraft": [
-   "A306F",
-   "B752F",
+   "B732F",
+   "B733F",
    "B738F",
+   "B722F",
+   "B752F",
+   "A306F",
    "B763F"
   ],
   "cargo": "General cargo and empty ULDs",
@@ -29983,10 +31108,13 @@
    "lon": 8.5584
   },
   "aircraft": [
+   "B732F",
+   "B733F",
+   "B738F",
+   "B722F",
    "B752F",
    "A306F",
-   "B733F",
-   "B738F"
+   "B763F"
   ],
   "cargo": "General cargo and empty ULDs",
   "payload_lbs": 60500,
@@ -30018,10 +31146,13 @@
    "lon": 8.7281
   },
   "aircraft": [
-   "B77F",
-   "B748F",
+   "B752F",
+   "A306F",
+   "B763F",
    "MD11F",
-   "B742F"
+   "B77F",
+   "B742F",
+   "B748F"
   ],
   "cargo": "General cargo and empty ULDs",
   "payload_lbs": 135000,
@@ -30053,10 +31184,12 @@
    "lon": 8.7281
   },
   "aircraft": [
-   "A306F",
-   "B752F",
+   "B733F",
    "B738F",
-   "B722F"
+   "B722F",
+   "B752F",
+   "A306F",
+   "B763F"
   ],
   "cargo": "General cargo and empty ULDs",
   "payload_lbs": 85000,
@@ -30088,10 +31221,11 @@
    "lon": 8.7281
   },
   "aircraft": [
+   "B732F",
+   "B733F",
    "B738F",
    "B722F",
-   "B733F",
-   "B732F"
+   "B752F"
   ],
   "cargo": "General cargo and empty ULDs",
   "payload_lbs": 43500,
@@ -30123,10 +31257,12 @@
    "lon": 8.7281
   },
   "aircraft": [
-   "A306F",
-   "B752F",
+   "B733F",
    "B738F",
-   "B722F"
+   "B722F",
+   "B752F",
+   "A306F",
+   "B763F"
   ],
   "cargo": "General cargo and empty ULDs",
   "payload_lbs": 89000,
@@ -30158,10 +31294,13 @@
    "lon": 8.7281
   },
   "aircraft": [
-   "B77F",
-   "B748F",
+   "B752F",
+   "A306F",
+   "B763F",
    "MD11F",
-   "B742F"
+   "B77F",
+   "B742F",
+   "B748F"
   ],
   "cargo": "General cargo and empty ULDs",
   "payload_lbs": 182000,
@@ -30193,10 +31332,13 @@
    "lon": 8.7281
   },
   "aircraft": [
-   "B77F",
-   "B748F",
+   "B752F",
+   "A306F",
+   "B763F",
    "MD11F",
-   "B742F"
+   "B77F",
+   "B742F",
+   "B748F"
   ],
   "cargo": "General cargo and empty ULDs",
   "payload_lbs": 171000,
@@ -30228,10 +31370,13 @@
    "lon": 8.7281
   },
   "aircraft": [
-   "B77F",
-   "B748F",
+   "B752F",
+   "A306F",
+   "B763F",
    "MD11F",
-   "B742F"
+   "B77F",
+   "B742F",
+   "B748F"
   ],
   "cargo": "General cargo and empty ULDs",
   "payload_lbs": 146000,
@@ -30397,10 +31542,12 @@
    "lon": 55.1624
   },
   "aircraft": [
-   "B77F",
-   "B748F",
+   "B752F",
+   "B763F",
    "MD11F",
-   "B742F"
+   "B77F",
+   "B742F",
+   "B748F"
   ],
   "cargo": "General cargo and empty ULDs",
   "payload_lbs": 182000,
@@ -30467,10 +31614,11 @@
    "lon": 55.1624
   },
   "aircraft": [
-   "B77F",
-   "B748F",
+   "B763F",
    "MD11F",
-   "B742F"
+   "B77F",
+   "B742F",
+   "B748F"
   ],
   "cargo": "General cargo and empty ULDs",
   "payload_lbs": 141500,
@@ -30502,10 +31650,13 @@
    "lon": 55.1624
   },
   "aircraft": [
-   "A306F",
-   "B752F",
+   "B732F",
+   "B733F",
    "B738F",
-   "B722F"
+   "B722F",
+   "B752F",
+   "A306F",
+   "B763F"
   ],
   "cargo": "General cargo and empty ULDs",
   "payload_lbs": 68000,
@@ -30537,10 +31688,11 @@
    "lon": 55.1624
   },
   "aircraft": [
+   "B732F",
+   "B733F",
    "B738F",
    "B722F",
-   "B733F",
-   "B732F"
+   "B752F"
   ],
   "cargo": "General cargo and empty ULDs",
   "payload_lbs": 44000,
@@ -30607,10 +31759,12 @@
    "lon": 55.1624
   },
   "aircraft": [
-   "A306F",
-   "B752F",
+   "B733F",
    "B738F",
-   "B722F"
+   "B722F",
+   "B752F",
+   "A306F",
+   "B763F"
   ],
   "cargo": "General cargo and empty ULDs",
   "payload_lbs": 77500,
@@ -30642,10 +31796,11 @@
    "lon": 47.4788
   },
   "aircraft": [
-   "B77F",
-   "B748F",
+   "B752F",
+   "B763F",
    "MD11F",
-   "B763F"
+   "B77F",
+   "B748F"
   ],
   "cargo": "General cargo and empty ULDs",
   "payload_lbs": 157500,
@@ -30677,8 +31832,9 @@
    "lon": 38.7993
   },
   "aircraft": [
-   "A306F",
    "B752F",
+   "A306F",
+   "B763F",
    "B77F",
    "B742F"
   ],
@@ -30747,9 +31903,10 @@
    "lon": 38.7993
   },
   "aircraft": [
-   "A306F",
-   "B752F",
    "B738F",
+   "B722F",
+   "B752F",
+   "A306F",
    "B763F"
   ],
   "cargo": "General cargo and empty ULDs",
@@ -30782,10 +31939,13 @@
    "lon": 38.7993
   },
   "aircraft": [
+   "B732F",
+   "B733F",
+   "B738F",
+   "B722F",
    "B752F",
    "A306F",
-   "B733F",
-   "B738F"
+   "B763F"
   ],
   "cargo": "General cargo and empty ULDs",
   "payload_lbs": 60500,
@@ -30852,10 +32012,12 @@
    "lon": 38.7993
   },
   "aircraft": [
-   "B722F",
    "B732F",
-   "A306F",
-   "B752F"
+   "B733F",
+   "B738F",
+   "B722F",
+   "B752F",
+   "A306F"
   ],
   "cargo": "General cargo and empty ULDs",
   "payload_lbs": 40500,
@@ -30887,10 +32049,13 @@
    "lon": 38.7993
   },
   "aircraft": [
+   "B732F",
+   "B733F",
+   "B738F",
+   "B722F",
    "B752F",
    "A306F",
-   "B733F",
-   "B738F"
+   "B763F"
   ],
   "cargo": "General cargo and empty ULDs",
   "payload_lbs": 71000,
@@ -30922,9 +32087,10 @@
    "lon": 38.7993
   },
   "aircraft": [
-   "A306F",
-   "B752F",
    "B738F",
+   "B722F",
+   "B752F",
+   "A306F",
    "B763F"
   ],
   "cargo": "General cargo and empty ULDs",
@@ -30957,10 +32123,13 @@
    "lon": 38.7993
   },
   "aircraft": [
-   "A306F",
-   "B752F",
+   "B732F",
+   "B733F",
    "B738F",
-   "B733F"
+   "B722F",
+   "B752F",
+   "A306F",
+   "B763F"
   ],
   "cargo": "General cargo and empty ULDs",
   "payload_lbs": 63500,
@@ -30992,9 +32161,10 @@
    "lon": 38.7993
   },
   "aircraft": [
-   "B763F",
    "B738F",
    "B752F",
+   "A306F",
+   "B763F",
    "MD11F"
   ],
   "cargo": "General cargo and empty ULDs",
@@ -31027,10 +32197,11 @@
    "lon": 38.7993
   },
   "aircraft": [
-   "MD11F",
    "B763F",
+   "MD11F",
    "B77F",
-   "B742F"
+   "B742F",
+   "B748F"
   ],
   "cargo": "General cargo and empty ULDs",
   "payload_lbs": 129500,
@@ -31062,10 +32233,13 @@
    "lon": 36.9282
   },
   "aircraft": [
+   "B732F",
+   "B733F",
+   "B738F",
+   "B722F",
    "B752F",
    "A306F",
-   "B733F",
-   "B738F"
+   "B763F"
   ],
   "cargo": "General cargo and empty ULDs",
   "payload_lbs": 53500,
@@ -31168,6 +32342,7 @@
   },
   "aircraft": [
    "B732F",
+   "B733F",
    "B722F",
    "B752F",
    "A306F"
@@ -31202,9 +32377,10 @@
    "lon": 36.9282
   },
   "aircraft": [
-   "A306F",
-   "B752F",
    "B738F",
+   "B722F",
+   "B752F",
+   "A306F",
    "B763F"
   ],
   "cargo": "General cargo and empty ULDs",
@@ -31272,8 +32448,9 @@
    "lon": 36.9282
   },
   "aircraft": [
-   "B748F",
-   "MD11F"
+   "MD11F",
+   "B77F",
+   "B748F"
   ],
   "cargo": "General cargo and empty ULDs",
   "payload_lbs": 166000,
@@ -31340,10 +32517,12 @@
    "lon": 32.936
   },
   "aircraft": [
-   "B722F",
    "B732F",
-   "A306F",
-   "B752F"
+   "B733F",
+   "B738F",
+   "B722F",
+   "B752F",
+   "A306F"
   ],
   "cargo": "General cargo and empty ULDs",
   "payload_lbs": 49000,
@@ -31376,6 +32555,8 @@
   },
   "aircraft": [
    "B732F",
+   "B733F",
+   "B738F",
    "B722F",
    "B752F",
    "A306F"
@@ -31410,10 +32591,12 @@
    "lon": 28.2468
   },
   "aircraft": [
-   "B722F",
    "B732F",
-   "A306F",
-   "B752F"
+   "B733F",
+   "B738F",
+   "B722F",
+   "B752F",
+   "A306F"
   ],
   "cargo": "General cargo and empty ULDs",
   "payload_lbs": 50500,
@@ -31445,10 +32628,13 @@
    "lon": 28.2468
   },
   "aircraft": [
+   "B732F",
+   "B733F",
+   "B738F",
+   "B722F",
    "B752F",
    "A306F",
-   "B733F",
-   "B738F"
+   "B763F"
   ],
   "cargo": "General cargo and empty ULDs",
   "payload_lbs": 59000,
@@ -31481,6 +32667,7 @@
   },
   "aircraft": [
    "B732F",
+   "B733F",
    "B722F",
    "B752F",
    "A306F"
@@ -31515,10 +32702,12 @@
    "lon": 28.2468
   },
   "aircraft": [
-   "A306F",
-   "B752F",
+   "B733F",
    "B738F",
-   "B733F"
+   "B722F",
+   "B752F",
+   "A306F",
+   "B763F"
   ],
   "cargo": "General cargo and empty ULDs",
   "payload_lbs": 80500,
@@ -31550,10 +32739,12 @@
    "lon": 25.9182
   },
   "aircraft": [
-   "A306F",
-   "B752F",
+   "B733F",
    "B738F",
-   "B733F"
+   "B722F",
+   "B752F",
+   "A306F",
+   "B763F"
   ],
   "cargo": "General cargo and empty ULDs",
   "payload_lbs": 82500,
@@ -31585,9 +32776,10 @@
    "lon": 28.2468
   },
   "aircraft": [
-   "A306F",
-   "B752F",
    "B738F",
+   "B722F",
+   "B752F",
+   "A306F",
    "B763F"
   ],
   "cargo": "General cargo and empty ULDs",
@@ -31620,9 +32812,12 @@
    "lon": 28.2468
   },
   "aircraft": [
-   "B763F",
-   "B738F",
    "B733F",
+   "B738F",
+   "B722F",
+   "B752F",
+   "A306F",
+   "B763F",
    "MD11F"
   ],
   "cargo": "General cargo and empty ULDs",
@@ -31657,6 +32852,7 @@
   "aircraft": [
    "B733F",
    "B738F",
+   "B722F",
    "B752F",
    "MD11F"
   ],
@@ -31690,10 +32886,13 @@
    "lon": 28.2468
   },
   "aircraft": [
+   "B752F",
+   "A306F",
+   "B763F",
+   "MD11F",
    "B77F",
    "B742F",
-   "MD11F",
-   "B763F"
+   "B748F"
   ],
   "cargo": "General cargo and empty ULDs",
   "payload_lbs": 189000,
@@ -31725,10 +32924,13 @@
    "lon": 3.3212
   },
   "aircraft": [
+   "B732F",
+   "B733F",
+   "B738F",
+   "B722F",
    "B752F",
    "A306F",
-   "B733F",
-   "B738F"
+   "B763F"
   ],
   "cargo": "General cargo and empty ULDs",
   "payload_lbs": 73000,
@@ -31795,10 +32997,12 @@
    "lon": 3.3212
   },
   "aircraft": [
-   "B722F",
    "B732F",
-   "A306F",
-   "B752F"
+   "B733F",
+   "B738F",
+   "B722F",
+   "B752F",
+   "A306F"
   ],
   "cargo": "General cargo and empty ULDs",
   "payload_lbs": 46500,
@@ -31865,10 +33069,13 @@
    "lon": -17.0728
   },
   "aircraft": [
-   "B742F",
-   "B77F",
+   "B752F",
+   "A306F",
    "B763F",
-   "MD11F"
+   "MD11F",
+   "B77F",
+   "B742F",
+   "B748F"
   ],
   "cargo": "General cargo and empty ULDs",
   "payload_lbs": 167000,
@@ -31900,9 +33107,11 @@
    "lon": -3.9263
   },
   "aircraft": [
-   "A306F",
-   "B752F",
+   "B733F",
    "B738F",
+   "B722F",
+   "B752F",
+   "A306F",
    "B763F"
   ],
   "cargo": "General cargo and empty ULDs",
@@ -31935,9 +33144,12 @@
    "lon": -7.59
   },
   "aircraft": [
-   "A306F",
-   "B752F",
+   "B732F",
+   "B733F",
    "B738F",
+   "B722F",
+   "B752F",
+   "A306F",
    "B763F"
   ],
   "cargo": "General cargo and empty ULDs",
@@ -31971,6 +33183,8 @@
   },
   "aircraft": [
    "B732F",
+   "B733F",
+   "B738F",
    "B722F",
    "B752F",
    "A306F"
@@ -32005,10 +33219,15 @@
    "lon": -8.0358
   },
   "aircraft": [
-   "MD11F",
+   "B732F",
    "B733F",
    "B722F",
-   "B732F"
+   "B752F",
+   "A306F",
+   "B763F",
+   "MD11F",
+   "B77F",
+   "B748F"
   ],
   "cargo": "General cargo and empty ULDs",
   "payload_lbs": 146000,
@@ -32040,10 +33259,12 @@
    "lon": 3.2145
   },
   "aircraft": [
-   "A306F",
-   "B752F",
+   "B733F",
    "B738F",
-   "B733F"
+   "B722F",
+   "B752F",
+   "A306F",
+   "B763F"
   ],
   "cargo": "General cargo and empty ULDs",
   "payload_lbs": 85000,
@@ -32075,10 +33296,11 @@
    "lon": 31.3967
   },
   "aircraft": [
+   "B738F",
+   "B722F",
    "B752F",
    "A306F",
-   "B763F",
-   "B738F"
+   "B763F"
   ],
   "cargo": "General cargo and empty ULDs",
   "payload_lbs": 60500,
@@ -32110,10 +33332,13 @@
    "lon": 31.3967
   },
   "aircraft": [
-   "A306F",
-   "B752F",
+   "B732F",
+   "B733F",
    "B738F",
-   "B733F"
+   "B722F",
+   "B752F",
+   "A306F",
+   "B763F"
   ],
   "cargo": "General cargo and empty ULDs",
   "payload_lbs": 70000,
@@ -32180,10 +33405,13 @@
    "lon": 55.1624
   },
   "aircraft": [
+   "B732F",
+   "B733F",
+   "B738F",
+   "B722F",
    "B752F",
    "A306F",
-   "B733F",
-   "B738F"
+   "B763F"
   ],
   "cargo": "General cargo and empty ULDs",
   "payload_lbs": 64000,
@@ -32215,10 +33443,12 @@
    "lon": 55.1624
   },
   "aircraft": [
+   "B733F",
+   "B738F",
+   "B722F",
    "B752F",
    "A306F",
-   "B733F",
-   "B738F"
+   "B763F"
   ],
   "cargo": "General cargo and empty ULDs",
   "payload_lbs": 74500,
@@ -32285,10 +33515,12 @@
    "lon": 55.1624
   },
   "aircraft": [
+   "B733F",
+   "B738F",
+   "B722F",
    "B752F",
    "A306F",
-   "B763F",
-   "B738F"
+   "B763F"
   ],
   "cargo": "General cargo and empty ULDs",
   "payload_lbs": 74500,
@@ -32355,9 +33587,11 @@
    "lon": 55.1624
   },
   "aircraft": [
-   "A306F",
-   "B752F",
+   "B733F",
    "B738F",
+   "B722F",
+   "B752F",
+   "A306F",
    "B763F"
   ],
   "cargo": "General cargo and empty ULDs",
@@ -32390,9 +33624,10 @@
    "lon": 55.1624
   },
   "aircraft": [
-   "A306F",
-   "B752F",
    "B738F",
+   "B722F",
+   "B752F",
+   "A306F",
    "B763F"
   ],
   "cargo": "General cargo and empty ULDs",
@@ -32425,9 +33660,12 @@
    "lon": 55.1624
   },
   "aircraft": [
-   "B763F",
-   "B738F",
    "B733F",
+   "B738F",
+   "B722F",
+   "B752F",
+   "A306F",
+   "B763F",
    "MD11F"
   ],
   "cargo": "General cargo and empty ULDs",
@@ -32460,10 +33698,13 @@
    "lon": 55.1624
   },
   "aircraft": [
+   "B732F",
+   "B733F",
+   "B738F",
+   "B722F",
    "B752F",
    "A306F",
-   "B763F",
-   "B738F"
+   "B763F"
   ],
   "cargo": "General cargo and empty ULDs",
   "payload_lbs": 62500,
@@ -32495,10 +33736,11 @@
    "lon": 55.1624
   },
   "aircraft": [
-   "B738F",
+   "B732F",
    "B733F",
+   "B738F",
    "B722F",
-   "B732F"
+   "B752F"
   ],
   "cargo": "General cargo and empty ULDs",
   "payload_lbs": 42000,
@@ -32565,10 +33807,12 @@
    "lon": 39.1574
   },
   "aircraft": [
-   "B722F",
    "B732F",
-   "A306F",
-   "B752F"
+   "B733F",
+   "B738F",
+   "B722F",
+   "B752F",
+   "A306F"
   ],
   "cargo": "General cargo and empty ULDs",
   "payload_lbs": 51500,
@@ -32601,6 +33845,8 @@
   },
   "aircraft": [
    "B732F",
+   "B733F",
+   "B738F",
    "B722F",
    "B752F",
    "A306F"
@@ -32635,10 +33881,12 @@
    "lon": 8.7281
   },
   "aircraft": [
-   "B722F",
    "B732F",
-   "A306F",
-   "B752F"
+   "B733F",
+   "B738F",
+   "B722F",
+   "B752F",
+   "A306F"
   ],
   "cargo": "General cargo and empty ULDs",
   "payload_lbs": 48000,
@@ -32670,9 +33918,12 @@
    "lon": 8.7281
   },
   "aircraft": [
-   "A306F",
-   "B752F",
+   "B732F",
+   "B733F",
    "B738F",
+   "B722F",
+   "B752F",
+   "A306F",
    "B763F"
   ],
   "cargo": "General cargo and empty ULDs",
@@ -32707,8 +33958,9 @@
   "aircraft": [
    "B752F",
    "A306F",
-   "B742F",
-   "B77F"
+   "B763F",
+   "B77F",
+   "B742F"
   ],
   "cargo": "General cargo and empty ULDs",
   "payload_lbs": 57000,
@@ -32776,6 +34028,8 @@
   },
   "aircraft": [
    "B732F",
+   "B733F",
+   "B738F",
    "B722F",
    "B752F",
    "A306F"
@@ -32874,10 +34128,11 @@
    "lon": 113.9149
   },
   "aircraft": [
+   "B732F",
+   "B733F",
    "B738F",
    "B722F",
-   "B733F",
-   "B732F"
+   "B752F"
   ],
   "cargo": "General cargo and empty ULDs",
   "payload_lbs": 40500,
@@ -32909,10 +34164,11 @@
    "lon": 113.9149
   },
   "aircraft": [
+   "B732F",
+   "B733F",
    "B738F",
    "B722F",
-   "B733F",
-   "B732F"
+   "B752F"
   ],
   "cargo": "General cargo and empty ULDs",
   "payload_lbs": 41000,
@@ -32944,10 +34200,11 @@
    "lon": 105.807
   },
   "aircraft": [
+   "B732F",
+   "B733F",
    "B738F",
    "B722F",
-   "B733F",
-   "B732F"
+   "B752F"
   ],
   "cargo": "General cargo and empty ULDs",
   "payload_lbs": 42000,
@@ -32979,10 +34236,12 @@
    "lon": 106.652
   },
   "aircraft": [
-   "A306F",
-   "B752F",
+   "B733F",
    "B738F",
-   "B722F"
+   "B722F",
+   "B752F",
+   "A306F",
+   "B763F"
   ],
   "cargo": "General cargo and empty ULDs",
   "payload_lbs": 81500,
@@ -33014,10 +34273,12 @@
    "lon": 100.747
   },
   "aircraft": [
-   "A306F",
-   "B752F",
+   "B733F",
    "B738F",
-   "B722F"
+   "B722F",
+   "B752F",
+   "A306F",
+   "B763F"
   ],
   "cargo": "General cargo and empty ULDs",
   "payload_lbs": 88000,
@@ -33049,10 +34310,12 @@
    "lon": 101.71
   },
   "aircraft": [
-   "A306F",
-   "B752F",
+   "B733F",
    "B738F",
-   "B722F"
+   "B722F",
+   "B752F",
+   "A306F",
+   "B763F"
   ],
   "cargo": "General cargo and empty ULDs",
   "payload_lbs": 82500,
@@ -33287,10 +34550,12 @@
    "lon": 72.8679
   },
   "aircraft": [
-   "A306F",
-   "B752F",
+   "B733F",
    "B738F",
-   "B722F"
+   "B722F",
+   "B752F",
+   "A306F",
+   "B763F"
   ],
   "cargo": "General cargo and empty ULDs",
   "payload_lbs": 87000,
@@ -33322,10 +34587,11 @@
    "lon": 80.1693
   },
   "aircraft": [
-   "A306F",
-   "B752F",
    "B738F",
-   "B722F"
+   "B722F",
+   "B752F",
+   "A306F",
+   "B763F"
   ],
   "cargo": "General cargo and empty ULDs",
   "payload_lbs": 70000,
@@ -33594,10 +34860,12 @@
    "lon": 153.117
   },
   "aircraft": [
-   "A306F",
-   "B752F",
+   "B733F",
    "B738F",
-   "B722F"
+   "B722F",
+   "B752F",
+   "A306F",
+   "B763F"
   ],
   "cargo": "General cargo and empty ULDs",
   "payload_lbs": 78500,
@@ -33629,10 +34897,11 @@
    "lon": 151.177
   },
   "aircraft": [
-   "A306F",
-   "B752F",
    "B738F",
-   "B722F"
+   "B722F",
+   "B752F",
+   "A306F",
+   "B763F"
   ],
   "cargo": "General cargo and empty ULDs",
   "payload_lbs": 80500,
@@ -33664,10 +34933,13 @@
    "lon": 174.7863
   },
   "aircraft": [
-   "B77F",
-   "B748F",
+   "B752F",
+   "A306F",
+   "B763F",
    "MD11F",
-   "B742F"
+   "B77F",
+   "B742F",
+   "B748F"
   ],
   "cargo": "General cargo and empty ULDs",
   "payload_lbs": 175500,
@@ -33734,10 +35006,12 @@
    "lon": 144.7973
   },
   "aircraft": [
-   "A306F",
-   "B752F",
+   "B733F",
    "B738F",
-   "B722F"
+   "B722F",
+   "B752F",
+   "A306F",
+   "B763F"
   ],
   "cargo": "General cargo and empty ULDs",
   "payload_lbs": 67000,
@@ -33769,10 +35043,12 @@
    "lon": 106.6519
   },
   "aircraft": [
-   "A306F",
-   "B752F",
+   "B733F",
    "B738F",
-   "B733F"
+   "B722F",
+   "B752F",
+   "A306F",
+   "B763F"
   ],
   "cargo": "General cargo and empty ULDs",
   "payload_lbs": 78500,
@@ -33839,10 +35115,12 @@
    "lon": 108.7624
   },
   "aircraft": [
-   "B722F",
    "B732F",
-   "A306F",
-   "B752F"
+   "B733F",
+   "B738F",
+   "B722F",
+   "B752F",
+   "A306F"
   ],
   "cargo": "General cargo and empty ULDs",
   "payload_lbs": 46500,
@@ -33874,10 +35152,12 @@
    "lon": 120.4289
   },
   "aircraft": [
-   "B722F",
    "B732F",
-   "A306F",
-   "B752F"
+   "B733F",
+   "B738F",
+   "B722F",
+   "B752F",
+   "A306F"
   ],
   "cargo": "General cargo and empty ULDs",
   "payload_lbs": 38000,
@@ -33909,10 +35189,13 @@
    "lon": 118.8659
   },
   "aircraft": [
+   "B732F",
+   "B733F",
+   "B738F",
+   "B722F",
    "B752F",
    "A306F",
-   "B733F",
-   "B738F"
+   "B763F"
   ],
   "cargo": "General cargo and empty ULDs",
   "payload_lbs": 60500,
@@ -33944,10 +35227,13 @@
    "lon": 117.346
   },
   "aircraft": [
+   "B732F",
+   "B733F",
+   "B738F",
+   "B722F",
    "B752F",
    "A306F",
-   "B733F",
-   "B738F"
+   "B763F"
   ],
   "cargo": "General cargo and empty ULDs",
   "payload_lbs": 62500,
@@ -33979,9 +35265,13 @@
    "lon": 121.5385
   },
   "aircraft": [
-   "B763F",
-   "B738F",
+   "B732F",
    "B733F",
+   "B738F",
+   "B722F",
+   "B752F",
+   "A306F",
+   "B763F",
    "MD11F"
   ],
   "cargo": "General cargo and empty ULDs",
@@ -34014,10 +35304,13 @@
    "lon": 120.0882
   },
   "aircraft": [
+   "B732F",
+   "B733F",
+   "B738F",
+   "B722F",
    "B752F",
    "A306F",
-   "B733F",
-   "B738F"
+   "B763F"
   ],
   "cargo": "General cargo and empty ULDs",
   "payload_lbs": 62500,
@@ -34049,10 +35342,12 @@
    "lon": 118.1275
   },
   "aircraft": [
-   "B722F",
    "B732F",
-   "A306F",
-   "B752F"
+   "B733F",
+   "B738F",
+   "B722F",
+   "B752F",
+   "A306F"
   ],
   "cargo": "General cargo and empty ULDs",
   "payload_lbs": 40500,
@@ -34085,6 +35380,7 @@
   },
   "aircraft": [
    "B732F",
+   "B733F",
    "B722F",
    "B752F",
    "A306F"
@@ -34154,10 +35450,12 @@
    "lon": 130.451
   },
   "aircraft": [
-   "A306F",
-   "B752F",
+   "B733F",
    "B738F",
-   "B733F"
+   "B722F",
+   "B752F",
+   "A306F",
+   "B763F"
   ],
   "cargo": "General cargo and empty ULDs",
   "payload_lbs": 76500,
@@ -34224,10 +35522,12 @@
    "lon": 126.451
   },
   "aircraft": [
-   "B722F",
    "B732F",
-   "A306F",
-   "B752F"
+   "B733F",
+   "B738F",
+   "B722F",
+   "B752F",
+   "A306F"
   ],
   "cargo": "General cargo and empty ULDs",
   "payload_lbs": 44000,
@@ -34259,10 +35559,13 @@
    "lon": 126.451
   },
   "aircraft": [
+   "B732F",
+   "B733F",
+   "B738F",
+   "B722F",
    "B752F",
    "A306F",
-   "B763F",
-   "B738F"
+   "B763F"
   ],
   "cargo": "General cargo and empty ULDs",
   "payload_lbs": 67500,
@@ -34294,9 +35597,10 @@
    "lon": 140.3887
   },
   "aircraft": [
-   "A306F",
-   "B752F",
    "B738F",
+   "B722F",
+   "B752F",
+   "A306F",
    "B763F"
   ],
   "cargo": "General cargo and empty ULDs",
@@ -34330,6 +35634,7 @@
   },
   "aircraft": [
    "B732F",
+   "B733F",
    "B722F",
    "B752F",
    "A306F"
@@ -34364,9 +35669,12 @@
    "lon": 120.35
   },
   "aircraft": [
-   "A306F",
-   "B752F",
+   "B732F",
+   "B733F",
    "B738F",
+   "B722F",
+   "B752F",
+   "A306F",
    "B763F"
   ],
   "cargo": "General cargo and empty ULDs",
@@ -34399,9 +35707,13 @@
    "lon": 121.233
   },
   "aircraft": [
-   "B763F",
-   "B738F",
+   "B732F",
    "B733F",
+   "B738F",
+   "B722F",
+   "B752F",
+   "A306F",
+   "B763F",
    "MD11F"
   ],
   "cargo": "General cargo and empty ULDs",
@@ -34540,6 +35852,8 @@
   },
   "aircraft": [
    "B732F",
+   "B733F",
+   "B738F",
    "B722F",
    "B752F",
    "A306F"
@@ -34609,10 +35923,13 @@
    "lon": 116.0493
   },
   "aircraft": [
+   "B732F",
+   "B733F",
+   "B738F",
+   "B722F",
    "B752F",
    "A306F",
-   "B733F",
-   "B738F"
+   "B763F"
   ],
   "cargo": "General cargo and empty ULDs",
   "payload_lbs": 69500,
@@ -34714,10 +36031,16 @@
    "lon": 77.7063
   },
   "aircraft": [
-   "MD11F",
+   "B732F",
    "B733F",
    "B722F",
-   "B732F"
+   "B752F",
+   "A306F",
+   "B763F",
+   "MD11F",
+   "B77F",
+   "B742F",
+   "B748F"
   ],
   "cargo": "General cargo and empty ULDs",
   "payload_lbs": 154000,
@@ -34749,9 +36072,10 @@
    "lon": 76.4008
   },
   "aircraft": [
-   "A306F",
-   "B752F",
    "B738F",
+   "B722F",
+   "B752F",
+   "A306F",
    "B763F"
   ],
   "cargo": "General cargo and empty ULDs",
@@ -34784,10 +36108,12 @@
    "lon": 78.4299
   },
   "aircraft": [
-   "B763F",
-   "B722F",
    "B733F",
-   "A306F"
+   "B738F",
+   "B722F",
+   "B752F",
+   "A306F",
+   "B763F"
   ],
   "cargo": "General cargo and empty ULDs",
   "payload_lbs": 77500,
@@ -34820,6 +36146,7 @@
   },
   "aircraft": [
    "B732F",
+   "B733F",
    "B722F",
    "B752F",
    "A306F"
@@ -34855,6 +36182,7 @@
   },
   "aircraft": [
    "B732F",
+   "B733F",
    "B722F",
    "B752F",
    "A306F"
@@ -34889,10 +36217,13 @@
    "lon": 91.5852
   },
   "aircraft": [
+   "B732F",
+   "B733F",
+   "B738F",
+   "B722F",
    "B752F",
    "A306F",
-   "B733F",
-   "B738F"
+   "B763F"
   ],
   "cargo": "General cargo and empty ULDs",
   "payload_lbs": 69500,
@@ -34924,10 +36255,13 @@
    "lon": 72.8679
   },
   "aircraft": [
+   "B732F",
+   "B733F",
+   "B738F",
+   "B722F",
    "B752F",
    "A306F",
-   "B733F",
-   "B738F"
+   "B763F"
   ],
   "cargo": "General cargo and empty ULDs",
   "payload_lbs": 55500,
@@ -34959,10 +36293,16 @@
    "lon": 90.3978
   },
   "aircraft": [
-   "MD11F",
+   "B732F",
    "B733F",
    "B722F",
-   "B732F"
+   "B752F",
+   "A306F",
+   "B763F",
+   "MD11F",
+   "B77F",
+   "B742F",
+   "B748F"
   ],
   "cargo": "General cargo and empty ULDs",
   "payload_lbs": 154000,
@@ -34994,9 +36334,10 @@
    "lon": 88.4476
   },
   "aircraft": [
-   "B738F",
+   "B732F",
    "B733F",
-   "B732F"
+   "B738F",
+   "B752F"
   ],
   "cargo": "General cargo and empty ULDs",
   "payload_lbs": 42000,
@@ -35028,10 +36369,11 @@
    "lon": 77.0428
   },
   "aircraft": [
+   "B738F",
+   "B722F",
    "B752F",
    "A306F",
-   "B763F",
-   "B738F"
+   "B763F"
   ],
   "cargo": "General cargo and empty ULDs",
   "payload_lbs": 69500,
@@ -35064,9 +36406,11 @@
   },
   "aircraft": [
    "B752F",
+   "B763F",
+   "MD11F",
    "B77F",
    "B742F",
-   "MD11F"
+   "B748F"
   ],
   "cargo": "General cargo and empty ULDs",
   "payload_lbs": 69500,
@@ -35099,6 +36443,8 @@
   },
   "aircraft": [
    "B732F",
+   "B733F",
+   "B738F",
    "B722F",
    "B752F",
    "A306F"
@@ -35133,9 +36479,10 @@
    "lon": 144.8379
   },
   "aircraft": [
-   "A306F",
-   "B752F",
    "B738F",
+   "B722F",
+   "B752F",
+   "A306F",
    "B763F"
   ],
   "cargo": "General cargo and empty ULDs",
@@ -35168,10 +36515,11 @@
    "lon": 151.177
   },
   "aircraft": [
-   "B763F",
+   "B738F",
    "B722F",
    "B752F",
-   "A306F"
+   "A306F",
+   "B763F"
   ],
   "cargo": "General cargo and empty ULDs",
   "payload_lbs": 80000,
@@ -35237,10 +36585,11 @@
    "lon": 115.967
   },
   "aircraft": [
-   "A306F",
-   "B752F",
+   "B733F",
    "B738F",
-   "B733F"
+   "B722F",
+   "B752F",
+   "A306F"
   ],
   "cargo": "General cargo and empty ULDs",
   "payload_lbs": 78500,
@@ -35272,10 +36621,12 @@
    "lon": 153.117
   },
   "aircraft": [
-   "B722F",
    "B732F",
-   "A306F",
-   "B752F"
+   "B733F",
+   "B738F",
+   "B722F",
+   "B752F",
+   "A306F"
   ],
   "cargo": "General cargo and empty ULDs",
   "payload_lbs": 41500,
@@ -35307,10 +36658,12 @@
    "lon": 145.7495
   },
   "aircraft": [
-   "B722F",
    "B732F",
-   "A306F",
-   "B752F"
+   "B733F",
+   "B738F",
+   "B722F",
+   "B752F",
+   "A306F"
   ],
   "cargo": "General cargo and empty ULDs",
   "payload_lbs": 40500,
@@ -35342,10 +36695,11 @@
    "lon": 153.117
   },
   "aircraft": [
-   "B738F",
+   "B732F",
    "B733F",
+   "B738F",
    "B722F",
-   "B732F"
+   "B752F"
   ],
   "cargo": "General cargo and empty ULDs",
   "payload_lbs": 44500,
@@ -35409,9 +36763,10 @@
    "lon": 174.7863
   },
   "aircraft": [
-   "A306F",
-   "B752F",
    "B738F",
+   "B722F",
+   "B752F",
+   "A306F",
    "B763F"
   ],
   "cargo": "General cargo and empty ULDs",
@@ -35444,9 +36799,12 @@
    "lon": 174.7863
   },
   "aircraft": [
-   "A306F",
-   "B752F",
+   "B732F",
+   "B733F",
    "B738F",
+   "B722F",
+   "B752F",
+   "A306F",
    "B763F"
   ],
   "cargo": "General cargo and empty ULDs",
@@ -35513,10 +36871,11 @@
    "lon": 151.177
   },
   "aircraft": [
-   "B722F",
    "B733F",
-   "A306F",
-   "B752F"
+   "B738F",
+   "B722F",
+   "B752F",
+   "A306F"
   ],
   "cargo": "General cargo and empty ULDs",
   "payload_lbs": 40500,
@@ -35548,8 +36907,9 @@
    "lon": 153.117
   },
   "aircraft": [
-   "B738F",
    "B732F",
+   "B733F",
+   "B738F",
    "B752F"
   ],
   "cargo": "General cargo and empty ULDs",
@@ -35582,10 +36942,13 @@
    "lon": 177.4378
   },
   "aircraft": [
-   "A306F",
-   "B752F",
+   "B732F",
+   "B733F",
    "B738F",
-   "B733F"
+   "B722F",
+   "B752F",
+   "A306F",
+   "B763F"
   ],
   "cargo": "General cargo and empty ULDs",
   "payload_lbs": 65500,
@@ -35617,9 +36980,10 @@
    "lon": 144.7973
   },
   "aircraft": [
+   "B732F",
+   "B733F",
    "B738F",
-   "B752F",
-   "B733F"
+   "B752F"
   ],
   "cargo": "General cargo and empty ULDs",
   "payload_lbs": 39000,
@@ -35683,8 +37047,9 @@
    "lon": -149.6069
   },
   "aircraft": [
-   "B752F",
-   "B733F"
+   "B732F",
+   "B733F",
+   "B752F"
   ],
   "cargo": "General cargo and empty ULDs",
   "payload_lbs": 53500,
@@ -35750,8 +37115,9 @@
   },
   "aircraft": [
    "MD11F",
+   "B77F",
    "B742F",
-   "B77F"
+   "B748F"
   ],
   "cargo": "General cargo and empty ULDs",
   "payload_lbs": 114000,
@@ -35784,8 +37150,9 @@
   },
   "aircraft": [
    "MD11F",
+   "B77F",
    "B742F",
-   "B77F"
+   "B748F"
   ],
   "cargo": "General cargo and empty ULDs",
   "payload_lbs": 142000,
@@ -35817,8 +37184,9 @@
    "lon": 77.0952
   },
   "aircraft": [
-   "B742F",
+   "MD11F",
    "B77F",
+   "B742F",
    "B748F"
   ],
   "cargo": "General cargo and empty ULDs",
@@ -35851,10 +37219,12 @@
    "lon": 100.747
   },
   "aircraft": [
-   "MD11F",
+   "B752F",
    "B763F",
+   "MD11F",
    "B77F",
-   "B752F"
+   "B742F",
+   "B748F"
   ],
   "cargo": "General cargo and empty ULDs",
   "payload_lbs": 134000,
@@ -35886,9 +37256,10 @@
    "lon": 103.994
   },
   "aircraft": [
-   "B742F",
+   "MD11F",
    "B77F",
-   "MD11F"
+   "B742F",
+   "B748F"
   ],
   "cargo": "General cargo and empty ULDs",
   "payload_lbs": 201000,
@@ -35986,10 +37357,12 @@
    "lon": -149.9926
   },
   "aircraft": [
-   "B77F",
-   "B748F",
+   "B752F",
+   "B763F",
    "MD11F",
-   "B742F"
+   "B77F",
+   "B742F",
+   "B748F"
   ],
   "cargo": "General cargo and empty ULDs",
   "payload_lbs": 173000,
@@ -36056,10 +37429,12 @@
    "lon": -149.9926
   },
   "aircraft": [
-   "B77F",
-   "B748F",
+   "B752F",
+   "B763F",
    "MD11F",
-   "B742F"
+   "B77F",
+   "B742F",
+   "B748F"
   ],
   "cargo": "General cargo and empty ULDs",
   "payload_lbs": 175500,
@@ -36223,10 +37598,13 @@
    "lon": -149.9926
   },
   "aircraft": [
-   "MD11F",
-   "B763F",
+   "B752F",
    "A306F",
-   "B752F"
+   "B763F",
+   "MD11F",
+   "B77F",
+   "B742F",
+   "B748F"
   ],
   "cargo": "General cargo and empty ULDs",
   "payload_lbs": 138000,
@@ -36258,10 +37636,12 @@
    "lon": -149.9926
   },
   "aircraft": [
-   "MD11F",
+   "B752F",
    "B763F",
+   "MD11F",
    "B77F",
-   "B752F"
+   "B742F",
+   "B748F"
   ],
   "cargo": "General cargo and empty ULDs",
   "payload_lbs": 154000,
@@ -36293,10 +37673,12 @@
    "lon": -149.9926
   },
   "aircraft": [
-   "MD11F",
    "B752F",
+   "B763F",
+   "MD11F",
    "B77F",
-   "B742F"
+   "B742F",
+   "B748F"
   ],
   "cargo": "General cargo and empty ULDs",
   "payload_lbs": 150000,
@@ -36328,10 +37710,12 @@
    "lon": -149.9926
   },
   "aircraft": [
+   "B752F",
+   "B763F",
    "MD11F",
-   "B742F",
    "B77F",
-   "B763F"
+   "B742F",
+   "B748F"
   ],
   "cargo": "General cargo and empty ULDs",
   "payload_lbs": 146000,
@@ -36363,10 +37747,11 @@
    "lon": -149.9926
   },
   "aircraft": [
-   "MD11F",
    "B763F",
+   "MD11F",
    "B77F",
-   "B742F"
+   "B742F",
+   "B748F"
   ],
   "cargo": "General cargo and empty ULDs",
   "payload_lbs": 146000,
@@ -36398,10 +37783,11 @@
    "lon": -149.9926
   },
   "aircraft": [
-   "MD11F",
    "B763F",
+   "MD11F",
    "B77F",
-   "B742F"
+   "B742F",
+   "B748F"
   ],
   "cargo": "General cargo and empty ULDs",
   "payload_lbs": 158000,
@@ -36433,10 +37819,12 @@
    "lon": -149.9926
   },
   "aircraft": [
-   "MD11F",
    "B752F",
+   "B763F",
+   "MD11F",
    "B77F",
-   "B742F"
+   "B742F",
+   "B748F"
   ],
   "cargo": "General cargo and empty ULDs",
   "payload_lbs": 162000,
@@ -36469,8 +37857,9 @@
   },
   "aircraft": [
    "MD11F",
+   "B77F",
    "B742F",
-   "B77F"
+   "B748F"
   ],
   "cargo": "General cargo and empty ULDs",
   "payload_lbs": 134000,
@@ -36503,8 +37892,9 @@
   },
   "aircraft": [
    "MD11F",
+   "B77F",
    "B742F",
-   "B77F"
+   "B748F"
   ],
   "cargo": "General cargo and empty ULDs",
   "payload_lbs": 129500,
@@ -36666,10 +38056,12 @@
    "lon": -149.9926
   },
   "aircraft": [
-   "B763F",
-   "B752F",
+   "B732F",
+   "B733F",
    "B738F",
-   "B733F"
+   "B722F",
+   "B752F",
+   "B763F"
   ],
   "cargo": "Northbound freight for the transpacific gateway",
   "payload_lbs": 42000,
@@ -36701,10 +38093,12 @@
    "lon": -113.58
   },
   "aircraft": [
-   "B763F",
-   "B752F",
+   "B732F",
+   "B733F",
    "B738F",
-   "B733F"
+   "B722F",
+   "B752F",
+   "B763F"
   ],
   "cargo": "Transpacific inbound for the prairies",
   "payload_lbs": 42000,
