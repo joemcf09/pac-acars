@@ -564,6 +564,22 @@ def run(cfg):
         if done:
             await apac("POST", "/api/bot/activity/reminded", {"items": done})
 
+    async def paystub_tick():
+        """Every ten minutes: DM pilots that a new PAC pay statement is ready (once per pay period)."""
+        st, r = await apac("GET", "/api/bot/paystubs")
+        if st != 200 or not r.get("enabled") or not r.get("paystubs"):
+            return
+        done = []
+        for it in r["paystubs"]:
+            try:
+                u = client.get_user(int(it["discord_id"])) or await client.fetch_user(int(it["discord_id"]))
+                await u.send(it.get("text") or "Your PAC pay statement is ready.")
+                done.append(it)
+            except (discord.Forbidden, discord.HTTPException, discord.NotFound):
+                done.append(it)          # DMs closed: don't keep trying for this period
+        if done:
+            await apac("POST", "/api/bot/paystubs/sent", {"items": done})
+
     async def events_loop():
         await client.wait_until_ready()
         n = 0
@@ -580,6 +596,8 @@ def run(cfg):
                     await recap_tick()
                 if n % 120 == 90:                # every ten minutes: next-flight-due reminders by DM
                     await activity_tick()
+                if n % 120 == 100:               # every ten minutes: new pay statements by DM
+                    await paystub_tick()
                 if n % 120 == 0:                 # every ten minutes: keep everyone's roles right
                     await sync_all()
                     st, c = await apac("GET", "/api/bot/config")

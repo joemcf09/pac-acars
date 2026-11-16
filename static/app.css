@@ -1959,3 +1959,30 @@ html[data-design="loadsheet"] :is(.relief-draft,.relief-notice,.relief-checks){b
 .ceo-trip em{font-style:normal;font-weight:800;white-space:nowrap}
 .daynight-btn[aria-pressed="true"]{background:var(--red);color:#fff;border-color:var(--red)}
 .net-od{display:inline-flex;gap:6px;align-items:center;flex-wrap:wrap}.net-od input{max-width:170px}#netSwap{font-size:16px;line-height:1;padding:6px 10px}
+
+/* pay statement + "you've been paid" notice */
+.paystub-dlg{width:min(600px,96vw)}
+.paystub{padding:22px 24px 20px;background:var(--white);color:var(--ink)}
+.ps-head{display:flex;align-items:center;justify-content:space-between;gap:16px;border-bottom:2px solid var(--ink);padding-bottom:14px}
+.ps-head img{height:34px;width:auto}
+.ps-title{text-align:right}
+.ps-title h2{margin:0;font-size:20px;letter-spacing:.01em}
+.ps-meta{display:grid;grid-template-columns:1fr 1fr;gap:10px 18px;margin:16px 0}
+.ps-meta span{display:block;font-size:11.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--steel)}
+.ps-meta b{font-size:14px}
+.ps-table{margin:10px 0}
+.ps-table tfoot td{border-top:2px solid var(--ink);border-bottom:0;padding-top:10px}
+.ps-summary{display:flex;gap:14px;margin:14px 0 4px}
+.ps-summary>div{flex:1;background:var(--paper);border:1px solid var(--line);border-radius:4px;padding:12px 14px}
+.ps-summary span{display:block;font-size:11.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--steel)}
+.ps-summary b{font-size:22px;font-variant-numeric:tabular-nums}
+.ps-note{font-size:11.5px;color:var(--steel);margin:14px 0 0;line-height:1.4}
+.ps-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:16px}
+.pay-notice{position:fixed;right:max(16px,env(safe-area-inset-right,0px));bottom:max(16px,env(safe-area-inset-bottom,0px));z-index:1400;display:flex;gap:12px;width:min(360px,calc(100vw - 32px));background:var(--white);color:var(--ink);border:1px solid var(--line);border-left:4px solid var(--red);border-radius:8px;box-shadow:0 14px 40px rgba(0,0,0,.22);padding:14px 16px}
+.pay-notice .pn-x{position:absolute;top:6px;right:8px;border:0;background:transparent;font-size:18px;line-height:1;color:var(--steel);cursor:pointer}
+.pay-notice .pn-ic{flex:none;width:34px;height:34px;border-radius:6px;background:var(--red);color:#fff;font-weight:800;font-size:12px;display:flex;align-items:center;justify-content:center;letter-spacing:.02em}
+.pay-notice .pn-body{display:flex;flex-direction:column;gap:4px}
+.pay-notice .pn-body b{font-size:14px}
+.pay-notice .pn-body span{font-size:12.5px;color:var(--steel)}
+.pay-notice .pn-body .btn{margin-top:6px;align-self:flex-start}
+@media print{body *{visibility:hidden}#paystubDlg,#paystubDlg *{visibility:visible}#paystubDlg{position:absolute;inset:0;box-shadow:none}.ps-actions{display:none}}

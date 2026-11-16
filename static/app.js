@@ -3586,6 +3586,7 @@ async function loadMe() {
   try { S.me = { ...(S.authPilot || {}), ...(await api("/api/pilot/me")), ...(S.authPilot ? { id: S.authPilot.id, staff: S.authPilot.staff } : {}) }; }
   catch (e) { S.me = S.authPilot || null; }
   renderPilotStrip();
+  if (S.me?.new_paystub) showPayNotice(S.me.new_paystub);
   return S.me;
 }
 function renderPilotStrip() {
@@ -3645,7 +3646,7 @@ function walletPanel(me, wallet) {
     <span class="muted" role="status">Transactions ${(wallet.page - 1) * wallet.per_page + 1}–${Math.min(wallet.page * wallet.per_page, wallet.total)} of ${wallet.total}</span>
     <div class="row" style="gap:8px"><button class="btn small outline" type="button" onclick="loadWalletPage(${wallet.page - 1})" ${wallet.page <= 1 ? "disabled" : ""}>Previous</button>
     <span class="muted">Page ${wallet.page} of ${wallet.pages}</span><button class="btn small outline" type="button" onclick="loadWalletPage(${wallet.page + 1})" ${wallet.page >= wallet.pages ? "disabled" : ""}>Next</button></div></nav>` : "";
-  return `<div class="section-h"><div><h2>Pay and wallet</h2><p>${esc(me.rank)}s earn $${me.pay_rate} per block hour, plus ${me.profit_share_pct}% of each flight's profit. Spend it on jumpseats to reposition.</p></div><button class="btn small" onclick="openJumpseat()">Jumpseat</button></div>
+  return `<div class="section-h"><div><h2>Pay and wallet</h2><p>${esc(me.rank)}s earn $${me.pay_rate} per block hour, plus ${me.profit_share_pct}% of each flight's profit, and a weekly base for flying. Spend it on jumpseats to reposition.</p></div><div class="row" style="gap:8px"><button class="btn small outline" onclick="openPaystub()">Pay statement</button><button class="btn small" onclick="openJumpseat()">Jumpseat</button></div></div>
     <div class="wallet-hero"><div><span>Wallet</span><b>${money(me.balance, true)}</b></div><div><span>Location</span><b>${esc(me.location?.icao || "")}</b></div>
       <div><span>Earned all time</span><b>${money(me.earned, true)}</b></div><div><span>Spent on travel</span><b>${money(me.spent_travel, true)}</b></div></div>
     <p style="margin:10px 0 0"><a href="#shop" onclick="show('shop');return false" style="color:var(--red);font-weight:700">Visit the PAC shop →</a>${me.spent_shop ? ` <span class="muted">· ${money(me.spent_shop, true)} spent there so far</span>` : ""}</p>
@@ -3659,6 +3660,57 @@ async function loadWalletPage(page) {
     S.walletData = wallet;
     $("#careerWallet").innerHTML = walletPanel(S.me, wallet);
   } catch (e) { toast(e.message); }
+}
+
+/* ---------------- pay statements ---------------- */
+function paystubHTML(s) {
+  const me = S.me || {};
+  const row = l => `<tr><td>${esc(l.label)}</td><td class="r ${moneyCls(l.amount)}"><b>${l.amount > 0 ? "+" : ""}${money(l.amount, true)}</b></td></tr>`;
+  return `<article class="paystub">
+    <header class="ps-head"><img src="/static/pac-wordmark-red.png" alt="Pagani Air Cargo" width="150">
+      <div class="ps-title"><h2>Pay Statement</h2><div class="muted">${esc(s.period || "")}</div></div></header>
+    <div class="ps-meta">
+      <div><span>Pilot</span><b>${esc(me.id || "")} · ${esc(displayName(S.profile) || me.name || "")}</b></div>
+      <div><span>Rank</span><b>${esc(s.rank || me.rank || "")}</b></div>
+      <div><span>Pay period</span><b>${esc(s.period_label || "")}</b></div>
+      <div><span>Flying</span><b>${s.flights} flight${s.flights === 1 ? "" : "s"} · ${esch(s.block_hours)} block h</b></div>
+    </div>
+    <table class="fin-table ps-table"><thead><tr><th>Earnings</th><th class="r">Amount</th></tr></thead>
+      <tbody>${s.lines.map(row).join("") || `<tr><td class="muted">No earnings this period</td><td></td></tr>`}</tbody>
+      <tfoot><tr><td><b>Gross earnings</b></td><td class="r"><b>${money(s.gross, true)}</b></td></tr></tfoot></table>
+    ${s.deductions.length ? `<table class="fin-table ps-table"><thead><tr><th>Deductions</th><th class="r">Amount</th></tr></thead>
+      <tbody>${s.deductions.map(row).join("")}</tbody>
+      <tfoot><tr><td><b>Total deductions</b></td><td class="r"><b>${money(s.deductions_total, true)}</b></td></tr></tfoot></table>` : ""}
+    <div class="ps-summary"><div><span>Net pay</span><b class="${moneyCls(s.net)}">${money(s.net, true)}</b></div>
+      <div><span>Wallet balance</span><b>${money(s.balance, true)}</b></div></div>
+    <p class="ps-note">This pay statement is simulated for flight simulation only. No real money is paid out; PAC wallet dollars exist only inside Pagani Air Cargo.</p>
+    <div class="ps-actions"><button class="btn small outline" type="button" onclick="window.print()">Print / save as PDF</button>
+      <button class="btn small" type="button" onclick="this.closest('dialog').close()">Close</button></div>
+  </article>`;
+}
+async function openPaystub(period) {
+  let dlg = document.getElementById("paystubDlg");
+  if (!dlg) { dlg = document.createElement("dialog"); dlg.id = "paystubDlg"; dlg.className = "paystub-dlg"; document.body.appendChild(dlg); }
+  dlg.innerHTML = `<div class="paystub"><p class="muted" style="padding:28px 24px">Loading your pay statement…</p></div>`;
+  if (!dlg.open) dlg.showModal();
+  try {
+    const s = await api("/api/pilot/paystub" + (period ? "?period=" + encodeURIComponent(period) : ""));
+    dlg.innerHTML = paystubHTML(s);
+  } catch (e) {
+    dlg.innerHTML = `<div class="paystub"><p style="padding:24px">We couldn't load the pay statement. ${esc(e.message || "")}</p><div class="ps-actions"><button class="btn small" onclick="this.closest('dialog').close()">Close</button></div></div>`;
+  }
+}
+function showPayNotice(p) {
+  if (!p || !p.period || S.payNoticeShown === p.period) return;
+  S.payNoticeShown = p.period;
+  api("/api/pilot/paystub/seen", { method: "POST", body: { period: p.period } }).catch(() => {});   // once seen, it won't return
+  let el = document.getElementById("payNotice");
+  if (!el) { el = document.createElement("div"); el.id = "payNotice"; el.className = "pay-notice"; document.body.appendChild(el); }
+  el.innerHTML = `<button class="pn-x" type="button" aria-label="Dismiss" onclick="this.closest('.pay-notice').remove()">×</button>
+    <div class="pn-ic">PAC</div>
+    <div class="pn-body"><b>You've been paid!</b>
+      <span>Your pay statement for ${esc(p.period_label || "the latest period")} is ready — ${money(p.net, true)} net.</span>
+      <button class="btn small" type="button" onclick="document.getElementById('payNotice').remove();openPaystub('${esc(p.period)}')">View pay statement</button></div>`;
 }
 
 

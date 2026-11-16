@@ -503,6 +503,29 @@ def bot_activity_reminded():
     return jsonify({"ok": True})
 
 
+@bp.get("/api/bot/paystubs")
+def bot_paystubs():
+    """Pilots to notify by DM that a new pay statement is ready (one per pilot per pay period)."""
+    import payroll
+    site = (C["va"].site().get("public_url") or "https://pac-va.com").rstrip("/") or "https://pac-va.com"
+    with C["db"]() as con:
+        try:
+            due = payroll.dm_due(con, site)
+        except Exception as e:
+            print("paystub dm_due:", e); due = []
+    return jsonify({"paystubs": due, "site": site, "enabled": bool(C["settings"]().get("discord_pay_dm", True))})
+
+
+@bp.post("/api/bot/paystubs/sent")
+def bot_paystubs_sent():
+    import payroll
+    items = (request.json or {}).get("items") or []
+    with C["db"]() as con:
+        payroll.mark_dmed(con, items)
+        con.commit()
+    return jsonify({"ok": True})
+
+
 @bp.get("/api/bot/status")
 def bot_status():
     """/status in Discord: the linked pilot's day at a glance (location, crew rest, current flight or trip, wallet, rank)."""

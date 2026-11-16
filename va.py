@@ -3708,17 +3708,51 @@ def staff_wallet(pid):
 @bp.get("/api/pilot/me")
 def pilot_me():
     pid = current_pilot_id()
+    import payroll
     with C["db"]() as con:
         tx = [dict(r) for r in con.execute("SELECT * FROM wallet WHERE pilot_id=? ORDER BY time DESC LIMIT 30", (pid,))]
         earned = con.execute("SELECT COALESCE(SUM(amount),0) FROM wallet WHERE pilot_id=? AND amount>0 AND kind!='adjustment'", (pid,)).fetchone()[0]
         spent = con.execute("SELECT COALESCE(SUM(-amount),0) FROM wallet WHERE pilot_id=? AND kind='jumpseat'", (pid,)).fetchone()[0]
         shop_spent = con.execute("SELECT COALESCE(SUM(-amount),0) FROM wallet WHERE pilot_id=? AND kind='shop'", (pid,)).fetchone()[0]
+        try:
+            new_paystub = payroll.pending_site(con, pid)
+        except Exception as e:
+            print("paystub pending:", e); new_paystub = None
     car = career(pid)
     return jsonify({"location": C["airport_obj"](pilot_location(pid)), "balance": balance(pid), "transactions": tx,
                     "earned": round(earned, 2), "spent_travel": round(spent, 2), "spent_shop": round(shop_spent, 2), "rank": car["rank"],
                     "pay_rate": PAY_RATES.get(car["rank"], 55), "profit_share_pct": PROFIT_SHARE * 100,
                     "enforce_location": bool(C["settings"]().get("enforce_pilot_location", True)),
-                    "activity": _activity(pid)})
+                    "new_paystub": new_paystub, "activity": _activity(pid)})
+
+
+@bp.get("/api/pilot/paystub")
+def pilot_paystub():
+    pid = current_pilot_id()
+    import payroll
+    period = request.args.get("period") or None
+    with C["db"]() as con:
+        return jsonify(payroll.statement(con, pid, period))
+
+
+@bp.get("/api/pilot/paystubs")
+def pilot_paystubs():
+    pid = current_pilot_id()
+    import payroll
+    with C["db"]() as con:
+        return jsonify({"periods": payroll.periods_for(con, pid)})
+
+
+@bp.post("/api/pilot/paystub/seen")
+def pilot_paystub_seen():
+    pid = current_pilot_id()
+    import payroll
+    period = (request.get_json(silent=True) or {}).get("period")
+    with C["db"]() as con:
+        if period:
+            payroll.mark_notified(con, pid, period)
+        con.commit()
+    return jsonify({"ok": True})
 
 
 def _overdue_count():
