@@ -2555,11 +2555,16 @@ async function loadCargo() {
     const actionable = weakAcc.filter(a => a.station && a.waiting), idle = weakAcc.filter(a => !(a.station && a.waiting));
     const chip = a => a.tier === "At risk" ? `<span class="acct-chip risk">Slipping away</span>` : `<span class="acct-chip review">Needs a win</span>`;
     if (weakAcc.length) {
+      const counts = {}; actionable.forEach(a => counts[a.station] = (counts[a.station] || 0) + 1);
+      const stations = Object.keys(counts).sort((x, y) => counts[y] - counts[x] || x.localeCompare(y));
+      const filterRow = stations.length > 1 ? `<div class="acct-filter"><button type="button" class="acct-pill active" data-acct-filter="">All (${actionable.length})</button>${stations.map(s => `<button type="button" class="acct-pill" data-acct-filter="${esc(s)}">${esc(s)} (${counts[s]})</button>`).join("")}</div>` : "";
       el.insertAdjacentHTML("beforeend", `<h2>Accounts that need you</h2><p class="muted" style="max-width:90ch">These shippers have been let down lately, so they're sending more of their freight to other carriers. Fly their cargo and deliver it on time to win them back.</p>
-        ${actionable.length ? `<div class="acct-grid">${actionable.map(a => `<article class="acct-card ${a.tier === "At risk" ? "risk" : "review"}">
+        ${filterRow}
+        ${actionable.length ? `<div class="acct-grid">${actionable.map(a => `<article class="acct-card ${a.tier === "At risk" ? "risk" : "review"}" data-acct-station="${esc(a.station)}">
           <div class="acct-top"><b>${esc(a.shipper)}</b>${chip(a)}</div>
           <p class="muted">${a.waiting} shipment${a.waiting === 1 ? "" : "s"} waiting at <b>${esc(a.station)}</b></p>
-          <button type="button" class="btn small" data-acct-fly="${esc(a.station)}">Find their freight →</button></article>`).join("")}</div>` : `<p class="muted">None of the slipping accounts have freight waiting right now. Their cargo will be back on the boards as stations restock.</p>`}
+          <button type="button" class="btn small" data-acct-fly="${esc(a.station)}">Find their freight →</button></article>`).join("")}</div>
+        <p class="muted acct-empty" hidden>No slipping accounts have freight waiting at that station right now.</p>` : `<p class="muted">None of the slipping accounts have freight waiting right now. Their cargo will be back on the boards as stations restock.</p>`}
         ${idle.length ? `<p class="muted" style="font-size:13px">${idle.length} more account${idle.length === 1 ? "" : "s"} slipping (${idle.slice(0, 5).map(a => esc(a.shipper)).join(", ")}${idle.length > 5 ? "…" : ""}) with no freight waiting from them right now.</p>` : ""}
         <p class="muted" style="font-size:12px">Company names are used for flight simulation only and imply no relationship with PAC.</p>`);
     } else if (acc.length) {
@@ -2568,6 +2573,15 @@ async function loadCargo() {
     el.querySelectorAll("[data-acct-fly]").forEach(b => b.onclick = () => {
       resetMissionFilters(); Object.assign(S, { board: "all", parkedOrigin: b.dataset.acctFly, shipmentFilterTitle: `Freight waiting at ${b.dataset.acctFly}` });
       show("missions");
+    });
+    el.querySelectorAll("[data-acct-filter]").forEach(btn => btn.onclick = () => {
+      const f = btn.dataset.acctFilter;
+      el.querySelectorAll(".acct-pill").forEach(p => p.classList.toggle("active", p === btn));
+      let shown = 0;
+      el.querySelectorAll(".acct-card[data-acct-station]").forEach(c => {
+        const hit = !f || c.dataset.acctStation === f; c.hidden = !hit; if (hit) shown++;
+      });
+      const empty = el.querySelector(".acct-empty"); if (empty) empty.hidden = shown > 0;
     });
   });
   $("#cgoSeasons").innerHTML = (overview.seasons || []).length ? `<h2>In season now</h2><div class="cgo-season-grid">${overview.seasons.map(x => `<article class="cgo-season-card">

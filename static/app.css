@@ -2000,3 +2000,9 @@ html[data-design="loadsheet"] :is(.relief-draft,.relief-notice,.relief-checks){b
 .acct-chip.risk{background:var(--red-wash);color:var(--red-deep)}
 .acct-chip.review{background:#FBF0DB;color:#8A5A06}
 .acct-card .btn{align-self:flex-start;margin-top:2px}
+
+/* "Accounts that need you" station filter */
+.acct-filter{display:flex;flex-wrap:wrap;gap:8px;margin:14px 0 4px}
+.acct-pill{font:inherit;font-size:13px;font-weight:600;padding:6px 12px;border-radius:20px;border:1px solid var(--line);background:var(--white);color:var(--ink);cursor:pointer;white-space:nowrap}
+.acct-pill:hover{border-color:var(--steel)}
+.acct-pill.active{background:var(--red);border-color:var(--red);color:#fff}
