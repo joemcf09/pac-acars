@@ -1653,9 +1653,10 @@ function renderAcars() {
     // Radio cheat sheet: same flight data, with the spoken callsign built from the filing code and telephony word.
     const rq = new URLSearchParams();
     const digits = String(b.flight_number || "").replace(/\D/g, "");
-    const code = (o && o.airline) || "PGI";
-    const telRaw = (o && o.callsign) || "PAGANI";
-    const tel = telRaw.charAt(0).toUpperCase() + telRaw.slice(1).toLowerCase();
+    const op = (m && m.operator) || {};
+    const code = op.code || (o && o.airline) || "PGI";                 // filing code, e.g. PGI (or a partner's)
+    const telRaw = op.callsign || "PAGANI";                            // spoken airline name: a partner's, else PAC's
+    const tel = telRaw === telRaw.toUpperCase() ? telRaw.charAt(0) + telRaw.slice(1).toLowerCase() : telRaw;
     if (code && digits) rq.set("fn", code + digits);
     rq.set("callword", tel + (digits ? " " + digits : ""));
     if (m.origin?.icao) rq.set("dep", m.origin.icao);
