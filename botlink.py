@@ -505,12 +505,20 @@ def bot_activity_reminded():
 
 @bp.get("/api/bot/paystubs")
 def bot_paystubs():
-    """Pilots to notify by DM that a new pay statement is ready (one per pilot per pay period)."""
+    """Pilots to notify by DM that a new pay statement is ready (one per pilot per pay period).
+
+    The stubs are claimed (marked DMed) as they are handed to the bot, not when the bot acks back. A pay DM is a
+    nicety, so missing one if the bot then fails to send is fine; re-sending the same stub every poll is not. This
+    makes a resend impossible even if the ack never arrives. A catch-up is collapsed to the newest week first, so
+    a pilot gets one DM, not one per backfilled week."""
     import payroll
     site = (C["va"].site().get("public_url") or "https://pac-va.com").rstrip("/") or "https://pac-va.com"
     with C["db"]() as con:
         try:
-            due = payroll.dm_due(con, site)
+            payroll.coalesce_notices(con)       # a catch-up pings once, for the latest paycheck
+            due = payroll.dm_due(con, site)      # now at most one pending period per pilot
+            payroll.mark_dmed(con, due)          # claim on handout: never resend, even if the bot's ack is lost
+            con.commit()
         except Exception as e:
             print("paystub dm_due:", e); due = []
     return jsonify({"paystubs": due, "site": site, "enabled": bool(C["settings"]().get("discord_pay_dm", True))})
