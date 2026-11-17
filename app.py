@@ -1364,7 +1364,7 @@ def pilot_page(pid):
     row = dict(row)
     prof = with_rating_families(with_flair(load_profile(pid)))
     keep = ("pilot_id", "name", "rank", "title", "callsign", "base", "secondary_base", "member_since", "bio", "photo",
-            "credentials", "type_ratings", "flair")
+            "credentials", "type_ratings", "flair", "roles")
     car = va.career(pid)
     st = va.stats(pid)
     return jsonify({
