@@ -2075,3 +2075,12 @@ html[data-design="loadsheet"] :is(.relief-draft,.relief-notice,.relief-checks){b
 .rec-card{border:1px solid var(--line);border-radius:10px;padding:12px 14px;background:var(--white)}
 
 .nav-disclosure.solo .disc-caret{display:none}
+
+/* new-pilot "next step" spotlight */
+.next-step{display:flex;gap:16px;align-items:center;justify-content:space-between;flex-wrap:wrap;margin:14px 0;padding:16px 18px;border:1px solid var(--red);border-left:4px solid var(--red);border-radius:10px;background:rgba(200,0,0,.06)}
+.next-step .next-step-body{flex:1;min-width:220px}
+.next-step h4{margin:3px 0 4px;font-size:18px}
+.next-step p{margin:0;color:var(--steel,#5b6472);font-size:14px}
+.next-step .btn{flex:none}
+.start-steps li.next{background:rgba(200,0,0,.05);border-radius:8px}
+@media(max-width:560px){.next-step .btn{width:100%}}

@@ -9151,10 +9151,14 @@ function startHereHTML(d) {
     ["Fly it and file your PIREP", filed, "Park, brakes set, engines off, then File PIREP in ACARS.", "Gate-to-gate checklist", "show('downloads')"]];
   const done = steps.filter(s => s[1]).length;
   if (done === steps.length) return pilotWelcomeHTML();
+  const next = steps.find(s => !s[1]);   // the one thing to do right now
+  const nextN = steps.indexOf(next) + 1;
   return `<section class="start-here" aria-label="Start here">
-    <div class="start-head"><div><span class="kicker">Start here</span><h3>Your first PAC flight, step by step</h3></div>
+    <div class="start-head"><div><span class="kicker">Start here</span><h3>Your first PAC flight</h3></div>
       <div class="start-meter" role="img" aria-label="${done} of ${steps.length} steps done"><b>${done}/${steps.length}</b><span><i style="width:${done / steps.length * 100}%"></i></span></div></div>
-    <ol class="start-steps">${steps.map(([t, ok, p, l, go]) => `<li class="${ok ? "done" : ""}"><span class="start-tick" aria-hidden="true">${ok ? "✓" : ""}</span>
+    ${next ? `<div class="next-step"><div class="next-step-body"><span class="kicker">Your next step · ${nextN} of ${steps.length}</span><h4>${next[0]}</h4><p>${next[2]}</p></div>
+      <button class="btn" type="button" onclick="${next[4]}">${next[3]} →</button></div>` : ""}
+    <ol class="start-steps">${steps.map(([t, ok, p, l, go]) => `<li class="${ok ? "done" : t === next[0] ? "next" : ""}"><span class="start-tick" aria-hidden="true">${ok ? "✓" : ""}</span>
       <div><b>${t}</b><small>${p}</small></div>${ok ? `<span class="start-ok">Done</span>` : `<button class="btn ghost small" type="button" onclick="${go}">${l}</button>`}</li>`).join("")}</ol>
     <div class="row"><button class="btn small" type="button" onclick="openPilotGuide()">Full first-flight guide</button><button class="btn ghost small" type="button" onclick="location.href='/academy/'">PAC Academy</button></div></section>`;
 }
