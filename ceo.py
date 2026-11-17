@@ -406,6 +406,29 @@ def register(app, g):
         except ValueError as e:
             return jsonify({"error": str(e)}), 400
 
+    @app.get("/api/staff/accounts")
+    def shipper_accounts():
+        """Commercial: every shipper's 90-day account standing, worst first, with at-risk ones flagged."""
+        with g["db"]() as con:
+            if (r := deny(con, "complaints")):
+                return r
+            import accounts
+            acc = accounts.compute(con)
+            rows = sorted(acc.values(), key=lambda a: (a["score"], -a.get("shipments", 0)))
+            needs = [a for a in rows if a["tier"] in ("Under review", "At risk")]
+            return jsonify({"accounts": rows, "needs_attention": needs, "tiers": [t[1] for t in accounts.TIERS]})
+
+    @app.get("/api/staff/lanes")
+    def lane_reputation():
+        """Commercial: route-level customer reputation, weakest lanes first."""
+        with g["db"]() as con:
+            if (r := deny(con, "complaints")):
+                return r
+            import lanes
+            L = lanes.compute(con)
+            rows = sorted(L.values(), key=lambda x: (x["score"], -x.get("flights", 0)))
+            return jsonify({"lanes": rows})
+
     @app.get("/api/staff/market")
     def market():
         with g["db"]() as con:

@@ -74,11 +74,16 @@ check("Mara may NOT /api/staff/overview", company.may_path(con, "PAC0003", "/api
 check("Alan (livery) may NOT /api/staff/partner-photos", company.may_path(con, "PAC0014", "/api/staff/partner-photos") is False)
 
 # --- Commercial: complaints (with shipper standing) --------------------------
-check("complaints path is scoped to commercial", company.capability_for("/api/staff/complaints") == "commercial")
+for p in ("complaints", "accounts", "lanes", "featured-shipments"):
+    check(f"{p} path is scoped to commercial", company.capability_for("/api/staff/" + p) == "commercial",
+          company.capability_for("/api/staff/" + p))
 check("complaints answer sub-path scoped", company.capability_for("/api/staff/complaints/12") == "commercial")
+check("featured-shipments action sub-path scoped", company.capability_for("/api/staff/featured-shipments/3") == "commercial")
 check("Devi's caps = [commercial]", company.caps_of(con, "PAC0004") == ["commercial"], company.caps_of(con, "PAC0004"))
 check("Devi MAY /api/staff/complaints", company.may_path(con, "PAC0004", "/api/staff/complaints") is True)
-check("Devi MAY /api/staff/complaints/<id>", company.may_path(con, "PAC0004", "/api/staff/complaints/9") is True)
+check("Devi MAY /api/staff/accounts", company.may_path(con, "PAC0004", "/api/staff/accounts") is True)
+check("Devi MAY /api/staff/lanes", company.may_path(con, "PAC0004", "/api/staff/lanes") is True)
+check("Devi MAY /api/staff/featured-shipments/<id>", company.may_path(con, "PAC0004", "/api/staff/featured-shipments/3") is True)
 check("Devi may NOT /api/staff/market (fleet money, unmapped)", company.may_path(con, "PAC0004", "/api/staff/market") is False)
 check("Devi may NOT /api/staff/overview", company.may_path(con, "PAC0004", "/api/staff/overview") is False)
 check("Mara (creative) may NOT /api/staff/complaints", company.may_path(con, "PAC0003", "/api/staff/complaints") is False)

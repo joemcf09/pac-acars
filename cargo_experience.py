@@ -69,6 +69,18 @@ def register(app,context):
         if staff and not p.get('staff'):return None,reply({'error':'Staff access required.'},403)
         return p,None
 
+    def staff_or(cap):
+        """Full admin, or a non-admin role-holder scoped to `cap` (e.g. Commercial for featured shipments)."""
+        import auth,company
+        p=auth.current()
+        if not p:return None,reply({'error':'Please sign in.'},401)
+        if p.get('staff'):return p,None
+        try:
+            with closing(db()) as con:
+                if cap in company.caps_of(con,p['id']):return p,None
+        except Exception:pass
+        return None,reply({'error':'Staff access required.'},403)
+
     @app.get('/api/pilot/delivery-receipt/<int:rid>')
     def delivery_receipt(rid):
         p,error=user()
@@ -88,7 +100,7 @@ def register(app,context):
 
     @app.route('/api/staff/featured-shipments',methods=['GET','POST'])
     def staff_features():
-        p,error=user(True)
+        p,error=staff_or('commercial')
         if error is not None:return error
         if request.method=='GET':
             with closing(db()) as con:
@@ -110,7 +122,7 @@ def register(app,context):
 
     @app.post('/api/staff/featured-shipments/<int:fid>')
     def feature_action(fid):
-        p,error=user(True)
+        p,error=staff_or('commercial')
         if error is not None:return error
         body=request.get_json(silent=True);action=body.get('action') if isinstance(body,dict) else None
         if action not in ('publish','archive'):return reply({'error':'Choose publish or archive.'},400)

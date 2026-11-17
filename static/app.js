@@ -8181,15 +8181,15 @@ function offerDeliveryReceipt(id){
   const el=$('#latestDeliveryReceipt');if(!el || !Number.isInteger(id))return;
   el.innerHTML=`<div class="ce-receipt-offer"><div><b>Your flight report is filed.</b><p>See its review status, campaign contribution and posted earnings.</p></div><button class="btn" onclick="openDeliveryReceipt(${id})">View delivery receipt →</button></div>`;
 }
-async function loadShipmentEditor(){
-  const root=$('#shipmentEditor'),pid=S.me?.id;if(!root || !S.me?.staff)return;
-  const current=()=>root.isConnected && S.me?.id===pid && S.me?.staff;
+async function loadShipmentEditor(root=$('#shipmentEditor')){
+  const pid=S.me?.id;if(!root || !hasCap('commercial'))return;
+  const current=()=>root.isConnected && S.me?.id===pid && hasCap('commercial');
   root.innerHTML='<p>Loading shipment features…</p>';
   try{const data=await api('/api/staff/featured-shipments');if(!current())return;
     const today=new Date().toISOString().slice(0,10),last=new Date(Date.now()+6*86400000).toISOString().slice(0,10);
     root.innerHTML=`<details class="cargo-create"><summary>Manage Shipment of the Week</summary><p>Publish a fictional cargo story with links to flights serving its destinations. One published feature can cover any given day.</p><form id="shipmentForm" class="cargo-form"><label>Title<input name="title" required minlength="3" maxlength="80" placeholder="Island clinic resupply"></label><label>Cargo story<textarea name="description" required maxlength="1000" rows="3" placeholder="A fictional shipment, why it matters, and what pilots are carrying."></textarea></label><div class="cargo-form-row"><label>Start (UTC)<input name="start_date" type="date" required value="${today}"></label><label>Last day (UTC)<input name="end_date" type="date" required value="${last}"></label></div><label>Destination ICAOs<input name="destinations" required placeholder="MYNN, TJSJ, TNCM"></label><button class="btn" type="submit">Save private shipment draft</button><p id="shipmentStatus" role="status"></p></form><div class="ce-features">${data.shipments.map(f=>`<article><span class="kicker">${esc(f.state)}</span><h3>${esc(f.title)}</h3><p class="ce-story">${esc(f.description)}</p><p>${f.destinations.map(esc).join(', ')} · ${new Date(f.starts*1000).toISOString().slice(0,10)} – ${new Date((f.ends-1)*1000).toISOString().slice(0,10)} UTC</p>${f.state==='draft'?`<button class="btn small" data-feature="${f.id}" data-action="publish">Publish shipment</button> `:''}${f.state!=='archived'?`<button class="btn ghost small" data-feature="${f.id}" data-action="archive">Archive</button>`:''}</article>`).join('')}</div></details>`;
-    $('#shipmentForm').onsubmit=async e=>{e.preventDefault();const f=e.currentTarget,b=f.querySelector('button'),fields=f.elements;b.disabled=true;try{await api('/api/staff/featured-shipments',{method:'POST',body:{title:fields.title.value,description:fields.description.value,start_date:fields.start_date.value,end_date:fields.end_date.value,destinations:fields.destinations.value.split(/[\s,]+/).filter(Boolean)}});if(current())loadShipmentEditor();}catch(err){if(current()){$('#shipmentStatus').textContent=err.message;b.disabled=false;}}};
-    root.querySelectorAll('[data-feature]').forEach(b=>b.onclick=async()=>{b.disabled=true;try{await api('/api/staff/featured-shipments/'+b.dataset.feature,{method:'POST',body:{action:b.dataset.action}});S._featureAt=0;if(current())loadShipmentEditor();}catch(e){if(current()){toast(e.message);b.disabled=false;}}});
+    $('#shipmentForm').onsubmit=async e=>{e.preventDefault();const f=e.currentTarget,b=f.querySelector('button'),fields=f.elements;b.disabled=true;try{await api('/api/staff/featured-shipments',{method:'POST',body:{title:fields.title.value,description:fields.description.value,start_date:fields.start_date.value,end_date:fields.end_date.value,destinations:fields.destinations.value.split(/[\s,]+/).filter(Boolean)}});if(current())loadShipmentEditor(root);}catch(err){if(current()){$('#shipmentStatus').textContent=err.message;b.disabled=false;}}};
+    root.querySelectorAll('[data-feature]').forEach(b=>b.onclick=async()=>{b.disabled=true;try{await api('/api/staff/featured-shipments/'+b.dataset.feature,{method:'POST',body:{action:b.dataset.action}});S._featureAt=0;if(current())loadShipmentEditor(root);}catch(e){if(current()){toast(e.message);b.disabled=false;}}});
   }catch(e){if(current())root.innerHTML=`<p role="alert">${esc(e.message)}</p><button class="btn ghost small" onclick="loadShipmentEditor()">Retry shipment editor</button>`;}
 }
 
@@ -9319,8 +9319,33 @@ async function staffComplaints(body = $("#staffBody")) {
 async function loadCommercial() {
   const root = $("#commercialRoot");
   if (!root) return;
-  root.innerHTML = `<div class="profile-bar"><h1>Commercial</h1><span class="muted">Shipper relations: answer complaints after a late or failed delivery. How PAC responds changes that shipper's account standing for 90 days.</span></div><div id="commercialBody"></div>`;
-  staffComplaints($("#commercialBody"));
+  S.commercialTab = S.commercialTab || "complaints";
+  const tabs = [["complaints", "Complaints"], ["accounts", "Shipper accounts"], ["lanes", "Lane reputation"], ["featured", "Featured shipments"]];
+  root.innerHTML = `<div class="profile-bar"><h1>Commercial</h1><span class="muted">Shipper relations and freight marketing: answer complaints, watch account standing and lane reputation, and spotlight featured shipments.</span></div>
+    <div class="msg-tabs" style="margin-bottom:16px">${tabs.map(([k, t]) => `<button class="${S.commercialTab === k ? "on" : ""}" data-xtab="${k}">${t}</button>`).join("")}</div>
+    <div id="commercialBody"></div>`;
+  root.querySelectorAll("[data-xtab]").forEach(b => b.onclick = () => { S.commercialTab = b.dataset.xtab; loadCommercial(); });
+  const body = $("#commercialBody");
+  if (S.commercialTab === "accounts") commAccounts(body);
+  else if (S.commercialTab === "lanes") commLanes(body);
+  else if (S.commercialTab === "featured") { body.innerHTML = `<div id="commShipments"></div>`; loadShipmentEditor($("#commShipments")); }
+  else staffComplaints(body);
+}
+const TIER_TAG = { "Preferred": "green", "Good": "grey", "Under review": "amber", "At risk": "" };
+function tierTag(t) { return `<span class="tag ${TIER_TAG[t] || "grey"}" style="margin:0">${esc(t)}</span>`; }
+async function commAccounts(body) {
+  body.innerHTML = `<p class="muted">Loading shipper accounts…</p>`;
+  let d; try { d = await api("/api/staff/accounts"); } catch (e) { body.innerHTML = `<div class="notice err">${esc(e.message)}</div>`; return; }
+  const row = a => `<tr><td><b>${esc(a.shipper)}</b></td><td>${tierTag(a.tier)} <span class="muted">${a.score}</span></td><td class="r">${fmt(a.on_time)}</td><td class="r">${fmt(a.late)}</td><td class="r">${fmt(a.failed)}</td><td class="r">${fmt(a.rolled)}</td><td class="r">${fmt(a.shipments)}</td></tr>`;
+  body.innerHTML = `<p class="muted" style="max-width:90ch">Every shipper's standing over the last 90 days. On-time deliveries raise it; late, failed and rolled shipments lower it. Answering complaints well and keeping freight on time wins an account back.</p>
+    ${d.needs_attention.length ? `<div class="notice" style="border-left:3px solid var(--red)"><b>Needs attention (${d.needs_attention.length}):</b> ${d.needs_attention.map(a => esc(a.shipper) + " · " + esc(a.tier)).join(" &nbsp;|&nbsp; ")}</div>` : ""}
+    ${d.accounts.length ? `<div class="table-wrap"><table class="fin-table"><thead><tr><th>Shipper</th><th>Standing</th><th class="r">On time</th><th class="r">Late</th><th class="r">Failed</th><th class="r">Rolled</th><th class="r">Shipments</th></tr></thead><tbody>${d.accounts.map(row).join("")}</tbody></table></div>` : `<p class="muted">No shipper activity in the last 90 days yet.</p>`}`;
+}
+async function commLanes(body) {
+  body.innerHTML = `<p class="muted">Loading lane reputation…</p>`;
+  let d; try { d = await api("/api/staff/lanes"); } catch (e) { body.innerHTML = `<div class="notice err">${esc(e.message)}</div>`; return; }
+  body.innerHTML = `<p class="muted" style="max-width:90ch">How PAC performs on each route in customers' eyes over the last 90 days. Strong lanes attract more orders; weak ones get fewer. Weakest lanes first.</p>
+    ${d.lanes.length ? `<div class="table-wrap"><table class="fin-table"><thead><tr><th>Lane</th><th>Reputation</th><th class="r">Flights</th><th class="r">On time</th><th class="r">Late</th><th class="r">Care issues</th><th class="r">Failed</th></tr></thead><tbody>${d.lanes.map(l => `<tr><td><b>${esc(l.origin)} → ${esc(l.destination)}</b></td><td>${tierTag(l.tier)} <span class="muted">${l.score}</span></td><td class="r">${fmt(l.flights)}</td><td class="r">${fmt(l.on_time)}</td><td class="r">${fmt(l.late)}</td><td class="r">${fmt(l.care_issues)}</td><td class="r">${fmt(l.failed)}</td></tr>`).join("")}</tbody></table></div>` : `<p class="muted">No lane activity in the last 90 days yet.</p>`}`;
 }
 async function staffRoles() {
   const body = $("#staffBody"); body.innerHTML = `<p class="muted">Loading roles…</p>`;
