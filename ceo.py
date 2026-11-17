@@ -261,7 +261,7 @@ def register(app, g):
         s = g["settings"]()
         start = float(s.get("starting_capital") or economics.DEFAULT_START_CAPITAL)
         prof = con.execute("SELECT COALESCE(SUM(profit),0) FROM pireps WHERE demo=0 AND review_status='Accepted' AND revenue IS NOT NULL").fetchone()[0]
-        shares = con.execute("SELECT COALESCE(SUM(amount),0) FROM wallet WHERE kind IN ('profit_share','base_pay')").fetchone()[0]
+        shares = con.execute("SELECT COALESCE(SUM(amount),0) FROM wallet WHERE kind IN ('profit_share','base_pay','role_stipend')").fetchone()[0]
         return round(start + prof - shares + company.ledger_total(con))
 
     def deny(con, what):

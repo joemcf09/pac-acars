@@ -9,6 +9,10 @@ Pay periods are ISO weeks (Monday 00:00 UTC to the next Monday). Each pilot is p
 payroll_runs table records what was issued, so running the tick repeatedly is safe. The tick pays any complete
 week in the recent lookback window that a pilot flew in and has not yet been paid for, so a quiet server that
 misses a week still catches up without ever double-paying.
+
+Staff who hold a management role also draw a weekly stipend (ROLE_STIPEND), on top of flight and base pay, for as
+long as they hold the role, out of the treasury and rank-independent. It is tracked in role_pay_runs and shows as
+its own pay-statement line.
 """
 from __future__ import annotations
 
@@ -21,6 +25,12 @@ WEEKLY_BASE = {"Cadet": 500, "Second Officer": 900, "First Officer": 1400,
 DEFAULT_BASE = 500
 LOOKBACK_WEEKS = 4
 
+# Weekly staff stipend, USD, paid on top of flight and base pay to whoever holds the role, out of the treasury,
+# for as long as they hold it (rank-independent: it pays for the job, not the rank). Keys match company.ROLES.
+# The owner's CEO role draws nothing. Tune these freely.
+ROLE_STIPEND = {"ceo": 0, "chief_pilot": 2500, "dir_ops": 2500, "fleet_mgr": 2500, "commercial": 2500,
+                "creative": 1500, "livery_mgr": 1500, "hub_mgr": 1500}
+
 
 # Wallet transaction kinds, in friendly words for the pay statement. Positive kinds are earnings; negative
 # amounts (jumpseat, shop, hotel, training travel, a negative adjustment) are deductions.
@@ -28,8 +38,8 @@ LABELS = {"flight_pay": "Flight pay", "profit_share": "Profit share", "skill_bon
           "hazard_pay": "Hazard pay", "contract_bonus": "Contract bonus", "ferry_bonus": "Ferry bonus",
           "campaign": "Campaign rewards", "per_diem": "Per diem", "base_pay": "Weekly base pay",
           "gear_bonus": "Crew gear bonus", "mentoring": "Mentoring", "freight_delivered": "Freight delivered",
-          "adjustment": "Adjustment", "jumpseat": "Jumpseat travel", "shop": "PAC shop", "hotel": "Crew hotel",
-          "training_travel": "Training travel"}
+          "role_stipend": "Staff stipend", "adjustment": "Adjustment", "jumpseat": "Jumpseat travel",
+          "shop": "PAC shop", "hotel": "Crew hotel", "training_travel": "Training travel"}
 # A pay statement is about pay. These are the pilot's own wallet spending, not payroll, so they stay in the wallet
 # ledger and off the paycheck: the statement shows what PAC paid, and net pay never dips because someone went shopping.
 SPENDING = {"shop", "jumpseat", "hotel", "training_travel"}
@@ -43,6 +53,8 @@ def migrate(con):
         con.execute("ALTER TABLE payroll_runs ADD COLUMN notified INTEGER DEFAULT 0")
     if "dm_sent" not in cols:
         con.execute("ALTER TABLE payroll_runs ADD COLUMN dm_sent INTEGER DEFAULT 0")
+    con.execute("""CREATE TABLE IF NOT EXISTS role_pay_runs (pilot_id TEXT, role TEXT, period TEXT, issued_at REAL, amount REAL,
+        PRIMARY KEY (pilot_id, role, period))""")
 
 
 def _monday(d):
@@ -99,8 +111,40 @@ def tick(con, add_tx, rank_of, now=None):
                         (pid, key, now, base, rank))
             paid.append({"pilot_id": pid, "period": key, "base": base, "rank": rank,
                          "period_start": ws, "period_end": we, "period_label": period_label(start)})
+    _pay_role_stipends(con, add_tx, rank_of, now)
     coalesce_notices(con)
     return paid
+
+
+def _pay_role_stipends(con, add_tx, rank_of, now):
+    """Pay each staff role-holder their weekly stipend for any recent complete week they held the role, out of the
+    treasury, rank-independent. A stipend-only staffer (held the role but didn't fly that week) still gets a pay
+    run so the paycheck notice and statement fire. Idempotent per pilot, role and period."""
+    import company
+    try:
+        holders = con.execute("SELECT pilot_id, role, since FROM roles").fetchall()
+    except Exception:
+        return
+    for key, start, end in recent_periods(now):
+        we = _epoch(end)
+        for h in holders:
+            pid, role, since = h[0], h[1], (h[2] or 0)
+            amt = ROLE_STIPEND.get(role, 0)
+            if not pid or amt <= 0 or since >= we:          # not held by the end of that completed week: no back-pay
+                continue
+            if con.execute("SELECT 1 FROM role_pay_runs WHERE pilot_id=? AND role=? AND period=?", (pid, role, key)).fetchone():
+                continue
+            title = company.ROLES.get(role, (role,))[0]
+            add_tx(pid, "role_stipend", amt, f"{title} stipend for {period_label(start)}", None, con)
+            con.execute("INSERT OR IGNORE INTO role_pay_runs (pilot_id, role, period, issued_at, amount) VALUES (?,?,?,?,?)",
+                        (pid, role, key, now, amt))
+            if not con.execute("SELECT 1 FROM payroll_runs WHERE pilot_id=? AND period=?", (pid, key)).fetchone():
+                try:
+                    rank = rank_of(pid, con) or "Cadet"
+                except Exception:
+                    rank = "Cadet"
+                con.execute("INSERT OR IGNORE INTO payroll_runs (pilot_id, period, issued_at, base, rank, notified, dm_sent) VALUES (?,?,?,0,?,0,0)",
+                            (pid, key, now, rank))
 
 
 def coalesce_notices(con):
@@ -139,7 +183,7 @@ def statement(con, pid, period=None, now=None):
     base = (run["base"] if run else 0) or 0
     earn, ded = {}, {}
     for r in con.execute("""SELECT kind, COALESCE(SUM(amount),0) a FROM wallet WHERE pilot_id=? AND time>=? AND time<?
-            AND kind!='base_pay' GROUP BY kind""", (pid, ws, we)):
+            AND kind NOT IN ('base_pay','role_stipend') GROUP BY kind""", (pid, ws, we)):
         if r["kind"] in SPENDING:          # the pilot's own wallet spending is not pay: keep it off the paycheck
             continue
         amt = round(r["a"], 2)
@@ -147,6 +191,9 @@ def statement(con, pid, period=None, now=None):
             (earn if amt > 0 else ded)[r["kind"]] = amt
     if base:
         earn["base_pay"] = round(earn.get("base_pay", 0) + base, 2)
+    stip = con.execute("SELECT COALESCE(SUM(amount),0) FROM role_pay_runs WHERE pilot_id=? AND period=?", (pid, period)).fetchone()[0] or 0
+    if stip:            # staff stipend is issued after the week closes, like base pay, so read it from its run table
+        earn["role_stipend"] = round(earn.get("role_stipend", 0) + stip, 2)
     lines = [{"kind": k, "label": _label(k), "amount": v} for k, v in sorted(earn.items(), key=lambda kv: -kv[1])]
     deductions = [{"kind": k, "label": _label(k), "amount": v} for k, v in sorted(ded.items(), key=lambda kv: kv[1])]
     gross = round(sum(earn.values()), 2)
