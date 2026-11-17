@@ -131,9 +131,10 @@ def register(app, g):
 
     @app.get("/api/staff/roles")
     def roles_list():
+        import payroll
         with g["db"]() as con:
-            return jsonify({"roles": [{"key": k, "title": v[0], "does": v[1]} for k, v in ROLES.items()], "holders": holders(con),
-                            "mine": sorted(roles_of(con, pid())), "can_assign": may(con, pid(), "roles")})
+            return jsonify({"roles": [{"key": k, "title": v[0], "does": v[1], "pay": payroll.ROLE_STIPEND.get(k, 0)} for k, v in ROLES.items()],
+                            "holders": holders(con), "mine": sorted(roles_of(con, pid())), "can_assign": may(con, pid(), "roles")})
 
     @app.post("/api/staff/roles")
     def roles_change():
