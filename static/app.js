@@ -9145,7 +9145,7 @@ async function staffRelief() {
     ["help", "The affected country has asked for, or accepted, international relief flights, so an airlift from a UN depot is realistic."],
     ["tone", "The wording is calm and respectful: no hype, nothing that makes it sound exciting."],
     ["links", "The “How to help” links go to real, active appeals."],
-    ["timing", "It's the right time to post. For a very recent event, waiting a day or two is fine."]];
+    ["timing", "The timing is right: the event is active or recent and relief flights are relevant now. For something that just happened and may not need an airlift yet, waiting a day or two is fine."]];
   const draftHTML = x => {
     const open = x.status === "draft" || x.status === "later";
     return `<details class="relief-draft" ${open && x === d.drafts.find(y => y.status === "draft" || y.status === "later") ? "open" : ""}>
