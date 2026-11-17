@@ -10,10 +10,11 @@ import company
 
 con = sqlite3.connect(":memory:")
 con.execute("CREATE TABLE pilots (id TEXT PRIMARY KEY, name TEXT, staff INT)")
-for pid, name, staff in [("PAC0001", "Joseph", 1), ("PAC0014", "Alan", 0), ("PAC0002", "Jose", 0)]:
+for pid, name, staff in [("PAC0001", "Joseph", 1), ("PAC0014", "Alan", 0), ("PAC0002", "Jose", 0), ("PAC0003", "Mara", 0)]:
     con.execute("INSERT INTO pilots VALUES (?,?,?)", (pid, name, staff))
 company.migrate(con)                       # seeds the owner's ceo role
 company.assign(con, "PAC0014", "livery_mgr", "")   # Alan: Livery Manager, not a full admin
+company.assign(con, "PAC0003", "creative", "")     # Mara: Creative / Media Director, not a full admin
 con.commit()
 
 fails = []
@@ -55,6 +56,16 @@ check("Alan may NOT /api/staff/wallet/<pid>", company.may_path(con, "PAC0014", "
 check("Alan may NOT /api/staff/pilots/<pid>", company.may_path(con, "PAC0014", "/api/staff/pilots/PAC0002") is False)
 check("Alan may NOT /api/staff/roles", company.may_path(con, "PAC0014", "/api/staff/roles") is False)
 check("plain pilot may NOT /api/staff/liveries", company.may_path(con, "PAC0002", "/api/staff/liveries") is False)
+
+# --- Creative / Media: a second scoped role, kept separate from Livery -------
+check("partner-photos path is scoped to creative", company.capability_for("/api/staff/partner-photos") == "creative")
+check("partner-photos sub-path (browse) scoped", company.capability_for("/api/staff/partner-photos/FX/B77F/browse") == "creative")
+check("Mara's caps = [creative]", company.caps_of(con, "PAC0003") == ["creative"], company.caps_of(con, "PAC0003"))
+check("Mara MAY /api/staff/partner-photos", company.may_path(con, "PAC0003", "/api/staff/partner-photos") is True)
+check("Mara MAY partner-photos sub-path", company.may_path(con, "PAC0003", "/api/staff/partner-photos/FX/B77F") is True)
+check("Mara may NOT /api/staff/liveries (other role's section)", company.may_path(con, "PAC0003", "/api/staff/liveries") is False)
+check("Mara may NOT /api/staff/overview", company.may_path(con, "PAC0003", "/api/staff/overview") is False)
+check("Alan (livery) may NOT /api/staff/partner-photos", company.may_path(con, "PAC0014", "/api/staff/partner-photos") is False)
 
 print("\n" + ("ALL PASS" if not fails else f"{len(fails)} FAILED: {fails}"))
 sys.exit(1 if fails else 0)

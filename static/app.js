@@ -44,6 +44,7 @@ function show(view) {
   }
   if (view === "staff" && S.me && !S.me.staff) view = "home";   // the staff area isn't there for pilots
   if (view === "liverylib" && S.me && !hasCap("liveries")) view = "home";   // scoped section: full admin or the Livery Manager only
+  if (view === "creative" && S.me && !hasCap("creative")) view = "home";   // scoped section: full admin or the Creative / Media Director only
   if (!S.me && !PUBLIC_VIEWS.includes(view)) {  // a members' page: sign in first, then go there
     openSignIn(null, view);
     if (!document.querySelector(".view:not([hidden])")) view = "home"; else return;
@@ -80,6 +81,7 @@ function show(view) {
   if (view === "roster") loadRoster();
   if (view === "staff") loadStaff();
   if (view === "liverylib") loadLiveryLib();
+  if (view === "creative") loadCreative();
   if (view === "messages") loadMessages();
   if (view === "reports") loadProblemReports();
   if (view === "updates") loadWhatsNew();
@@ -4995,7 +4997,7 @@ async function openDetail(id) {
 }
 
 /* ================= VA core ================= */
-const VIEWS = ["privacy", "roster", "home", "dashboard", "missions", "bids", "acars", "fleet", "stations", "downloads", "career", "stats", "finance", "shop", "live", "logbook", "gallery", "handbook", "cargoguide", "staff", "liverylib", "messages", "profile", "pilots", "updates"];
+const VIEWS = ["privacy", "roster", "home", "dashboard", "missions", "bids", "acars", "fleet", "stations", "downloads", "career", "stats", "finance", "shop", "live", "logbook", "gallery", "handbook", "cargoguide", "staff", "liverylib", "creative", "messages", "profile", "pilots", "updates"];
 function hasCap(cap) { return !!(S.me && (S.me.staff || (S.me.staff_caps || []).includes(cap))); }
 const TOUR_ORDER = {};
 function applyCore(d) {
@@ -6128,6 +6130,13 @@ async function deleteLivery(l) {
   try { await apiForm("/api/staff/liveries/" + encodeURIComponent(l.id), new FormData(), "DELETE"); toast("Livery deleted."); loadLiveryLib(); }
   catch (e) { toast(e.message); }
 }
+/* ---------------- Promo photos (scoped: Creative / Media + full admin) ---------------- */
+async function loadCreative() {
+  const root = $("#creativeRoot");
+  if (!root) return;
+  root.innerHTML = `<div class="profile-bar"><h1>Promo photos</h1><span class="muted">The real aircraft photos on partner mission cards, picked from Wikimedia Commons and each credited to its photographer. Choose or swap the photo for any partner type.</span></div><div id="creativeBody"></div>`;
+  staffPartnerPhotos($("#creativeBody"));
+}
 async function loadStaff() {
   try { S.staff = await api("/api/staff/overview"); renderStaff(); } catch (e) { toast(e.message); }
 }
@@ -6265,8 +6274,7 @@ async function staffActivity() {
 }
 const statusCls = s => ({ Pending: "pending", Rejected: "rejected", Accepted: "accepted" })[s] || "";
 /* Staff › Partner photos: the Wikimedia Commons photo each partner flight's landing card uses, with its credit */
-async function staffPartnerPhotos() {
-  const body = $("#staffBody");
+async function staffPartnerPhotos(body = $("#staffBody")) {
   body.innerHTML = `<p class="muted">Loading partner photos…</p>`;
   let rows;
   try { rows = await api("/api/staff/partner-photos"); } catch (e) { body.innerHTML = `<div class="notice err">${esc(e.message)}</div>`; return; }
@@ -6283,7 +6291,7 @@ async function staffPartnerPhotos() {
                <button class="btn ghost small" data-pp="browse" data-k="${esc(r.partner)}" data-t="${esc(r.aircraft)}">Browse photos</button>`}
         </div></div></article>`).join("")}</div>`;
     body.querySelectorAll("[data-pp]").forEach(b => b.onclick = async () => {
-      if (b.dataset.pp === "browse") { const r = list.find(x => x.partner === b.dataset.k && x.aircraft === b.dataset.t); return browsePartnerPhotos(r, list, paint); }
+      if (b.dataset.pp === "browse") { const r = list.find(x => x.partner === b.dataset.k && x.aircraft === b.dataset.t); return browsePartnerPhotos(r, list, paint, body); }
       const file = null;
       b.disabled = true; b.textContent = "Working…";
       try { const list2 = await api(`/api/staff/partner-photos/${b.dataset.k}/${b.dataset.t}`, { method: "POST", body: { action: b.dataset.pp, file } }); S.partnerPhotos = null; paint(list2); toast("Partner photo updated."); }
@@ -6293,8 +6301,7 @@ async function staffPartnerPhotos() {
   paint(rows);
 }
 /* every freely licensed photo found for one partner and type, side by side; click one to use it */
-async function browsePartnerPhotos(r, list, back) {
-  const body = $("#staffBody");
+async function browsePartnerPhotos(r, list, back, body = $("#staffBody")) {
   const head = `<div class="row" style="align-items:center;gap:12px;margin-bottom:8px"><button class="btn ghost small" id="ppBack">← Back to all partners</button>
     <b>${esc(r.partner_name)} · ${esc(r.aircraft_name)}</b></div>`;
   body.innerHTML = head + `<p class="muted">Searching Wikimedia Commons…</p>`;

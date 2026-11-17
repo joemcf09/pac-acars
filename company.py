@@ -44,6 +44,7 @@ CAN = {"ceo_desk": {"ceo"}, "fleet_market": {"ceo", "fleet_mgr"}, "complaints": 
 # tested. Built incrementally, one clean role at a time.
 SCOPE = {
     "liveries": {"roles": {"livery_mgr"}, "paths": ("liveries",)},
+    "creative": {"roles": {"creative"}, "paths": ("partner-photos",)},
     # Carved out and tested as each role's section is built, e.g.:
     # "fleet":      {"roles": {"fleet_mgr"},  "paths": ("fleet-types", "airframes", "maintenance")},
     # "complaints": {"roles": {"commercial"}, "paths": ("complaints",)},
