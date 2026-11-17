@@ -78,6 +78,7 @@ function show(view) {
   if (view === "piracy") renderPiracy();
   if (view === "roster") loadRoster();
   if (view === "staff") loadStaff();
+  if (view === "messages") loadMessages();
   if (view === "reports") loadProblemReports();
   if (view === "updates") loadWhatsNew();
   if (view === "crewplans") loadCrewPlans();
@@ -3614,7 +3615,14 @@ async function loadMe() {
   catch (e) { S.me = S.authPilot || null; }
   renderPilotStrip();
   if (S.me?.new_paystub) showPayNotice(S.me.new_paystub);
+  updateMsgBadge(S.me?.unread_messages || 0);
   return S.me;
+}
+function updateMsgBadge(n) {
+  const el = document.getElementById("msgCount");
+  if (!el) return;
+  el.textContent = n > 99 ? "99+" : n;
+  el.hidden = !n;
 }
 function renderPilotStrip() {
   const el = $("#pilotStrip"), me = S.me;
@@ -4985,7 +4993,7 @@ async function openDetail(id) {
 }
 
 /* ================= VA core ================= */
-const VIEWS = ["privacy", "roster", "home", "dashboard", "missions", "bids", "acars", "fleet", "stations", "downloads", "career", "stats", "finance", "shop", "live", "logbook", "gallery", "handbook", "cargoguide", "staff", "profile", "pilots", "updates"];
+const VIEWS = ["privacy", "roster", "home", "dashboard", "missions", "bids", "acars", "fleet", "stations", "downloads", "career", "stats", "finance", "shop", "live", "logbook", "gallery", "handbook", "cargoguide", "staff", "messages", "profile", "pilots", "updates"];
 const TOUR_ORDER = {};
 function applyCore(d) {
   if (d.partners) S.partners = d.partners;
@@ -5954,6 +5962,75 @@ function renderHandbook(cfg) {
 
 /* ================= Staff ================= */
 S.staffTab = "reviews";
+/* ===================== Crew mail ===================== */
+async function loadMessages() {
+  const root = $("#messagesRoot"); if (!root) return;
+  const box = S.msgBox || "inbox";
+  root.innerHTML = `<p class="muted">Loading crew mail…</p>`;
+  let d; try { d = await api("/api/messages?box=" + encodeURIComponent(box)); }
+  catch (e) { root.innerHTML = `<div class="notice err">${esc(e.message)}</div>`; return; }
+  updateMsgBadge(d.unread);
+  const tabs = [["inbox", "Inbox"], ["unread", "Unread" + (d.unread ? ` (${d.unread})` : "")], ["sent", "Sent"]];
+  const empty = box === "sent" ? "You haven't sent any mail yet." : box === "unread" ? "No unread mail." : "Your inbox is empty.";
+  root.innerHTML = `<div class="profile-bar"><h1>Crew mail</h1><button class="btn" id="msgCompose">Compose</button></div>
+    <p class="muted">Send a note to another pilot. Staff can message the whole crew.</p>
+    <div class="msg-tabs">${tabs.map(([k, t]) => `<button class="btn ${box === k ? "" : "ghost"} small" data-msgbox="${k}">${t}</button>`).join("")}</div>
+    <div class="msg-list">${d.messages.length ? d.messages.map(m => msgRow(m, box)).join("") : `<p class="muted" style="padding:18px">${empty}</p>`}</div>`;
+  $("#msgCompose").onclick = () => openCompose();
+  root.querySelectorAll("[data-msgbox]").forEach(b => b.onclick = () => { S.msgBox = b.dataset.msgbox; loadMessages(); });
+  root.querySelectorAll("[data-msg]").forEach(b => b.onclick = () => openMessage(+b.dataset.msg));
+}
+function msgRow(m, box) {
+  const who = box === "sent" ? `To ${esc(m.recipient_name)}` : `From ${esc(m.sender_name)}`;
+  return `<button type="button" class="msg-row ${!m.read && m.incoming ? "unread" : ""}" data-msg="${m.id}">
+    <span class="msg-dot" aria-hidden="true"></span>
+    <span class="msg-who">${who}</span>
+    <span class="msg-subj"><b>${esc(m.subject)}</b> <span class="muted">${esc(m.body)}</span></span>
+    <span class="msg-time">${when(m.time)}</span></button>`;
+}
+async function openMessage(id) {
+  let dlg = document.getElementById("msgDlg");
+  if (!dlg) { dlg = document.createElement("dialog"); dlg.id = "msgDlg"; dlg.className = "msg-dlg"; document.body.appendChild(dlg); }
+  dlg.innerHTML = `<p class="muted" style="padding:24px">Loading…</p>`; if (!dlg.open) dlg.showModal();
+  try {
+    const m = await api("/api/messages/" + id);
+    const meta = m.incoming ? `From ${esc(m.sender_name)} · ${esc(m.sender)}` : `To ${esc(m.recipient_name)} · ${esc(m.recipient)}`;
+    dlg.innerHTML = `<article class="msg-read">
+      <div class="msg-read-head"><b>${esc(m.subject)}</b><div class="muted">${meta} · ${when(m.time)}</div></div>
+      <div class="msg-read-body">${esc(m.body).replace(/\n/g, "<br>")}</div>
+      <div class="msg-read-actions">
+        ${m.incoming ? `<button class="btn small" type="button" id="msgReply">Reply</button>` : ""}
+        <button class="btn ghost small" type="button" id="msgDel">Delete</button>
+        <button class="btn ghost small" type="button" onclick="this.closest('dialog').close()">Close</button></div></article>`;
+    if (m.incoming) $("#msgReply").onclick = () => { dlg.close(); openCompose(m.sender, "Re: " + m.subject.replace(/^\s*re:\s*/i, "")); };
+    $("#msgDel").onclick = async () => {
+      try { await api("/api/messages/" + id + "/delete", { method: "POST", body: {} }); dlg.close(); loadMessages(); }
+      catch (e) { toast(e.message); }
+    };
+    loadMessages();                       // reading marked it read: refresh the list and badge behind the dialog
+  } catch (e) { dlg.innerHTML = `<div style="padding:24px"><p>${esc(e.message)}</p><button class="btn small" onclick="this.closest('dialog').close()">Close</button></div>`; }
+}
+async function openCompose(to, subject) {
+  let dlg = document.getElementById("composeDlg");
+  if (!dlg) { dlg = document.createElement("dialog"); dlg.id = "composeDlg"; dlg.className = "msg-dlg"; document.body.appendChild(dlg); }
+  if (!S.msgRecipients) { try { S.msgRecipients = await api("/api/messages/recipients"); } catch (e) { S.msgRecipients = { pilots: [], can_broadcast: false }; } }
+  const R = S.msgRecipients;
+  dlg.innerHTML = `<form class="msg-compose"><h2>New message</h2>
+    <label>To<select name="to">${R.can_broadcast ? `<option value="ALL">Everyone · all pilots</option>` : ""}${R.pilots.map(p => `<option value="${esc(p.id)}" ${to === p.id ? "selected" : ""}>${esc(p.name)} · ${esc(p.id)}</option>`).join("")}</select></label>
+    <label>Subject<input name="subject" maxlength="140" value="${esc(subject || "")}" placeholder="Subject"></label>
+    <label>Message<textarea name="body" rows="8" placeholder="Write your message…"></textarea></label>
+    <div class="msg-read-actions"><button class="btn small" type="submit">Send</button><button class="btn ghost small" type="button" onclick="this.closest('dialog').close()">Cancel</button></div></form>`;
+  if (!dlg.open) dlg.showModal();
+  dlg.querySelector(".msg-compose").onsubmit = async e => {
+    e.preventDefault(); const f = e.target;
+    try {
+      const r = await api("/api/messages", { method: "POST", body: { to: f.to.value, subject: f.subject.value, body: f.body.value } });
+      toast(r.sent > 1 ? `Sent to ${r.sent} pilots.` : "Message sent."); dlg.close();
+      if (!$("#view-messages").hidden) { S.msgBox = "sent"; loadMessages(); }
+    } catch (err) { toast(err.message); }
+  };
+}
+
 async function loadStaff() {
   try { S.staff = await api("/api/staff/overview"); renderStaff(); } catch (e) { toast(e.message); }
 }

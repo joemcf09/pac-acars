@@ -4576,6 +4576,8 @@ import ceo
 ceo.register(app, globals())
 import growth
 growth.register(app, globals())
+import messaging
+messaging.register(app, globals())
 import rotation_planner
 rotation_planner.register(app, globals())
 import cargo_programs
