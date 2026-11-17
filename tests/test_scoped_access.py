@@ -10,11 +10,12 @@ import company
 
 con = sqlite3.connect(":memory:")
 con.execute("CREATE TABLE pilots (id TEXT PRIMARY KEY, name TEXT, staff INT)")
-for pid, name, staff in [("PAC0001", "Joseph", 1), ("PAC0014", "Alan", 0), ("PAC0002", "Jose", 0), ("PAC0003", "Mara", 0)]:
+for pid, name, staff in [("PAC0001", "Joseph", 1), ("PAC0014", "Alan", 0), ("PAC0002", "Jose", 0), ("PAC0003", "Mara", 0), ("PAC0004", "Devi", 0)]:
     con.execute("INSERT INTO pilots VALUES (?,?,?)", (pid, name, staff))
 company.migrate(con)                       # seeds the owner's ceo role
 company.assign(con, "PAC0014", "livery_mgr", "")   # Alan: Livery Manager, not a full admin
 company.assign(con, "PAC0003", "creative", "")     # Mara: Creative / Media Director, not a full admin
+company.assign(con, "PAC0004", "commercial", "")   # Devi: Commercial Director, not a full admin
 con.commit()
 
 fails = []
@@ -71,6 +72,16 @@ check("Alan (livery) may NOT /api/staff/news", company.may_path(con, "PAC0014", 
 check("Mara may NOT /api/staff/liveries (other role's section)", company.may_path(con, "PAC0003", "/api/staff/liveries") is False)
 check("Mara may NOT /api/staff/overview", company.may_path(con, "PAC0003", "/api/staff/overview") is False)
 check("Alan (livery) may NOT /api/staff/partner-photos", company.may_path(con, "PAC0014", "/api/staff/partner-photos") is False)
+
+# --- Commercial: complaints (with shipper standing) --------------------------
+check("complaints path is scoped to commercial", company.capability_for("/api/staff/complaints") == "commercial")
+check("complaints answer sub-path scoped", company.capability_for("/api/staff/complaints/12") == "commercial")
+check("Devi's caps = [commercial]", company.caps_of(con, "PAC0004") == ["commercial"], company.caps_of(con, "PAC0004"))
+check("Devi MAY /api/staff/complaints", company.may_path(con, "PAC0004", "/api/staff/complaints") is True)
+check("Devi MAY /api/staff/complaints/<id>", company.may_path(con, "PAC0004", "/api/staff/complaints/9") is True)
+check("Devi may NOT /api/staff/market (fleet money, unmapped)", company.may_path(con, "PAC0004", "/api/staff/market") is False)
+check("Devi may NOT /api/staff/overview", company.may_path(con, "PAC0004", "/api/staff/overview") is False)
+check("Mara (creative) may NOT /api/staff/complaints", company.may_path(con, "PAC0003", "/api/staff/complaints") is False)
 
 print("\n" + ("ALL PASS" if not fails else f"{len(fails)} FAILED: {fails}"))
 sys.exit(1 if fails else 0)

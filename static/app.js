@@ -45,6 +45,7 @@ function show(view) {
   if (view === "staff" && S.me && !S.me.staff) view = "home";   // the staff area isn't there for pilots
   if (view === "liverylib" && S.me && !hasCap("liveries")) view = "home";   // scoped section: full admin or the Livery Manager only
   if (view === "creative" && S.me && !hasCap("creative")) view = "home";   // scoped section: full admin or the Creative / Media Director only
+  if (view === "commercial" && S.me && !hasCap("commercial")) view = "home";   // scoped section: full admin or the Commercial Director only
   if (!S.me && !PUBLIC_VIEWS.includes(view)) {  // a members' page: sign in first, then go there
     openSignIn(null, view);
     if (!document.querySelector(".view:not([hidden])")) view = "home"; else return;
@@ -82,6 +83,7 @@ function show(view) {
   if (view === "staff") loadStaff();
   if (view === "liverylib") loadLiveryLib();
   if (view === "creative") loadCreative();
+  if (view === "commercial") loadCommercial();
   if (view === "messages") loadMessages();
   if (view === "reports") loadProblemReports();
   if (view === "updates") loadWhatsNew();
@@ -4997,7 +4999,7 @@ async function openDetail(id) {
 }
 
 /* ================= VA core ================= */
-const VIEWS = ["privacy", "roster", "home", "dashboard", "missions", "bids", "acars", "fleet", "stations", "downloads", "career", "stats", "finance", "shop", "live", "logbook", "gallery", "handbook", "cargoguide", "staff", "liverylib", "creative", "messages", "profile", "pilots", "updates"];
+const VIEWS = ["privacy", "roster", "home", "dashboard", "missions", "bids", "acars", "fleet", "stations", "downloads", "career", "stats", "finance", "shop", "live", "logbook", "gallery", "handbook", "cargoguide", "staff", "liverylib", "creative", "commercial", "messages", "profile", "pilots", "updates"];
 function hasCap(cap) { return !!(S.me && (S.me.staff || (S.me.staff_caps || []).includes(cap))); }
 const TOUR_ORDER = {};
 function applyCore(d) {
@@ -9301,8 +9303,8 @@ async function staffMarket() {
       toast(`${r.reg} ordered: ready at ${r.deliver_to} on ${cDate(r.deliver_at)}.`); staffMarket(); } catch (e) { toast(e.message); } };
   });
 }
-async function staffComplaints() {
-  const body = $("#staffBody"); body.innerHTML = `<p class="muted">Loading complaints…</p>`;
+async function staffComplaints(body = $("#staffBody")) {
+  body.innerHTML = `<p class="muted">Loading complaints…</p>`;
   let d; try { d = await api("/api/staff/complaints"); } catch (e) { body.innerHTML = `<div class="notice err">${esc(e.message)}</div>`; return; }
   const R = Object.fromEntries(d.responses.map(r => [r.key, r]));
   body.innerHTML = `<p class="muted">Shippers write in after a late or failed delivery. How PAC answers changes their standing for 90 days. Goodwill costs come out of company cash.</p>
@@ -9311,7 +9313,14 @@ async function staffComplaints() {
       ${c.standing ? `<p class="muted">Account standing: ${esc(c.standing.tier)} (${c.standing.score})</p>` : ""}
       ${c.status === "open" ? `<div class="cmp-acts">${d.responses.map(r => `<button class="btn ${r.key === "apology" ? "ghost" : ""}" type="button" data-c="${c.id}" data-r="${r.key}">${esc(r.label)} <small>+${r.delta}${r.cost ? " · " + money(r.cost) : ""}</small></button>`).join("")}</div>`
         : `<p class="tag green">Answered: ${esc(R[c.response]?.label || c.response)}</p>`}</div>`).join("") || `<p class="muted">No complaints. Keep the freight on time.</p>`}`;
-  body.querySelectorAll("[data-c]").forEach(b => b.onclick = async () => { try { const r = await api(`/api/staff/complaints/${b.dataset.c}`, { method: "POST", body: { response: b.dataset.r } }); toast(`${r.shipper}: standing +${r.delta}.`); staffComplaints(); } catch (e) { toast(e.message); } });
+  body.querySelectorAll("[data-c]").forEach(b => b.onclick = async () => { try { const r = await api(`/api/staff/complaints/${b.dataset.c}`, { method: "POST", body: { response: b.dataset.r } }); toast(`${r.shipper}: standing +${r.delta}.`); staffComplaints(body); } catch (e) { toast(e.message); } });
+}
+/* ---------------- Commercial (scoped: Commercial Director + full admin) ---------------- */
+async function loadCommercial() {
+  const root = $("#commercialRoot");
+  if (!root) return;
+  root.innerHTML = `<div class="profile-bar"><h1>Commercial</h1><span class="muted">Shipper relations: answer complaints after a late or failed delivery. How PAC responds changes that shipper's account standing for 90 days.</span></div><div id="commercialBody"></div>`;
+  staffComplaints($("#commercialBody"));
 }
 async function staffRoles() {
   const body = $("#staffBody"); body.innerHTML = `<p class="muted">Loading roles…</p>`;

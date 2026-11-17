@@ -45,9 +45,9 @@ CAN = {"ceo_desk": {"ceo"}, "fleet_market": {"ceo", "fleet_mgr"}, "complaints": 
 SCOPE = {
     "liveries": {"roles": {"livery_mgr"}, "paths": ("liveries",)},
     "creative": {"roles": {"creative"}, "paths": ("partner-photos", "news")},
+    "commercial": {"roles": {"commercial"}, "paths": ("complaints",)},
     # Carved out and tested as each role's section is built, e.g.:
-    # "fleet":      {"roles": {"fleet_mgr"},  "paths": ("fleet-types", "airframes", "maintenance")},
-    # "complaints": {"roles": {"commercial"}, "paths": ("complaints",)},
+    # "fleet": {"roles": {"fleet_mgr"}, "paths": ("fleet-types", "airframes", "maintenance")},
 }
 
 
