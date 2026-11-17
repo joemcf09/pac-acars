@@ -9145,8 +9145,8 @@ function startHereHTML(d) {
   try { acars = localStorage.getItem("pac-start-acars-" + S.me?.id) === "1"; } catch (_) {}
   const filed = (d.flights_filed || 0) > 0;
   const steps = [
-    ["Pass your line checkride", !d.checkride_needed, "Your first graded flight, in the 737-800.", "Checkride", "show('career/qualifications')"],
-    ["Install PAC ACARS and print the cheat sheets", acars || filed, "PAC ACARS tracks and scores your flight. The Quick-Reference Pack has everything on six pages.", "Downloads", "markStartAcars();show('downloads')"],
+    ["Install PAC ACARS and print the cheat sheets", acars || filed || !d.checkride_needed, "PAC ACARS tracks and scores your flight, including your checkride. The Quick-Reference Pack has everything on six pages.", "Downloads", "markStartAcars();show('downloads')"],
+    ["Pass your line checkride", !d.checkride_needed, "Your first graded flight, in the 737-800. Fly it with ACARS running.", "Checkride", "show('career/qualifications')"],
     ["Book your first flight", !!d.booking || filed, "Pick a short hop from where you are. The dispatch release comes with it.", "Missions", "show('missions')"],
     ["Fly it and file your PIREP", filed, "Park, brakes set, engines off, then File PIREP in ACARS.", "Gate-to-gate checklist", "show('downloads')"]];
   const done = steps.filter(s => s[1]).length;
