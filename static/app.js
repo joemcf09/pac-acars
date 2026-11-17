@@ -9160,7 +9160,7 @@ async function staffRelief() {
       ${open ? `<form class="relief-form" data-id="${esc(x.id)}">
         <label>Aircraft <select name="aircraft">${(x.aircraft_options || []).map(t => `<option value="${esc(t)}" ${t === x.aircraft ? "selected" : ""}>${esc(S.fleet[t]?.name || t)}</option>`).join("")}</select></label>
         <label>Note added to the briefing (optional)<textarea name="note" rows="2" maxlength="600">${esc(x.note || "")}</textarea></label>
-        <fieldset><legend>How to help links (title | https:// link, one per line)</legend><textarea name="help" rows="3">${esc(x.help.map(h => h.join(" | ")).join("\n"))}</textarea></fieldset>
+        <fieldset><legend>How to help links (title | https:// link, one per line)</legend><textarea name="helplinks" rows="3">${esc(x.help.map(h => h.join(" | ")).join("\n"))}</textarea></fieldset>
         <button class="btn ghost small" type="button" data-act="edit">Save changes</button>
         <fieldset class="relief-checks"><legend>Before you post: all five must be ticked</legend>${checks.map(([k, t]) => `<label><input type="checkbox" name="${k}"> ${t}</label>`).join("")}</fieldset>
         <div class="row" style="gap:10px;flex-wrap:wrap"><button class="btn small" type="button" data-act="post" disabled>Post mission</button>
@@ -9180,7 +9180,7 @@ async function staffRelief() {
     const ready = () => { post.disabled = !checks.every(([k]) => f[k].checked); };
     checks.forEach(([k]) => f[k].onchange = ready);
     const edits = () => ({ aircraft: f.aircraft.value, note: f.note.value,
-      help: f.help.value.split("\n").map(l => l.split("|").map(x => x.trim())).filter(p => p.length >= 2).map(p => [p[0], p.slice(1).join("|")]) });
+      help: f.helplinks.value.split("\n").map(l => l.split("|").map(x => x.trim())).filter(p => p.length >= 2).map(p => [p[0], p.slice(1).join("|")]) });
     f.querySelector('[data-act="edit"]').onclick = async () => { if (await send(id, "edit", edits())) { toast("Draft saved."); staffRelief(); } };
     post.onclick = async () => {
       if (!(await send(id, "edit", edits()))) return;
