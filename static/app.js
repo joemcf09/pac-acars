@@ -6698,12 +6698,23 @@ async function staffAirframes(host = $("#staffBody")) {
   if (S.staff?.airframes) frames = S.staff.airframes;
   else { try { frames = (await api("/api/staff/airframes")).airframes || []; } catch (e) { host.innerHTML = `<div class="notice err">${esc(e.message)}</div>`; return; } }
   const setFrames = fr => { frames = fr; if (S.staff) S.staff.airframes = fr; };
+  // sortable roster: click a column to sort, click again to reverse
+  S.afSort = S.afSort || { key: "reg", dir: "asc" };
+  const NUM_SORT = new Set(["hours", "cycles", "check_due_in"]);
+  const sdir = S.afSort.dir === "desc" ? -1 : 1;
+  const sorted = [...frames].sort((a, b) => {
+    const k = S.afSort.key;
+    if (NUM_SORT.has(k)) return ((Number(a[k]) || 0) - (Number(b[k]) || 0)) * sdir;
+    return String(a[k] || "").localeCompare(String(b[k] || "")) * sdir;
+  });
+  const arrow = k => S.afSort.key === k ? (S.afSort.dir === "desc" ? " ↓" : " ↑") : "";
+  const sh = (k, label) => `<th class="af-sortable" data-afsort="${k}" style="cursor:pointer;user-select:none" title="Sort by ${label.toLowerCase()}">${label}${arrow(k)}</th>`;
   host.innerHTML = `<form class="form-card" id="afAdd"><div class="field"><label for="af_reg">Registration</label><input id="af_reg" name="reg" placeholder="N805PC" required></div>
     <div class="field"><label for="af_type">Type</label><select id="af_type" name="type">${types.map(t => `<option value="${t}">${esc(S.fleet[t].name)}</option>`).join("")}</select></div>
     <div class="field"><label for="af_loc">Location (ICAO)</label><input id="af_loc" name="location" value="KCVG" required></div>
     <div class="field" style="align-self:end"><button class="btn" type="submit">Add airframe</button></div></form>
-    <div class="table-wrap"><table class="staff-table"><thead><tr><th>Registration</th><th>Type</th><th>Location</th><th>Status</th><th>Hours</th><th>Cycles</th><th>A-check in</th><th>Last flight</th><th></th></tr></thead><tbody>
-    ${frames.map(a => `<tr data-reg="${a.reg}"><td><a href="#" data-af-open="${a.reg}" style="color:var(--ink)"><b style="font-family:var(--mono)">${a.reg}</b></a>${a.name ? `<br><small>“${esc(a.name)}” · named by ${esc(a.named_by_name || a.named_by)} <a href="#" data-af-unname="${a.reg}" style="color:var(--red)">remove</a></small>` : ""}${a.note ? `<br><small class="muted">${esc(a.note)}</small>` : ""}</td>
+    <div class="table-wrap"><table class="staff-table"><thead><tr>${sh("reg", "Registration")}${sh("type", "Type")}${sh("location", "Location")}${sh("status", "Status")}${sh("hours", "Hours")}${sh("cycles", "Cycles")}${sh("check_due_in", "A-check in")}${sh("last_flight", "Last flight")}<th></th></tr></thead><tbody>
+    ${sorted.map(a => `<tr data-reg="${a.reg}"><td><a href="#" data-af-open="${a.reg}" style="color:var(--ink)"><b style="font-family:var(--mono)">${a.reg}</b></a>${a.name ? `<br><small>“${esc(a.name)}” · named by ${esc(a.named_by_name || a.named_by)} <a href="#" data-af-unname="${a.reg}" style="color:var(--red)">remove</a></small>` : ""}${a.note ? `<br><small class="muted">${esc(a.note)}</small>` : ""}</td>
       <td><select data-f="type" aria-label="Type">${fleetCodes(true).map(t => `<option value="${t}" ${t === a.type ? "selected" : ""}>${esc(S.fleet[t].icao)}${S.fleet[t].retired ? " (retired)" : ""}</option>`).join("")}</select></td>
       <td><input data-f="location" value="${a.location}" aria-label="Location" style="width:80px"></td>
       <td>${a.status === "Booked" ? `<span class="tag dark">Booked</span>` : `<select data-f="status" aria-label="Status">${AF_STATUS.map(o => `<option ${o === a.status ? "selected" : ""}>${o}</option>`).join("")}</select>`}</td>
@@ -6715,6 +6726,12 @@ async function staffAirframes(host = $("#staffBody")) {
     Object.assign(body, extra);
     try { setFrames(await api("/api/staff/airframes", { method: "POST", body })); toast(`${reg} saved.`); staffAirframes(host); refreshCore(); } catch (e) { toast(e.message); }
   };
+  host.querySelectorAll("[data-afsort]").forEach(th => th.onclick = () => {
+    const k = th.dataset.afsort;
+    if (S.afSort.key === k) S.afSort.dir = S.afSort.dir === "asc" ? "desc" : "asc";
+    else S.afSort = { key: k, dir: "asc" };
+    staffAirframes(host);
+  });
   host.querySelectorAll("[data-af-save]").forEach(b => b.onclick = () => save(b.dataset.afSave));
   host.querySelectorAll("[data-af-unname]").forEach(b => b.onclick = async e => {
     e.preventDefault();
