@@ -160,6 +160,11 @@ def order(con, offer_id, reg, hub, weeks, cash, fleet, static_dir, by, now=None)
         ownership, owner_company, lease_rate, lease_until, next_payment, deliver_at, deliver_to) VALUES (?,?,?,?,0,0,0,?,?,0,?,?,?,?,?,?,?)""",
                 (reg, ac, deliver_to, ON_ORDER, now, f"{label}: delivery {time.strftime('%b %d', time.gmtime(deliver_at))}", own, c,
                  o.get("monthly") or o.get("weekly"), until, deliver_at + 30 * 86400 if way == "lease" else None, deliver_at, deliver_to))
+    # A used, leased or wet-leased airframe (or a converted ex-passenger jet) arrives already partway through its
+    # C-check cycle, so its next heavy check is something the Fleet Manager has to plan for. New-build aircraft start fresh.
+    if way in ("used", "lease", "wet", "conversion"):
+        import heavy_check
+        con.execute("UPDATE airframes SET hours_since_heavy=? WHERE reg=?", (heavy_check.seed_hours(reg), reg))
     return {"reg": reg, "deliver_at": deliver_at, "deliver_to": deliver_to, "paid": up_front, "way": way}
 
 

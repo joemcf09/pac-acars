@@ -2198,7 +2198,7 @@ async function openAirframe(reg) {
           <div><span>Now at</span><b>${esc(a.location)}</b><small>${esc(a.status)}</small></div>
           <div><span>Hours / cycles</span><b>${esch(a.hours || 0)} / ${a.cycles || 0}</b></div>
           <div><span>A-check due in</span><b>${esch(Math.max(0, a.check_due_in))} h</b></div>
-          <div><span>Heavy check due in</span><b>${a.heavy_due_in == null ? "–" : esch(Math.max(0, a.heavy_due_in)) + " h"}</b></div>
+          <div><span>C-check due in</span><b>${a.heavy_due_in == null ? "–" : esch(Math.max(0, a.heavy_due_in)) + " h"}</b></div>
           <div><span>Flights</span><b>${h.flights.length}</b></div>
           <div><span>Profit earned</span><b class="${moneyCls(h.profit)}">${money(h.profit)}</b></div>
           <div><span>Last flown by</span><b>${esc(h.flights[h.flights.length - 1]?.pilot || "–")}</b><small>${esc(a.last_flight || "")}</small></div>
@@ -6716,7 +6716,7 @@ async function staffAirframes(host = $("#staffBody")) {
   const setFrames = fr => { frames = fr; if (S.staff) S.staff.airframes = fr; };
   // sortable roster: click a column to sort, click again to reverse
   S.afSort = S.afSort || { key: "reg", dir: "asc" };
-  const NUM_SORT = new Set(["hours", "cycles", "check_due_in"]);
+  const NUM_SORT = new Set(["hours", "cycles", "check_due_in", "heavy_due_in"]);
   const sdir = S.afSort.dir === "desc" ? -1 : 1;
   const sorted = [...frames].sort((a, b) => {
     const k = S.afSort.key;
@@ -6729,12 +6729,13 @@ async function staffAirframes(host = $("#staffBody")) {
     <div class="field"><label for="af_type">Type</label><select id="af_type" name="type">${types.map(t => `<option value="${t}">${esc(S.fleet[t].name)}</option>`).join("")}</select></div>
     <div class="field"><label for="af_loc">Location (ICAO)</label><input id="af_loc" name="location" value="KCVG" required></div>
     <div class="field" style="align-self:end"><button class="btn" type="submit">Add airframe</button></div></form>
-    <div class="table-wrap"><table class="staff-table"><thead><tr>${sh("reg", "Registration")}${sh("type", "Type")}${sh("location", "Location")}${sh("status", "Status")}${sh("hours", "Hours")}${sh("cycles", "Cycles")}${sh("check_due_in", "A-check in")}${sh("last_flight", "Last flight")}<th></th></tr></thead><tbody>
+    <div class="table-wrap"><table class="staff-table"><thead><tr>${sh("reg", "Registration")}${sh("type", "Type")}${sh("location", "Location")}${sh("status", "Status")}${sh("hours", "Hours")}${sh("cycles", "Cycles")}${sh("check_due_in", "A-check in")}${sh("heavy_due_in", "C-check in")}${sh("last_flight", "Last flight")}<th></th></tr></thead><tbody>
     ${sorted.map(a => `<tr data-reg="${a.reg}"><td><a href="#" data-af-open="${a.reg}" style="color:var(--ink)"><b style="font-family:var(--mono)">${a.reg}</b></a>${a.name ? `<br><small>“${esc(a.name)}” · named by ${esc(a.named_by_name || a.named_by)} <a href="#" data-af-unname="${a.reg}" style="color:var(--red)">remove</a></small>` : ""}${a.note ? `<br><small class="muted">${esc(a.note)}</small>` : ""}</td>
       <td><select data-f="type" aria-label="Type">${fleetCodes(true).map(t => `<option value="${t}" ${t === a.type ? "selected" : ""}>${esc(S.fleet[t].icao)}${S.fleet[t].retired ? " (retired)" : ""}</option>`).join("")}</select></td>
       <td><input data-f="location" value="${a.location}" aria-label="Location" style="width:80px"></td>
       <td>${a.status === "Booked" ? `<span class="tag dark">Booked</span>` : `<select data-f="status" aria-label="Status">${AF_STATUS.map(o => `<option ${o === a.status ? "selected" : ""}>${o}</option>`).join("")}</select>`}</td>
-      <td>${esch(a.hours || 0)}</td><td>${a.cycles || 0}</td><td>${esch(Math.max(0, a.check_due_in))} h</td><td>${esc(a.last_flight || "–")}</td>
+      <td>${esch(a.hours || 0)}</td><td>${a.cycles || 0}</td><td>${esch(Math.max(0, a.check_due_in))} h</td>
+      <td>${(a.heavy_due_in ?? 1) <= 0 ? `<span class="tag amber" style="margin:0">C-check due</span>` : fmt(Math.max(0, a.heavy_due_in)) + " h"}</td><td>${esc(a.last_flight || "–")}</td>
       <td style="white-space:nowrap">${a.status === "Booked" ? "" : `<button class="btn small" data-af-save="${a.reg}">Save</button> <button class="btn ghost small" data-af-rename="${a.reg}" title="Give this airframe a new registration. Its hours, history and write-ups go with it.">Rename</button> <button class="btn ghost small" data-af-check="${a.reg}" title="Sign off an A-check and return to service">Sign off check</button> <button class="btn ghost small" data-af-del="${a.reg}" aria-label="Remove ${a.reg}">×</button>`}</td></tr>`).join("")}</tbody></table></div>`;
   const save = async (reg, extra = {}) => {
     const tr = host.querySelector(`tr[data-reg="${reg}"]`), body = { reg, ...extra };
