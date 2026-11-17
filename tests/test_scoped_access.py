@@ -97,8 +97,11 @@ check("Finn's caps = [fleet]", company.caps_of(con, "PAC0005") == ["fleet"], com
 check("Finn MAY /api/staff/fleet-types", company.may_path(con, "PAC0005", "/api/staff/fleet-types") is True)
 check("Finn MAY /api/staff/airframes", company.may_path(con, "PAC0005", "/api/staff/airframes") is True)
 check("Finn MAY /api/staff/maintenance/<id>", company.may_path(con, "PAC0005", "/api/staff/maintenance/5") is True)
+check("Finn MAY /api/staff/fleet-recs (recommend)", company.may_path(con, "PAC0005", "/api/staff/fleet-recs") is True)
+check("Finn MAY /api/staff/fleet-catalog (browse, no cash)", company.may_path(con, "PAC0005", "/api/staff/fleet-catalog") is True)
 check("Finn may NOT /api/staff/market (money, admin-only)", company.may_path(con, "PAC0005", "/api/staff/market") is False)
 check("Finn may NOT /api/staff/market/order", company.may_path(con, "PAC0005", "/api/staff/market/order") is False)
+check("Finn may NOT /api/staff/market/rec/<id> (approval, admin-only)", company.may_path(con, "PAC0005", "/api/staff/market/rec/3") is False)
 check("Finn may NOT /api/staff/overview", company.may_path(con, "PAC0005", "/api/staff/overview") is False)
 check("Devi (commercial) may NOT /api/staff/fleet-types", company.may_path(con, "PAC0004", "/api/staff/fleet-types") is False)
 

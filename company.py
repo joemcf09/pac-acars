@@ -46,9 +46,10 @@ SCOPE = {
     "liveries": {"roles": {"livery_mgr"}, "paths": ("liveries",)},
     "creative": {"roles": {"creative"}, "paths": ("partner-photos", "news")},
     "commercial": {"roles": {"commercial"}, "paths": ("complaints", "accounts", "lanes", "featured-shipments")},
-    "fleet": {"roles": {"fleet_mgr"}, "paths": ("fleet-types", "airframes", "maintenance")},
-    # The fleet MARKET (buying/leasing, which spends company cash) is deliberately NOT here: it stays
-    # full-admin only. A recommend-then-approve workflow (fleet-recs) is the next increment.
+    "fleet": {"roles": {"fleet_mgr"}, "paths": ("fleet-types", "airframes", "maintenance", "fleet-recs", "fleet-catalog")},
+    # The fleet MARKET itself (buying/leasing, which spends company cash) stays full-admin only, so a
+    # Fleet Manager can browse the catalog (fleet-catalog, no cash shown) and file recommendations
+    # (fleet-recs), but only the owner approves them, which executes the order under /api/staff/market/rec.
 }
 
 

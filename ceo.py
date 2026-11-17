@@ -30,6 +30,9 @@ def migrate(con):
         created REAL, status TEXT DEFAULT 'open', response TEXT, answered_by TEXT, answered REAL)""")
     con.execute("CREATE TABLE IF NOT EXISTS awards (month TEXT PRIMARY KEY, pilot_id TEXT, data TEXT, posted REAL)")
     con.execute("CREATE TABLE IF NOT EXISTS ceo_letters (month TEXT PRIMARY KEY, body TEXT, posted REAL, by_pilot TEXT)")
+    con.execute("""CREATE TABLE IF NOT EXISTS fleet_recs (id INTEGER PRIMARY KEY AUTOINCREMENT, by_pilot TEXT, created REAL,
+        offer_id TEXT, aircraft TEXT, aircraft_name TEXT, way TEXT, reg TEXT, hub TEXT, weeks INTEGER, note TEXT,
+        status TEXT DEFAULT 'pending', decided_by TEXT, decided_at REAL, decide_note TEXT)""")
 
 
 def adjustments(con, now=None):
@@ -428,6 +431,86 @@ def register(app, g):
             L = lanes.compute(con)
             rows = sorted(L.values(), key=lambda x: (x["score"], -x.get("flights", 0)))
             return jsonify({"lanes": rows})
+
+    # --- Fleet acquisitions: the Fleet Manager recommends, the owner approves ---
+    def _is_admin():
+        with g["db"]() as con:
+            row = con.execute("SELECT staff FROM pilots WHERE id=?", (pid(),)).fetchone()
+        return bool(row and row[0])
+
+    @app.get("/api/staff/fleet-catalog")
+    def fleet_catalog():
+        """Aircraft offers for the Fleet Manager to recommend from. No company cash is exposed here."""
+        with g["db"]() as con:
+            fleet_market.migrate(con)
+            if (r := deny(con, "fleet_market")):
+                return r
+            return jsonify({"offers": fleet_market.offers(g["FLEET"], app.static_folder), "hubs": list(fleet_market.HUBS)})
+
+    @app.get("/api/staff/fleet-recs")
+    def fleet_recs_list():
+        with g["db"]() as con:
+            migrate(con)
+            if (r := deny(con, "fleet_market")):
+                return r
+            rows = [dict(x) for x in con.execute(
+                """SELECT fr.*, p.name by_name, d.name decided_name FROM fleet_recs fr
+                   LEFT JOIN pilots p ON p.id=fr.by_pilot LEFT JOIN pilots d ON d.id=fr.decided_by
+                   ORDER BY fr.status='pending' DESC, fr.created DESC LIMIT 80""")]
+        return jsonify({"recs": rows, "can_decide": _is_admin()})
+
+    @app.post("/api/staff/fleet-recs")
+    def fleet_rec_create():
+        b = request.get_json(silent=True); b = b if isinstance(b, dict) else {}
+        with g["db"]() as con:
+            migrate(con); fleet_market.migrate(con)
+            if (r := deny(con, "fleet_market")):
+                return r
+            o = next((x for x in fleet_market.offers(g["FLEET"], app.static_folder) if x["id"] == str(b.get("offer") or "")), None)
+            if not o:
+                return jsonify({"error": "Pick an aircraft offer."}), 400
+            hub = str(b.get("hub") or "").upper()
+            if hub not in fleet_market.HUBS:
+                return jsonify({"error": "Choose a PAC hub for the aircraft."}), 400
+            reg = str(b.get("reg") or "").strip().upper()
+            if not fleet_market.REG_RE.match(reg):
+                return jsonify({"error": "Suggest a registration like N306PC."}), 400
+            weeks = max(1, min(12, int(b.get("weeks") or 1))) if o["way"] == "wet" else None
+            note = (str(b.get("note") or "")).strip()[:500]
+            con.execute("""INSERT INTO fleet_recs (by_pilot, created, offer_id, aircraft, aircraft_name, way, reg, hub, weeks, note, status)
+                VALUES (?,?,?,?,?,?,?,?,?,?, 'pending')""",
+                        (pid(), time.time(), o["id"], o["aircraft"], o["aircraft_name"], o["way"], reg, hub, weeks, note))
+            con.commit()
+        return jsonify({"ok": True})
+
+    @app.post("/api/staff/market/rec/<int:rid>")
+    def fleet_rec_decide(rid):
+        """Owner-only (under /api/staff/market, which is admin-gated): approve executes the order, decline closes it."""
+        b = request.get_json(silent=True); b = b if isinstance(b, dict) else {}
+        action, note = b.get("action"), (str(b.get("note") or "")).strip()[:500]
+        try:
+            with g["db"]() as con:
+                migrate(con); fleet_market.migrate(con)
+                row = con.execute("SELECT * FROM fleet_recs WHERE id=?", (rid,)).fetchone()
+                if not row:
+                    return jsonify({"error": "That recommendation is gone."}), 404
+                if row["status"] != "pending":
+                    return jsonify({"error": "That recommendation was already decided."}), 409
+                if action == "approve":
+                    res = fleet_market.order(con, row["offer_id"], row["reg"], row["hub"], row["weeks"], cash(con),
+                                             g["FLEET"], app.static_folder, pid())
+                    con.execute("UPDATE fleet_recs SET status='approved', decided_by=?, decided_at=?, decide_note=? WHERE id=?",
+                                (pid(), time.time(), note, rid))
+                    con.commit()
+                    return jsonify({"ok": True, "ordered": res})
+                if action == "decline":
+                    con.execute("UPDATE fleet_recs SET status='declined', decided_by=?, decided_at=?, decide_note=? WHERE id=?",
+                                (pid(), time.time(), note, rid))
+                    con.commit()
+                    return jsonify({"ok": True})
+                return jsonify({"error": "Choose approve or decline."}), 400
+        except ValueError as e:
+            return jsonify({"error": str(e)}), 400
 
     @app.get("/api/staff/market")
     def market():
