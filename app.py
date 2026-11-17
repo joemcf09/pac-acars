@@ -1095,7 +1095,10 @@ def _pilot_row(pid):
 
 
 def _pilot_role_titles(pid):
-    """The management role titles a pilot currently holds, for display on their profile and crew badge."""
+    """The management role titles a pilot currently holds, for display on their profile and crew badge. The founder
+    holds every role for permissions, but that's noise on the profile, so it collapses to a single Founder & CEO."""
+    if pid == founder_pid():
+        return ["Founder & CEO"]
     try:
         import company
         with db() as con:
