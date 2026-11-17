@@ -1094,6 +1094,16 @@ def _pilot_row(pid):
         return None
 
 
+def _pilot_role_titles(pid):
+    """The management role titles a pilot currently holds, for display on their profile and crew badge."""
+    try:
+        import company
+        with db() as con:
+            return [company.ROLES[r][0] for r in sorted(company.roles_of(con, pid)) if r in company.ROLES]
+    except Exception:
+        return []
+
+
 def load_profile(pid=None):
     """A pilot's profile: the founder's is the airline's public face (profile.json); every other pilot has their own,
     starting from their pilot record."""
@@ -1108,6 +1118,7 @@ def load_profile(pid=None):
             p["rank"] = va.career(pid)["rank"]
         except Exception:
             pass  # Preserve the last saved label if career data is unavailable.
+        p["roles"] = _pilot_role_titles(pid)
         return p
     row = _pilot_row(pid) or {}
     p = load_json(PROFILES_DIR / f"{pid}.json", None) or {
@@ -1123,6 +1134,7 @@ def load_profile(pid=None):
              title=p.get("title") or "PAC line pilot", base=row.get("hub") or p.get("base") or "",
              member_since=time.strftime("%Y-%m-%d", time.gmtime(row["joined"])) if row.get("joined") else p.get("member_since", ""),
              type_ratings=pilot_type_ratings(pid))
+    p["roles"] = _pilot_role_titles(pid)
     return p
 
 

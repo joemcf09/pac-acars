@@ -2006,3 +2006,8 @@ html[data-design="loadsheet"] :is(.relief-draft,.relief-notice,.relief-checks){b
 .acct-pill{font:inherit;font-size:13px;font-weight:600;padding:6px 12px;border-radius:20px;border:1px solid var(--line);background:var(--white);color:var(--ink);cursor:pointer;white-space:nowrap}
 .acct-pill:hover{border-color:var(--steel)}
 .acct-pill.active{background:var(--red);border-color:var(--red);color:#fff}
+
+/* staff role display on profile and crew badge */
+.crew-roles{display:flex;flex-wrap:wrap;gap:6px;margin:2px 0 8px}
+.role-chip{font-size:12px;font-weight:700;letter-spacing:.02em;padding:3px 10px;border-radius:20px;background:var(--red-wash);color:var(--red-deep);border:1px solid var(--red)}
+.crewid-role{display:block;font-size:10px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--red);margin:1px 0 0}

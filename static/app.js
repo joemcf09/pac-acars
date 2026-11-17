@@ -4132,7 +4132,7 @@ function badgeInfo(p = S.profile || {}, car = S.career || {}, staff = S.me?.staf
   const d = x => x ? x.toLocaleDateString("en-US", { day: "2-digit", month: "short", year: "numeric", timeZone: "UTC" }).toUpperCase() : "—";
   const code = (p.base || "KCVG").match(/\b[A-Z]{4}\b/)?.[0] || (p.base || "KCVG").split(/[ ,/]/)[0].slice(0, 4).toUpperCase();
   const iata = badgeIata(code);
-  return { p, car, id, n, name: displayName(p), rank: car.rank || p.rank || "Pilot", base: code, iata,
+  return { p, car, id, n, name: displayName(p), rank: car.rank || p.rank || "Pilot", roles: p.roles || [], base: code, iata,
     badgeNo: `${iata}-${String(n).padStart(5, "0")}`, areas, ratings, issued: d(since), expires: d(expires),
     docNo: `PAC${String(since ? since.getUTCFullYear() % 100 : 26).padStart(2, "0")}${String(n * 7919 % 100000).padStart(5, "0")}`,
     expired: expires ? Date.now() > expires.getTime() : false, photo: p.photo || "/static/pilot-photo.jpg" };
@@ -4170,6 +4170,7 @@ function badgeHtml(p, car, staff, opts = {}) {
             <div class="crewid-id">
               <b class="crewid-name">${esc(b.name)}</b>
               <span class="crewid-rank">${esc(b.rank)}</span>
+              ${b.roles.length ? `<span class="crewid-role">${esc(b.roles.join(" · "))}</span>` : ""}
               <div class="crewid-no">${esc(b.id)}</div>
               <div class="crewid-rows"><span>Base</span><b>${esc(b.base)}</b><span>Issued</span><b>${esc(b.issued)}</b><span>Expires</span><b class="${b.expired ? "exp" : ""}">${esc(b.expires)}</b></div>
             </div>
@@ -6887,6 +6888,7 @@ async function renderPilotPage(pid) {
       <div class="crew-rank">${esc(c.rank)} · ${esc(p.pilot_id)}${d.staff ? ' · <span class="tag dark">Staff</span>' : ""}${d.status !== "Active" ? ` · <span class="status-pill off">${esc(d.status)}</span>` : ""}</div>
       <h2 class="crew-name">${esc(p.name)}</h2>
       <div class="crew-title">${esc(p.title || "PAC line pilot")}</div>
+      ${(p.roles || []).length ? `<div class="crew-roles">${p.roles.map(r => `<span class="role-chip">${esc(r)}</span>`).join("")}</div>` : ""}
       ${patchStrip(p.flair, 44)}${campaignPatchShelf(p.flair)}${publicShelf(p.flair)}
       ${p.bio ? `<p class="crew-bio">${esc(p.bio)}</p>` : ""}
       <div class="crew-facts">
@@ -7128,6 +7130,7 @@ function renderProfile() {
       <div class="crew-rank">${esc(p.rank)} · ${esc(p.pilot_id)}</div>
       <h2 class="crew-name">${esc(displayName(p))}</h2>
       <div class="crew-title">${esc(p.title)}</div>
+      ${(p.roles || []).length ? `<div class="crew-roles">${p.roles.map(r => `<span class="role-chip">${esc(r)}</span>`).join("")}</div>` : ""}
       ${patchStrip(p.flair, 44)}${campaignPatchShelf(p.flair)}${publicShelf(p.flair)}
       <p class="crew-bio">${esc(p.bio)}</p>
       <div class="crew-facts">
