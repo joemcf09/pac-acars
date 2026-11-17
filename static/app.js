@@ -6130,12 +6130,18 @@ async function deleteLivery(l) {
   try { await apiForm("/api/staff/liveries/" + encodeURIComponent(l.id), new FormData(), "DELETE"); toast("Livery deleted."); loadLiveryLib(); }
   catch (e) { toast(e.message); }
 }
-/* ---------------- Promo photos (scoped: Creative / Media + full admin) ---------------- */
+/* ---------------- Media & comms (scoped: Creative / Media + full admin) ---------------- */
 async function loadCreative() {
   const root = $("#creativeRoot");
   if (!root) return;
-  root.innerHTML = `<div class="profile-bar"><h1>Promo photos</h1><span class="muted">The real aircraft photos on partner mission cards, picked from Wikimedia Commons and each credited to its photographer. Choose or swap the photo for any partner type.</span></div><div id="creativeBody"></div>`;
-  staffPartnerPhotos($("#creativeBody"));
+  S.creativeTab = S.creativeTab || "photos";
+  const tabs = [["photos", "Promo photos"], ["news", "Announcements & NOTAMs"]];
+  root.innerHTML = `<div class="profile-bar"><h1>Media &amp; comms</h1><span class="muted">Promo photos on partner mission cards, plus site announcements and company NOTAMs (also posted to Discord).</span></div>
+    <div class="msg-tabs" style="margin-bottom:16px">${tabs.map(([k, t]) => `<button class="${S.creativeTab === k ? "on" : ""}" data-ctab="${k}">${t}</button>`).join("")}</div>
+    <div id="creativeBody"></div>`;
+  root.querySelectorAll("[data-ctab]").forEach(b => b.onclick = () => { S.creativeTab = b.dataset.ctab; loadCreative(); });
+  const body = $("#creativeBody");
+  if (S.creativeTab === "news") staffNews(undefined, body); else staffPartnerPhotos(body);
 }
 async function loadStaff() {
   try { S.staff = await api("/api/staff/overview"); renderStaff(); } catch (e) { toast(e.message); }
@@ -6502,12 +6508,12 @@ function staffRoster() {
     try { await api("/api/staff/roster/" + b.dataset.savePilot, { method: "POST", body }); toast(`${b.dataset.savePilot} saved.`); loadStaff(); refreshCore(); } catch (e) { toast(e.message); }
   });
 }
-async function staffNews(edit) {
+async function staffNews(edit, body = $("#staffBody")) {
   let list = [];
   try { list = await api("/api/staff/news"); } catch (e) { toast(e.message); }
   const n = edit ? list.find(x => x.id === edit) : null;
   const now = Date.now() / 1000;
-  $("#staffBody").innerHTML = `<form class="form-card" id="newsForm">
+  body.innerHTML = `<form class="form-card" id="newsForm">
       <h3 class="full" style="margin:0">${n ? "Edit post" : "Post news or a company NOTAM"}</h3>
       <div class="field"><label for="nw_kind">Type</label><select id="nw_kind" name="kind"><option value="news" ${n?.kind === "news" ? "selected" : ""}>News</option><option value="notam" ${n?.kind === "notam" ? "selected" : ""}>Company NOTAM</option></select></div>
       <div class="field"><label for="nw_days">Show for (days, empty = until deleted)</label><input id="nw_days" name="days" type="number" min="0" step="1" value="${n?.expires ? Math.max(1, Math.round((n.expires - now) / 86400)) : ""}"></div>
@@ -6523,13 +6529,13 @@ async function staffNews(edit) {
       <td style="white-space:nowrap"><button class="btn small" type="button" data-nedit="${x.id}">Edit</button> <button class="btn ghost small" type="button" data-ndel="${x.id}" aria-label="Delete">×</button></td></tr>`).join("")}</tbody></table></div>`;
   $("#newsForm").onsubmit = async e => {
     e.preventDefault();
-    const body = Object.fromEntries(new FormData(e.target).entries());
-    body.important = !!e.target.important.checked; body.discord = !!e.target.discord.checked; if (n) body.id = n.id;
-    try { await api("/api/staff/news", { method: "POST", body }); toast(n ? "Post updated." : "Posted."); S.news = null; staffNews(); } catch (err) { toast(err.message); }
+    const body2 = Object.fromEntries(new FormData(e.target).entries());
+    body2.important = !!e.target.important.checked; body2.discord = !!e.target.discord.checked; if (n) body2.id = n.id;
+    try { await api("/api/staff/news", { method: "POST", body: body2 }); toast(n ? "Post updated." : "Posted."); S.news = null; staffNews(undefined, body); } catch (err) { toast(err.message); }
   };
-  if ($("#nwCancel")) $("#nwCancel").onclick = () => staffNews();
-  document.querySelectorAll("[data-nedit]").forEach(b => b.onclick = () => staffNews(+b.dataset.nedit));
-  document.querySelectorAll("[data-ndel]").forEach(b => b.onclick = async () => { if (!confirm("Delete this post?")) return; await api("/api/staff/news/" + b.dataset.ndel, { method: "DELETE" }); S.news = null; staffNews(); });
+  if ($("#nwCancel")) $("#nwCancel").onclick = () => staffNews(undefined, body);
+  body.querySelectorAll("[data-nedit]").forEach(b => b.onclick = () => staffNews(+b.dataset.nedit, body));
+  body.querySelectorAll("[data-ndel]").forEach(b => b.onclick = async () => { if (!confirm("Delete this post?")) return; await api("/api/staff/news/" + b.dataset.ndel, { method: "DELETE" }); S.news = null; staffNews(undefined, body); });
 }
 const TYPE_FIELDS = [
   ["code", "Type code", "text", "e.g. B744F"], ["name", "Name", "text", "Boeing 747-400F"], ["icao", "ICAO type", "text", "B744"],

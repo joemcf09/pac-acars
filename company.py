@@ -20,7 +20,7 @@ ROLES = {
     "dir_ops": ("Director of Operations", "Mission boards, events, group flights, campaigns"),
     "fleet_mgr": ("Fleet & Maintenance Manager", "Heavy checks, AOG recovery, aircraft retirements"),
     "commercial": ("Commercial Director", "Shipper accounts, complaints, partner airlines"),
-    "creative": ("Creative / Media Director", "Screenshots, promo graphics, social media"),
+    "creative": ("Creative / Media Director", "Screenshots, promo graphics and social media; site announcements and company NOTAMs; promoting PAC on forums and social channels"),
     "livery_mgr": ("Livery Manager", "The PAC livery library and paint kits, across MSFS and X-Plane"),
     "hub_mgr": ("Hub Manager", "A hub's station report, backlog and regular pilots"),
 }
@@ -44,7 +44,7 @@ CAN = {"ceo_desk": {"ceo"}, "fleet_market": {"ceo", "fleet_mgr"}, "complaints": 
 # tested. Built incrementally, one clean role at a time.
 SCOPE = {
     "liveries": {"roles": {"livery_mgr"}, "paths": ("liveries",)},
-    "creative": {"roles": {"creative"}, "paths": ("partner-photos",)},
+    "creative": {"roles": {"creative"}, "paths": ("partner-photos", "news")},
     # Carved out and tested as each role's section is built, e.g.:
     # "fleet":      {"roles": {"fleet_mgr"},  "paths": ("fleet-types", "airframes", "maintenance")},
     # "complaints": {"roles": {"commercial"}, "paths": ("complaints",)},
