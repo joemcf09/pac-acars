@@ -10,13 +10,14 @@ import company
 
 con = sqlite3.connect(":memory:")
 con.execute("CREATE TABLE pilots (id TEXT PRIMARY KEY, name TEXT, staff INT)")
-for pid, name, staff in [("PAC0001", "Joseph", 1), ("PAC0014", "Alan", 0), ("PAC0002", "Jose", 0), ("PAC0003", "Mara", 0), ("PAC0004", "Devi", 0), ("PAC0005", "Finn", 0)]:
+for pid, name, staff in [("PAC0001", "Joseph", 1), ("PAC0014", "Alan", 0), ("PAC0002", "Jose", 0), ("PAC0003", "Mara", 0), ("PAC0004", "Devi", 0), ("PAC0005", "Finn", 0), ("PAC0006", "Omar", 0)]:
     con.execute("INSERT INTO pilots VALUES (?,?,?)", (pid, name, staff))
 company.migrate(con)                       # seeds the owner's ceo role
 company.assign(con, "PAC0014", "livery_mgr", "")   # Alan: Livery Manager, not a full admin
 company.assign(con, "PAC0003", "creative", "")     # Mara: Creative / Media Director, not a full admin
 company.assign(con, "PAC0004", "commercial", "")   # Devi: Commercial Director, not a full admin
 company.assign(con, "PAC0005", "fleet_mgr", "")    # Finn: Fleet & Maintenance Manager, not a full admin
+company.assign(con, "PAC0006", "dir_ops", "")      # Omar: Director of Operations, not a full admin
 con.commit()
 
 fails = []
@@ -104,6 +105,18 @@ check("Finn may NOT /api/staff/market/order", company.may_path(con, "PAC0005", "
 check("Finn may NOT /api/staff/market/rec/<id> (approval, admin-only)", company.may_path(con, "PAC0005", "/api/staff/market/rec/3") is False)
 check("Finn may NOT /api/staff/overview", company.may_path(con, "PAC0005", "/api/staff/overview") is False)
 check("Devi (commercial) may NOT /api/staff/fleet-types", company.may_path(con, "PAC0004", "/api/staff/fleet-types") is False)
+
+# --- Operations: events, campaigns, relief ----------------------------------
+for p in ("cargo-campaigns", "events", "relief"):
+    check(f"{p} path is scoped to operations", company.capability_for("/api/staff/" + p) == "operations",
+          company.capability_for("/api/staff/" + p))
+check("Omar's caps = [operations]", company.caps_of(con, "PAC0006") == ["operations"], company.caps_of(con, "PAC0006"))
+check("Omar MAY /api/staff/events", company.may_path(con, "PAC0006", "/api/staff/events") is True)
+check("Omar MAY /api/staff/cargo-campaigns", company.may_path(con, "PAC0006", "/api/staff/cargo-campaigns") is True)
+check("Omar MAY /api/staff/relief/<id>/post", company.may_path(con, "PAC0006", "/api/staff/relief/x/post") is True)
+check("Omar may NOT /api/staff/overview", company.may_path(con, "PAC0006", "/api/staff/overview") is False)
+check("Omar may NOT /api/staff/fleet-types", company.may_path(con, "PAC0006", "/api/staff/fleet-types") is False)
+check("Finn (fleet) may NOT /api/staff/events", company.may_path(con, "PAC0005", "/api/staff/events") is False)
 
 print("\n" + ("ALL PASS" if not fails else f"{len(fails)} FAILED: {fails}"))
 sys.exit(1 if fails else 0)

@@ -3962,6 +3962,12 @@ def staff_airframe_delete(reg):
     return jsonify(airframes())
 
 
+@bp.get("/api/staff/events")
+def staff_events_list():
+    """The events list for the Operations section, so a scoped Director of Operations needn't load the admin overview."""
+    return jsonify({"events": sorted(load_events(), key=lambda e: e["start"])})
+
+
 @bp.post("/api/staff/events")
 def staff_event_save():
     b = request.json or {}

@@ -47,6 +47,7 @@ SCOPE = {
     "creative": {"roles": {"creative"}, "paths": ("partner-photos", "news")},
     "commercial": {"roles": {"commercial"}, "paths": ("complaints", "accounts", "lanes", "featured-shipments")},
     "fleet": {"roles": {"fleet_mgr"}, "paths": ("fleet-types", "airframes", "maintenance", "fleet-recs", "fleet-catalog")},
+    "operations": {"roles": {"dir_ops"}, "paths": ("cargo-campaigns", "events", "relief")},
     # The fleet MARKET itself (buying/leasing, which spends company cash) stays full-admin only, so a
     # Fleet Manager can browse the catalog (fleet-catalog, no cash shown) and file recommendations
     # (fleet-recs), but only the owner approves them, which executes the order under /api/staff/market/rec.

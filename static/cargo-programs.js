@@ -68,40 +68,39 @@ async function fillCargoAwards() {
     root.innerHTML=`<div class="section-h"><div><h2>Cargo Passport awards</h2><p>${p.collections.filter(c=>c.earned).length} of ${p.collections.length} collections earned from accepted cargo deliveries.</p></div><button class="btn ghost small" data-stats-tab="passport">Open passport</button></div><div class="cargo-collection-grid">${cargoCollectionCards(p.collections)}</div>`;
   } catch(e){if(root.isConnected)root.innerHTML='<p class="muted">Cargo Passport awards are temporarily unavailable.</p>';}
 }
-async function staffCargoCampaigns() {
-  const root=$('#staffBody'),pilot=S.me?.id;
-  const current=()=>root.isConnected && S.staffTab==='campaigns' && S.me?.id===pilot && S.me?.staff;
+async function staffCargoCampaigns(host=$('#staffBody')) {
+  const root=host,pilot=S.me?.id;
+  const current=()=>root.isConnected && S.me?.id===pilot && (typeof hasCap==='function' ? hasCap('operations') : S.me?.staff);
   root.innerHTML='<p role="status">Loading cargo campaigns…</p>';
   try {
     const data=await api('/api/staff/cargo-campaigns');if(!current())return;
     const today=new Date().toISOString().slice(0,10);
-    root.innerHTML=`<div id="shipmentEditor"></div><h2>Cargo campaigns</h2><p>Create a private draft, review its dates and destinations, then publish it for pilots.</p><details class="cargo-create"><summary>Create a campaign</summary><form id="cargoCampaignForm" class="cargo-form">
+    root.innerHTML=`<h2>Cargo campaigns</h2><p>Create a private draft, review its dates and destinations, then publish it for pilots.</p><details class="cargo-create"><summary>Create a campaign</summary><form id="cargoCampaignForm" class="cargo-form">
       <label>Campaign title<input name="title" required minlength="3" maxlength="80" placeholder="Operation Caribbean Supply"></label><label>Description<textarea name="description" maxlength="1000" rows="3" placeholder="Tell pilots what this cargo operation is about."></textarea></label>
       <div class="cargo-form-row"><label>Start date (UTC)<input name="start_date" type="date" required value="${today}"></label><label>Last day (UTC, inclusive)<input name="end_date" type="date" required value="${today}"></label><label>Target cargo (lb)<input name="target_lbs" type="number" required min="1" max="1000000000" step="1" value="500000"></label></div>
       <label>Destination ICAOs<input name="destinations" required placeholder="MYNN, TJSJ, TNCM"></label><p class="brief-note">Separate up to 40 known airports with commas or spaces. All qualifying cargo arrivals at these airports count during the date window, based on report filing time. Earlier dates include historical flights. You can edit a draft until you publish it; publishing fixes the rules. A cash reward and patch image can be added after saving.</p><button class="btn" type="submit">Save private draft</button><p id="cargoFormStatus" role="status"></p></form></details>
       <div class="cargo-campaign-grid">${cargoCampaignCards(data.campaigns,true)}</div>${data.campaigns.length ? '' : '<p class="notice">No campaigns yet. Your first draft will appear here.</p>'}`;
-    loadShipmentEditor();
-    $('#cargoCampaignForm').onsubmit=async e=>{
+    root.querySelector('#cargoCampaignForm').onsubmit=async e=>{
       e.preventDefault();const form=e.currentTarget,fields=form.elements,button=form.querySelector('button');button.disabled=true;
       const body={title:fields.title.value,description:fields.description.value,start_date:fields.start_date.value,end_date:fields.end_date.value,target_lbs:Number(fields.target_lbs.value),destinations:fields.destinations.value.split(/[\s,]+/).filter(Boolean)};
-      try{await api('/api/staff/cargo-campaigns',{method:'POST',body});if(current()){toast('Private draft saved. Review it before publishing.');staffCargoCampaigns();}}
-      catch(err){if(current()){$('#cargoFormStatus').textContent=err.message;button.disabled=false;}}
+      try{await api('/api/staff/cargo-campaigns',{method:'POST',body});if(current()){toast('Private draft saved. Review it before publishing.');staffCargoCampaigns(host);}}
+      catch(err){if(current()){root.querySelector('#cargoFormStatus').textContent=err.message;button.disabled=false;}}
     };
     root.querySelectorAll('[data-edit]').forEach(f=>f.onsubmit=async e=>{
       e.preventDefault();const x=f.elements;
       const body={action:'edit',title:x.title.value,description:x.description.value,start_date:x.start_date.value,end_date:x.end_date.value,target_lbs:Number(x.target_lbs.value),destinations:x.destinations.value.split(/[\s,]+/).filter(Boolean)};
-      try{await api(`/api/staff/cargo-campaigns/${f.dataset.edit}`,{method:'POST',body});toast('Draft updated.');if(current())staffCargoCampaigns();}
+      try{await api(`/api/staff/cargo-campaigns/${f.dataset.edit}`,{method:'POST',body});toast('Draft updated.');if(current())staffCargoCampaigns(host);}
       catch(err){toast(err.message);}
     });
     root.querySelectorAll('[data-extras]').forEach(f=>f.onsubmit=async e=>{
       e.preventDefault();const x=f.elements;
-      try{await api(`/api/staff/cargo-campaigns/${f.dataset.extras}`,{method:'POST',body:{action:'extras',patch:x.patch.value,reward_cash:Number(x.reward_cash.value),baseline_lbs:Number(x.baseline_lbs.value)}});toast('Saved.');if(current())staffCargoCampaigns();}
+      try{await api(`/api/staff/cargo-campaigns/${f.dataset.extras}`,{method:'POST',body:{action:'extras',patch:x.patch.value,reward_cash:Number(x.reward_cash.value),baseline_lbs:Number(x.baseline_lbs.value)}});toast('Saved.');if(current())staffCargoCampaigns(host);}
       catch(err){toast(err.message);}
     });
     root.querySelectorAll('[data-campaign-action]').forEach(b=>b.onclick=async()=>{
       b.disabled=true;
       const ld=root.querySelector(`[data-launch-date="${b.dataset.campaignId}"]`);
-      try{await api(`/api/staff/cargo-campaigns/${b.dataset.campaignId}`,{method:'POST',body:{action:b.dataset.campaignAction,launch_date:ld?ld.value:undefined}});if(current())staffCargoCampaigns();}
+      try{await api(`/api/staff/cargo-campaigns/${b.dataset.campaignId}`,{method:'POST',body:{action:b.dataset.campaignAction,launch_date:ld?ld.value:undefined}});if(current())staffCargoCampaigns(host);}
       catch(e){if(current()){toast(e.message);b.disabled=false;}}
     });
   }catch(e){if(current())root.innerHTML=`<p role="alert">${esc(e.message)}</p>`;}

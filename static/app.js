@@ -47,6 +47,7 @@ function show(view) {
   if (view === "creative" && S.me && !hasCap("creative")) view = "home";   // scoped section: full admin or the Creative / Media Director only
   if (view === "commercial" && S.me && !hasCap("commercial")) view = "home";   // scoped section: full admin or the Commercial Director only
   if (view === "fleetmgr" && S.me && !hasCap("fleet")) view = "home";   // scoped section: full admin or the Fleet & Maintenance Manager only
+  if (view === "operations" && S.me && !hasCap("operations")) view = "home";   // scoped section: full admin or the Director of Operations only
   if (!S.me && !PUBLIC_VIEWS.includes(view)) {  // a members' page: sign in first, then go there
     openSignIn(null, view);
     if (!document.querySelector(".view:not([hidden])")) view = "home"; else return;
@@ -86,6 +87,7 @@ function show(view) {
   if (view === "creative") loadCreative();
   if (view === "commercial") loadCommercial();
   if (view === "fleetmgr") loadFleetMgr();
+  if (view === "operations") loadOps();
   if (view === "messages") loadMessages();
   if (view === "reports") loadProblemReports();
   if (view === "updates") loadWhatsNew();
@@ -5002,7 +5004,7 @@ async function openDetail(id) {
 }
 
 /* ================= VA core ================= */
-const VIEWS = ["privacy", "roster", "home", "dashboard", "missions", "bids", "acars", "fleet", "stations", "downloads", "career", "stats", "finance", "shop", "live", "logbook", "gallery", "handbook", "cargoguide", "staff", "liverylib", "creative", "commercial", "fleetmgr", "messages", "profile", "pilots", "updates"];
+const VIEWS = ["privacy", "roster", "home", "dashboard", "missions", "bids", "acars", "fleet", "stations", "downloads", "career", "stats", "finance", "shop", "live", "logbook", "gallery", "handbook", "cargoguide", "staff", "liverylib", "creative", "commercial", "fleetmgr", "operations", "messages", "profile", "pilots", "updates"];
 function hasCap(cap) { return !!(S.me && (S.me.staff || (S.me.staff_caps || []).includes(cap))); }
 const TOUR_ORDER = {};
 function applyCore(d) {
@@ -6218,6 +6220,21 @@ async function fleetRecs(body) {
     catch (e) { toast(e.message); b.disabled = false; }
   });
 }
+/* ---------------- Ops desk (scoped: Director of Operations + full admin) ---------------- */
+async function loadOps() {
+  const root = $("#opsRoot");
+  if (!root) return;
+  S.opsTab = S.opsTab || "events";
+  const tabs = [["events", "Events"], ["campaigns", "Campaigns"], ["relief", "Relief missions"]];
+  root.innerHTML = `<div class="profile-bar"><h1>Ops desk</h1><span class="muted">The airline's operational tempo: points events, cargo campaigns and relief missions.</span></div>
+    <div class="msg-tabs" style="margin-bottom:16px">${tabs.map(([k, t]) => `<button class="${S.opsTab === k ? "on" : ""}" data-otab="${k}">${t}</button>`).join("")}</div>
+    <div id="opsBody"></div>`;
+  root.querySelectorAll("[data-otab]").forEach(b => b.onclick = () => { S.opsTab = b.dataset.otab; loadOps(); });
+  const body = $("#opsBody");
+  if (S.opsTab === "campaigns") staffCargoCampaigns(body);
+  else if (S.opsTab === "relief") staffRelief(body);
+  else staffEvents(undefined, body);
+}
 async function loadStaff() {
   try { S.staff = await api("/api/staff/overview"); renderStaff(); } catch (e) { toast(e.message); }
 }
@@ -6726,10 +6743,14 @@ async function staffAirframes(host = $("#staffBody")) {
     try { setFrames(await api("/api/staff/airframes", { method: "POST", body })); toast(`${body.reg.toUpperCase()} added.`); staffAirframes(host); refreshCore(); } catch (err) { toast(err.message); }
   };
 }
-function staffEvents(edit) {
+async function staffEvents(edit, host = $("#staffBody")) {
+  let events;
+  if (S.staff?.events) events = S.staff.events;
+  else { try { events = (await api("/api/staff/events")).events || []; } catch (err) { host.innerHTML = `<div class="notice err">${esc(err.message)}</div>`; return; } }
+  const reload = () => { if (S.staff) loadStaff(); else staffEvents(undefined, host); };
   const e = edit || { id: "", name: "", start: "", end: "", multiplier: 1.25, categories: [], regions: [], airports: [], description: "" };
   const checks = (name, list, sel) => list.map(x => `<label style="display:inline-flex;align-items:center;gap:6px;margin:0 14px 8px 0;font-size:14px;white-space:nowrap"><input type="checkbox" name="${name}" value="${esc(x)}" ${sel.includes(x) ? "checked" : ""} style="accent-color:var(--red);flex:none;width:16px;height:16px;min-height:0;margin:0;padding:0">${esc(x)}</label>`).join("");
-  $("#staffBody").innerHTML = `<form class="form-card" id="evForm"><input type="hidden" name="id" value="${esc(e.id)}">
+  host.innerHTML = `<form class="form-card" id="evForm"><input type="hidden" name="id" value="${esc(e.id)}">
       <div class="field half"><label for="ev_name">Event name</label><input id="ev_name" name="name" value="${esc(e.name)}" required></div>
       <div class="field"><label for="ev_start">Start</label><input id="ev_start" type="date" name="start" value="${e.start}" required></div>
       <div class="field"><label for="ev_end">End</label><input id="ev_end" type="date" name="end" value="${e.end}" required></div>
@@ -6739,21 +6760,21 @@ function staffEvents(edit) {
       <div class="field full"><label>Regions (none ticked = any)</label><div>${checks("regions", REGION_LIST, e.regions)}</div></div>
       <div class="field full"><label for="ev_desc">Description</label><textarea id="ev_desc" name="description" rows="2">${esc(e.description)}</textarea></div>
       <div class="full row"><button class="btn" type="submit">${e.id ? "Save event" : "Add event"}</button>${e.id ? `<button class="btn ghost" type="button" id="evCancel">Cancel</button>` : ""}</div></form>
-    ${S.staff.events.map(ev => `<div class="q-item"><div><b>${esc(ev.name)}</b> <span class="tag dark">×${ev.multiplier}</span>
+    ${events.map(ev => `<div class="q-item"><div><b>${esc(ev.name)}</b> <span class="tag dark">×${ev.multiplier}</span>
       <div class="meta">${ev.start} to ${ev.end}${ev.categories.length ? " · " + ev.categories.join(", ") : ""}${ev.regions.length ? " · " + ev.regions.join(", ") : ""}${ev.airports.length ? " · " + ev.airports.join(", ") : ""}</div>
       <p style="margin:4px 0 0">${esc(ev.description)}</p></div>
       <div class="q-actions"><button class="btn ghost small" data-ev-edit="${esc(ev.id)}">Edit</button><button class="btn ghost small" data-ev-del="${esc(ev.id)}">Delete</button></div></div>`).join("")}`;
-  $("#evForm").onsubmit = async ev => {
+  host.querySelector("#evForm").onsubmit = async ev => {
     ev.preventDefault(); const f = ev.target, fd = new FormData(f);
     const body = { id: fd.get("id"), name: fd.get("name"), start: fd.get("start"), end: fd.get("end"), multiplier: Number(fd.get("multiplier")),
       categories: fd.getAll("categories"), regions: fd.getAll("regions"), airports: fd.get("airports").split(/[,\s]+/).filter(Boolean), description: fd.get("description") };
-    try { await api("/api/staff/events", { method: "POST", body }); toast("Event saved."); await loadStaff(); refreshCore(); } catch (err) { toast(err.message); }
+    try { await api("/api/staff/events", { method: "POST", body }); toast("Event saved."); reload(); refreshCore(); } catch (err) { toast(err.message); }
   };
-  if ($("#evCancel")) $("#evCancel").onclick = () => staffEvents();
-  document.querySelectorAll("[data-ev-edit]").forEach(b => b.onclick = () => staffEvents(S.staff.events.find(x => x.id === b.dataset.evEdit)));
-  document.querySelectorAll("[data-ev-del]").forEach(b => b.onclick = async () => {
+  if (host.querySelector("#evCancel")) host.querySelector("#evCancel").onclick = () => staffEvents(undefined, host);
+  host.querySelectorAll("[data-ev-edit]").forEach(b => b.onclick = () => staffEvents(events.find(x => x.id === b.dataset.evEdit), host));
+  host.querySelectorAll("[data-ev-del]").forEach(b => b.onclick = async () => {
     if (!confirm("Delete this event?")) return;
-    await api("/api/staff/events/" + encodeURIComponent(b.dataset.evDel), { method: "DELETE" }); loadStaff(); refreshCore();
+    await api("/api/staff/events/" + encodeURIComponent(b.dataset.evDel), { method: "DELETE" }); reload(); refreshCore();
   });
 }
 function staffSite() {
@@ -9438,8 +9459,8 @@ async function staffRoles() {
   if ($("#roGo")) $("#roGo").onclick = () => send({ pilot_id: $("#roPid").value, role: $("#roRole").value });
 }
 
-async function staffRelief() {
-  const body = $("#staffBody");
+async function staffRelief(host = $("#staffBody")) {
+  const body = host;
   body.innerHTML = `<p class="muted">Checking disaster alerts…</p>`;
   let d;
   try { d = await api("/api/staff/relief"); } catch (e) { body.innerHTML = `<div class="notice err">${esc(e.message)}</div>`; return; }
@@ -9486,14 +9507,14 @@ async function staffRelief() {
     checks.forEach(([k]) => f[k].onchange = ready);
     const edits = () => ({ aircraft: f.aircraft.value, note: f.note.value,
       help: f.helplinks.value.split("\n").map(l => l.split("|").map(x => x.trim())).filter(p => p.length >= 2).map(p => [p[0], p.slice(1).join("|")]) });
-    f.querySelector('[data-act="edit"]').onclick = async () => { if (await send(id, "edit", edits())) { toast("Draft saved."); staffRelief(); } };
+    f.querySelector('[data-act="edit"]').onclick = async () => { if (await send(id, "edit", edits())) { toast("Draft saved."); staffRelief(host); } };
     post.onclick = async () => {
       if (!(await send(id, "edit", edits()))) return;
       const checksOn = Object.fromEntries(checks.map(([k]) => [k, f[k].checked]));
-      if (await send(id, "post", { checks: checksOn })) { toast("Relief mission posted."); staffRelief(); }
+      if (await send(id, "post", { checks: checksOn })) { toast("Relief mission posted."); staffRelief(host); }
     };
-    f.querySelector('[data-act="later"]').onclick = async () => { if (await send(id, "later", { hours: 24 })) { toast("We'll keep it for later."); staffRelief(); } };
-    f.querySelector('[data-act="dismiss"]').onclick = async () => { if (await send(id, "dismiss")) { toast("Dismissed."); staffRelief(); } };
+    f.querySelector('[data-act="later"]').onclick = async () => { if (await send(id, "later", { hours: 24 })) { toast("We'll keep it for later."); staffRelief(host); } };
+    f.querySelector('[data-act="dismiss"]').onclick = async () => { if (await send(id, "dismiss")) { toast("Dismissed."); staffRelief(host); } };
   });
-  body.querySelectorAll("[data-close]").forEach(b => b.onclick = async () => { if (await send(b.dataset.close, "close")) { toast("Mission closed."); staffRelief(); } });
+  body.querySelectorAll("[data-close]").forEach(b => b.onclick = async () => { if (await send(b.dataset.close, "close")) { toast("Mission closed."); staffRelief(host); } });
 }

@@ -211,6 +211,18 @@ def register(app,context):
         if staff and not p.get('staff'):return None,reply({'error':'Staff access required.'},403)
         return p,None
 
+    def staff_or(cap):
+        """Full admin, or a non-admin role-holder scoped to `cap` (Operations for cargo campaigns)."""
+        import auth,company
+        p=auth.current()
+        if not p:return None,reply({'error':'Please sign in.'},401)
+        if p.get('staff'):return p,None
+        try:
+            with closing(db()) as con:
+                if cap in company.caps_of(con,p['id']):return p,None
+        except Exception:pass
+        return None,reply({'error':'Staff access required.'},403)
+
     @app.get('/api/pilot/cargo-passport')
     def cargo_passport():
         p,error=user()
@@ -235,7 +247,7 @@ def register(app,context):
 
     @app.route('/api/staff/cargo-campaigns',methods=['GET','POST'])
     def staff_cargo_campaigns():
-        p,error=user(True)
+        p,error=staff_or('operations')
         if error is not None:return error
         if request.method=='GET':
             close_ended()
@@ -255,7 +267,7 @@ def register(app,context):
 
     @app.post('/api/staff/cargo-campaigns/<int:cid>')
     def campaign_action(cid):
-        p,error=user(True)
+        p,error=staff_or('operations')
         if error is not None:return error
         b=request.get_json(silent=True)
         action=b.get('action') if isinstance(b,dict) else None
