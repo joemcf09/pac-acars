@@ -111,6 +111,7 @@ function closeNavigation() {
   $('#navToggle').setAttribute('aria-expanded','false'); $('#mainNav').classList.remove('mobile-open');
 }
 document.querySelectorAll('.pac-nav-v2 .nav-disclosure').forEach(b => b.onclick = () => {
+  if (b.dataset.solo) { closeNavigation(); show(b.dataset.solo); return; }   // single management section: act as a direct button
   const open=b.getAttribute('aria-expanded')!=='true';
   document.querySelectorAll('.pac-nav-v2 .nav-disclosure').forEach(other => {other.setAttribute('aria-expanded','false');document.getElementById(other.getAttribute('aria-controls')).hidden=true;});
   b.setAttribute('aria-expanded',String(open)); document.getElementById(b.getAttribute('aria-controls')).hidden=!open;
@@ -121,6 +122,21 @@ document.addEventListener('click',e=>{if(!e.target.closest('.pac-nav-v2'))closeN
 function fitNav() {
  document.querySelectorAll('#mainNav .nav-group').forEach(g=>g.hidden=![...g.querySelectorAll('[data-view]')].some(b=>!b.classList.contains('auth-hidden')));
  if(!S.me) { closeNavigation(); }
+}
+// The management dropdown (role sections + Staff) collapses the CEO's long menu. A holder of just one
+// section sees a direct button instead of a one-item dropdown, so ordinary pilots keep it simple.
+function compactMgmt() {
+  const disc = document.getElementById('mgmtDisclosure'), panel = document.getElementById('navGroupMgmt');
+  if (!disc || !panel) return;
+  const vis = [...panel.querySelectorAll('button[data-view]')].filter(b => !b.classList.contains('auth-hidden'));
+  const label = disc.querySelector('.disc-text');
+  if (vis.length === 1) {
+    disc.classList.add('solo'); disc.dataset.solo = vis[0].dataset.view;
+    if (label) label.textContent = vis[0].textContent.trim();
+  } else {
+    disc.classList.remove('solo'); delete disc.dataset.solo;
+    if (label) label.textContent = 'Management';
+  }
 }
 let fitT = null;
 window.addEventListener("resize", () => { clearTimeout(fitT); fitT = setTimeout(fitNav, 60); });
@@ -7701,6 +7717,7 @@ function applyAuth() {
     const capHidden = cap ? !(staff || caps.includes(cap)) : false;
     b.classList.toggle("auth-hidden", (!me && !PUBLIC_VIEWS.includes(v)) || (v === "staff" && !staff) || capHidden);
   });
+  compactMgmt();
   $("#pilotChip").hidden = !me; $("#openSettings").hidden = !me; $("#signOutBtn").hidden = !me; $("#signInBtn").hidden = !!me;
   setTimeout(fitNav, 0);
   if (!me) { ++briefingVersion; if ($("#pilotBriefing")) $("#pilotBriefing").replaceChildren(); const p = $("#bidPill"); if (p) p.hidden = true; }
