@@ -1752,6 +1752,8 @@ def create_booking():
         save_booking(booking)
     except ValueError as e:
         return jsonify({"error": str(e)}), 409
+    if booking.get("airframe"):
+        va.reserve_airframe(booking["airframe"])   # reserve the tail only now that the booking has persisted
     start_ofp_watch(booking)
     return jsonify(booking)
 

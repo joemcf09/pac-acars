@@ -1914,9 +1914,20 @@ def check_booking(m, ac, reg, st):
                 return f"{reg} is at {row['location']}, not {m['origin']['icao']}. Pick an aircraft that's there or ferry one in.", None
         elif st.get("enforce_airframes", True):
             return f"Choose an airframe at {m['origin']['icao']} for this flight.", None
-        if row:
-            con.execute("UPDATE airframes SET status='Booked', updated=? WHERE reg=?", (time.time(), reg))
+    # NOTE: the airframe is NOT marked 'Booked' here. Marking it during this check left a tail stranded
+    # ('Booked' with no booking behind it) whenever a later step failed or needed a second pass (a
+    # conflict-zone acknowledgement, a dispatch or transfer error). create_booking reserves it with
+    # reserve_airframe() only once the booking actually persists; create_booking is @releases.serialized,
+    # so no other booking can claim the same tail in between.
     return None, row
+
+
+def reserve_airframe(reg):
+    """Mark an airframe 'Booked', called once a booking has been saved (see create_booking)."""
+    if not reg:
+        return
+    with C["db"]() as con:
+        con.execute("UPDATE airframes SET status='Booked', updated=? WHERE reg=?", (time.time(), reg))
 
 
 def release_airframe(reg):
