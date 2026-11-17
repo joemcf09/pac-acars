@@ -288,7 +288,7 @@ def register(app, g):
     @app.post("/api/staff/ceo/hub")
     def ceo_hub():
         import hubs as H
-        b = request.get_json(silent=True) or {}
+        b = request.get_json(silent=True); b = b if isinstance(b, dict) else {}
         try:
             with g["db"]() as con:
                 if (r := deny(con, "ceo_desk")):
@@ -319,7 +319,7 @@ def register(app, g):
 
     @app.post("/api/staff/ceo/travel")
     def ceo_travel_go():
-        b = request.get_json(silent=True) or {}
+        b = request.get_json(silent=True); b = b if isinstance(b, dict) else {}
         try:
             with g["db"]() as con:
                 if (r := deny(con, "ceo_desk")):
@@ -363,7 +363,7 @@ def register(app, g):
 
     @app.post("/api/staff/ceo/letter")
     def ceo_letter():
-        b = request.get_json(silent=True) or {}
+        b = request.get_json(silent=True); b = b if isinstance(b, dict) else {}
         with g["db"]() as con:
             migrate(con)
             if (r := deny(con, "ceo_desk")):
@@ -396,7 +396,7 @@ def register(app, g):
 
     @app.post("/api/staff/complaints/<int:cid>")
     def complaint_answer(cid):
-        b = request.get_json(silent=True) or {}
+        b = request.get_json(silent=True); b = b if isinstance(b, dict) else {}
         try:
             with g["db"]() as con:
                 migrate(con)
@@ -419,7 +419,7 @@ def register(app, g):
 
     @app.post("/api/staff/market/order")
     def market_order():
-        b = request.get_json(silent=True) or {}
+        b = request.get_json(silent=True); b = b if isinstance(b, dict) else {}
         try:
             with g["db"]() as con:
                 fleet_market.migrate(con)

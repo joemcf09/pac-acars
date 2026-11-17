@@ -137,7 +137,8 @@ def register(app, g):
 
     @app.post("/api/staff/roles")
     def roles_change():
-        b = request.get_json(silent=True) or {}
+        b = request.get_json(silent=True)
+        b = b if isinstance(b, dict) else {}
         try:
             with g["db"]() as con:
                 if not may(con, pid(), "roles"):

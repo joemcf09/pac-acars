@@ -252,7 +252,7 @@ def register(app, g):
 
     @app.post("/api/staff/growth/<action>")
     def growth_action(action):
-        b = request.get_json(silent=True) or {}
+        b = request.get_json(silent=True); b = b if isinstance(b, dict) else {}
         try:
             with g["db"]() as con:
                 migrate(con)

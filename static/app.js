@@ -9045,7 +9045,7 @@ async function staffCeo() {
   api("/api/crew-rest").then(r => { const h = r.hq, el = $("#ceoRest"); if (el) el.innerHTML = `<h3>KCVG crew rest rooms <span class="muted">(${h.used} of ${h.rooms} beds in use${h.used ? ` · saving $${fmt(h.saved_per_night)} a night in hotels` : ""})</span></h3><p class="muted">${h.guests.length ? h.guests.map(g => esc(g.name || g.pilot_id)).join(", ") : "All rooms free tonight."}</p>`; }).catch(() => { });
   body.insertAdjacentHTML("beforeend", `<div id="growthBox"><p class="muted">Loading network and safety…</p></div>`);
   staffGrowth();
-  $("#ceoPost").onclick = async () => { try { await api("/api/staff/ceo/letter", { method: "POST", body: JSON.stringify({ month: d.letter.month, body: $("#ceoLetter").value }) }); toast("Letter posted."); staffCeo(); } catch (e) { toast(e.message); } };
+  $("#ceoPost").onclick = async () => { try { await api("/api/staff/ceo/letter", { method: "POST", body: { month: d.letter.month, body: $("#ceoLetter").value } }); toast("Letter posted."); staffCeo(); } catch (e) { toast(e.message); } };
 }
 async function staffGrowth() {
   const box = $("#growthBox"); if (!box) return;
@@ -9068,7 +9068,7 @@ async function staffGrowth() {
     ${d.mentors.length ? `<ul>${d.mentors.map(m => `<li>${esc(m.mentor_name || m.mentor)} → ${esc(m.mentee_name || m.mentee)}: ${m.status === "done" ? "complete" : `${m.flights} of ${d.mentor_flights} flights`}</li>`).join("")}</ul>` : ""}
     <h3>Seniority <span class="muted">(senior pilots get first pick on new trips for 12 hours)</span></h3>
     <ol>${d.seniority.map(p => `<li>${esc(p.name || p.pilot_id)} <span class="muted">${esc(p.pilot_id)}</span></li>`).join("")}</ol>`;
-  const post = async (act, x) => { try { await api(`/api/staff/growth/${act}`, { method: "POST", body: JSON.stringify(x) }); staffGrowth(); return true; } catch (e) { toast(e.message); } };
+  const post = async (act, x) => { try { await api(`/api/staff/growth/${act}`, { method: "POST", body: x }); staffGrowth(); return true; } catch (e) { toast(e.message); } };
   $("#prGo").onclick = async () => { if (await post("propose", { origin: $("#prO").value, dest: $("#prD").value })) toast("Route proposed: it opens after its proving flight."); };
   box.querySelectorAll("[data-prx]").forEach(b => b.onclick = () => post("cancel_route", { id: +b.dataset.prx }));
   $("#mnGo").onclick = async () => { if (await post("mentor", { mentor: $("#mnA").value, mentee: $("#mnB").value })) toast("Mentoring pair set up."); };
@@ -9104,7 +9104,7 @@ async function staffMarket() {
       <button class="btn" id="mktGo" type="button">Confirm</button> <button class="btn ghost" id="mktX" type="button">Cancel</button></section>`;
     $("#mktForm").scrollIntoView({ behavior: "smooth" });
     $("#mktX").onclick = () => { $("#mktForm").innerHTML = ""; };
-    $("#mktGo").onclick = async () => { try { const r = await api("/api/staff/market/order", { method: "POST", body: JSON.stringify({ offer: o.id, reg: $("#mktReg").value, hub: $("#mktHub").value, weeks: $("#mktWeeks")?.value }) });
+    $("#mktGo").onclick = async () => { try { const r = await api("/api/staff/market/order", { method: "POST", body: { offer: o.id, reg: $("#mktReg").value, hub: $("#mktHub").value, weeks: $("#mktWeeks")?.value } });
       toast(`${r.reg} ordered: ready at ${r.deliver_to} on ${cDate(r.deliver_at)}.`); staffMarket(); } catch (e) { toast(e.message); } };
   });
 }
@@ -9118,7 +9118,7 @@ async function staffComplaints() {
       ${c.standing ? `<p class="muted">Account standing: ${esc(c.standing.tier)} (${c.standing.score})</p>` : ""}
       ${c.status === "open" ? `<div class="cmp-acts">${d.responses.map(r => `<button class="btn ${r.key === "apology" ? "ghost" : ""}" type="button" data-c="${c.id}" data-r="${r.key}">${esc(r.label)} <small>+${r.delta}${r.cost ? " · " + money(r.cost) : ""}</small></button>`).join("")}</div>`
         : `<p class="tag green">Answered: ${esc(R[c.response]?.label || c.response)}</p>`}</div>`).join("") || `<p class="muted">No complaints. Keep the freight on time.</p>`}`;
-  body.querySelectorAll("[data-c]").forEach(b => b.onclick = async () => { try { const r = await api(`/api/staff/complaints/${b.dataset.c}`, { method: "POST", body: JSON.stringify({ response: b.dataset.r }) }); toast(`${r.shipper}: standing +${r.delta}.`); staffComplaints(); } catch (e) { toast(e.message); } });
+  body.querySelectorAll("[data-c]").forEach(b => b.onclick = async () => { try { const r = await api(`/api/staff/complaints/${b.dataset.c}`, { method: "POST", body: { response: b.dataset.r } }); toast(`${r.shipper}: standing +${r.delta}.`); staffComplaints(); } catch (e) { toast(e.message); } });
 }
 async function staffRoles() {
   const body = $("#staffBody"); body.innerHTML = `<p class="muted">Loading roles…</p>`;
@@ -9128,7 +9128,7 @@ async function staffRoles() {
     <div class="table-wrap"><table class="fin-table"><thead><tr><th>Role</th><th>What they own</th><th>Held by</th></tr></thead><tbody>
     ${d.roles.map(r => `<tr><td><b>${esc(r.title)}</b></td><td class="muted">${esc(r.does)}</td><td>${(by[r.key] || []).map(h => `${esc(h.name || h.pilot_id)} <span class="muted">${esc(h.pilot_id)}</span>${d.can_assign ? ` <button class="btn ghost" type="button" data-rm="${esc(h.pilot_id)}|${r.key}">Remove</button>` : ""}`).join("<br>") || '<span class="muted">Open</span>'}</td></tr>`).join("")}</tbody></table></div>
     ${d.can_assign ? `<section class="panel mkt-order"><h3>Give a role</h3><label>Pilot ID <input id="roPid" placeholder="PAC0002"></label><label>Role <select id="roRole">${d.roles.map(r => `<option value="${r.key}">${esc(r.title)}</option>`).join("")}</select></label><button class="btn" id="roGo" type="button">Give role</button></section>` : ""}`;
-  const send = async x => { try { await api("/api/staff/roles", { method: "POST", body: JSON.stringify(x) }); staffRoles(); } catch (e) { toast(e.message); } };
+  const send = async x => { try { await api("/api/staff/roles", { method: "POST", body: x }); staffRoles(); } catch (e) { toast(e.message); } };
   body.querySelectorAll("[data-rm]").forEach(b => b.onclick = () => { const [p, r] = b.dataset.rm.split("|"); send({ pilot_id: p, role: r, remove: true }); });
   if ($("#roGo")) $("#roGo").onclick = () => send({ pilot_id: $("#roPid").value, role: $("#roRole").value });
 }
