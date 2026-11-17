@@ -2040,3 +2040,32 @@ html[data-design="loadsheet"] :is(.relief-draft,.relief-notice,.relief-checks){b
 .msg-compose select,.msg-compose input,.msg-compose textarea{display:block;width:100%;margin-top:5px;padding:9px 11px;border:1px solid var(--line);border-radius:6px;font:inherit;color:var(--ink);background:var(--white)}
 .msg-compose textarea{resize:vertical}
 @media(max-width:560px){.msg-row{grid-template-columns:auto 1fr auto}.msg-who{display:none}}
+
+/* livery library (scoped role section) */
+.liv-sec{margin:0 0 26px}
+.liv-sec>h2{font-size:18px;margin:0 0 10px;padding-bottom:6px;border-bottom:1px solid var(--line)}
+.liv-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:14px}
+.liv-card{display:flex;flex-direction:column;border:1px solid var(--line);border-radius:10px;overflow:hidden;background:var(--white)}
+.liv-thumb{aspect-ratio:16/9;background:rgba(128,128,128,.14);display:flex;align-items:center;justify-content:center;overflow:hidden}
+.liv-thumb img{width:100%;height:100%;object-fit:cover}
+.liv-noimg{color:var(--steel,#8a94a3);font-size:13px}
+.liv-body{padding:11px 13px 4px;flex:1}
+.liv-body h3{margin:0 0 4px;font-size:15px}
+.liv-meta{margin:0 0 2px;font-size:13px;color:var(--ink)}
+.liv-notes{margin:6px 0 0;font-size:13px;color:var(--steel,#5b6472)}
+.liv-actions{display:flex;gap:8px;padding:10px 13px 13px}
+.liv-dlg{border:0;border-radius:12px;padding:0;max-width:640px;width:calc(100% - 32px);background:var(--white);color:var(--ink)}
+.liv-dlg::backdrop{background:rgba(10,15,25,.55)}
+.liv-dlg form{padding:20px 22px}
+.liv-dlg h2{margin:0 0 14px;font-size:20px}
+.liv-form{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.liv-form .field.full{grid-column:1/-1}
+.liv-form label{display:block;font-size:13px;color:var(--steel,#5b6472);margin-bottom:4px}
+.liv-form .req{color:var(--red)}
+.liv-form input,.liv-form select,.liv-form textarea{display:block;width:100%;padding:9px 11px;border:1px solid var(--line);border-radius:6px;font:inherit;color:var(--ink);background:var(--white)}
+.liv-form textarea{resize:vertical}
+.liv-rmv{display:flex;align-items:center;gap:6px;margin-top:6px;font-size:13px}
+.liv-rmv input{width:auto;display:inline}
+.liv-dlg-foot{margin-top:16px}
+.liv-err{margin:12px 0 0}
+@media(max-width:560px){.liv-form{grid-template-columns:1fr}}

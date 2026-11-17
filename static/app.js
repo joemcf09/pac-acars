@@ -43,6 +43,7 @@ function show(view) {
     S.careerSection = view.split('/')[1]; view = 'career';
   }
   if (view === "staff" && S.me && !S.me.staff) view = "home";   // the staff area isn't there for pilots
+  if (view === "liverylib" && S.me && !hasCap("liveries")) view = "home";   // scoped section: full admin or the Livery Manager only
   if (!S.me && !PUBLIC_VIEWS.includes(view)) {  // a members' page: sign in first, then go there
     openSignIn(null, view);
     if (!document.querySelector(".view:not([hidden])")) view = "home"; else return;
@@ -78,6 +79,7 @@ function show(view) {
   if (view === "piracy") renderPiracy();
   if (view === "roster") loadRoster();
   if (view === "staff") loadStaff();
+  if (view === "liverylib") loadLiveryLib();
   if (view === "messages") loadMessages();
   if (view === "reports") loadProblemReports();
   if (view === "updates") loadWhatsNew();
@@ -4993,7 +4995,8 @@ async function openDetail(id) {
 }
 
 /* ================= VA core ================= */
-const VIEWS = ["privacy", "roster", "home", "dashboard", "missions", "bids", "acars", "fleet", "stations", "downloads", "career", "stats", "finance", "shop", "live", "logbook", "gallery", "handbook", "cargoguide", "staff", "messages", "profile", "pilots", "updates"];
+const VIEWS = ["privacy", "roster", "home", "dashboard", "missions", "bids", "acars", "fleet", "stations", "downloads", "career", "stats", "finance", "shop", "live", "logbook", "gallery", "handbook", "cargoguide", "staff", "liverylib", "messages", "profile", "pilots", "updates"];
+function hasCap(cap) { return !!(S.me && (S.me.staff || (S.me.staff_caps || []).includes(cap))); }
 const TOUR_ORDER = {};
 function applyCore(d) {
   if (d.partners) S.partners = d.partners;
@@ -6031,6 +6034,100 @@ async function openCompose(to, subject) {
   };
 }
 
+/* ---------------- Livery library (scoped: Livery Manager + full admin) ---------------- */
+async function apiForm(path, formData, method = "POST") {
+  const res = await fetch(path, { method, body: formData });   // no Content-Type: the browser sets the multipart boundary
+  const data = await res.json().catch(() => ({ error: `The ACARS server answered with an error (HTTP ${res.status}).` }));
+  if (!res.ok) { const e = new Error(data.error || `Request failed (${res.status})`); e.status = res.status; throw e; }
+  return data;
+}
+async function loadLiveryLib() {
+  const root = $("#liveryLibRoot");
+  if (!root) return;
+  root.innerHTML = `<div class="profile-bar"><h1>Livery library</h1><span class="muted">The PAC paint library across MSFS and X-Plane. Add, update and retire liveries here; pilots get them on the Fleet page.</span></div><p class="muted">Loading liveries…</p>`;
+  try {
+    const data = await api("/api/fleet/liveries");
+    S.liveryMaxMb = data.max_mb || 600;
+    renderLiveryLib(root, data.liveries || []);
+  } catch (e) {
+    root.innerHTML = `<div class="profile-bar"><h1>Livery library</h1></div><div class="notice">${esc(e.message)}</div>`;
+  }
+}
+function renderLiveryLib(root, liveries) {
+  const byType = {};
+  liveries.forEach(l => (byType[l.type] = byType[l.type] || []).push(l));
+  const codes = Object.keys(byType).sort((a, b) => (S.fleet[a]?.name || a).localeCompare(S.fleet[b]?.name || b));
+  const card = l => {
+    const sub = l.kind === "file"
+      ? `${l.size ? (l.size >= 1048576 ? (l.size / 1048576).toFixed(1) + " MB" : Math.max(1, Math.round(l.size / 1024)) + " KB") : "file"} · uploaded`
+      : `link${l.host ? " · " + esc(l.host) : ""}`;
+    return `<article class="liv-card">
+      <div class="liv-thumb">${l.preview ? `<img src="${esc(l.preview)}" alt="" loading="lazy">` : `<span class="liv-noimg">No preview</span>`}</div>
+      <div class="liv-body">
+        <h3>${esc(l.title || "PAC house colors")}</h3>
+        <p class="liv-meta"><span class="tag grey">${esc(l.sim || "MSFS")}</span> ${esc(l.painter || "—")}${l.registration ? ` · ${esc(l.registration)}` : ""}</p>
+        <p class="muted" style="font-size:12px;margin:2px 0">${sub} · ${fmt(l.downloads || 0)} download${(l.downloads || 0) === 1 ? "" : "s"}</p>
+        ${l.notes ? `<p class="liv-notes">${esc(l.notes)}</p>` : ""}
+      </div>
+      <div class="liv-actions"><button class="btn ghost small" data-liv-edit="${esc(l.id)}">Edit</button><button class="btn ghost small" data-liv-del="${esc(l.id)}">Delete</button></div>
+    </article>`;
+  };
+  root.innerHTML = `<div class="profile-bar"><h1>Livery library</h1><span class="muted">The PAC paint library across MSFS and X-Plane. Pilots get these on the Fleet page.</span></div>
+    <div class="row" style="margin:0 0 14px"><button class="btn" type="button" id="livAdd">Add a livery</button><span class="muted" style="font-size:13px;align-self:center">${liveries.length} liver${liveries.length === 1 ? "y" : "ies"} · files up to ${S.liveryMaxMb} MB, or link to flightsim.to</span></div>
+    ${codes.length ? codes.map(c => `<section class="liv-sec"><h2>${esc(S.fleet[c]?.name || c)}</h2><div class="liv-grid">${byType[c].map(card).join("")}</div></section>`).join("")
+      : `<div class="notice">No liveries yet. Add the first one with the button above.</div>`}`;
+  $("#livAdd").onclick = () => openLiveryDialog(null);
+  root.querySelectorAll("[data-liv-edit]").forEach(b => b.onclick = () => openLiveryDialog(liveries.find(l => l.id === b.dataset.livEdit)));
+  root.querySelectorAll("[data-liv-del]").forEach(b => b.onclick = () => deleteLivery(liveries.find(l => l.id === b.dataset.livDel)));
+}
+function openLiveryDialog(livery) {
+  const edit = !!livery, l = livery || {};
+  const types = Object.keys(S.fleet).sort((a, b) => (S.fleet[a].name || a).localeCompare(S.fleet[b].name || b));
+  let dlg = $("#liveryDlg");
+  if (!dlg) { dlg = document.createElement("dialog"); dlg.id = "liveryDlg"; dlg.className = "liv-dlg"; document.body.appendChild(dlg); }
+  dlg.innerHTML = `<form id="liveryForm" method="dialog">
+    <h2>${edit ? "Edit livery" : "Add a livery"}</h2>
+    <div class="liv-form">
+      <div class="field"><label for="liv_type">Aircraft type</label><select id="liv_type" name="type" required>${types.map(t => `<option value="${esc(t)}"${l.type === t ? " selected" : ""}>${esc(S.fleet[t].name || t)}</option>`).join("")}</select></div>
+      <div class="field"><label for="liv_sim">Simulator</label><select id="liv_sim" name="sim"><option value="MSFS"${l.sim !== "X-Plane" ? " selected" : ""}>MSFS</option><option value="X-Plane"${l.sim === "X-Plane" ? " selected" : ""}>X-Plane</option></select></div>
+      <div class="field"><label for="liv_title">Title</label><input id="liv_title" name="title" maxlength="80" placeholder="PAC house colors" value="${esc(l.title || "")}"></div>
+      <div class="field"><label for="liv_painter">Painter <span class="req">*</span></label><input id="liv_painter" name="painter" maxlength="60" required placeholder="Who painted it" value="${esc(l.painter || "")}"></div>
+      <div class="field full"><label for="liv_painter_link">Painter link (optional)</label><input id="liv_painter_link" name="painter_link" placeholder="https://flightsim.to/…" value="${esc(l.painter_link || "")}"></div>
+      <div class="field"><label for="liv_reg">Registration (optional)</label><input id="liv_reg" name="registration" maxlength="12" placeholder="N738PC" value="${esc(l.registration || "")}"></div>
+      <div class="field"><label for="liv_version">Version (optional)</label><input id="liv_version" name="version" maxlength="20" placeholder="1.0" value="${esc(l.version || "")}"></div>
+      <div class="field full"><label for="liv_notes">Notes (optional)</label><textarea id="liv_notes" name="notes" maxlength="500" rows="2" placeholder="Anything pilots should know">${esc(l.notes || "")}</textarea></div>
+      <div class="field full"><label for="liv_file">Livery file (.zip, .7z, .rar${edit ? ", leave empty to keep" : ""})</label><input id="liv_file" name="file" type="file" accept=".zip,.7z,.rar"></div>
+      <div class="field full"><label for="liv_url">…or a link to where it's hosted</label><input id="liv_url" name="url" placeholder="https://flightsim.to/…" value="${esc(l.url || "")}"></div>
+      <div class="field full"><label for="liv_preview">Preview image (optional, PNG/JPEG/WebP)</label><input id="liv_preview" name="preview" type="file" accept="image/png,image/jpeg,image/webp">${edit && l.preview ? `<label class="liv-rmv"><input type="checkbox" name="remove_preview"> Remove the current preview</label>` : ""}</div>
+    </div>
+    <p class="liv-err notice" id="liveryErr" hidden></p>
+    <div class="row liv-dlg-foot"><button class="btn" type="submit" id="livSave">${edit ? "Save changes" : "Add livery"}</button><button class="btn ghost" type="button" id="livCancel">Cancel</button></div>
+  </form>`;
+  $("#livCancel").onclick = () => dlg.close();
+  $("#liveryForm").onsubmit = async e => {
+    e.preventDefault();
+    const btn = $("#livSave"), err = $("#liveryErr");
+    err.hidden = true; btn.disabled = true;
+    try {
+      const form = e.target, fd = new FormData();
+      ["type", "sim", "title", "painter", "painter_link", "registration", "version", "notes", "url"].forEach(k => fd.append(k, (form.elements[k]?.value || "").trim()));
+      const file = form.elements.file?.files?.[0]; if (file) fd.append("file", file);
+      const pv = form.elements.preview?.files?.[0]; if (pv) fd.append("preview", pv);
+      if (edit && form.elements.remove_preview?.checked) fd.append("remove_preview", "1");
+      await apiForm(edit ? "/api/staff/liveries/" + encodeURIComponent(l.id) : "/api/staff/liveries", fd, "POST");
+      dlg.close();
+      toast(edit ? "Livery updated." : "Livery added.");
+      loadLiveryLib();
+    } catch (ex) { err.textContent = ex.message; err.hidden = false; } finally { btn.disabled = false; }
+  };
+  dlg.showModal();
+}
+async function deleteLivery(l) {
+  if (!l) return;
+  if (!confirm(`Delete the ${S.fleet[l.type]?.name || l.type} livery "${l.title || "PAC house colors"}"? This removes it from the Fleet page and deletes its file.`)) return;
+  try { await apiForm("/api/staff/liveries/" + encodeURIComponent(l.id), new FormData(), "DELETE"); toast("Livery deleted."); loadLiveryLib(); }
+  catch (e) { toast(e.message); }
+}
 async function loadStaff() {
   try { S.staff = await api("/api/staff/overview"); renderStaff(); } catch (e) { toast(e.message); }
 }
@@ -7466,9 +7563,12 @@ function applyAuth() {
   updateNewsBadge();
   const me = S.me, staff = !!me?.staff;
   document.body.classList.toggle("guest", !me);
+  const caps = me?.staff_caps || [];
   document.querySelectorAll("nav button[data-view]").forEach(b => {
-    const v = b.dataset.view;
-    b.classList.toggle("auth-hidden", (!me && !PUBLIC_VIEWS.includes(v)) || (v === "staff" && !staff));
+    const v = b.dataset.view, cap = b.dataset.cap;
+    // cap-gated items (a scoped role section) show for full admins or a holder of that capability
+    const capHidden = cap ? !(staff || caps.includes(cap)) : false;
+    b.classList.toggle("auth-hidden", (!me && !PUBLIC_VIEWS.includes(v)) || (v === "staff" && !staff) || capHidden);
   });
   $("#pilotChip").hidden = !me; $("#openSettings").hidden = !me; $("#signOutBtn").hidden = !me; $("#signInBtn").hidden = !!me;
   setTimeout(fitNav, 0);

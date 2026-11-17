@@ -137,8 +137,20 @@ def gatekeeper():
     p = current()
     if not p:
         return jsonify({"error": "Please sign in.", "signin": True}), 401
-    if path.startswith(STAFF_PREFIXES) or (method != "GET" and any(path == x or path.startswith(x + "/") for x in STAFF_EXACT_POST)):
+    staff_path = path.startswith(STAFF_PREFIXES)
+    if staff_path or (method != "GET" and any(path == x or path.startswith(x + "/") for x in STAFF_EXACT_POST)):
         if not p.get("staff"):
+            # Full admins fall through above. A role-holder may still reach the
+            # narrow, non-sensitive /api/staff/ sections their roles are scoped
+            # to (company.SCOPE); everything else is 403 (default-deny).
+            if staff_path:
+                try:
+                    import company
+                    with C["db"]() as con:
+                        if company.may_path(con, p["id"], path):
+                            return None
+                except Exception:
+                    pass
             return jsonify({"error": "That's for staff only."}), 403
     return None
 

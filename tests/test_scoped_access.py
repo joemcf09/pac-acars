@@ -1,0 +1,60 @@
+"""Scoped staff access (company.SCOPE): the path->capability mapping, default-deny for everything
+unmapped, and may_path for a scoped role-holder vs a plain pilot. This is the security core of the
+roles access engine: a scoped role must reach ONLY its own section and never the sensitive feeds."""
+import os
+import sqlite3
+import sys
+
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+import company
+
+con = sqlite3.connect(":memory:")
+con.execute("CREATE TABLE pilots (id TEXT PRIMARY KEY, name TEXT, staff INT)")
+for pid, name, staff in [("PAC0001", "Joseph", 1), ("PAC0014", "Alan", 0), ("PAC0002", "Jose", 0)]:
+    con.execute("INSERT INTO pilots VALUES (?,?,?)", (pid, name, staff))
+company.migrate(con)                       # seeds the owner's ceo role
+company.assign(con, "PAC0014", "livery_mgr", "")   # Alan: Livery Manager, not a full admin
+con.commit()
+
+fails = []
+def check(name, ok, got=None):
+    print(("PASS" if ok else "FAIL") + ": " + name + ("" if ok else f"  [{got!r}]"))
+    if not ok:
+        fails.append(name)
+
+# --- path -> capability ------------------------------------------------------
+check("liveries path is scoped", company.capability_for("/api/staff/liveries") == "liveries")
+check("liveries sub-path is scoped", company.capability_for("/api/staff/liveries/ab12cd") == "liveries")
+check("no false prefix match (liveriesX)", company.capability_for("/api/staff/liveriesX") is None,
+      company.capability_for("/api/staff/liveriesX"))
+
+# default-deny: every sensitive endpoint must be unmapped (full-admin only)
+SENSITIVE = ["/api/staff/overview", "/api/staff/roster", "/api/staff/roster/PAC0002",
+             "/api/staff/wallet/PAC0002", "/api/staff/pilots/PAC0002", "/api/staff/ceo",
+             "/api/staff/ceo/letter", "/api/staff/backup/download", "/api/staff/backups",
+             "/api/staff/mail", "/api/staff/discord", "/api/staff/hoppie", "/api/staff/roles",
+             "/api/staff/site", "/api/staff/market", "/api/staff/statements"]
+for p in SENSITIVE:
+    check("default-deny (unmapped): " + p, company.capability_for(p) is None, company.capability_for(p))
+
+# a non-staff path is never a capability path
+check("non-staff path -> None", company.capability_for("/api/pilot/me") is None)
+
+# --- caps_of -----------------------------------------------------------------
+check("Alan's caps = [liveries]", company.caps_of(con, "PAC0014") == ["liveries"], company.caps_of(con, "PAC0014"))
+check("plain pilot has no caps", company.caps_of(con, "PAC0002") == [], company.caps_of(con, "PAC0002"))
+check("owner/ceo has no scoped caps (full admin instead)", company.caps_of(con, "PAC0001") == [],
+      company.caps_of(con, "PAC0001"))
+
+# --- may_path: the gate's decision for a non-admin -------------------------
+check("Alan MAY /api/staff/liveries", company.may_path(con, "PAC0014", "/api/staff/liveries") is True)
+check("Alan MAY /api/staff/liveries/<id>", company.may_path(con, "PAC0014", "/api/staff/liveries/x9") is True)
+check("Alan may NOT /api/staff/overview", company.may_path(con, "PAC0014", "/api/staff/overview") is False)
+check("Alan may NOT /api/staff/roster", company.may_path(con, "PAC0014", "/api/staff/roster") is False)
+check("Alan may NOT /api/staff/wallet/<pid>", company.may_path(con, "PAC0014", "/api/staff/wallet/PAC0002") is False)
+check("Alan may NOT /api/staff/pilots/<pid>", company.may_path(con, "PAC0014", "/api/staff/pilots/PAC0002") is False)
+check("Alan may NOT /api/staff/roles", company.may_path(con, "PAC0014", "/api/staff/roles") is False)
+check("plain pilot may NOT /api/staff/liveries", company.may_path(con, "PAC0002", "/api/staff/liveries") is False)
+
+print("\n" + ("ALL PASS" if not fails else f"{len(fails)} FAILED: {fails}"))
+sys.exit(1 if fails else 0)

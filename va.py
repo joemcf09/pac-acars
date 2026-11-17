@@ -3723,12 +3723,17 @@ def pilot_me():
             unread_messages = messaging.unread_count(con, pid)
         except Exception:
             unread_messages = 0
+        try:
+            import company
+            staff_caps = company.caps_of(con, pid)   # scoped role sections this pilot may reach
+        except Exception as e:
+            print("staff caps:", e); staff_caps = []
     car = career(pid)
     return jsonify({"location": C["airport_obj"](pilot_location(pid)), "balance": balance(pid), "transactions": tx,
                     "earned": round(earned, 2), "spent_travel": round(spent, 2), "spent_shop": round(shop_spent, 2), "rank": car["rank"],
                     "pay_rate": PAY_RATES.get(car["rank"], 55), "profit_share_pct": PROFIT_SHARE * 100,
                     "enforce_location": bool(C["settings"]().get("enforce_pilot_location", True)),
-                    "new_paystub": new_paystub, "unread_messages": unread_messages, "activity": _activity(pid)})
+                    "new_paystub": new_paystub, "unread_messages": unread_messages, "staff_caps": staff_caps, "activity": _activity(pid)})
 
 
 @bp.get("/api/pilot/paystub")

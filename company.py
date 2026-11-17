@@ -27,6 +27,60 @@ ROLES = {
 # which roles may do what (the CEO can always do everything)
 CAN = {"ceo_desk": {"ceo"}, "fleet_market": {"ceo", "fleet_mgr"}, "complaints": {"ceo", "commercial"}, "roles": {"ceo"}}
 
+# ---------------------------------------------------------------------------
+# Scoped staff access.
+#
+# The staff area is otherwise all-or-nothing: an account is either full admin
+# (pilots.staff = 1, the owner) or a pilot with no staff access at all. SCOPE
+# carves out a few narrow, non-sensitive sections a role-holder may reach
+# WITHOUT being made a full admin. Each capability lists the roles that grant
+# it and the first path segment(s) under /api/staff/ that it covers.
+#
+# DEFAULT-DENY: anything not named here stays full-admin only — Settings, every
+# key (mail/Discord/Hoppie), backups, pilot records, wallets, finances, the CEO
+# desk, role assignment and the monolithic /api/staff/overview feed. A scoped
+# role never receives that feed, so pilot records and money cannot leak through
+# it. Add a capability here only once its section has been carved out and
+# tested. Built incrementally, one clean role at a time.
+SCOPE = {
+    "liveries": {"roles": {"livery_mgr"}, "paths": ("liveries",)},
+    # Carved out and tested as each role's section is built, e.g.:
+    # "fleet":      {"roles": {"fleet_mgr"},  "paths": ("fleet-types", "airframes", "maintenance")},
+    # "complaints": {"roles": {"commercial"}, "paths": ("complaints",)},
+}
+
+
+def _staff_tail(path):
+    """'/api/staff/liveries/ab12' -> 'liveries/ab12'; '' for any non-staff path."""
+    marker = "/api/staff/"
+    return path[len(marker):] if path.startswith(marker) else ""
+
+
+def capability_for(path):
+    """Which scoped capability, if any, guards this /api/staff/ path.
+    None means the path is not scoped and stays full-admin only (default-deny)."""
+    tail = _staff_tail(path)
+    if not tail:
+        return None
+    head = tail.split("/", 1)[0].split("?", 1)[0]
+    for cap, spec in SCOPE.items():
+        if head in spec["paths"]:
+            return cap
+    return None
+
+
+def caps_of(con, pid):
+    """The scoped capabilities a pilot's roles grant (empty for a plain pilot)."""
+    mine = roles_of(con, pid)
+    return sorted(cap for cap, spec in SCOPE.items() if mine & spec["roles"])
+
+
+def may_path(con, pid, path):
+    """True only if this pilot's roles grant scoped access to this /api/staff/ path.
+    Full admins are handled by the gatekeeper before this is ever consulted."""
+    cap = capability_for(path)
+    return bool(cap) and cap in caps_of(con, pid)
+
 
 def migrate(con):
     con.execute("CREATE TABLE IF NOT EXISTS roles (pilot_id TEXT, role TEXT, note TEXT, since REAL, PRIMARY KEY (pilot_id, role))")
