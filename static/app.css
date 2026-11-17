@@ -2014,6 +2014,9 @@ html[data-design="loadsheet"] :is(.relief-draft,.relief-notice,.relief-checks){b
 
 /* crew mail */
 .msg-tabs{display:flex;gap:8px;margin:12px 0 14px;flex-wrap:wrap}
+.msg-tabs button{border:1px solid var(--line);background:var(--white);color:var(--ink);border-radius:6px;padding:6px 14px;font:600 13px var(--font);cursor:pointer}
+.msg-tabs button:hover{border-color:var(--red)}
+.msg-tabs button.on{background:var(--red);color:#fff;border-color:var(--red)}
 .msg-list{border:1px solid var(--line);border-radius:8px;overflow:hidden;background:var(--white)}
 .msg-row{display:grid;grid-template-columns:auto 150px 1fr auto;align-items:center;gap:12px;width:100%;text-align:left;background:transparent;border:0;border-bottom:1px solid var(--line);padding:12px 16px;cursor:pointer;font:inherit;color:var(--ink)}
 .msg-row:last-child{border-bottom:0}

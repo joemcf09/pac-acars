@@ -5974,7 +5974,7 @@ async function loadMessages() {
   const empty = box === "sent" ? "You haven't sent any mail yet." : box === "unread" ? "No unread mail." : "Your inbox is empty.";
   root.innerHTML = `<div class="profile-bar"><h1>Crew mail</h1><button class="btn" id="msgCompose">Compose</button></div>
     <p class="muted">Send a note to another pilot. Staff can message the whole crew.</p>
-    <div class="msg-tabs">${tabs.map(([k, t]) => `<button class="btn ${box === k ? "" : "ghost"} small" data-msgbox="${k}">${t}</button>`).join("")}</div>
+    <div class="msg-tabs">${tabs.map(([k, t]) => `<button class="${box === k ? "on" : ""}" data-msgbox="${k}">${t}</button>`).join("")}</div>
     <div class="msg-list">${d.messages.length ? d.messages.map(m => msgRow(m, box)).join("") : `<p class="muted" style="padding:18px">${empty}</p>`}</div>`;
   $("#msgCompose").onclick = () => openCompose();
   root.querySelectorAll("[data-msgbox]").forEach(b => b.onclick = () => { S.msgBox = b.dataset.msgbox; loadMessages(); });
