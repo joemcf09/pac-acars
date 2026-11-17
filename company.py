@@ -46,8 +46,9 @@ SCOPE = {
     "liveries": {"roles": {"livery_mgr"}, "paths": ("liveries",)},
     "creative": {"roles": {"creative"}, "paths": ("partner-photos", "news")},
     "commercial": {"roles": {"commercial"}, "paths": ("complaints", "accounts", "lanes", "featured-shipments")},
-    # Carved out and tested as each role's section is built, e.g.:
-    # "fleet": {"roles": {"fleet_mgr"}, "paths": ("fleet-types", "airframes", "maintenance")},
+    "fleet": {"roles": {"fleet_mgr"}, "paths": ("fleet-types", "airframes", "maintenance")},
+    # The fleet MARKET (buying/leasing, which spends company cash) is deliberately NOT here: it stays
+    # full-admin only. A recommend-then-approve workflow (fleet-recs) is the next increment.
 }
 
 

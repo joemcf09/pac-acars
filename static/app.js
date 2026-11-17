@@ -46,6 +46,7 @@ function show(view) {
   if (view === "liverylib" && S.me && !hasCap("liveries")) view = "home";   // scoped section: full admin or the Livery Manager only
   if (view === "creative" && S.me && !hasCap("creative")) view = "home";   // scoped section: full admin or the Creative / Media Director only
   if (view === "commercial" && S.me && !hasCap("commercial")) view = "home";   // scoped section: full admin or the Commercial Director only
+  if (view === "fleetmgr" && S.me && !hasCap("fleet")) view = "home";   // scoped section: full admin or the Fleet & Maintenance Manager only
   if (!S.me && !PUBLIC_VIEWS.includes(view)) {  // a members' page: sign in first, then go there
     openSignIn(null, view);
     if (!document.querySelector(".view:not([hidden])")) view = "home"; else return;
@@ -84,6 +85,7 @@ function show(view) {
   if (view === "liverylib") loadLiveryLib();
   if (view === "creative") loadCreative();
   if (view === "commercial") loadCommercial();
+  if (view === "fleetmgr") loadFleetMgr();
   if (view === "messages") loadMessages();
   if (view === "reports") loadProblemReports();
   if (view === "updates") loadWhatsNew();
@@ -2255,16 +2257,16 @@ function openFaultAfter(reg, pirepId, flight) {
   };
   dlg.showModal();
 }
-async function staffMx() {
+async function staffMx(host = $("#staffBody")) {
   let open = [], all = [];
   try { [open, all] = await Promise.all([api("/api/maintenance").then(r => r.items), api("/api/maintenance?all=1").then(r => r.items)]); } catch (e) { toast(e.message); }
-  $("#staffBody").innerHTML = `<p class="muted" style="margin:0 0 12px;font-size:14px">Open write-ups across the fleet. Clearing a grounding item returns the aircraft to service once nothing else grounds it. Deferred items ground the aircraft automatically when they run past their deadline.</p>
+  host.innerHTML = `<p class="muted" style="margin:0 0 12px;font-size:14px">Open write-ups across the fleet. Clearing a grounding item returns the aircraft to service once nothing else grounds it. Deferred items ground the aircraft automatically when they run past their deadline.</p>
     <h3 style="margin:0 0 8px">Open (${open.length})</h3>${mxItems(open, true)}
     <h3 style="margin:18px 0 8px">Recently cleared</h3>${mxItems(all.filter(i => i.status === "cleared").slice(0, 15))}`;
-  const act = async (id, body, msg) => { try { await api("/api/staff/maintenance/" + id, { method: "POST", body }); toast(msg); await refreshCore(); staffMx(); } catch (e) { toast(e.message); } };
-  document.querySelectorAll("[data-mxclear]").forEach(b => b.onclick = () => act(b.dataset.mxclear, { action: "clear", note: document.querySelector(`[data-mxnote="${b.dataset.mxclear}"]`).value }, "Write-up cleared."));
-  document.querySelectorAll("[data-mxdefer]").forEach(b => b.onclick = () => act(b.dataset.mxdefer, { action: "defer", category: "C" }, "Deferred for 10 days."));
-  document.querySelectorAll("[data-mxground]").forEach(b => b.onclick = () => act(b.dataset.mxground, { action: "ground" }, "Aircraft grounded."));
+  const act = async (id, body, msg) => { try { await api("/api/staff/maintenance/" + id, { method: "POST", body }); toast(msg); await refreshCore(); staffMx(host); } catch (e) { toast(e.message); } };
+  host.querySelectorAll("[data-mxclear]").forEach(b => b.onclick = () => act(b.dataset.mxclear, { action: "clear", note: host.querySelector(`[data-mxnote="${b.dataset.mxclear}"]`).value }, "Write-up cleared."));
+  host.querySelectorAll("[data-mxdefer]").forEach(b => b.onclick = () => act(b.dataset.mxdefer, { action: "defer", category: "C" }, "Deferred for 10 days."));
+  host.querySelectorAll("[data-mxground]").forEach(b => b.onclick = () => act(b.dataset.mxground, { action: "ground" }, "Aircraft grounded."));
 }
 
 /* ================= My stats, records, airport collection and monthly recap ================= */
@@ -3620,6 +3622,7 @@ async function loadMe() {
   try { S.me = { ...(S.authPilot || {}), ...(await api("/api/pilot/me")), ...(S.authPilot ? { id: S.authPilot.id, staff: S.authPilot.staff } : {}) }; }
   catch (e) { S.me = S.authPilot || null; }
   renderPilotStrip();
+  applyAuth();   // staff_caps arrive with /api/pilot/me, so re-evaluate cap-gated nav (Livery, Media, Commercial, Fleet)
   if (S.me?.new_paystub) showPayNotice(S.me.new_paystub);
   updateMsgBadge(S.me?.unread_messages || 0);
   return S.me;
@@ -4999,7 +5002,7 @@ async function openDetail(id) {
 }
 
 /* ================= VA core ================= */
-const VIEWS = ["privacy", "roster", "home", "dashboard", "missions", "bids", "acars", "fleet", "stations", "downloads", "career", "stats", "finance", "shop", "live", "logbook", "gallery", "handbook", "cargoguide", "staff", "liverylib", "creative", "commercial", "messages", "profile", "pilots", "updates"];
+const VIEWS = ["privacy", "roster", "home", "dashboard", "missions", "bids", "acars", "fleet", "stations", "downloads", "career", "stats", "finance", "shop", "live", "logbook", "gallery", "handbook", "cargoguide", "staff", "liverylib", "creative", "commercial", "fleetmgr", "messages", "profile", "pilots", "updates"];
 function hasCap(cap) { return !!(S.me && (S.me.staff || (S.me.staff_caps || []).includes(cap))); }
 const TOUR_ORDER = {};
 function applyCore(d) {
@@ -6145,6 +6148,21 @@ async function loadCreative() {
   const body = $("#creativeBody");
   if (S.creativeTab === "news") staffNews(undefined, body); else staffPartnerPhotos(body);
 }
+/* ---------------- Fleet & maintenance (scoped: Fleet Manager + full admin) ---------------- */
+async function loadFleetMgr() {
+  const root = $("#fleetMgrRoot");
+  if (!root) return;
+  S.fleetTab = S.fleetTab || "types";
+  const tabs = [["types", "Fleet types"], ["airframes", "Airframes"], ["mx", "Maintenance"]];
+  root.innerHTML = `<div class="profile-bar"><h1>Fleet &amp; maintenance</h1><span class="muted">Manage aircraft types, the airframe roster and open maintenance write-ups. Buying and leasing aircraft needs the owner's approval.</span></div>
+    <div class="msg-tabs" style="margin-bottom:16px">${tabs.map(([k, t]) => `<button class="${S.fleetTab === k ? "on" : ""}" data-ftab="${k}">${t}</button>`).join("")}</div>
+    <div id="fleetMgrBody"></div>`;
+  root.querySelectorAll("[data-ftab]").forEach(b => b.onclick = () => { S.fleetTab = b.dataset.ftab; loadFleetMgr(); });
+  const body = $("#fleetMgrBody");
+  if (S.fleetTab === "airframes") staffAirframes(body);
+  else if (S.fleetTab === "mx") staffMx(body);
+  else staffTypes(undefined, body);
+}
 async function loadStaff() {
   try { S.staff = await api("/api/staff/overview"); renderStaff(); } catch (e) { toast(e.message); }
 }
@@ -6549,7 +6567,7 @@ const TYPE_FIELDS = [
   ["maint_per_bh", "Maintenance ($/block h)", "number", ""], ["ownership_per_bh", "Ownership ($/block h)", "number", ""],
   ["engines", "Engines", "text", ""], ["crew", "Flight crew", "text", ""], ["main_deck", "Main deck", "text", ""], ["entered_service", "Type in service since", "number", ""],
   ["description", "Description", "textarea", ""]];
-async function staffTypes(editCode) {
+async function staffTypes(editCode, host = $("#staffBody")) {
   let d;
   try { d = await api("/api/staff/fleet-types"); } catch (e) { toast(e.message); return; }
   S.staffTypesData = d;
@@ -6566,7 +6584,7 @@ async function staffTypes(editCode) {
       }).join("")}
       ${editCode !== "__new" ? `<div class="field half"><label for="tf_photo">Photo</label><input id="tf_photo" type="file" accept="image/png,image/jpeg,image/webp"></div>` : `<p class="muted full" style="margin:0;font-size:13px">Fuel burn and cost fields are estimated from the payload if left empty. Add a photo after saving.</p>`}
       <div class="full row"><button class="btn" type="submit">${editCode === "__new" ? "Add type" : "Save type"}</button><button class="btn ghost" type="button" id="typeCancel">Cancel</button></div></form>` : "";
-  $("#staffBody").innerHTML = `${form || `<div class="row" style="margin-bottom:14px"><button class="btn" type="button" id="typeNew">Add an aircraft type</button>
+  host.innerHTML = `${form || `<div class="row" style="margin-bottom:14px"><button class="btn" type="button" id="typeNew">Add an aircraft type</button>
       <span class="muted" style="font-size:13px">Retired types can't be booked but stay in logbooks. Types with airframes or logged flights can't be deleted.</span></div>`}
     <div class="table-wrap"><table class="staff-table"><thead><tr><th>Type</th><th>Name</th><th>Sim</th><th>Payload</th><th>Range</th><th>Unlocks at</th><th>Airframes</th><th>Flights</th><th>Status</th><th></th></tr></thead><tbody>
     ${d.types.map(x => `<tr><td><b>${esc(x.code)}</b><br><small class="muted">${esc(x.icao)} · SimBrief ${esc(x.simbrief_type)}${x.simbrief_airframe ? " · custom airframe" : ""}</small></td><td>${esc(x.name)}</td><td>${esc(x.sim || "MSFS")}</td>
@@ -6575,77 +6593,82 @@ async function staffTypes(editCode) {
       <td style="white-space:nowrap"><button class="btn small" type="button" data-tedit="${x.code}">Edit</button>
         <button class="btn ghost small" type="button" data-tretire="${x.code}" data-r="${x.retired ? 0 : 1}">${x.retired ? "Restore" : "Retire"}</button>
         <button class="btn ghost small" type="button" data-tdel="${x.code}" aria-label="Delete ${esc(x.code)}">×</button></td></tr>`).join("")}</tbody></table></div>`;
-  if ($("#typeNew")) $("#typeNew").onclick = () => staffTypes("__new");
-  if ($("#typeCancel")) $("#typeCancel").onclick = () => staffTypes();
-  document.querySelectorAll("[data-tedit]").forEach(b => b.onclick = () => { staffTypes(b.dataset.tedit); scrollTo({ top: 0, behavior: "smooth" }); });
-  document.querySelectorAll("[data-tretire]").forEach(b => b.onclick = async () => {
+  const q = s => host.querySelector(s);
+  if (q("#typeNew")) q("#typeNew").onclick = () => staffTypes("__new", host);
+  if (q("#typeCancel")) q("#typeCancel").onclick = () => staffTypes(undefined, host);
+  host.querySelectorAll("[data-tedit]").forEach(b => b.onclick = () => { staffTypes(b.dataset.tedit, host); scrollTo({ top: 0, behavior: "smooth" }); });
+  host.querySelectorAll("[data-tretire]").forEach(b => b.onclick = async () => {
     const retire = b.dataset.r === "1";
     if (retire && !confirm(`Retire the ${b.dataset.tretire}? It can't be booked until you restore it.`)) return;
-    try { await api(`/api/staff/fleet-types/${b.dataset.tretire}/retire`, { method: "POST", body: { retired: retire } }); toast(retire ? "Type retired." : "Type restored."); await refreshCore(); staffTypes(); } catch (e) { toast(e.message); }
+    try { await api(`/api/staff/fleet-types/${b.dataset.tretire}/retire`, { method: "POST", body: { retired: retire } }); toast(retire ? "Type retired." : "Type restored."); await refreshCore(); staffTypes(undefined, host); } catch (e) { toast(e.message); }
   });
-  document.querySelectorAll("[data-tdel]").forEach(b => b.onclick = async () => {
+  host.querySelectorAll("[data-tdel]").forEach(b => b.onclick = async () => {
     if (!confirm(`Delete the ${b.dataset.tdel} type completely?`)) return;
-    try { await api(`/api/staff/fleet-types/${b.dataset.tdel}`, { method: "DELETE" }); toast("Type deleted."); await refreshCore(); staffTypes(); } catch (e) { toast(e.message); }
+    try { await api(`/api/staff/fleet-types/${b.dataset.tdel}`, { method: "DELETE" }); toast("Type deleted."); await refreshCore(); staffTypes(undefined, host); } catch (e) { toast(e.message); }
   });
-  const f = $("#typeForm");
+  const f = q("#typeForm");
   if (f) f.onsubmit = async e => {
     e.preventDefault();
     const body = Object.fromEntries(new FormData(f).entries());
     try {
       const r = await api("/api/staff/fleet-types", { method: "POST", body });
-      const file = $("#tf_photo")?.files?.[0];
+      const file = q("#tf_photo")?.files?.[0];
       if (file) { const fd = new FormData(); fd.append("photo", file); await fetch(`/api/fleet/${r.code}/photo`, { method: "POST", body: fd }); }
-      toast(r.new ? `${r.code} added. Now add airframes for it in Staff › Airframes.` : `${r.code} saved.`);
-      const d2 = await api("/api/bootstrap"); S.fleet = d2.fleet; applyCore(d2); staffTypes();
+      toast(r.new ? `${r.code} added. Now add airframes for it in the Airframes tab.` : `${r.code} saved.`);
+      const d2 = await api("/api/bootstrap"); S.fleet = d2.fleet; applyCore(d2); staffTypes(undefined, host);
     } catch (err) { toast(err.message); }
   };
 }
 const AF_STATUS = ["Available", "Maintenance", "Inspection", "A-check due", "Heavy check due", "Heavy check", "Damaged", "Stored"];
-function staffAirframes() {
+async function staffAirframes(host = $("#staffBody")) {
   const types = fleetCodes();
-  $("#staffBody").innerHTML = `<form class="form-card" id="afAdd"><div class="field"><label for="af_reg">Registration</label><input id="af_reg" name="reg" placeholder="N805PC" required></div>
+  let frames;
+  if (S.staff?.airframes) frames = S.staff.airframes;
+  else { try { frames = (await api("/api/staff/airframes")).airframes || []; } catch (e) { host.innerHTML = `<div class="notice err">${esc(e.message)}</div>`; return; } }
+  const setFrames = fr => { frames = fr; if (S.staff) S.staff.airframes = fr; };
+  host.innerHTML = `<form class="form-card" id="afAdd"><div class="field"><label for="af_reg">Registration</label><input id="af_reg" name="reg" placeholder="N805PC" required></div>
     <div class="field"><label for="af_type">Type</label><select id="af_type" name="type">${types.map(t => `<option value="${t}">${esc(S.fleet[t].name)}</option>`).join("")}</select></div>
     <div class="field"><label for="af_loc">Location (ICAO)</label><input id="af_loc" name="location" value="KCVG" required></div>
     <div class="field" style="align-self:end"><button class="btn" type="submit">Add airframe</button></div></form>
     <div class="table-wrap"><table class="staff-table"><thead><tr><th>Registration</th><th>Type</th><th>Location</th><th>Status</th><th>Hours</th><th>Cycles</th><th>A-check in</th><th>Last flight</th><th></th></tr></thead><tbody>
-    ${S.staff.airframes.map(a => `<tr data-reg="${a.reg}"><td><a href="#" data-af-open="${a.reg}" style="color:var(--ink)"><b style="font-family:var(--mono)">${a.reg}</b></a>${a.name ? `<br><small>“${esc(a.name)}” · named by ${esc(a.named_by_name || a.named_by)} <a href="#" data-af-unname="${a.reg}" style="color:var(--red)">remove</a></small>` : ""}${a.note ? `<br><small class="muted">${esc(a.note)}</small>` : ""}</td>
+    ${frames.map(a => `<tr data-reg="${a.reg}"><td><a href="#" data-af-open="${a.reg}" style="color:var(--ink)"><b style="font-family:var(--mono)">${a.reg}</b></a>${a.name ? `<br><small>“${esc(a.name)}” · named by ${esc(a.named_by_name || a.named_by)} <a href="#" data-af-unname="${a.reg}" style="color:var(--red)">remove</a></small>` : ""}${a.note ? `<br><small class="muted">${esc(a.note)}</small>` : ""}</td>
       <td><select data-f="type" aria-label="Type">${fleetCodes(true).map(t => `<option value="${t}" ${t === a.type ? "selected" : ""}>${esc(S.fleet[t].icao)}${S.fleet[t].retired ? " (retired)" : ""}</option>`).join("")}</select></td>
       <td><input data-f="location" value="${a.location}" aria-label="Location" style="width:80px"></td>
       <td>${a.status === "Booked" ? `<span class="tag dark">Booked</span>` : `<select data-f="status" aria-label="Status">${AF_STATUS.map(o => `<option ${o === a.status ? "selected" : ""}>${o}</option>`).join("")}</select>`}</td>
       <td>${esch(a.hours || 0)}</td><td>${a.cycles || 0}</td><td>${esch(Math.max(0, a.check_due_in))} h</td><td>${esc(a.last_flight || "–")}</td>
       <td style="white-space:nowrap">${a.status === "Booked" ? "" : `<button class="btn small" data-af-save="${a.reg}">Save</button> <button class="btn ghost small" data-af-rename="${a.reg}" title="Give this airframe a new registration. Its hours, history and write-ups go with it.">Rename</button> <button class="btn ghost small" data-af-check="${a.reg}" title="Sign off an A-check and return to service">Sign off check</button> <button class="btn ghost small" data-af-del="${a.reg}" aria-label="Remove ${a.reg}">×</button>`}</td></tr>`).join("")}</tbody></table></div>`;
   const save = async (reg, extra = {}) => {
-    const tr = document.querySelector(`tr[data-reg="${reg}"]`), body = { reg, ...extra };
+    const tr = host.querySelector(`tr[data-reg="${reg}"]`), body = { reg, ...extra };
     tr.querySelectorAll("[data-f]").forEach(el => body[el.dataset.f] = el.value.toUpperCase ? (el.dataset.f === "location" ? el.value.toUpperCase() : el.value) : el.value);
     Object.assign(body, extra);
-    try { S.staff.airframes = await api("/api/staff/airframes", { method: "POST", body }); toast(`${reg} saved.`); staffAirframes(); refreshCore(); } catch (e) { toast(e.message); }
+    try { setFrames(await api("/api/staff/airframes", { method: "POST", body })); toast(`${reg} saved.`); staffAirframes(host); refreshCore(); } catch (e) { toast(e.message); }
   };
-  document.querySelectorAll("[data-af-save]").forEach(b => b.onclick = () => save(b.dataset.afSave));
-  document.querySelectorAll("[data-af-unname]").forEach(b => b.onclick = async e => {
+  host.querySelectorAll("[data-af-save]").forEach(b => b.onclick = () => save(b.dataset.afSave));
+  host.querySelectorAll("[data-af-unname]").forEach(b => b.onclick = async e => {
     e.preventDefault();
     if (!confirm(`Remove the name from ${b.dataset.afUnname}? The pilot isn't refunded.`)) return;
-    try { await api("/api/staff/shop/name", { method: "POST", body: { reg: b.dataset.afUnname } }); toast("Name removed."); loadStaff(); } catch (err) { toast(err.message); }
+    try { await api("/api/staff/shop/name", { method: "POST", body: { reg: b.dataset.afUnname } }); toast("Name removed."); staffAirframes(host); } catch (err) { toast(err.message); }
   });
-  document.querySelectorAll("[data-af-open]").forEach(a => a.onclick = e => { e.preventDefault(); openAirframe(a.dataset.afOpen); });
-  document.querySelectorAll("[data-af-rename]").forEach(b => b.onclick = async () => {
+  host.querySelectorAll("[data-af-open]").forEach(a => a.onclick = e => { e.preventDefault(); openAirframe(a.dataset.afOpen); });
+  host.querySelectorAll("[data-af-rename]").forEach(b => b.onclick = async () => {
     const from = b.dataset.afRename, to = (prompt(`New registration for ${from}?\nIts hours, cycles, flight history and write-ups move with it.`) || "").trim().toUpperCase();
     if (!to || to === from) return;
     try {
       const r = await api(`/api/staff/airframes/${encodeURIComponent(from)}/rename`, { method: "POST", body: { to } });
-      S.staff.airframes = r.airframes; const m = r.renamed;
+      setFrames(r.airframes); const m = r.renamed;
       toast(`${m.from} is now ${m.to}${m.flights ? ` · ${m.flights} flight${m.flights === 1 ? "" : "s"} moved` : ""}${m.write_ups ? ` · ${m.write_ups} write-up${m.write_ups === 1 ? "" : "s"} moved` : ""}.`);
-      staffAirframes(); refreshCore();
+      staffAirframes(host); refreshCore();
     } catch (e) { toast(e.message); }
   });
-  document.querySelectorAll("[data-af-check]").forEach(b => b.onclick = () => save(b.dataset.afCheck, { status: "Available", reset_check: true }));
-  document.querySelectorAll("[data-af-del]").forEach(b => b.onclick = async () => {
+  host.querySelectorAll("[data-af-check]").forEach(b => b.onclick = () => save(b.dataset.afCheck, { status: "Available", reset_check: true }));
+  host.querySelectorAll("[data-af-del]").forEach(b => b.onclick = async () => {
     if (!confirm(`Remove ${b.dataset.afDel} from the fleet?`)) return;
-    try { S.staff.airframes = await api("/api/staff/airframes/" + b.dataset.afDel, { method: "DELETE" }); staffAirframes(); refreshCore(); } catch (e) { toast(e.message); }
+    try { setFrames(await api("/api/staff/airframes/" + b.dataset.afDel, { method: "DELETE" })); staffAirframes(host); refreshCore(); } catch (e) { toast(e.message); }
   });
-  $("#afAdd").onsubmit = async e => {
+  host.querySelector("#afAdd").onsubmit = async e => {
     e.preventDefault(); const body = Object.fromEntries(new FormData(e.target).entries()); body.location = body.location.toUpperCase();
-    if (S.staff.airframes.some(a => a.reg === body.reg.toUpperCase())) { toast("That registration already exists."); return; }
-    try { S.staff.airframes = await api("/api/staff/airframes", { method: "POST", body }); toast(`${body.reg.toUpperCase()} added.`); staffAirframes(); refreshCore(); } catch (err) { toast(err.message); }
+    if (frames.some(a => a.reg === body.reg.toUpperCase())) { toast("That registration already exists."); return; }
+    try { setFrames(await api("/api/staff/airframes", { method: "POST", body })); toast(`${body.reg.toUpperCase()} added.`); staffAirframes(host); refreshCore(); } catch (err) { toast(err.message); }
   };
 }
 function staffEvents(edit) {

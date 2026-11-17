@@ -81,7 +81,14 @@ def pilot_row(pid):
 
 
 def public_pilot(r):
-    return {"id": r["id"], "name": r["name"], "staff": bool(r.get("staff")), "status": r.get("status")}
+    caps = []
+    try:
+        import company
+        with C["db"]() as con:
+            caps = company.caps_of(con, r["id"])
+    except Exception:
+        caps = []
+    return {"id": r["id"], "name": r["name"], "staff": bool(r.get("staff")), "status": r.get("status"), "staff_caps": caps}
 
 
 def current():

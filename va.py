@@ -3821,6 +3821,12 @@ def jumpseat_go():
         return jsonify({"error": str(e)}), 400
 
 
+@bp.get("/api/staff/airframes")
+def staff_airframes_list():
+    """The fleet roster for the Fleet section, so a scoped Fleet Manager doesn't need the admin overview feed."""
+    return jsonify({"airframes": airframes()})
+
+
 @bp.post("/api/staff/airframes")
 def staff_airframe_save():
     b = request.json or {}
