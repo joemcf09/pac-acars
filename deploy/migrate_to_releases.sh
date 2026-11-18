@@ -107,6 +107,13 @@ if [ -d "$ROOT/data" ]; then
     run "mkdir -p '$SHARED_DATA'"
     run "cp -a '$p' '$SHARED_DATA/'"
   done < <(find "$ROOT/data" -mindepth 1 -maxdepth 1 -print0)
+  # Verify the copy is complete before the new layout is adopted. The original
+  # data/ is never touched, so a mismatch is safe to abort on: nothing is lost.
+  if [ "$APPLY" = 1 ] && ! verify_tree "$SHARED_DATA" "$ROOT/data"; then
+    die "the pilot-data copy to $SHARED_DATA is incomplete (see above). Aborting.
+  Your original data at $ROOT/data is untouched. Nothing was adopted. Resolve this and retry."
+  fi
+  [ "$APPLY" = 1 ] && log "verified: pilot data copied to shared/data intact"
 else
   log "no existing data/ dir; starting shared/data empty"
 fi

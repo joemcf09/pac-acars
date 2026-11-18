@@ -1,14 +1,14 @@
-PAC deploy/rollback test results — 2026-11-18T02:14:38Z
+PAC deploy/rollback test results — 2026-11-18T02:29:17Z
 Python: Python 3.13.18
 
 ################## baseline: tests/deploy/run.sh ##################
 
 == T1 first deploy ==
-  PASS first deploy healthy, /up 200 (release 20261118-021442)
+  PASS first deploy healthy, /up 200 (release 20261118-022920)
   PASS pilot data seeded and verifiable
 
 == T2 second deploy, data survives ==
-  PASS second deploy healthy (release 20261118-021443)
+  PASS second deploy healthy (release 20261118-022922)
   PASS current advanced to a new release
   PASS previous points at the prior release
   PASS all pilot data intact across deploy
@@ -29,7 +29,7 @@ Python: Python 3.13.18
   PASS site still up on the previous release
 
 == T6 manual rollback to an explicit earlier release ==
-  PASS rolled back to the chosen release 20261118-021442
+  PASS rolled back to the chosen release 20261118-022920
   PASS site healthy after manual rollback
   PASS pilot data intact after manual rollback
   PASS rollback --list works
