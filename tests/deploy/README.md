@@ -6,13 +6,28 @@ production scripts (`deploy/update.sh`, `deploy/rollback.sh`, `deploy/lib.sh`) r
 unchanged against a fake service (`svc.sh`) that launches the real app on a test
 port, pointed at a throwaway data directory.
 
-Run:
+Three runners (each exits non-zero if any check fails; combined output is saved in
+`RESULTS.txt`):
 
 ```bash
-bash tests/deploy/run.sh
+bash tests/deploy/run.sh            # baseline deploy/rollback behavior
+bash tests/deploy/run_findings.sh   # regressions for the seven PR review findings
+bash tests/deploy/run_staging.sh    # production-equivalent: real venv, migrate, systemd unit
 ```
 
-It exits non-zero if any check fails. Latest run output is saved in `RESULTS.txt`.
+`run.sh` and `run_findings.sh` are hermetic (fast fake venv, container python, no
+network). `run_staging.sh` builds a real virtualenv from the pinned requirements
+(needs PyPI) and runs the app from the release's own venv python.
+
+Review-finding coverage (`run_findings.sh`, plus `run_staging.sh` for #4):
+
+- **F1** a failed `svc_restart` falls through to the health gate instead of a premature `set -e` exit.
+- **F2** migration `--undo` verifies the copy-back before removing anything and never deletes the only good copy.
+- **F3** backup failures block the deploy; archives are integrity-checked.
+- **F4** production-equivalent staging: real venv install, migration, systemd unit validation.
+- **F5** a failed first deploy (no previous release) leaves nothing broken wired up and recovers.
+- **F6** manual rollback is transactional: a bad target restores the previous working release.
+- **F7** the `deploy.py` SSH command returns the update's exit code, not the cleanup's.
 
 What it proves:
 

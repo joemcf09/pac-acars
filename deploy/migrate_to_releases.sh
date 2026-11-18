@@ -32,18 +32,53 @@ esac
 
 run() { if [ "$APPLY" = 1 ] || [ "$UNDO" = 1 ]; then eval "$@"; else printf '  would: %s\n' "$*"; fi; }
 
+# Verify every file under $1 exists under $2 with an identical checksum. Used to
+# prove the undo copied pilot data back intact BEFORE anything is removed.
+verify_tree() {
+  [ "${PAC_UNDO_FORCE_MISMATCH:-0}" = 1 ] && return 1   # test hook
+  python3 - "$1" "$2" <<'PY'
+import hashlib, os, sys
+src, dst = sys.argv[1], sys.argv[2]
+def sha(p):
+    h = hashlib.sha256()
+    with open(p, "rb") as f:
+        for b in iter(lambda: f.read(65536), b""): h.update(b)
+    return h.hexdigest()
+bad = 0
+for root, _, files in os.walk(src):
+    for fn in files:
+        s = os.path.join(root, fn); rel = os.path.relpath(s, src); d = os.path.join(dst, rel)
+        if not os.path.exists(d) or sha(s) != sha(d):
+            print("  mismatch:", rel); bad += 1
+sys.exit(1 if bad else 0)
+PY
+}
+
 if [ "$UNDO" = 1 ]; then
   step undo "Reverting the release layout back to a flat install"
   CUR="$(current_target)"
   [ -n "$CUR" ] || die "nothing to undo: no current release symlink at $CURRENT_LINK"
   [ -d "$SHARED_DATA" ] || die "nothing to undo: no $SHARED_DATA"
-  # move the code back to $ROOT, merge pilot data back into $ROOT/data
-  run "cp -a '$CUR/.' '$ROOT/'"
-  run "rm -rf '$ROOT/.venv'"           # a fresh venv is rebuilt by the old update.sh if needed
-  run "cp -a '$SHARED_DATA/.' '$ROOT/data/'"
-  run "rm -f '$CURRENT_LINK' '$PREVIOUS_LINK'"
-  run "rm -rf '$RELEASES_DIR' '$ROOT/shared'"
-  printf '\nUndo complete. Re-point the service at WorkingDirectory=%s and remove PAC_DATA_DIR.\n\n' "$ROOT"
+  mkdir -p "$ROOT/data"
+  # 1) restore the code (overlay copy; this never touches pilot data)
+  cp -a "$CUR/." "$ROOT/" || die "could not copy the code back; NOTHING was removed, your data is safe at $SHARED_DATA"
+  rm -rf "$ROOT/.venv"            # a fresh venv is rebuilt on the next deploy
+  # 2) COPY pilot data back (never move: the source copy stays intact)
+  cp -a "$SHARED_DATA/." "$ROOT/data/" || die "could not copy pilot data back; NOTHING was removed, your data is safe at $SHARED_DATA"
+  # 3) verify the copy byte-for-byte BEFORE removing anything
+  if ! verify_tree "$SHARED_DATA" "$ROOT/data"; then
+    die "verification failed: the copied-back pilot data does not match (see above).
+  NOTHING was removed. Your only good copy is safe at $SHARED_DATA. Resolve this before retrying."
+  fi
+  log "verified: all pilot data copied back intact"
+  # 4) only now retire the new layout, and even then KEEP the data copy (rename, never delete)
+  rm -f "$CURRENT_LINK" "$PREVIOUS_LINK"
+  rm -rf "$RELEASES_DIR"
+  KEPT="$ROOT/shared.undone-$(date -u +%Y%m%d-%H%M%S)"
+  mv "$ROOT/shared" "$KEPT"
+  printf '\nUndo complete and verified. Pilot data is back at %s/data.\n' "$ROOT"
+  printf 'A safety copy of the pilot data remains at %s (delete it only once you are satisfied).\n' "$KEPT"
+  printf 'Re-point the service at WorkingDirectory=%s and remove PAC_DATA_DIR.\n\n' "$ROOT"
   exit 0
 fi
 

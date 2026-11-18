@@ -250,6 +250,8 @@ Every deploy, `update.sh`:
 
 Because your data lives in `shared/data`, outside every release, a deploy or rollback never touches it.
 
+**Atomic switching is not the same as zero downtime.** The `current` symlink flip is atomic: no request ever sees a half-written code tree. But applying a new release (or a rollback) restarts the service, and that restart is a brief interruption of a few seconds while PAC stops and starts again. The one case with no interruption at all is a **dependency-install failure**: it is caught in step 3, before any switch or restart, so the running release keeps serving untouched. In short: the switch is atomic and safe; a successful deploy or rollback still incurs a short restart gap, and only an aborted-before-switch deploy is truly no-downtime.
+
 **Manual rollback**, any time:
 
 ```bash

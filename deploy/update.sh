@@ -31,10 +31,11 @@ PREV_AT_START="$(current_target)"
 mkdir -p "$RELEASES_DIR" "$SHARED_DATA"
 
 step 1 "Backing up pilot data first"
-if [ -x "$HERE/backup.sh" ]; then
-  PAC_DATA_DIR="$SHARED_DATA" "$HERE/backup.sh" >/dev/null 2>&1 || log "backup step reported a problem (continuing; no data is overwritten by this deploy)"
-else
-  log "no backup.sh found, skipping (no data is overwritten by this deploy)"
+# The backup is BLOCKING: if it fails, abort now, before anything changes. A
+# deploy must never proceed without a verified backup in hand.
+[ -x "$HERE/backup.sh" ] || die "backup.sh is missing or not executable; aborting before any change."
+if ! PAC_DATA_DIR="$SHARED_DATA" "$HERE/backup.sh"; then
+  die "backup failed; aborting before any change. Nothing was touched. See the output above."
 fi
 
 step 2 "Unpacking the new release into $STAMP"
@@ -63,7 +64,9 @@ step 4 "Switching to the new release"
 if [ -n "$PREV_AT_START" ]; then set_link "$PREVIOUS_LINK" "$PREV_AT_START"; fi
 set_link "$CURRENT_LINK" "$NEW"
 log "current -> $STAMP"
-svc_restart
+# A failed restart must NOT abort the script under set -e: fall through to the
+# health gate so the automatic rollback runs.
+svc_restart || log "the restart command reported failure; the health check will decide"
 if [ -n "$SVC_DISCORD_RESTART" ]; then eval "$SVC_DISCORD_RESTART" || true; fi
 
 step 5 "Checking the new release is healthy"
@@ -75,15 +78,26 @@ if health_gate; then
   exit 0
 fi
 
-# ---- the new release did not come up: automatic rollback -------------------
-printf '\n  The new release did not pass the health check. Rolling back automatically...\n' >&2
+# ---- the new release did not come up healthy -------------------------------
 if [ -z "$PREV_AT_START" ]; then
-  die "no previous release to roll back to. The service is NOT healthy.
-  This was the first release. Investigate with the service logs; pilot data is untouched."
+  # Finding 5: first deploy, nothing to roll back to. Do NOT leave a broken
+  # release wired up as 'current'. Stop the service, unset the symlink so the
+  # next deploy starts clean, keep the failed release for inspection, and print
+  # a safe recovery procedure. Pilot data was never touched.
+  printf '\n  The first release did not pass the health check.\n' >&2
+  svc_stop || log "could not stop the service (it may already be down)"
+  rm -f "$CURRENT_LINK"
+  die "first deploy failed and there is no previous release to roll back to.
+  The service was stopped and 'current' was left unset, so nothing broken is wired up.
+  Pilot data is untouched at $SHARED_DATA.
+  Recovery: fix the package and re-run this deploy (it will start clean), or inspect
+  the failed release at $NEW and the service logs. The failed release was NOT made current."
 fi
+
+printf '\n  The new release did not pass the health check. Rolling back automatically...\n' >&2
 set_link "$CURRENT_LINK" "$PREV_AT_START"
 log "current -> $(basename "$PREV_AT_START") (rolled back)"
-svc_restart
+svc_restart || log "the restart command reported failure; verifying health anyway"
 if [ -n "$SVC_DISCORD_RESTART" ]; then eval "$SVC_DISCORD_RESTART" || true; fi
 if health_gate; then
   log "the previous release is healthy again"

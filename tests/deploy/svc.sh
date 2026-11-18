@@ -24,9 +24,12 @@ stop() {
 }
 
 start() {
-  # run from the current release symlink, exactly as the service would
+  # run from the current release symlink, exactly as the service would. By default
+  # the container's python3; set PAC_SVC_PYTHON to the release's own venv python
+  # for a production-equivalent run (see run_staging.sh).
+  local py="${PAC_SVC_PYTHON:-python3}"
   ( cd "$ROOT/current" && PAC_DATA_DIR="$DATA" PAC_HOST=127.0.0.1 PAC_PORT="$PORT" \
-      exec python3 app.py ) >>"$LOG" 2>&1 &
+      exec "$py" app.py ) >>"$LOG" 2>&1 &
   echo $! > "$PIDFILE"
 }
 

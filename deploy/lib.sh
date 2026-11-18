@@ -35,6 +35,7 @@ HEALTH_TIMEOUT="${PAC_HEALTH_TIMEOUT:-30}"
 # Service control. Defaults drive systemd; the test harness overrides these to
 # start/stop a throwaway app instance instead. Each is a full command line.
 SVC_RESTART="${PAC_SVC_RESTART:-sudo systemctl restart pac}"
+SVC_STOP="${PAC_SVC_STOP:-sudo systemctl stop pac}"
 SVC_ISACTIVE="${PAC_SVC_ISACTIVE:-systemctl is-active --quiet pac}"
 SVC_DISCORD_RESTART="${PAC_SVC_DISCORD_RESTART:-}"   # empty = skip (handled by caller)
 
@@ -81,7 +82,13 @@ http_ok() {
   fi
 }
 
-svc_restart()  { eval "$SVC_RESTART"; }
+# Restart the service. IMPORTANT: this must never abort the caller under `set -e`.
+# A restart that reports failure has to fall through to the health gate so the
+# automatic rollback runs, rather than exiting the script early. Callers invoke
+# this as `svc_restart || true` and let the health gate judge the outcome; the
+# function itself also swallows its own non-zero so a bare call is safe too.
+svc_restart()  { eval "$SVC_RESTART" || return 1; }
+svc_stop()     { eval "$SVC_STOP" || return 1; }
 svc_isactive() { eval "$SVC_ISACTIVE"; }
 
 # Poll until healthy or the timeout elapses. Returns 0 healthy, 1 not.

@@ -47,7 +47,7 @@ step 1 "Rolling back to $(basename "$TARGET")"
 if [ -n "$CUR" ]; then set_link "$PREVIOUS_LINK" "$CUR"; fi
 set_link "$CURRENT_LINK" "$TARGET"
 log "current -> $(basename "$TARGET")"
-svc_restart
+svc_restart || log "the restart command reported failure; verifying health anyway"
 if [ -n "$SVC_DISCORD_RESTART" ]; then eval "$SVC_DISCORD_RESTART" || true; fi
 
 step 2 "Checking it is healthy"
@@ -55,5 +55,22 @@ if health_gate; then
   printf '\nDone. Rolled back to %s and running.\n\n' "$(basename "$TARGET")"
   exit 0
 fi
-die "the rollback target did not come up healthy. Pilot data is untouched at $SHARED_DATA.
-  Pick another release with: $HERE/rollback.sh --list"
+
+# Finding 6: the target is not healthy. A rollback must be transactional, so
+# automatically restore the release we were on and verify it is healthy again,
+# rather than leaving the site on a broken target.
+printf '\n  %s did not come up healthy. Restoring the previous working release...\n' "$(basename "$TARGET")" >&2
+if [ -z "$CUR" ]; then
+  die "the rollback target is unhealthy and there was no prior release to restore.
+  Pilot data is untouched at $SHARED_DATA. Pick another release: $HERE/rollback.sh --list"
+fi
+set_link "$CURRENT_LINK" "$CUR"
+log "current -> $(basename "$CUR") (restored)"
+svc_restart || log "the restart command reported failure; verifying health anyway"
+if health_gate; then
+  die "rollback to $(basename "$TARGET") failed its health check; restored $(basename "$CUR"), which is healthy.
+  The site is up on the release it was on before. Pilot data is untouched."
+else
+  die "rollback to $(basename "$TARGET") failed AND restoring $(basename "$CUR") did not come up healthy.
+  Manual attention needed. Pilot data is untouched at $SHARED_DATA. See: $HERE/rollback.sh --list"
+fi
