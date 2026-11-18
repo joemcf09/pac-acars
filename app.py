@@ -524,6 +524,18 @@ def landing_weight_check(code, weight):
     return w, lim[1]
 
 
+def flight_configuration(rec):
+    """Return recorded configuration for the pilot debrief, if this flight has any."""
+    starts = getattr(rec, "eng_starts", None) or []
+    departure = getattr(rec, "dep_config", None) or {}
+    arrival = getattr(rec, "arr_config", None) or {}
+    single_taxi = bool(getattr(rec, "single_eng_taxi", False))
+    if not (starts or departure or arrival or single_taxi):
+        return None  # older ACARS records have no configuration capture
+    return {"eng_starts": starts, "single_eng_taxi": single_taxi,
+            "dep_config": departure, "arr_config": arrival}
+
+
 def build_pirep(booking, rec: FlightRecorder):
     m, ofp = booking["mission"], booking.get("ofp") or {}
     o, f = rec.oooi, rec.fuel
@@ -637,6 +649,7 @@ def build_pirep(booking, rec: FlightRecorder):
         "score": score, "grade": grade, "status": status, "points": points, "breakdown": items,
         "oooi": rec.oooi, "demo": state["source_name"] == "Demo", "source": state["source_name"],
         "airframe": booking.get("airframe"),
+        "flight_configuration": flight_configuration(rec),
     }
     series = getattr(rec, "landing_series", None)
     if series and rec.landing:
@@ -3635,7 +3648,7 @@ def file_pirep():
               "aircraft_name": p.get("aircraft_name"), "pilot_rank": va.career(va.current_pilot_id())["rank"],
               "takeoff_analysis": p.get("takeoff_analysis"), "economics": p.get("economics"), "integrity": p.get("integrity"),
               "online": p.get("online"), "urgent": p.get("urgent"), "job": p.get("job"), "conflict": p.get("conflict"),
-              "debrief": p.get("debrief")}
+              "debrief": p.get("debrief"), "flight_configuration": p.get("flight_configuration")}
     with db() as con:
         con.execute("""INSERT OR IGNORE INTO pireps (filed_at, mission_id, mission_title, category, flight_number, aircraft,
             registration, dep, arr, planned_arr, block_min, flight_min, distance_nm, fuel_used_lbs, payload_lbs,
