@@ -36,6 +36,9 @@ grep -q 'WorkingDirectory=/home/pac/pac-acars/current' "$UNIT" && ok "unit runs 
 grep -q 'ExecStart=/home/pac/pac-acars/current/.venv/bin/python app.py' "$UNIT" && ok "unit runs the release's own venv python" || bad "unit ExecStart not the release venv"
 grep -q 'Environment=PAC_DATA_DIR=/home/pac/pac-acars/shared/data' "$UNIT" && ok "unit points PAC_DATA_DIR at shared/data" || bad "unit missing PAC_DATA_DIR"
 grep -q 'ReadWritePaths=/home/pac/pac-acars/shared/data' "$UNIT" && ok "unit makes only shared/data writable" || bad "unit ReadWritePaths wrong"
+DUNIT="$REPO/deploy/pac-discord.service"
+grep -q 'WorkingDirectory=/home/pac/pac-acars/current' "$DUNIT" && ok "discord unit runs from the current release" || bad "discord unit not release-aware"
+grep -q 'ExecStart=/home/pac/pac-acars/current/.venv/bin/python discord_bot.py' "$DUNIT" && ok "discord unit uses the release venv (deploys update the bot too)" || bad "discord unit ExecStart not the release venv"
 
 # ---- build a flat install and migrate it with a REAL venv -------------------
 sect "S1 migrate a flat install to the release layout (real venv)"

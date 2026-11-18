@@ -1,14 +1,14 @@
-PAC deploy/rollback test results — 2026-11-18T02:29:17Z
+PAC deploy/rollback test results — 2026-11-18T02:33:06Z
 Python: Python 3.13.18
 
 ################## baseline: tests/deploy/run.sh ##################
 
 == T1 first deploy ==
-  PASS first deploy healthy, /up 200 (release 20261118-022920)
+  PASS first deploy healthy, /up 200 (release 20261118-023309)
   PASS pilot data seeded and verifiable
 
 == T2 second deploy, data survives ==
-  PASS second deploy healthy (release 20261118-022922)
+  PASS second deploy healthy (release 20261118-023310)
   PASS current advanced to a new release
   PASS previous points at the prior release
   PASS all pilot data intact across deploy
@@ -29,7 +29,7 @@ Python: Python 3.13.18
   PASS site still up on the previous release
 
 == T6 manual rollback to an explicit earlier release ==
-  PASS rolled back to the chosen release 20261118-022920
+  PASS rolled back to the chosen release 20261118-023309
   PASS site healthy after manual rollback
   PASS pilot data intact after manual rollback
   PASS rollback --list works
@@ -83,6 +83,8 @@ Python: Python 3.13.18
   PASS unit runs the release's own venv python
   PASS unit points PAC_DATA_DIR at shared/data
   PASS unit makes only shared/data writable
+  PASS discord unit runs from the current release
+  PASS discord unit uses the release venv (deploys update the bot too)
 
 == S1 migrate a flat install to the release layout (real venv) ==
   PASS migrate --apply completed
@@ -99,4 +101,4 @@ Python: Python 3.13.18
   PASS rolled-back release healthy under its venv
   PASS pilot data intact across rollback
 
-==== 16 passed, 0 failed ====
+==== 18 passed, 0 failed ====
