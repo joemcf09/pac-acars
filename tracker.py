@@ -44,6 +44,23 @@ def zulu(t):
     return dt.datetime.fromtimestamp(t, dt.timezone.utc).strftime("%H%MZ")
 
 
+def _config_snapshot(s) -> dict:
+    """PAC ACARS 1.2: capture a lighting + engine configuration snapshot.
+    None values are preserved as-is (unknown/unavailable from this sim or aircraft).
+    Never coerce None to False -- unknown is different from OFF."""
+    return {
+        "beacon":       s.beacon,
+        "nav":          s.nav_lights,
+        "strobe":       s.strobe,
+        "landing":      s.landing_lights,
+        "taxi":         s.taxi_light,
+        "eng1_running": s.eng1_running,
+        "eng2_running": s.eng2_running,
+        "eng3_running": s.eng3_running,
+        "eng4_running": s.eng4_running,
+    }
+
+
 class Debounce:
     """True once a condition has held continuously for `hold` sim-seconds."""
 
@@ -103,6 +120,13 @@ class FlightRecorder:
         self.coach = {}           # SOP reminders already given (once each)
         self.callouts = {}        # approach gates already checked
         self.fuel_checks = {}
+        # PAC ACARS 1.2: configuration capture (informational; never scored)
+        self.eng_starts: list = []          # [{n, t, z, phase, seq}] one entry per confirmed engine start
+        self.single_eng_taxi: bool = False  # True if single-engine taxi movement was observed during TAXI_OUT
+        self.dep_config: dict = {}          # lighting + engine snapshot taken at OUT
+        self.arr_config: dict = {}          # lighting + engine snapshot taken at IN
+        self._eng_prev: dict = {}           # per-engine previous running state; leading _ excludes from export
+        self._eng_pending: set = set()      # engines with a confirmed leading edge not yet held for debounce; leading _ excludes from export
 
     # ---------------------------------------------------------------- logging
     def msg(self, t, text, kind="info"):
@@ -311,6 +335,10 @@ class FlightRecorder:
             rem = gc_distance_nm(s.lat, s.lon, self.dest["lat"], self.dest["lon"])
             self.msg(t, f"POS {s.lat:+.2f}{s.lon:+.2f}  FL{s.alt_ft / 100:03.0f}  GS{s.gs:.0f}  FOB {s.fuel_lbs:,.0f}  DTG {rem:.0f}NM")
         self._add_track(s)
+        try:
+            self._config_capture(s)
+        except Exception as e:   # config capture must never stop a flight from being tracked
+            self.coach_error = getattr(self, "coach_error", "") + f" | cfg: {str(e)[:100]}"
 
     def _record_profile(self, s):
         t = s.t
@@ -625,12 +653,87 @@ class FlightRecorder:
         self.dispatch_last_t = t
         self._ul(t, text)
 
+    # ---------------------------------------------------------------- 1.2 config capture
+    # Ground phases where engine start tracking is active.
+    _CONFIG_PHASES = {"PREFLIGHT", "PUSHBACK", "TAXI_OUT"}
+
+    def _config_capture(self, s):
+        """PAC ACARS 1.2: engine startup and single-engine taxi detection.
+        Called from update() on every sample; never raises (caller wraps in try/except).
+        Informational only -- never modifies scores."""
+        if self.phase not in self._CONFIG_PHASES:
+            return          # stop recording engine starts at TAKEOFF and beyond
+
+        t = s.t
+        num = s.num_engines or 0   # 0 when unavailable; will skip per-engine loop
+        db = self.db
+
+        # ----- per-engine start detection -----
+        # _eng_prev tracks the last known running state (None key absent = no baseline yet).
+        # _eng_pending is a set of engine numbers that have seen a False->True leading edge
+        #   but have not yet held it long enough for the debounce confirmation.
+        # Both are initialized in __init__ and excluded from export (underscore prefix).
+
+        # When a value is None (sim disconnected / aircraft doesn't report it):
+        #   clear that engine's key so the next non-None sample re-establishes baseline,
+        #   cancel any pending confirmation, and clear the debounce accumulator.
+        for n in range(1, 5):
+            cur = getattr(s, f"eng{n}_running", None)
+            if cur is None:
+                self._eng_prev.pop(n, None)
+                self._eng_pending.discard(n)
+                db.check(f"eng_start_{n}", False, t, 2)
+                continue
+
+            if n not in self._eng_prev:
+                self._eng_prev[n] = cur          # first valid sample: set baseline, no event
+                continue
+
+            prev_running = self._eng_prev[n]
+            already_started = any(e["n"] == n for e in self.eng_starts)
+
+            # Leading edge: engine was off, now on -- enter pending state
+            if cur and not prev_running and not already_started:
+                self._eng_pending.add(n)
+            # If engine stopped running, cancel any pending confirmation
+            if not cur:
+                self._eng_pending.discard(n)
+
+            self._eng_prev[n] = cur
+
+            # Debounce: condition is True while engine is running AND confirmation is pending.
+            # Once confirmed (db.check returns True), record the start and leave pending.
+            in_pending = n in self._eng_pending
+            if db.check(f"eng_start_{n}", in_pending and cur, t, 2):
+                self._eng_pending.discard(n)
+                if not already_started:
+                    self.eng_starts.append({
+                        "n":     n,
+                        "t":     round(t, 1),
+                        "z":     zulu(t),
+                        "phase": self.phase,
+                        "seq":   len(self.eng_starts) + 1,
+                    })
+
+        # ----- single-engine taxi detection (TAXI_OUT only, multi-engine aircraft) -----
+
+        if self.phase == "TAXI_OUT" and not self.single_eng_taxi and num >= 2 and s.gs > 2.0:
+            engine_states = [
+                getattr(s, f"eng{n}_running", None)
+                for n in range(1, num + 1)
+            ]
+            # Only flag single-engine taxi when every engine state is known.
+            if all(state is not None for state in engine_states):
+                if sum(state is True for state in engine_states) == 1:
+                    self.single_eng_taxi = True
+
     # ---------------------------------------------------------------- OOOI
     def _out(self, t, s):
         self.oooi["out"] = t
         self.fuel["out"] = s.fuel_lbs
         self.wx_jobs = getattr(self, "wx_jobs", []) + ["out"]
         self.msg(t, f"OUT {zulu(t)}  FOB {s.fuel_lbs:,.0f}LB", "oooi")
+        self.dep_config = _config_snapshot(s)   # 1.2: departure configuration at gate departure
 
     def _off(self, t, s):
         self.oooi["off"] = t
@@ -712,6 +815,7 @@ class FlightRecorder:
         self.oooi["in"] = t
         self.fuel["in"] = s.fuel_lbs
         self.msg(t, f"IN {zulu(t)}  FOB {s.fuel_lbs:,.0f}LB  FLIGHT COMPLETE", "oooi")
+        self.arr_config = _config_snapshot(s)   # 1.2: arrival configuration at on-block
 
     # ---------------------------------------------------------------- export for the website
     EXPORT_SKIP = {"booking", "db"}
