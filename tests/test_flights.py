@@ -57,6 +57,23 @@ def burn(samples, rec):
 rec, p, samples = run("Clean flight", td_fpm=-90)
 rec2, p, samples = run("Clean flight with an OFP", trip_fuel=round(burn(samples, rec)), td_fpm=-90)
 rec = rec2
+# Flight configuration is saved for the debrief without affecting the existing grade.
+_original_config = (rec.eng_starts, rec.single_eng_taxi, rec.dep_config, rec.arr_config)
+rec.eng_starts = [{"n": 2, "seq": 1}, {"n": 1, "seq": 2}]
+rec.single_eng_taxi = True
+rec.dep_config = {"beacon": True, "nav": True, "strobe": False, "landing": None, "taxi": True}
+rec.arr_config = {"beacon": False, "nav": True, "strobe": False, "landing": False, "taxi": False}
+configured = A.build_pirep(rec.booking, rec)
+config = configured["flight_configuration"]
+check("engine start order reaches PIREP", [e["n"] for e in config["eng_starts"]] == [2, 1])
+check("single-engine taxi reaches PIREP", config["single_eng_taxi"] is True)
+check("departure and arrival lights reach PIREP",
+      config["dep_config"]["landing"] is None and config["arr_config"]["landing"] is False)
+check("configuration leaves grading unchanged",
+      (configured["score"], configured["grade"], configured["breakdown"]) == (p["score"], p["grade"], p["breakdown"]))
+rec.eng_starts, rec.single_eng_taxi, rec.dep_config, rec.arr_config = [], False, {}, {}
+check("older flight has no configuration section", A.build_pirep(rec.booking, rec)["flight_configuration"] is None)
+rec.eng_starts, rec.single_eng_taxi, rec.dep_config, rec.arr_config = _original_config
 phases = [x["phase"] for x in rec.timeline]
 for ph in ("PUSHBACK", "TAXI_OUT", "TAKEOFF", "INITIAL_CLIMB", "CLIMB", "CRUISE", "DESCENT", "APPROACH", "LANDING", "TAXI_IN", "ARRIVED"):
     check(f"phase {ph} reached", ph in phases, phases)
