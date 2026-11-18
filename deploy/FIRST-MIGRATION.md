@@ -60,11 +60,13 @@ Review the pilot, release, reference backup, venv and safety budgets. Published 
 
 ## 3. Freeze writes and take the final backup
 
-Close public access using the site's maintenance procedure and pause scheduled writers, imports and deployments. Stop the bot first. Keep ingress closed until validation finishes.
+Close public access using the site's maintenance procedure and pause scheduled writers, imports and deployments. If `pac-missions.timer` exists, stop it and wait for `pac-missions.service` to become inactive. Stop the bot first. Keep ingress closed until validation finishes.
 
 ```bash
+sudo systemctl stop pac-missions.timer
+sudo systemctl stop pac-missions.service
 sudo systemctl stop pac-discord.service pac.service
-for unit in pac pac-discord; do
+for unit in pac pac-discord pac-missions; do
   test "$(systemctl show "$unit" -p ActiveState --value)" = inactive
 done
 test -s data/logbook.db
@@ -93,7 +95,7 @@ test ! -e "$REL/data/logbook.db"
 
 Require the migration's checksum verification to report zero missing and corrupt pilot files. Keep the flat venv and all original data in place.
 
-## 5. Switch both units and verify
+## 5. Switch the website, bot and mission worker units and verify
 
 Use named drop-ins so existing unit files, credentials and overrides remain available. Compare the two reviewed units in current/deploy with the effective unit snapshots. Reconcile any custom launcher arguments, extra processes or sandbox paths before continuing. These commands assume the existing services run app.py and discord_bot.py as pac. Verify that no later drop-in or EnvironmentFile overrides the selected values.
 
@@ -117,6 +119,31 @@ done
 sudo systemctl daemon-reload
 sudo systemd-analyze verify pac.service pac-discord.service
 systemctl show pac pac-discord -p WorkingDirectory -p ExecStart -p ReadWritePaths
+```
+
+If the mission timer exists, give its worker the same release and shared data paths. The worker's lock and status files must use `PAC_DATA_DIR` as well as its database connection.
+
+```bash
+dir=/etc/systemd/system/pac-missions.service.d
+file=$dir/99-pac-first-migration.conf
+test ! -e "$file" && test ! -L "$file" || exit 1
+sudo mkdir -p "$dir"
+sudo tee "$file" >/dev/null <<UNIT
+[Service]
+WorkingDirectory=$ROOT/current
+ExecStart=
+ExecStart=$ROOT/current/.venv/bin/python mission_worker.py
+Environment=PAC_DATA_DIR=$ROOT/shared/data
+ReadWritePaths=$ROOT/shared/data
+UNIT
+sudo systemctl daemon-reload
+sudo systemd-analyze verify pac-missions.service
+systemctl show pac-missions -p WorkingDirectory -p ExecStart -p Environment -p ReadWritePaths
+```
+
+Start the website and bot. Keep the mission timer stopped until the first updated release containing the `PAC_DATA_DIR` worker fix has deployed, then start it and verify the shared worker status file advances after a timer run.
+
+```bash
 sudo systemctl start pac
 curl --retry 15 --retry-connrefused --retry-delay 2 -fsS http://127.0.0.1:5050/up
 sudo systemctl start pac-discord
@@ -126,6 +153,14 @@ for unit in pac pac-discord; do
   test "$(sudo readlink -e "/proc/$pid/cwd")" = "$REL"
   sudo cat "/proc/$pid/environ" | tr '\0' '\n' | grep -Fx "PAC_DATA_DIR=$ROOT/shared/data"
 done
+test "$(systemctl show pac-missions.timer -p ActiveState --value)" = inactive
+```
+
+Deploy the first updated release with `update.sh` before restarting the mission timer. Then verify the timer and shared worker status.
+
+```bash
+sudo systemctl start pac-missions.timer
+systemctl is-active pac-missions.timer
 sudo journalctl -u pac -u pac-discord --since '10 minutes ago' --no-pager
 ```
 
@@ -133,6 +168,6 @@ Check for repeated restarts, permission errors and bot connection errors. Verify
 
 ## Recovery
 
-* **Before either new service starts**, the stopped flat data and original venv remain authoritative. Leave partial shared/releases directories intact for diagnosis. If the unit switch started, remove **only the drop-in files created in step 5** using `sudo unlink /etc/systemd/system/<unit>.service.d/99-pac-first-migration.conf` for each affected unit, then run `sudo systemctl daemon-reload`. Compare effective units with SAVE, start pac, verify /up, then start pac-discord and recheck the records. To restore the original deploy scripts, move the overlaid deploy directory to SAVE and copy flat-deploy back if it existed.
+* **Before either new service starts**, the stopped flat data and original venv remain authoritative. Leave partial shared/releases directories intact for diagnosis. If the unit switch started, remove **only the drop-in files created in step 5** for pac, pac-discord and pac-missions using `sudo unlink /etc/systemd/system/<unit>.service.d/99-pac-first-migration.conf` for each affected unit, then run `sudo systemctl daemon-reload`. Compare effective units with SAVE, start pac, verify /up, then start pac-discord and pac-missions.timer and recheck the records. To restore the original deploy scripts, move the overlaid deploy directory to SAVE and copy flat-deploy back if it existed.
 * **Once either new service has started**, assume shared/data has new writes even with ingress closed. Stop both services and other writers again. Keep both trees and take a fresh verified SQLite backup of shared/data/logbook.db. Prefer repairing the release or units in place. For a flat fallback, confirm flat-code/schema compatibility and space for an additional stopped data copy. As pac, create a private sibling staging directory on the same filesystem as flat data. Copy `shared/data/.` there with `cp -a`, compare with `diff -qr` while stopped, and check SQLite integrity there. Add the seven reference JSON files listed in the migration script from the release's data directory, preserving the saved missions version. Rename the old flat data directory to an unused recovery name, then rename the verified staged directory to `$ROOT/data`. If the second rename fails, restore the first name before starting anything. Restore flat unit configuration as above and verify both services before reopening. Preserve shared/data and all recovery copies.
 * The first migration has no previous release. The migration's --undo overlays code and removes the flat venv. Leave it unused for this fallback. If space, compatibility or verification fails, keep writers stopped and recover on a larger volume from the verified backups. Returning to the Windows snapshot or final backup can discard subsequent writes and requires an explicit recovery decision.
