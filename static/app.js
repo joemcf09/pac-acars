@@ -8462,6 +8462,28 @@ function bindCharterCustomers(c){
 }
 
 /* Evidence-led presentation only: does not change scoring or pay. */
+function pacFlightConfiguration(c) {
+  if (!c || typeof c !== 'object') return '';
+  const e = value => String(value ?? '').replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+  const starts = (Array.isArray(c.eng_starts) ? c.eng_starts : [])
+    .filter(x => x && Number.isInteger(x.n) && x.n >= 1 && x.n <= 4)
+    .map(x => `ENG ${x.n}`);
+  const lightNames = [['beacon','Beacon'],['nav','Navigation'],['strobe','Strobe'],['landing','Landing'],['taxi','Taxi']];
+  const lights = snapshot => {
+    if (!snapshot || typeof snapshot !== 'object' || !Object.keys(snapshot).length) return '<p>Not recorded</p>';
+    return lightNames.map(([key, label]) => `<div><span>${label}</span><b>${snapshot[key] === true ? 'On' : snapshot[key] === false ? 'Off' : 'Not recorded'}</b></div>`).join('');
+  };
+  return `<section class="pd-configuration" data-pd-section="Configuration">
+    <h3>Flight configuration</h3>
+    <div class="pd-grid">
+      <div class="pd-metric"><small>Engine start order</small><strong>${e(starts.join(' → ') || 'No starts recorded')}</strong></div>
+      <div class="pd-metric"><small>Single-engine taxi</small><strong>${c.single_eng_taxi === true ? 'Recorded' : 'No single-engine taxi recorded'}</strong></div>
+      <div class="pd-metric"><small>Departure lights · OUT</small><div class="pd-light-list">${lights(c.dep_config)}</div></div>
+      <div class="pd-metric"><small>Arrival lights · IN</small><div class="pd-light-list">${lights(c.arr_config)}</div></div>
+    </div>
+    <p class="pd-note">Recorded flight observations only. Configuration does not change the flight grade.</p>
+  </section>`;
+}
 function pacDebrief(p, d = p) {
   const e = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const n = v => typeof v === 'number' && Number.isFinite(v);
@@ -8497,6 +8519,7 @@ function pacDebrief(p, d = p) {
   return `<section class="pac-debrief" data-pd-section="Summary"><div class="pd-head"><div><small>PAC · FLIGHT DEBRIEF</small><h2>Your flight, explained.</h2><p>${e(p.dep)} → ${e(p.arr)} · ${e(p.flight_number)}</p></div><div class="pd-grade"><small>Flight grade</small><strong>${e(p.grade || 'Unscored')}</strong><span>${n(p.score) ? `${e(p.score)} / 100` : 'Score unavailable'}</span></div></div>
     <div class="pd-grid">${metric('Touchdown', la.rate_fpm, 'fpm', 'Recorded vertical speed')}${metric('Landing load', la.g, 'G', 'Around touchdown')}${metric('Touchdown speed', la.ias, 'kt', 'Indicated airspeed')}${metric('Takeoff roll', ta.roll_ft, 'ft', 'Recorded ground roll')}</div>
     <div class="pd-columns"><div><h3>What went well</h3>${list(good) || '<p>Not enough recorded evidence to identify strengths.</p>'}</div><div><h3>${focus.length ? 'Technique notes for next time' : 'Keep it up'}</h3>${list(focus) || '<p>Nothing to work on from this flight. Fly the next one the same way.</p>'}${focus.length && !(d.breakdown || []).some(x => x[1] < 0) ? '<p class="muted" style="font-size:13px">These notes don\'t lower your grade. They\'re what a check captain would mention after the flight.</p>' : ''}</div></div>
+    ${pacFlightConfiguration(d.flight_configuration || p.flight_configuration)}
     ${pacAfterAction(p.debrief || d.debrief)}
     ${pacShipmentDebrief(p, d)}
     <details><summary>The evidence behind the feedback</summary>${list(facts) || '<p>No detailed measurements available for this report.</p>'}<p class="pd-note">The approach check looks at your speed spread below 1,000 ft and your descent rate below 500 ft.</p></details>
@@ -8565,7 +8588,7 @@ function pacReportNav(root) {
     if (['Landing','Takeoff','Replay'].includes(name)) {h.dataset.pdSection=name;sections.push(h);}
   }
   const nav=document.createElement('nav');nav.className='pd-nav';nav.setAttribute('aria-label','Flight report sections');
-  for (const name of ['Summary','Shipment','Landing','Takeoff','Replay']) {
+  for (const name of ['Summary','Configuration','Shipment','Landing','Takeoff','Replay']) {
     const target=sections.find(x=>x.dataset.pdSection===name);if(!target)continue;
     const b=document.createElement('button');b.type='button';b.textContent=name;
     b.onclick=()=>{target.scrollIntoView({block:'start',behavior:'auto'});target.tabIndex=-1;target.focus({preventScroll:true});};nav.appendChild(b);
@@ -8573,7 +8596,7 @@ function pacReportNav(root) {
   root.prepend(nav);
 }
 
-{const style=document.createElement("style");style.textContent=".pac-debrief{border:1px solid var(--line,#d8dce3);border-top:4px solid #c80000;border-radius:8px;background:var(--white,#fff);color:var(--ink,#20252b);padding:24px;margin:18px 0;font:15px/1.6 system-ui}.pd-head{display:flex;justify-content:space-between;gap:24px}.pd-head h2{font-size:30px;margin:5px 0}.pd-head p{margin:4px 0 18px}.pd-head small{font-weight:700;letter-spacing:1px;color:var(--ink,#20252b)}.pd-grade{display:flex;flex-direction:column;align-items:center;min-width:140px}.pd-grade strong{font-size:48px;line-height:1.2}.pd-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}.pd-metric{border:1px solid var(--line,#d8dce3);padding:16px;border-radius:6px;display:flex;flex-direction:column}.pd-metric strong{font-size:25px}.pd-metric strong span{font-size:13px;font-weight:400}.pd-columns{display:grid;grid-template-columns:1fr 1fr;gap:28px;margin:20px 0}.pac-debrief h3{font-size:17px;margin:8px 0}.pac-debrief details{border-top:1px solid var(--line,#d8dce3);padding:14px 0}.pac-debrief summary{cursor:pointer;font-weight:700}.pd-note{color:var(--steel,#586575);font-size:13px}.pac-debrief p{max-width:85ch}@media(max-width:700px){.pd-grid{grid-template-columns:1fr 1fr}.pd-columns{grid-template-columns:1fr;gap:8px}.pd-head{flex-direction:column}.pd-grade{align-items:flex-start}.pac-debrief{padding:16px}}\n.pd-shipment{padding:22px;background:var(--paper,#f6f7f9);border-left:4px solid #c80000;margin:22px 0}.pd-shipment>small{font-weight:700;letter-spacing:1px;color:var(--ink,#20252b)}\n\n.pd-nav{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0 20px}.pd-nav button{background:var(--white,#fff);color:var(--ink,#20252b);border:1px solid var(--line,#ddd);padding:9px 14px;cursor:pointer;border-radius:4px;font:inherit}.pd-nav button:hover,.pd-nav button:focus,.pd-nav button:focus-visible,.pd-nav button:active{outline:2px solid #c80000;color:var(--ink,#20252b)!important;background:var(--white,#fff)!important}.pd-shipment{padding:16px 20px}.pd-shipment details{padding-bottom:0}[data-pd-section]{scroll-margin-top:16px}\n";document.head.appendChild(style);}
+{const style=document.createElement("style");style.textContent=".pac-debrief{border:1px solid var(--line,#d8dce3);border-top:4px solid #c80000;border-radius:8px;background:var(--white,#fff);color:var(--ink,#20252b);padding:24px;margin:18px 0;font:15px/1.6 system-ui}.pd-head{display:flex;justify-content:space-between;gap:24px}.pd-head h2{font-size:30px;margin:5px 0}.pd-head p{margin:4px 0 18px}.pd-head small{font-weight:700;letter-spacing:1px;color:var(--ink,#20252b)}.pd-grade{display:flex;flex-direction:column;align-items:center;min-width:140px}.pd-grade strong{font-size:48px;line-height:1.2}.pd-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}.pd-metric{border:1px solid var(--line,#d8dce3);padding:16px;border-radius:6px;display:flex;flex-direction:column}.pd-metric strong{font-size:25px}.pd-metric strong span{font-size:13px;font-weight:400}.pd-columns{display:grid;grid-template-columns:1fr 1fr;gap:28px;margin:20px 0}.pac-debrief h3{font-size:17px;margin:8px 0}.pac-debrief details{border-top:1px solid var(--line,#d8dce3);padding:14px 0}.pac-debrief summary{cursor:pointer;font-weight:700}.pd-note{color:var(--steel,#586575);font-size:13px}.pac-debrief p{max-width:85ch}@media(max-width:700px){.pd-grid{grid-template-columns:1fr 1fr}.pd-columns{grid-template-columns:1fr;gap:8px}.pd-head{flex-direction:column}.pd-grade{align-items:flex-start}.pac-debrief{padding:16px}}\n.pd-shipment{padding:22px;background:var(--paper,#f6f7f9);border-left:4px solid #c80000;margin:22px 0}.pd-shipment>small{font-weight:700;letter-spacing:1px;color:var(--ink,#20252b)}\n\n.pd-nav{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0 20px}.pd-nav button{background:var(--white,#fff);color:var(--ink,#20252b);border:1px solid var(--line,#ddd);padding:9px 14px;cursor:pointer;border-radius:4px;font:inherit}.pd-nav button:hover,.pd-nav button:focus,.pd-nav button:focus-visible,.pd-nav button:active{outline:2px solid #c80000;color:var(--ink,#20252b)!important;background:var(--white,#fff)!important}.pd-shipment{padding:16px 20px}.pd-shipment details{padding-bottom:0}[data-pd-section]{scroll-margin-top:16px}.pd-configuration{border-top:1px solid var(--line,#d8dce3);padding-top:18px;margin:20px 0}.pd-configuration .pd-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.pd-configuration .pd-metric strong{font-size:19px}.pd-light-list{display:grid;gap:2px;margin-top:7px}.pd-light-list>div{display:flex;justify-content:space-between;gap:12px;font-size:13px}.pd-light-list b{font-weight:600}.pd-configuration .pd-note{margin:12px 0 0}@media(max-width:700px){.pd-configuration .pd-grid{grid-template-columns:1fr}}\n";document.head.appendChild(style);}
 
 function pacParkedInit() {
   if (document.getElementById('parkedControls')) return;
