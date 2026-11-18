@@ -102,6 +102,16 @@ for path in app.py discord_bot.py deploy/update.sh deploy/pac-discord.service wb
   [ -e "$F4/current/$path" ] && ok "release preserves $path" || bad "release missing $path"
 done
 
+# A larger installed venv raises the estimate above the configured build floor.
+# Use a fresh flat fixture because F4 has now been migrated.
+F6="$ROOTS/m6"; mkdir -p "$F6/.venv"; touch "$F6/app.py"
+dd if=/dev/zero of="$F6/.venv/dependencies" bs=1M count=4 status=none
+if PAC_VENV_MARGIN_KB=1 PAC_DISK_SAFETY_KB=1 MIG_AVAIL=2048 mig "$F6" bash "$MIG" --apply >"$ROOTS/venv.log" 2>&1; then
+  bad "existing venv size omitted"
+elif grep -q 'not enough disk space' "$ROOTS/venv.log" && [ ! -e "$F6/shared" ]; then
+  ok "existing venv raises the preflight allocation"
+else bad "unexpected venv preflight failure"; fi
+
 # ---- M5 ---------------------------------------------------------------------
 sect "M5 both service units use the release dir and shared-data config"
 U="$REPO/deploy/pac.service"; D="$REPO/deploy/pac-discord.service"

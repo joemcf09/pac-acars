@@ -128,6 +128,14 @@ step 2 "Disk-space preflight"
 # Use the same file walk for sizing and tar, including untracked runtime assets.
 # Prune client build output by path: static/downloads can contain live installers.
 cd "$ROOT"
+# The initial layout is budgeted on ROOT's filesystem. Fail closed if a
+# destination override or mount would make that free-space reading misleading.
+for dest in "$RELEASES_DIR" "$SHARED_DATA"; do
+  ancestor=$dest
+  while [ ! -e "$ancestor" ]; do ancestor=$(dirname "$ancestor"); done
+  [ "$(stat -Lc %d "$ancestor")" = "$(stat -c %d .)" ] ||
+    die "destination $dest is on another filesystem; single-volume preflight cannot size it"
+done
 release_files() {
   find . \( -name .git -o -name __pycache__ -o -name '*.pyc' -o -name .pytest_cache \
     -o -name .cache -o -name .mypy_cache -o -name .ruff_cache -o -name node_modules \
@@ -168,6 +176,9 @@ for r in $MODREF; do
   kb=$(find "$ROOT/data/$r" -printf '%s\n' | size_kb)
   BACKUP_KB=$(( BACKUP_KB + kb ))
 done
+for kib in "$VENV_MARGIN_KB" "$SAFETY_KB"; do
+  [[ $kib =~ ^(0|[1-9][0-9]{0,14})$ ]] || die "invalid KiB budget: $kib"
+done
 VENV_KB=$VENV_MARGIN_KB
 if [ -d "$ROOT/.venv" ]; then
   existing=$(du -sk --count-links "$ROOT/.venv" | cut -f1)
@@ -175,6 +186,7 @@ if [ -d "$ROOT/.venv" ]; then
 fi
 NEED_KB=$(( DATA_COPY_KB + RELEASE_KB + BACKUP_KB + VENV_KB + SAFETY_KB ))
 AVAIL_KB="${PAC_DISK_AVAIL_KB:-$(df -Pk "$ROOT" | awk 'NR==2{print $4}')}"
+[[ $AVAIL_KB =~ ^(0|[1-9][0-9]{0,14})$ ]] || die "cannot determine available disk space"
 log "KiB: pilot=$DATA_COPY_KB release=$RELEASE_KB reference-backup=$BACKUP_KB venv=$VENV_KB safety=$SAFETY_KB"
 log "required=$NEED_KB KiB; available=$AVAIL_KB KiB"
 if [ "$AVAIL_KB" -lt "$NEED_KB" ]; then
