@@ -38,9 +38,12 @@ ROOT = Path(__file__).resolve().parent.parent
 # acars_client/build/ is 107 MB of PyInstaller output for the Windows app. The
 # server never reads it — only your PC builds PAC ACARS — so it stays home. Your
 # local copy is untouched; this script only ever reads.
-SKIP_DIRS = {".git", ".venv", "__pycache__", "releases", "shared"}
+SKIP_DIRS = {".git", ".venv", "venv", "__pycache__", "releases", "shared"}
 SKIP_SUFFIXES = {".pyc", ".pyo"}
-SKIP_REL = ("static/downloads/", "acars_client/config.json", "acars_client/build/")
+# acars_client/window-profile/ is the Edge profile the desktop client creates when it runs from source (900+ MB of
+# cache); flight_state.pkl, acars.log and the pid file are that client's local state. None of it belongs on the server.
+SKIP_REL = ("static/downloads/", "acars_client/config.json", "acars_client/build/", "acars_client/window-profile/",
+            "acars_client/flight_state.pkl", "acars_client/acars.log", "acars_client/pac-acars.pid")
 # the only files under data/ that ship with the code (PAC's public reference data)
 DATA_REFERENCE = {"airports.json", "conflict_zones_shapes.json", "fleet.json",
                   "missions.json", "partners.json", "routes.json", "runways.json"}
