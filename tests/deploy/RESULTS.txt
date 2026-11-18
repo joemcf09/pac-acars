@@ -1,14 +1,14 @@
-PAC deploy/rollback test results — 2026-11-18T02:33:06Z
+PAC deploy/rollback/migration test results — 2026-11-18T03:34:09Z
 Python: Python 3.13.18
 
-################## baseline: tests/deploy/run.sh ##################
+################## tests/deploy/run.sh ##################
 
 == T1 first deploy ==
-  PASS first deploy healthy, /up 200 (release 20261118-023309)
+  PASS first deploy healthy, /up 200 (release 20261118-033413)
   PASS pilot data seeded and verifiable
 
 == T2 second deploy, data survives ==
-  PASS second deploy healthy (release 20261118-023310)
+  PASS second deploy healthy (release 20261118-033414)
   PASS current advanced to a new release
   PASS previous points at the prior release
   PASS all pilot data intact across deploy
@@ -29,14 +29,14 @@ Python: Python 3.13.18
   PASS site still up on the previous release
 
 == T6 manual rollback to an explicit earlier release ==
-  PASS rolled back to the chosen release 20261118-023309
+  PASS rolled back to the chosen release 20261118-033413
   PASS site healthy after manual rollback
   PASS pilot data intact after manual rollback
   PASS rollback --list works
 
 ==== 19 passed, 0 failed ====
 
-############## review findings: tests/deploy/run_findings.sh ##############
+################## tests/deploy/run_findings.sh ##################
 
 == F1 failed restart falls through to the health gate, not a premature exit ==
   PASS deploy completed despite a non-zero restart (no premature set -e exit)
@@ -75,7 +75,38 @@ Python: Python 3.13.18
 
 ==== 23 passed, 0 failed ====
 
-########## production-equivalent staging: tests/deploy/run_staging.sh ##########
+################## tests/deploy/run_migration.sh ##################
+
+== M1 releases exclude bulk pilot data, keep reference JSON ==
+  PASS release ships reference JSON (missions.json)
+  PASS release does NOT contain bulk pilot data
+  PASS all pilot data is in shared/data
+  PASS reference JSON is not duplicated into shared/data
+
+== M2 pilot-data copy is checksum-verified for completeness ==
+  PASS migration aborted when a pilot file was not copied
+  PASS the missing file was reported by name
+  PASS no release was adopted after the failed verification
+  PASS original pilot data left untouched
+
+== M3 locally-modified reference files are preserved, not silently overwritten ==
+  PASS release ships the LOCAL missions.json, not the committed one
+  PASS a backup of the local reference file was kept
+  PASS the local modification was reported
+
+== M4 disk-space preflight blocks a migration that will not fit ==
+  PASS migration aborted on insufficient disk space
+  PASS the disk shortfall was reported
+  PASS nothing was created when the preflight failed
+  PASS migration proceeds when space is sufficient
+
+== M5 both service units use the release dir and shared-data config ==
+  PASS pac.service: release dir + venv + shared data
+  PASS pac-discord.service: release dir + venv + shared data
+
+==== 17 passed, 0 failed ====
+
+################## tests/deploy/run_staging.sh ##################
 
 == S0 systemd unit is valid and release-aware ==
   PASS systemd-analyze verify passed (unit directives valid)

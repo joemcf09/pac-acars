@@ -3,25 +3,27 @@
 # release layout that update.sh and rollback.sh use.
 #
 #   Before:  $ROOT/app.py, $ROOT/data/ (reference + pilot data mixed), $ROOT/.venv
-#   After:   $ROOT/releases/<stamp>/ (the code + .venv),  $ROOT/current -> it,
-#            $ROOT/shared/data/ (pilot data only; PAC_DATA_DIR points here)
+#   After:   $ROOT/releases/<stamp>/ (code + reference JSON + .venv),
+#            $ROOT/current -> it,  $ROOT/shared/data/ (pilot data; PAC_DATA_DIR)
 #
-# It is dry-run by default: it prints exactly what it would move and changes
-# nothing. Re-run with --apply to perform it. It refuses to run twice.
+# Dry-run by default: prints what it would do and changes nothing. Re-run with
+# --apply to perform it; --undo reverts it. It refuses to run twice.
 #
-# Reference data (ships with every release, stays in the code tree):
+# Reference data (small; ships inside every release, read from the code tree):
 #   airports.json conflict_zones_shapes.json fleet.json missions.json
 #   partners.json routes.json runways.json
-# Everything else under data/ is pilot data and moves to shared/data.
-#
-# After --apply you must point the service at the new layout (the script prints
-# the exact service lines). To undo before that, see --undo.
+# Everything else under data/ is pilot data (can be multiple GB): it is COPIED to
+# shared/data once and never shipped inside a release.
 set -euo pipefail
 
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 . "$HERE/lib.sh"
 
 REFERENCE_FILES=(airports.json conflict_zones_shapes.json fleet.json missions.json partners.json routes.json runways.json)
+# space the migration needs beyond the pilot-data copy: room for the release venv, plus headroom
+VENV_MARGIN_KB="${PAC_VENV_MARGIN_KB:-614400}"     # ~600 MiB
+SAFETY_KB="${PAC_DISK_SAFETY_KB:-1048576}"         # ~1 GiB
+
 APPLY=0; UNDO=0
 case "${1:-}" in
   --apply) APPLY=1 ;;
@@ -31,9 +33,10 @@ case "${1:-}" in
 esac
 
 run() { if [ "$APPLY" = 1 ] || [ "$UNDO" = 1 ]; then eval "$@"; else printf '  would: %s\n' "$*"; fi; }
+gib() { awk "BEGIN{printf \"%.2f\", ${1:-0}/1048576}"; }
+is_reference() { local b="$1" r; for r in "${REFERENCE_FILES[@]}"; do [ "$b" = "$r" ] && return 0; done; return 1; }
 
-# Verify every file under $1 exists under $2 with an identical checksum. Used to
-# prove the undo copied pilot data back intact BEFORE anything is removed.
+# Verify every file under $1 exists under $2 with an identical checksum (used by --undo).
 verify_tree() {
   [ "${PAC_UNDO_FORCE_MISMATCH:-0}" = 1 ] && return 1   # test hook
   python3 - "$1" "$2" <<'PY'
@@ -54,31 +57,56 @@ sys.exit(1 if bad else 0)
 PY
 }
 
+# Verify EVERY required pilot file in <src> was copied to <dst> with a matching
+# checksum. Top-level reference files (3rd arg, comma-separated) are expected NOT
+# to be in <dst> and are skipped. This catches a dropped/missed file, not just a
+# corrupted one.
+verify_complete() {
+  python3 - "$1" "$2" "$3" <<'PY'
+import hashlib, os, sys
+src, dst, excl = sys.argv[1], sys.argv[2], set(x for x in sys.argv[3].split(",") if x)
+def sha(p):
+    h = hashlib.sha256()
+    with open(p, "rb") as f:
+        for b in iter(lambda: f.read(65536), b""): h.update(b)
+    return h.hexdigest()
+missing = corrupt = checked = 0
+for root, _, files in os.walk(src):
+    for fn in files:
+        s = os.path.join(root, fn); rel = os.path.relpath(s, src)
+        if os.path.dirname(rel) == "" and fn in excl:   # a top-level reference file
+            continue
+        d = os.path.join(dst, rel); checked += 1
+        if not os.path.exists(d):
+            print("  MISSING in shared/data:", rel); missing += 1
+        elif sha(s) != sha(d):
+            print("  CORRUPT copy:", rel); corrupt += 1
+print(f"  checked {checked} pilot file(s): {missing} missing, {corrupt} corrupt")
+sys.exit(1 if (missing or corrupt) else 0)
+PY
+}
+
 if [ "$UNDO" = 1 ]; then
   step undo "Reverting the release layout back to a flat install"
   CUR="$(current_target)"
   [ -n "$CUR" ] || die "nothing to undo: no current release symlink at $CURRENT_LINK"
   [ -d "$SHARED_DATA" ] || die "nothing to undo: no $SHARED_DATA"
   mkdir -p "$ROOT/data"
-  # 1) restore the code (overlay copy; this never touches pilot data)
   cp -a "$CUR/." "$ROOT/" || die "could not copy the code back; NOTHING was removed, your data is safe at $SHARED_DATA"
-  rm -rf "$ROOT/.venv"            # a fresh venv is rebuilt on the next deploy
-  # 2) COPY pilot data back (never move: the source copy stays intact)
+  rm -rf "$ROOT/.venv"
   cp -a "$SHARED_DATA/." "$ROOT/data/" || die "could not copy pilot data back; NOTHING was removed, your data is safe at $SHARED_DATA"
-  # 3) verify the copy byte-for-byte BEFORE removing anything
   if ! verify_tree "$SHARED_DATA" "$ROOT/data"; then
     die "verification failed: the copied-back pilot data does not match (see above).
   NOTHING was removed. Your only good copy is safe at $SHARED_DATA. Resolve this before retrying."
   fi
   log "verified: all pilot data copied back intact"
-  # 4) only now retire the new layout, and even then KEEP the data copy (rename, never delete)
   rm -f "$CURRENT_LINK" "$PREVIOUS_LINK"
   rm -rf "$RELEASES_DIR"
   KEPT="$ROOT/shared.undone-$(date -u +%Y%m%d-%H%M%S)"
   mv "$ROOT/shared" "$KEPT"
   printf '\nUndo complete and verified. Pilot data is back at %s/data.\n' "$ROOT"
   printf 'A safety copy of the pilot data remains at %s (delete it only once you are satisfied).\n' "$KEPT"
-  printf 'Re-point the service at WorkingDirectory=%s and remove PAC_DATA_DIR.\n\n' "$ROOT"
+  printf 'Re-point both services at WorkingDirectory=%s and remove PAC_DATA_DIR.\n\n' "$ROOT"
   exit 0
 fi
 
@@ -95,49 +123,89 @@ log "new release dir:   $NEW"
 log "shared pilot data: $SHARED_DATA"
 log "current ->         releases/$STAMP"
 
-step 2 "Create the shared pilot-data directory and move pilot data into it"
+# ---- disk-space preflight --------------------------------------------------
+step 2 "Disk-space preflight"
+DATA_COPY_KB=0
+if [ -d "$ROOT/data" ]; then
+  while IFS= read -r -d '' p; do
+    is_reference "$(basename "$p")" && continue
+    DATA_COPY_KB=$(( DATA_COPY_KB + $(du -sk "$p" 2>/dev/null | cut -f1) ))
+  done < <(find "$ROOT/data" -mindepth 1 -maxdepth 1 -print0)
+fi
+NEED_KB=$(( DATA_COPY_KB + VENV_MARGIN_KB + SAFETY_KB ))
+AVAIL_KB="${PAC_DISK_AVAIL_KB:-$(df -Pk "$ROOT" | awk 'NR==2{print $4}')}"
+log "pilot data to copy: $(gib "$DATA_COPY_KB") GiB; venv+headroom: $(gib $((VENV_MARGIN_KB+SAFETY_KB))) GiB"
+log "need ~$(gib "$NEED_KB") GiB; available ~$(gib "$AVAIL_KB") GiB on $(df -Pk "$ROOT" | awk 'NR==2{print $6}' 2>/dev/null || echo "$ROOT")"
+if [ "$AVAIL_KB" -lt "$NEED_KB" ]; then
+  die "not enough disk space to migrate safely: need ~$(gib "$NEED_KB") GiB, only ~$(gib "$AVAIL_KB") GiB free.
+  Free space (or move the pre-migration backup off this server) and retry. Nothing was changed."
+fi
+log "disk preflight passed"
+
+# ---- copy pilot data to shared/data (original is never touched) -------------
+step 3 "Copy pilot data to shared/data"
 run "mkdir -p '$SHARED_DATA'"
 if [ -d "$ROOT/data" ]; then
-  # move everything from data/ to shared/data EXCEPT the reference files
   while IFS= read -r -d '' p; do
     base="$(basename "$p")"
-    skip=0
-    for r in "${REFERENCE_FILES[@]}"; do [ "$base" = "$r" ] && skip=1; done
-    [ "$skip" = 1 ] && continue
-    run "mkdir -p '$SHARED_DATA'"
+    is_reference "$base" && continue                       # reference files stay with the code
+    [ "${PAC_MIGRATE_SKIP_FILE:-}" = "$base" ] && { log "TEST: skipping $base"; continue; }   # test hook
     run "cp -a '$p' '$SHARED_DATA/'"
   done < <(find "$ROOT/data" -mindepth 1 -maxdepth 1 -print0)
-  # Verify the copy is complete before the new layout is adopted. The original
-  # data/ is never touched, so a mismatch is safe to abort on: nothing is lost.
-  if [ "$APPLY" = 1 ] && ! verify_tree "$SHARED_DATA" "$ROOT/data"; then
-    die "the pilot-data copy to $SHARED_DATA is incomplete (see above). Aborting.
+  # Completeness + integrity check: every required pilot file must be in shared/data.
+  if [ "$APPLY" = 1 ] && ! verify_complete "$ROOT/data" "$SHARED_DATA" "$(IFS=,; echo "${REFERENCE_FILES[*]}")"; then
+    die "the pilot-data copy to $SHARED_DATA is incomplete or corrupt (see above). Aborting.
   Your original data at $ROOT/data is untouched. Nothing was adopted. Resolve this and retry."
   fi
-  [ "$APPLY" = 1 ] && log "verified: pilot data copied to shared/data intact"
+  [ "$APPLY" = 1 ] && log "verified: every pilot file copied to shared/data intact"
 else
   log "no existing data/ dir; starting shared/data empty"
 fi
 
-step 3 "Create the first release from the current code"
+# ---- build the release: code + reference JSON ONLY (no bulk pilot data) -----
+step 4 "Create the first release (code + reference data only)"
 run "mkdir -p '$NEW'"
-# copy the code tree, excluding the new scaffolding, the venv and pilot data dir.
-# tar is used (not rsync) so this has no extra dependency on any host.
-run "tar -C '$ROOT' --exclude=./releases --exclude=./shared --exclude=./current --exclude=./previous --exclude=./.venv -cf - . | tar -C '$NEW' -xf -"
+# Exclude data/ (and the new scaffolding/venv) from the code copy, so GBs of pilot
+# data are never duplicated into the release. tar is used (no rsync dependency).
+run "tar -C '$ROOT' --exclude=./releases --exclude=./shared --exclude=./current --exclude=./previous --exclude=./.venv --exclude=./data -cf - . | tar -C '$NEW' -xf -"
+# Detect reference files with local (uncommitted) modifications, so server-side
+# edits (e.g. a hand-edited missions.json) are preserved and never silently lost.
+MODREF=""
+if git -C "$ROOT" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+  for r in "${REFERENCE_FILES[@]}"; do
+    [ -f "$ROOT/data/$r" ] || continue
+    if ! git -C "$ROOT" diff --quiet -- "data/$r" 2>/dev/null || ! git -C "$ROOT" diff --cached --quiet -- "data/$r" 2>/dev/null; then
+      case " $MODREF " in *" $r "*) : ;; *) MODREF="$MODREF $r" ;; esac
+    fi
+  done
+fi
+if [ -n "${MODREF# }" ]; then
+  BK="$ROOT/reference-local-backup-$STAMP"
+  run "mkdir -p '$BK'"
+  for r in $MODREF; do run "cp -a '$ROOT/data/$r' '$BK/'"; done
+  log "PRESERVED locally-modified reference file(s):${MODREF}"
+  log "  backed up to $BK; the release ships your LOCAL versions, not the committed ones"
+fi
+# Ship the reference JSON (the working-tree copy, including any local edits) in the release.
+run "mkdir -p '$NEW/data'"
+for r in "${REFERENCE_FILES[@]}"; do
+  [ -f "$ROOT/data/$r" ] && run "cp -a '$ROOT/data/$r' '$NEW/data/'"
+done
 
-step 4 "Build the release virtualenv"
+step 5 "Build the release virtualenv"
 if [ "$APPLY" = 1 ]; then build_venv "$NEW" || die "venv build failed; nothing was flipped"; else log "would: build venv at $NEW/.venv"; fi
 
-step 5 "Point current at the first release"
+step 6 "Point current at the first release"
 run "ln -sfn '$NEW' '$CURRENT_LINK'"
 
 cat <<EOF
 
-Next: update the systemd unit to run from the release and use shared data.
-  WorkingDirectory=$ROOT/current
-  ExecStart=$ROOT/current/.venv/bin/python app.py
-  Environment=PAC_DATA_DIR=$SHARED_DATA
-Then:  sudo systemctl daemon-reload && sudo systemctl restart pac
+Next: point BOTH services at the release layout and shared data.
+  sudo cp $ROOT/current/deploy/pac.service         /etc/systemd/system/pac.service
+  sudo cp $ROOT/current/deploy/pac-discord.service /etc/systemd/system/pac-discord.service
+  sudo systemctl daemon-reload && sudo systemctl restart pac pac-discord
+Both units run from $ROOT/current with PAC_DATA_DIR=$SHARED_DATA.
 Verify /up, then keep deploying with current/deploy/update.sh.
-To revert this migration before switching the service: $HERE/migrate_to_releases.sh --undo
+To revert this migration before switching the services: $HERE/migrate_to_releases.sh --undo
 EOF
 [ "$APPLY" = 1 ] || printf '\n(DRY RUN: nothing was changed. Re-run with --apply to perform it.)\n\n'

@@ -12,8 +12,17 @@ Three runners (each exits non-zero if any check fails; combined output is saved 
 ```bash
 bash tests/deploy/run.sh            # baseline deploy/rollback behavior
 bash tests/deploy/run_findings.sh   # regressions for the seven PR review findings
+bash tests/deploy/run_migration.sh  # migration-script fixes (bulk data, checksums, local edits, disk, units)
 bash tests/deploy/run_staging.sh    # production-equivalent: real venv, migrate, systemd unit
 ```
+
+Migration-fix coverage (`run_migration.sh`):
+
+- **M1** releases exclude bulk pilot data but keep the reference JSON.
+- **M2** the pilot-data copy is checksum-verified for completeness (a dropped file aborts).
+- **M3** locally-modified reference files (e.g. a hand-edited `missions.json`) are preserved and backed up, never silently overwritten.
+- **M4** a disk-space preflight blocks a migration that would not fit.
+- **M5** both service units use the release dir and shared-data config.
 
 `run.sh` and `run_findings.sh` are hermetic (fast fake venv, container python, no
 network). `run_staging.sh` builds a real virtualenv from the pinned requirements

@@ -14,6 +14,7 @@ User=pac
 # talks to the web app over PAC_URL and does not open the database itself).
 WorkingDirectory=/home/pac/pac-acars/current
 Environment=PAC_URL=http://127.0.0.1:5050
+Environment=PAC_DATA_DIR=/home/pac/pac-acars/shared/data
 Environment=PYTHONUNBUFFERED=1
 ExecStart=/home/pac/pac-acars/current/.venv/bin/python discord_bot.py
 Restart=always
