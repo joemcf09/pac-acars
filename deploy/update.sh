@@ -50,6 +50,12 @@ mkdir -p "$NEW"
 cp -a "$SRC/." "$NEW/"
 # a release never carries pilot data or a stale venv
 rm -rf "$NEW/.venv"
+# link the bot secret from shared/data into the release's data/ directory so
+# the Discord bot can find it without reading shared/data directly
+if [ -f "$SHARED_DATA/bot_secret" ]; then
+  mkdir -p "$NEW/data"
+  ln -sf "$SHARED_DATA/bot_secret" "$NEW/data/bot_secret"
+fi
 
 step 3 "Building this release's virtualenv and installing dependencies"
 if ! build_venv "$NEW"; then
