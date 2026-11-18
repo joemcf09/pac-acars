@@ -60,6 +60,11 @@ class Telemetry:
     taxi_light: bool | None = None
     num_engines: int | None = None    # engines the loaded aircraft has (to spot the wrong aircraft)
     cg_pct: float | None = None       # 1.1.7: center of gravity, % of the mean aerodynamic chord (MSFS only)
+    # PAC ACARS 1.2: per-engine running states (None = not available from this aircraft or sim)
+    eng1_running: bool | None = None
+    eng2_running: bool | None = None
+    eng3_running: bool | None = None
+    eng4_running: bool | None = None
 
     def to_dict(self):
         return asdict(self)
@@ -269,6 +274,8 @@ class MSFSSource:
             ias=max(0.0, num("ias")), gs=max(0.0, num("gs")), vs_fpm=num("vs"), hdg=num("hdg") % 360,
             on_ground=on_ground,
             engines_running=any(bool(v[f"eng{i}"]) for i in range(1, 5)),
+            eng1_running=_flag(v["eng1"]), eng2_running=_flag(v["eng2"]),
+            eng3_running=_flag(v["eng3"]), eng4_running=_flag(v["eng4"]),
             parking_brake=bool(v["pbrake"]), fuel_lbs=num("fuel"), weight_lbs=num("weight"),
             gear_down=bool(v["gear"]) if v["gear"] is not None else True,
             flaps=num("flaps"), g=num("g", 1.0),
@@ -424,6 +431,8 @@ class XPlaneSource:
             ias=max(0.0, v("ias", 0.0)), gs=max(0.0, v("gs_ms", 0.0) * 1.94384), vs_fpm=v("vs_fpm", 0.0),
             hdg=v("hdg", 0.0) % 360, on_ground=v("on_ground", 1.0) > 0.5,
             engines_running=any(v(f"eng{i}", 0.0) > 0.5 for i in range(1, 5)),
+            eng1_running=v("eng1", 0.0) > 0.5, eng2_running=v("eng2", 0.0) > 0.5,
+            eng3_running=v("eng3", 0.0) > 0.5, eng4_running=v("eng4", 0.0) > 0.5,
             # set only if both brake values say so: an aircraft with its own brake system can leave one stuck
             parking_brake=min(v("pbrake", 0.0), v("pbrake2", v("pbrake", 0.0))) > 0.5,
             fuel_lbs=v("fuel_kg", 0.0) * KG_TO_LB, weight_lbs=v("weight_kg", 0.0) * KG_TO_LB,
