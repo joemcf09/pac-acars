@@ -73,8 +73,34 @@ if MIG_AVAIL=1000 mig "$F4" bash "$MIG" --apply >"$ROOTS/m4.log" 2>&1; then
 else ok "migration aborted on insufficient disk space"; fi
 grep -qi "not enough disk space" "$ROOTS/m4.log" && ok "the disk shortfall was reported" || bad "disk shortfall not reported"
 [ ! -d "$F4/shared" ] && [ ! -L "$F4/current" ] && ok "nothing was created when the preflight failed" || bad "artifacts left after a failed preflight"
+# Space sufficient for the legacy pilot-only calculation still cannot fit the code.
+if PAC_VENV_MARGIN_KB=1 PAC_DISK_SAFETY_KB=1 MIG_AVAIL=4096 mig "$F4" bash "$MIG" --apply >"$ROOTS/code.log" 2>&1; then
+  bad "release space omitted"
+elif grep -q 'not enough disk space' "$ROOTS/code.log" && [ ! -e "$F4/releases" ] && [ ! -e "$F4/shared" ]; then
+  ok "release bytes trigger a pre-write abort"
+else bad "unexpected failure in release space preflight"; fi
+
+budget() { mig "$F4" bash "$MIG" --dry-run | sed -n 's/^  required=\([0-9]*\) KiB.*/\1/p'; }
+before=$(budget)
+for path in .git/objects acars_client/build/dist tools/__pycache__ .pytest_cache; do
+  mkdir -p "$F4/$path"; truncate -s 8M "$F4/$path/junk"
+done
+after=$(budget)
+# Newly created parent directories can consume a few allocation blocks.
+(( before > 0 && after >= before && after < before + 64 )) && ok "excluded bytes do not inflate the budget" || bad "excluded files counted"
+mkdir -p "$F4/static/downloads"
+truncate -s 8M "$F4/static/downloads/pilot installer.exe"
+with_download=$(budget)
+(( with_download >= after + 8192 )) && ok "published download counted at logical size" || bad "published download omitted from budget"
 # and it proceeds when space is sufficient
 MIG_AVAIL=9000000 mig "$F4" bash "$MIG" --apply >"$ROOTS/m4b.log" 2>&1 && ok "migration proceeds when space is sufficient" || { bad "migration failed with ample disk"; sed 's/^/    /' "$ROOTS/m4b.log"; }
+
+for path in .git acars_client/build tools/__pycache__ .pytest_cache; do
+  [ ! -e "$F4/current/$path" ] && ok "release excludes $path" || bad "release includes $path"
+done
+for path in app.py discord_bot.py deploy/update.sh deploy/pac-discord.service wb_data static/app.js 'static/downloads/pilot installer.exe'; do
+  [ -e "$F4/current/$path" ] && ok "release preserves $path" || bad "release missing $path"
+done
 
 # ---- M5 ---------------------------------------------------------------------
 sect "M5 both service units use the release dir and shared-data config"

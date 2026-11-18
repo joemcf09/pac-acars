@@ -260,14 +260,7 @@ ssh pac@pac-va.com '~/pac-acars/current/deploy/rollback.sh'          # go back o
 ssh pac@pac-va.com '~/pac-acars/current/deploy/rollback.sh <stamp>'  # go to a specific one
 ```
 
-**First-time migration** from the old flat layout to this one (run once, reversible, dry-run by default):
-
-```bash
-ssh pac@pac-va.com '~/pac-acars/deploy/migrate_to_releases.sh'          # dry run: shows the plan
-ssh pac@pac-va.com '~/pac-acars/deploy/migrate_to_releases.sh --apply'  # do it
-# then update pac.service to the lines it prints, daemon-reload, restart; verify /up
-# to undo before switching the service:  migrate_to_releases.sh --undo
-```
+For the first migration of the flat production installation, follow the [first-migration runbook](FIRST-MIGRATION.md).
 
 ---
 

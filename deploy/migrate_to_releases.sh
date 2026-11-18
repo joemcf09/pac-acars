@@ -125,17 +125,58 @@ log "current ->         releases/$STAMP"
 
 # ---- disk-space preflight --------------------------------------------------
 step 2 "Disk-space preflight"
+# Use the same file walk for sizing and tar, including untracked runtime assets.
+# Prune client build output by path: static/downloads can contain live installers.
+cd "$ROOT"
+release_files() {
+  find . \( -name .git -o -name __pycache__ -o -name '*.pyc' -o -name .pytest_cache \
+    -o -name .cache -o -name .mypy_cache -o -name .ruff_cache -o -name node_modules \
+    -o -path './acars_client/build' -o -path './acars_client/dist' -o -path './build' \
+    -o -path './dist' -o -path './venv' -o -path './.venv' -o -path './data' \
+    -o -path './shared' -o -path './shared.undone-*' -o -path './releases' \
+    -o -path './reference-local-backup-*' -o -path './current' -o -path './previous' \
+    \) -prune -o "$@"
+}
+# Budget logical sizes rounded per entry to a destination allocation block.
+BLOCK=$(stat -f -c %S .)
+size_kb() { awk -v b="$BLOCK" '{n += (int(($1+b-1)/b) + ($1==0))*b} END {printf "%.0f\n", n/1024}'; }
+RELEASE_KB=$(release_files -printf '%s\n' | size_kb)
+shopt -s dotglob nullglob
+pilot_paths=()
 DATA_COPY_KB=0
-if [ -d "$ROOT/data" ]; then
-  while IFS= read -r -d '' p; do
-    is_reference "$(basename "$p")" && continue
-    DATA_COPY_KB=$(( DATA_COPY_KB + $(du -sk "$p" 2>/dev/null | cut -f1) ))
-  done < <(find "$ROOT/data" -mindepth 1 -maxdepth 1 -print0)
+for p in "$ROOT"/data/*; do
+  if is_reference "${p##*/}"; then
+    kb=$(find "$p" -printf '%s\n' | size_kb)
+    RELEASE_KB=$(( RELEASE_KB + kb ))
+  else
+    pilot_paths+=("$p")
+    kb=$(find "$p" -printf '%s\n' | size_kb)
+    DATA_COPY_KB=$(( DATA_COPY_KB + kb ))
+  fi
+done
+MODREF=""
+if git -C "$ROOT" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+  for r in "${REFERENCE_FILES[@]}"; do
+    [ -f "$ROOT/data/$r" ] || continue
+    if ! git -C "$ROOT" diff --quiet -- "data/$r" 2>/dev/null || ! git -C "$ROOT" diff --cached --quiet -- "data/$r" 2>/dev/null; then
+      case " $MODREF " in *" $r "*) : ;; *) MODREF="$MODREF $r" ;; esac
+    fi
+  done
 fi
-NEED_KB=$(( DATA_COPY_KB + VENV_MARGIN_KB + SAFETY_KB ))
+BACKUP_KB=0
+for r in $MODREF; do
+  kb=$(find "$ROOT/data/$r" -printf '%s\n' | size_kb)
+  BACKUP_KB=$(( BACKUP_KB + kb ))
+done
+VENV_KB=$VENV_MARGIN_KB
+if [ -d "$ROOT/.venv" ]; then
+  existing=$(du -sk --count-links "$ROOT/.venv" | cut -f1)
+  if (( existing > VENV_KB )); then VENV_KB=$existing; fi
+fi
+NEED_KB=$(( DATA_COPY_KB + RELEASE_KB + BACKUP_KB + VENV_KB + SAFETY_KB ))
 AVAIL_KB="${PAC_DISK_AVAIL_KB:-$(df -Pk "$ROOT" | awk 'NR==2{print $4}')}"
-log "pilot data to copy: $(gib "$DATA_COPY_KB") GiB; venv+headroom: $(gib $((VENV_MARGIN_KB+SAFETY_KB))) GiB"
-log "need ~$(gib "$NEED_KB") GiB; available ~$(gib "$AVAIL_KB") GiB on $(df -Pk "$ROOT" | awk 'NR==2{print $6}' 2>/dev/null || echo "$ROOT")"
+log "KiB: pilot=$DATA_COPY_KB release=$RELEASE_KB reference-backup=$BACKUP_KB venv=$VENV_KB safety=$SAFETY_KB"
+log "required=$NEED_KB KiB; available=$AVAIL_KB KiB"
 if [ "$AVAIL_KB" -lt "$NEED_KB" ]; then
   die "not enough disk space to migrate safely: need ~$(gib "$NEED_KB") GiB, only ~$(gib "$AVAIL_KB") GiB free.
   Free space (or move the pre-migration backup off this server) and retry. Nothing was changed."
@@ -146,12 +187,12 @@ log "disk preflight passed"
 step 3 "Copy pilot data to shared/data"
 run "mkdir -p '$SHARED_DATA'"
 if [ -d "$ROOT/data" ]; then
-  while IFS= read -r -d '' p; do
+  for p in "${pilot_paths[@]}"; do
     base="$(basename "$p")"
     is_reference "$base" && continue                       # reference files stay with the code
     [ "${PAC_MIGRATE_SKIP_FILE:-}" = "$base" ] && { log "TEST: skipping $base"; continue; }   # test hook
-    run "cp -a '$p' '$SHARED_DATA/'"
-  done < <(find "$ROOT/data" -mindepth 1 -maxdepth 1 -print0)
+    if (( APPLY )); then cp -a -- "$p" "$SHARED_DATA/"; else log "would copy $p"; fi
+  done
   # Completeness + integrity check: every required pilot file must be in shared/data.
   if [ "$APPLY" = 1 ] && ! verify_complete "$ROOT/data" "$SHARED_DATA" "$(IFS=,; echo "${REFERENCE_FILES[*]}")"; then
     die "the pilot-data copy to $SHARED_DATA is incomplete or corrupt (see above). Aborting.
@@ -167,18 +208,13 @@ step 4 "Create the first release (code + reference data only)"
 run "mkdir -p '$NEW'"
 # Exclude data/ (and the new scaffolding/venv) from the code copy, so GBs of pilot
 # data are never duplicated into the release. tar is used (no rsync dependency).
-run "tar -C '$ROOT' --exclude=./releases --exclude=./shared --exclude=./current --exclude=./previous --exclude=./.venv --exclude=./data -cf - . | tar -C '$NEW' -xf -"
+if (( APPLY )); then
+  release_files -print0 | tar --no-recursion --null -T - -cf - | tar -C "$NEW" -xf -
+else
+  log "would copy selected release files to $NEW"
+fi
 # Detect reference files with local (uncommitted) modifications, so server-side
 # edits (e.g. a hand-edited missions.json) are preserved and never silently lost.
-MODREF=""
-if git -C "$ROOT" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
-  for r in "${REFERENCE_FILES[@]}"; do
-    [ -f "$ROOT/data/$r" ] || continue
-    if ! git -C "$ROOT" diff --quiet -- "data/$r" 2>/dev/null || ! git -C "$ROOT" diff --cached --quiet -- "data/$r" 2>/dev/null; then
-      case " $MODREF " in *" $r "*) : ;; *) MODREF="$MODREF $r" ;; esac
-    fi
-  done
-fi
 if [ -n "${MODREF# }" ]; then
   BK="$ROOT/reference-local-backup-$STAMP"
   run "mkdir -p '$BK'"
