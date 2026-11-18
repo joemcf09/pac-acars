@@ -4623,7 +4623,7 @@ function takeoffDiagram(ta) {
     <line x1="${X(ta.start_ft)}" y1="${ry + rh / 2}" x2="${X(ta.liftoff_ft)}" y2="${ry + rh / 2}" stroke="#FFC845" stroke-width="7" stroke-linecap="round"/>
     <circle cx="${X(ta.start_ft)}" cy="${ry + rh / 2}" r="10" fill="#FFC845" stroke="#fff" stroke-width="3"/>
     <circle cx="${X(ta.liftoff_ft)}" cy="${ry + rh / 2}" r="13" fill="#FF3B3B" stroke="#fff" stroke-width="3"/>
-    <text x="${X(ta.liftoff_ft)}" y="${ry - 16}" fill="#fff" font-size="28" text-anchor="middle" font-family="Saira, sans-serif">Liftoff ${fmt(ta.liftoff_ft)} ft</text>
+    <text x="${X(ta.liftoff_ft)}" y="${ry - 16}" fill="#fff" font-size="28" text-anchor="${X(ta.liftoff_ft) > 760 ? "end" : "middle"}" font-family="Saira, sans-serif">Liftoff ${fmt(ta.liftoff_ft)} ft${ta.liftoff_ft > L ? " (past the runway end)" : ""}</text>
     <text x="${X(ta.start_ft)}" y="${ry + rh + 34}" fill="#FFC845" font-size="24" text-anchor="start" font-family="Saira, sans-serif">Roll ${fmt(ta.roll_ft)} ft</text>
     ${ta.remaining_ft != null ? `<text x="${rx1}" y="${ry + rh + 34}" fill="#8E96A3" font-size="24" text-anchor="end" font-family="Saira, sans-serif">${fmt(ta.remaining_ft)} ft remaining</text>` : ""}
   </svg></div>`;
