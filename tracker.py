@@ -126,6 +126,7 @@ class FlightRecorder:
         self.dep_config: dict = {}          # lighting + engine snapshot taken at OUT
         self.arr_config: dict = {}          # lighting + engine snapshot taken at IN
         self._eng_prev: dict = {}           # per-engine previous running state; leading _ excludes from export
+        self._eng_pending: set = set()      # engines with a confirmed leading edge not yet held for debounce; leading _ excludes from export
 
     # ---------------------------------------------------------------- logging
     def msg(self, t, text, kind="info"):
@@ -671,8 +672,7 @@ class FlightRecorder:
         # _eng_prev tracks the last known running state (None key absent = no baseline yet).
         # _eng_pending is a set of engine numbers that have seen a False->True leading edge
         #   but have not yet held it long enough for the debounce confirmation.
-        if not hasattr(self, "_eng_pending"):
-            self._eng_pending = set()
+        # Both are initialized in __init__ and excluded from export (underscore prefix).
 
         # When a value is None (sim disconnected / aircraft doesn't report it):
         #   clear that engine's key so the next non-None sample re-establishes baseline,

@@ -184,6 +184,19 @@ class TestEngineStartTwin:
         rec.update(_telemetry(t=1202.0, eng1_running=True, eng2_running=True))
         assert rec.eng_starts == []
 
+    def test_startup_recorded_during_pushback(self):
+        """Engine start during PUSHBACK phase must be recorded (PUSHBACK is in _CONFIG_PHASES)."""
+        rec = FlightRecorder(_booking())
+        # baseline: both engines off in PUSHBACK
+        rec.update(_telemetry(t=1000.0, eng1_running=False, eng2_running=False))
+        rec.phase = "PUSHBACK"
+        # eng1 starts during PUSHBACK
+        for t in [1001.0, 1002.0, 1003.0]:
+            rec.update(_telemetry(t=t, eng1_running=True, eng2_running=False))
+        assert len(rec.eng_starts) == 1
+        assert rec.eng_starts[0]["n"] == 1
+        assert rec.eng_starts[0]["phase"] == "PUSHBACK"
+
 
 # ---------------------------------------------------------------------------
 # 3. Engine startup tracking -- quad-engine (B747)
@@ -381,3 +394,59 @@ class TestExportRoundTrip:
         assert rec2.single_eng_taxi is False
         assert rec2.dep_config == {}
         assert rec2.arr_config == {}
+
+
+# ---------------------------------------------------------------------------
+# 8. Engine-count edge cases
+# ---------------------------------------------------------------------------
+
+class TestEngineCountEdgeCases:
+    def test_xplane_twin_absent_engines_always_false_no_spurious_start(self):
+        """X-Plane twin: eng3_running=False and eng4_running=False throughout.
+        These absent engines must never produce a start event because they never
+        transition False->True.  (X-Plane uses 0.0 as the default, so absent
+        engines read False rather than None.)"""
+        rec = FlightRecorder(_booking("B737", engines=2))
+        # Baseline: 2 engines off, absent pair always False (X-Plane style)
+        rec.update(_telemetry(t=1000.0, num_engines=2,
+                              eng1_running=False, eng2_running=False,
+                              eng3_running=False, eng4_running=False))
+        # Both real engines start
+        for t in [1001.0, 1002.0, 1003.0]:
+            rec.update(_telemetry(t=t, num_engines=2,
+                                  eng1_running=True, eng2_running=True,
+                                  eng3_running=False, eng4_running=False))
+        # Only 2 starts; eng3/eng4 never went True so no event
+        assert len(rec.eng_starts) == 2
+        assert {e["n"] for e in rec.eng_starts} == {1, 2}
+
+    def test_three_engine_aircraft(self):
+        """Three-engine aircraft (num_engines=3): only engines 1-3 start;
+        eng4_running=None (MSFS-style unavailable) must not block anything."""
+        rec = FlightRecorder(_booking("B727", engines=3))
+        rec.update(_telemetry(t=1000.0, num_engines=3,
+                              eng1_running=False, eng2_running=False,
+                              eng3_running=False, eng4_running=None))
+        for n, start_t in enumerate([1010.0, 1020.0, 1030.0], 1):
+            kw = {f"eng{i}_running": (i <= n) for i in range(1, 4)}
+            kw["eng4_running"] = None
+            kw["num_engines"] = 3
+            for t in [start_t, start_t + 1.0, start_t + 2.0]:
+                rec.update(_telemetry(t=t, **kw))
+        assert len(rec.eng_starts) == 3
+        assert {e["n"] for e in rec.eng_starts} == {1, 2, 3}
+
+    def test_num_engines_none_does_not_crash(self):
+        """num_engines=None (telemetry unavailable): engine loop still runs on
+        range(1,5), no crash, and start events still fire for the engines that
+        do report a transition."""
+        rec = FlightRecorder(_booking())
+        rec.update(_telemetry(t=1000.0, num_engines=None,
+                              eng1_running=False, eng2_running=False,
+                              eng3_running=None, eng4_running=None))
+        for t in [1001.0, 1002.0, 1003.0]:
+            rec.update(_telemetry(t=t, num_engines=None,
+                                  eng1_running=True, eng2_running=False,
+                                  eng3_running=None, eng4_running=None))
+        assert len(rec.eng_starts) == 1
+        assert rec.eng_starts[0]["n"] == 1
