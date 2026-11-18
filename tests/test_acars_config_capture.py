@@ -284,7 +284,6 @@ class TestSingleEngTaxi:
         rec.update(s)
         assert rec.single_eng_taxi is False
 
-    
     def test_no_flag_when_both_running(self):
         """Both engines running: flag stays False."""
         rec = self._rec_in_taxi()

@@ -716,7 +716,6 @@ class FlightRecorder:
                     })
 
         # ----- single-engine taxi detection (TAXI_OUT only, multi-engine aircraft) -----
-        
 
         if self.phase == "TAXI_OUT" and not self.single_eng_taxi and num >= 2 and s.gs > 2.0:
             engine_states = [
