@@ -93,6 +93,19 @@ check("touchdown point matches where the wheels touched", abs((la.get("touchdown
 check("on the centreline", la.get("centerline_ft") is not None and abs(la["centerline_ft"]) <= 10, la.get("centerline_ft"))
 check("stable approach", la.get("stable") is True, la.get("stability_note"))
 check("takeoff runway KCVG 36C", ta.get("runway") == "36C", ta.get("runway"))
+# A versioned server release keeps runway references with code while pilot data
+# lives in shared/data. Reset the cache so this checks the actual file lookup.
+import analysis
+_original_data = A.DATA
+A.DATA = Path(_tmp)
+analysis._RUNWAYS = None
+try:
+    split_p = A.build_pirep(rec.booking, rec)
+finally:
+    A.DATA = _original_data
+    analysis._RUNWAYS = None
+check("landing runway with separate pilot data", split_p["landing_analysis"].get("runway") == "36C")
+check("takeoff runway with separate pilot data", split_p["takeoff_analysis"].get("runway") == "36C")
 check("rotation speed about 150 kt", 146 <= (ta.get("rotate_ias") or 0) <= 154, ta.get("rotate_ias"))
 check("rotation rate about 2.5°/s", 1.8 <= (ta.get("rotation_rate") or 0) <= 3.2, ta.get("rotation_rate"))
 check("no tail strike", ta.get("tail_strike") is False, ta.get("max_pitch_ground"))
