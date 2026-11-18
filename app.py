@@ -655,13 +655,13 @@ def build_pirep(booking, rec: FlightRecorder):
     if series and rec.landing:
         near = va.nearest_airport(rec.landing["lat"], rec.landing["lon"], within=4)
         tries = [x for x in [dest["icao"], (rec.alternate or {}).get("icao"), near] if x]
-        p["landing_analysis"] = analysis.analyze_landing(series, getattr(rec, "landing_touchdown_t", o["on"]), rate, g, tries, DATA, gc_distance_nm)
+        p["landing_analysis"] = analysis.analyze_landing(series, getattr(rec, "landing_touchdown_t", o["on"]), rate, g, tries, RESOURCE_DATA, gc_distance_nm)
     tseries = getattr(rec, "takeoff_series", None)
     if tseries:
         orig = rec.origin["icao"]
         near_o = va.nearest_airport(tseries[0][5], tseries[0][6], within=4)
         tl = FLEET.get(booking["aircraft"], {}).get("tailstrike_pitch")
-        p["takeoff_analysis"] = analysis.analyze_takeoff(tseries, o["off"], [x for x in [orig, near_o] if x], DATA, tl)
+        p["takeoff_analysis"] = analysis.analyze_takeoff(tseries, o["off"], [x for x in [orig, near_o] if x], RESOURCE_DATA, tl)
     lw = getattr(rec, "landing_wx", None)
     if lw:
         la = p.get("landing_analysis") or {}
@@ -2751,7 +2751,7 @@ def suggest_cruise(ac_code, dist, course):
 def runway_ends(icao, min_ft):
     import analysis
     out = []
-    for r in analysis.runways(DATA).get(icao, []):
+    for r in analysis.runways(RESOURCE_DATA).get(icao, []):
         length = r[10] or 0
         if length < min_ft:
             continue
@@ -3732,7 +3732,7 @@ def weather_api():
             need = int(num(request.args.get("min_rwy_ft")) or 0)
             for i in out:
                 met = out[i]["metar"] or {}
-                out[i]["runway_wind"] = runway_wind.analyse(analysis.runways(DATA).get(i, []), met.get("wind"), need)
+                out[i]["runway_wind"] = runway_wind.analyse(analysis.runways(RESOURCE_DATA).get(i, []), met.get("wind"), need)
         if request.args.get("taf"):
             for i in list(out)[:4]:
                 try:
