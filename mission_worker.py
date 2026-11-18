@@ -1,6 +1,7 @@
 """Generate against a snapshot; publish only if inputs have not changed."""
 import contextlib
 import json
+import os
 from pathlib import Path
 import sqlite3
 import tempfile
@@ -8,6 +9,9 @@ import time
 
 BOARDS = ('jobs', 'live_missions', 'urgent')
 INPUTS = BOARDS + ('airframes', 'pilots')
+
+def worker_data_dir():
+    return Path(os.environ.get('PAC_DATA_DIR') or Path(__file__).resolve().parent / 'data').expanduser().resolve()
 
 def rows(con, table):
     return {r[0]: tuple(r) for r in con.execute('SELECT * FROM ' + table)}
@@ -101,7 +105,7 @@ def record_status(data, **updates):
 
 
 def run_once():
-    data = Path(__file__).resolve().parent / 'data'
+    data = worker_data_dir()
     started = time.time()
     record_status(data, state='running', started_at=started, error=None)
     try:
@@ -116,10 +120,9 @@ def run_once():
 
 def main():
     import fcntl
-    import os
     import signal
     # Lock before importing app, so overlapping manual/timer runs do not race.
-    data = Path(__file__).resolve().parent / 'data'
+    data = worker_data_dir()
     with (data / 'mission-worker.lock').open('a') as lock:
         try:
             fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
