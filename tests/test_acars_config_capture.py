@@ -270,6 +270,21 @@ class TestSingleEngTaxi:
         rec.update(s)
         assert rec.single_eng_taxi is True
 
+
+    def test_no_flag_when_engine_status_unknown(self):
+        """Unknown engine status must not trigger single-engine taxi."""
+        rec = self._rec_in_taxi()
+        s = _telemetry(
+            t=1200.0,
+            gs=5.0,
+            num_engines=2,
+            eng1_running=True,
+            eng2_running=None,
+        )
+        rec.update(s)
+        assert rec.single_eng_taxi is False
+
+    
     def test_no_flag_when_both_running(self):
         """Both engines running: flag stays False."""
         rec = self._rec_in_taxi()

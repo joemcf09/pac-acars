@@ -716,11 +716,17 @@ class FlightRecorder:
                     })
 
         # ----- single-engine taxi detection (TAXI_OUT only, multi-engine aircraft) -----
+        
+
         if self.phase == "TAXI_OUT" and not self.single_eng_taxi and num >= 2 and s.gs > 2.0:
-            running = [n for n in range(1, num + 1)
-                       if getattr(s, f"eng{n}_running", None) is True]
-            if len(running) == 1:
-                self.single_eng_taxi = True
+            engine_states = [
+                getattr(s, f"eng{n}_running", None)
+                for n in range(1, num + 1)
+            ]
+            # Only flag single-engine taxi when every engine state is known.
+            if all(state is not None for state in engine_states):
+                if sum(state is True for state in engine_states) == 1:
+                    self.single_eng_taxi = True
 
     # ---------------------------------------------------------------- OOOI
     def _out(self, t, s):
