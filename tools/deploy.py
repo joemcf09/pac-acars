@@ -28,21 +28,42 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 
-# What the package leaves out. This list must stay a SUBSET of update.sh's own rsync
-# excludes, because that rsync runs with --delete: anything missing from the package
-# that update.sh doesn't also exclude would be DELETED from the server.
-#
-# update.sh excludes:  data/  .venv/  acars_client/config.json  static/downloads/
-#                      acars_client/build/  __pycache__/
+# What the package carries and leaves out. update.sh unpacks this into a fresh
+# releases/<stamp>/ directory (it never deletes or overwrites the running code),
+# so there is no --delete to keep in sync. The package carries the program files
+# plus PAC's reference data (routes, airports, fleet, missions, partners,
+# runways), because each release serves its own reference data; pilot data is
+# never packaged and lives on the server under shared/data.
 #
 # acars_client/build/ is 107 MB of PyInstaller output for the Windows app. The
 # server never reads it — only your PC builds PAC ACARS — so it stays home. Your
 # local copy is untouched; this script only ever reads.
-SKIP_DIRS = {".venv", "data", "__pycache__"}
+SKIP_DIRS = {".git", ".venv", "__pycache__", "releases", "shared"}
 SKIP_SUFFIXES = {".pyc", ".pyo"}
 SKIP_REL = ("static/downloads/", "acars_client/config.json", "acars_client/build/")
+# the only files under data/ that ship with the code (PAC's public reference data)
+DATA_REFERENCE = {"airports.json", "conflict_zones_shapes.json", "fleet.json",
+                  "missions.json", "partners.json", "routes.json", "runways.json"}
 
 MAX_MB = 60                              # a sane package is a few MB; refuse a silly one
+
+PAC_DIR = "/home/pac/pac-acars"
+ZIP_REMOTE = "/home/pac/pac-acars.zip"
+
+
+def remote_update_script(update_sh=f"{PAC_DIR}/current/deploy/update.sh",
+                         zip_remote=ZIP_REMOTE, pac_dir=PAC_DIR):
+    """The command run over SSH. The update's exit status is captured and is what
+    the whole command returns: the cleanup (chown, rm) runs afterward but can
+    never change the result, so a failed update can't be masked as success."""
+    return (
+        f"set -u; chmod +x {pac_dir}/current/deploy/*.sh || exit 1; "
+        f"{update_sh} {zip_remote}; rc=$?; "
+        # cleanup is best-effort and must not affect rc
+        f"chown -R pac:pac {pac_dir}/releases {pac_dir}/shared {pac_dir}/current {pac_dir}/previous 2>/dev/null || true; "
+        f"rm -f {zip_remote} || true; "
+        f"exit $rc"
+    )
 
 
 def step(n, text):
@@ -56,10 +77,14 @@ def fail(text):
 
 def wanted(path: Path) -> bool:
     rel = path.relative_to(ROOT).as_posix()
-    if any(part in SKIP_DIRS for part in path.relative_to(ROOT).parts[:-1]):
+    parts = path.relative_to(ROOT).parts
+    if any(part in SKIP_DIRS for part in parts[:-1]):
         return False
     if path.suffix.lower() in SKIP_SUFFIXES:
         return False
+    # under data/: ship only PAC's reference data, never pilot data
+    if parts[0] == "data":
+        return path.name in DATA_REFERENCE
     return not rel.startswith(SKIP_REL)
 
 
@@ -116,16 +141,17 @@ def main():
     step(3, f"Uploading to {target}")
     run(["scp", str(tmp), f"{target}:/home/pac/pac-acars.zip"], "the upload failed")
 
-    step(4, "Updating the server (it backs up your data first)")
-    run(["ssh", target,
-         "chmod +x /home/pac/pac-acars/deploy/*.sh && "
-         "/home/pac/pac-acars/deploy/update.sh /home/pac/pac-acars.zip && "
-         "chown -R pac:pac /home/pac/pac-acars && "
-         "rm -f /home/pac/pac-acars.zip"],
-        "the server update failed. Your data is safe and a backup was taken before any change. "
-        "See what happened with:  ssh " + target + " \"journalctl -u pac -n 50\"")
+    step(4, "Updating the server (versioned release, auto-rollback on failure)")
+    # The live release's update.sh unpacks the new code into a fresh releases/<stamp>/,
+    # builds its venv, flips the 'current' symlink, health-checks /up, and rolls back
+    # automatically if the new release does not come up. It exits non-zero on failure;
+    # remote_update_script() preserves that exit code past the cleanup, so a failed
+    # deploy is reported here and the previous version stays live.
+    run(["ssh", target, remote_update_script()],
+        "the server update failed and was rolled back to the previous version. Your data is "
+        "untouched and a backup was taken first. See:  ssh " + target + " \"journalctl -u pac -n 50\"")
 
-    step(5, "Checking PAC is back up")
+    step(5, "Confirming PAC is healthy")
     run(["ssh", target, "systemctl is-active pac pac-discord"], "a service did not come back up")
 
     print("\nDone. PAC is updated and running.\n")

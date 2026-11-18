@@ -10,11 +10,15 @@ Wants=network-online.target
 [Service]
 Type=simple
 User=pac
-WorkingDirectory=/home/pac/pac-acars
+# Runs from the 'current' release symlink (see deploy/migrate_to_releases.sh).
+# Reference data ships inside each release; pilot data lives in shared/data,
+# pointed to by PAC_DATA_DIR, so a deploy or rollback never touches it.
+WorkingDirectory=/home/pac/pac-acars/current
 Environment=PAC_PUBLIC=1
 Environment=PAC_HOST=127.0.0.1
 Environment=PAC_PORT=5050
-ExecStart=/home/pac/pac-acars/.venv/bin/python app.py
+Environment=PAC_DATA_DIR=/home/pac/pac-acars/shared/data
+ExecStart=/home/pac/pac-acars/current/.venv/bin/python app.py
 Restart=always
 RestartSec=5
 # a little hardening
@@ -22,7 +26,8 @@ NoNewPrivileges=true
 PrivateTmp=true
 ProtectSystem=full
 ProtectHome=read-only
-ReadWritePaths=/home/pac/pac-acars/data
+# only the shared pilot-data directory is writable at runtime; release dirs are read-only
+ReadWritePaths=/home/pac/pac-acars/shared/data
 
 [Install]
 WantedBy=multi-user.target

@@ -216,14 +216,58 @@ systemctl restart pac         # restart it
 /etc/cron.daily/pac-backup    # back up right now
 ```
 
-**Updating PAC** when I send you a new zip:
+**Updating PAC.** The one supported way to deploy is from your PC:
 
-```bash
-scp pac-acars.zip pac@pac-va.com:~/            # from your PC
-ssh pac@pac-va.com '~/pac-acars/deploy/update.sh ~/pac-acars.zip'
+```bat
+deploy.bat
 ```
 
-That backs up first, replaces the program files only (your data is untouched), installs anything new and restarts.
+That compiles every file, packages the program files plus PAC's reference data (never your pilot data), uploads the zip, and runs the update on the server. Do not deploy with `git pull`: it skips the compile check, the backup and the health check.
+
+---
+
+## Versioned releases and rollback
+
+PAC deploys as a **versioned release**, so a bad update can never leave the site down.
+
+Layout on the server:
+
+```
+/home/pac/pac-acars/
+  releases/<stamp>/     each deploy, a full copy of the code + its own venv
+  current  -> releases/<stamp>    the release the service runs
+  previous -> releases/<stamp>    the last good release
+  shared/data/          ALL your pilot data (logbook, settings, uploads, bookings, flight state)
+```
+
+Every deploy, `update.sh`:
+
+1. Backs up your data first.
+2. Unpacks the new code into a fresh `releases/<stamp>/` (it never overwrites the running code).
+3. Builds that release's own virtualenv. If a dependency fails to install, it stops here and the current release keeps serving, with no downtime.
+4. Atomically switches `current` to the new release and restarts.
+5. Checks the new release answers `/up` (healthy) within 30 seconds. If it does not, it **automatically rolls back** to the previous release and restarts.
+
+Because your data lives in `shared/data`, outside every release, a deploy or rollback never touches it.
+
+**Atomic switching is not the same as zero downtime.** The `current` symlink flip is atomic: no request ever sees a half-written code tree. But applying a new release (or a rollback) restarts the service, and that restart is a brief interruption of a few seconds while PAC stops and starts again. The one case with no interruption at all is a **dependency-install failure**: it is caught in step 3, before any switch or restart, so the running release keeps serving untouched. In short: the switch is atomic and safe; a successful deploy or rollback still incurs a short restart gap, and only an aborted-before-switch deploy is truly no-downtime.
+
+**Manual rollback**, any time:
+
+```bash
+ssh pac@pac-va.com '~/pac-acars/current/deploy/rollback.sh --list'   # see releases
+ssh pac@pac-va.com '~/pac-acars/current/deploy/rollback.sh'          # go back one release
+ssh pac@pac-va.com '~/pac-acars/current/deploy/rollback.sh <stamp>'  # go to a specific one
+```
+
+**First-time migration** from the old flat layout to this one (run once, reversible, dry-run by default):
+
+```bash
+ssh pac@pac-va.com '~/pac-acars/deploy/migrate_to_releases.sh'          # dry run: shows the plan
+ssh pac@pac-va.com '~/pac-acars/deploy/migrate_to_releases.sh --apply'  # do it
+# then update pac.service to the lines it prints, daemon-reload, restart; verify /up
+# to undo before switching the service:  migrate_to_releases.sh --undo
+```
 
 ---
 
@@ -233,7 +277,8 @@ That backs up first, replaces the program files only (your data is untouched), i
 |---|---|
 | "This site can't be reached" | `systemctl status pac` and `systemctl status caddy` on the server |
 | Certificate warning | Check the DNS records are gray-cloud, then `journalctl -u caddy -n 50` |
-| PAC won't start after an update | `journalctl -u pac -n 50` shows the error; restore with the backup it took |
+| A deploy failed | It already rolled back to the previous release; the site is up. `journalctl -u pac -n 50` shows why the new one failed |
+| You want the previous version back | `~/pac-acars/current/deploy/rollback.sh` |
 | Sign-in links say localhost | Set the website address in Staff › Site and rules › Letters and links |
 | Pilots can't connect the ACARS app | They need `https://pac-va.com` in the app's Settings, and to sign in again |
 

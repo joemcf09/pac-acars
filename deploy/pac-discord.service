@@ -10,10 +10,12 @@ Wants=network-online.target
 [Service]
 Type=simple
 User=pac
-WorkingDirectory=/home/pac/pac-acars
+# Run from the current release so a versioned deploy updates the bot too (it
+# talks to the web app over PAC_URL and does not open the database itself).
+WorkingDirectory=/home/pac/pac-acars/current
 Environment=PAC_URL=http://127.0.0.1:5050
 Environment=PYTHONUNBUFFERED=1
-ExecStart=/home/pac/pac-acars/.venv/bin/python discord_bot.py
+ExecStart=/home/pac/pac-acars/current/.venv/bin/python discord_bot.py
 Restart=always
 RestartSec=10
 NoNewPrivileges=true

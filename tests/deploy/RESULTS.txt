@@ -1,0 +1,104 @@
+PAC deploy/rollback test results — 2026-11-18T02:33:06Z
+Python: Python 3.13.18
+
+################## baseline: tests/deploy/run.sh ##################
+
+== T1 first deploy ==
+  PASS first deploy healthy, /up 200 (release 20261118-023309)
+  PASS pilot data seeded and verifiable
+
+== T2 second deploy, data survives ==
+  PASS second deploy healthy (release 20261118-023310)
+  PASS current advanced to a new release
+  PASS previous points at the prior release
+  PASS all pilot data intact across deploy
+
+== T3 additive DB migration tolerated ==
+  PASS app serves /up after an additive column was added
+  PASS DB still reads (pilots + reservation)
+
+== T4 broken release is auto-rolled-back ==
+  PASS deploy of a broken release failed (as it should)
+  PASS site is up after auto-rollback
+  PASS current rolled back to the last good release
+  PASS pilot data intact after auto-rollback
+
+== T5 dependency-install failure aborts before any switch ==
+  PASS deploy aborted when dependency install failed
+  PASS current unchanged (old release still serving)
+  PASS site still up on the previous release
+
+== T6 manual rollback to an explicit earlier release ==
+  PASS rolled back to the chosen release 20261118-023309
+  PASS site healthy after manual rollback
+  PASS pilot data intact after manual rollback
+  PASS rollback --list works
+
+==== 19 passed, 0 failed ====
+
+############## review findings: tests/deploy/run_findings.sh ##############
+
+== F1 failed restart falls through to the health gate, not a premature exit ==
+  PASS deploy completed despite a non-zero restart (no premature set -e exit)
+  PASS site is up after the non-zero restart
+
+== F2 migration --undo is non-destructive until the copy-back is verified ==
+  PASS migrate --apply moved pilot data to shared/data
+  PASS undo aborted on a verification mismatch
+  PASS the only good data copy was NOT deleted on a failed undo
+  PASS release layout left intact after the aborted undo
+  PASS clean undo succeeded
+  PASS pilot data restored to the flat layout (verified)
+  PASS a safety copy of pilot data was kept (not deleted)
+  PASS release dir removed only after verification
+
+== F3 backup failures block the deploy; archives are verified ==
+  PASS a verified backup archive was produced on deploy
+  PASS deploy aborted when the backup failed
+  PASS current unchanged after the aborted (backup-failed) deploy
+  PASS site still up after the aborted deploy
+
+== F5 first-deploy failure leaves nothing broken wired up, and recovers ==
+  PASS broken first deploy failed (as it should)
+  PASS current left unset (nothing broken is wired up)
+  PASS service stopped after the failed first deploy
+  PASS a subsequent good deploy recovers the site
+
+== F6 manual rollback restores the working release if the target is bad ==
+  PASS rollback to a broken target failed (as it should)
+  PASS the working release was automatically restored
+  PASS site healthy after the transactional restore
+
+== F7 the remote command returns the update's exit code, not the cleanup's ==
+  PASS a failed update makes the remote command fail (not masked by cleanup)
+  PASS a successful update returns success
+
+==== 23 passed, 0 failed ====
+
+########## production-equivalent staging: tests/deploy/run_staging.sh ##########
+
+== S0 systemd unit is valid and release-aware ==
+  PASS systemd-analyze verify passed (unit directives valid)
+  PASS unit runs from the current release symlink
+  PASS unit runs the release's own venv python
+  PASS unit points PAC_DATA_DIR at shared/data
+  PASS unit makes only shared/data writable
+  PASS discord unit runs from the current release
+  PASS discord unit uses the release venv (deploys update the bot too)
+
+== S1 migrate a flat install to the release layout (real venv) ==
+  PASS migrate --apply completed
+  PASS release has a real venv
+  PASS release venv has the pinned deps installed
+  PASS pilot data moved to shared/data
+
+== S2 deploy + rollback on the migrated layout, run from the release venv ==
+  PASS migrated release serves /up under its own venv python
+  PASS real-venv deploy came up healthy
+  PASS current advanced
+  PASS pilot data intact across real deploy
+  PASS rolled back to the migrated release
+  PASS rolled-back release healthy under its venv
+  PASS pilot data intact across rollback
+
+==== 18 passed, 0 failed ====
