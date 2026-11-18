@@ -232,6 +232,13 @@ def analyze_takeoff(series, off_t, airports_to_try, data_dir, tail_limit=None):
             if out.get("liftoff_ft") is not None and out["liftoff_ft"] > out["start_ft"]:
                 out["roll_ft"] = out["liftoff_ft"] - out["start_ft"]  # along the runway, not the turn onto it
             break
+    # The liftoff point can fall outside the matcher's tolerance (well past the runway end). The runway and the start
+    # of the roll are known, so place liftoff from the measured roll instead of dropping the whole diagram.
+    if out.get("runway") and out.get("liftoff_ft") is None and out.get("start_ft") is not None and out.get("roll_ft"):
+        out["liftoff_ft"] = out["start_ft"] + out["roll_ft"]
+        out["liftoff_estimated"] = True
+        if out.get("runway_length_ft"):
+            out["remaining_ft"] = max(0, out["runway_length_ft"] - out["liftoff_ft"])
     # touch-back: airborne at some point in the roll, then back on the runway before the sustained liftoff,
     # or back on the ground within 30 s after it
     first_air = next((i for i, x in enumerate(series) if x[8] == 0 and x[1] > 3), None)
