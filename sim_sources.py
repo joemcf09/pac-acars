@@ -431,8 +431,10 @@ class XPlaneSource:
             ias=max(0.0, v("ias", 0.0)), gs=max(0.0, v("gs_ms", 0.0) * 1.94384), vs_fpm=v("vs_fpm", 0.0),
             hdg=v("hdg", 0.0) % 360, on_ground=v("on_ground", 1.0) > 0.5,
             engines_running=any(v(f"eng{i}", 0.0) > 0.5 for i in range(1, 5)),
-            eng1_running=v("eng1", 0.0) > 0.5, eng2_running=v("eng2", 0.0) > 0.5,
-            eng3_running=v("eng3", 0.0) > 0.5, eng4_running=v("eng4", 0.0) > 0.5,
+            eng1_running=(v("eng1") > 0.5) if v("eng1") is not None else None,
+            eng2_running=(v("eng2") > 0.5) if v("eng2") is not None else None,
+            eng3_running=(v("eng3") > 0.5) if v("eng3") is not None else None,
+            eng4_running=(v("eng4") > 0.5) if v("eng4") is not None else None,
             # set only if both brake values say so: an aircraft with its own brake system can leave one stuck
             parking_brake=min(v("pbrake", 0.0), v("pbrake2", v("pbrake", 0.0))) > 0.5,
             fuel_lbs=v("fuel_kg", 0.0) * KG_TO_LB, weight_lbs=v("weight_kg", 0.0) * KG_TO_LB,

@@ -465,3 +465,26 @@ class TestEngineCountEdgeCases:
                                   eng3_running=None, eng4_running=None))
         assert len(rec.eng_starts) == 1
         assert rec.eng_starts[0]["n"] == 1
+def test_xplane_missing_engine_dataref_preserves_unknown():
+    """Missing engine datarefs must remain None, not become False."""
+    from sim_sources import XPlaneSource
+
+    source = XPlaneSource()
+    source.values = {
+        "lat": 51.47,
+        "lon": -0.46,
+        "eng1": 1.0,
+        "eng2": 0.0,
+        # eng3 and eng4 intentionally missing
+    }
+    source.last_rx = 1000.0
+
+    with patch("sim_sources.time.time", return_value=1000.0):
+        with patch.object(source, "_pump"):
+            telemetry = source.read()
+
+    assert telemetry is not None
+    assert telemetry.eng1_running is True
+    assert telemetry.eng2_running is False
+    assert telemetry.eng3_running is None
+    assert telemetry.eng4_running is None
