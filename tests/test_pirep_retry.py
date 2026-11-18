@@ -1,4 +1,5 @@
 """A retry after interrupted PIREP finalization must not duplicate records or effects."""
+import json
 import sqlite3
 import sys
 import tempfile
@@ -58,6 +59,12 @@ def main():
             runways = analysis.runways(ROOT / "data")
             for sample in fly("KCVG", runways["KCVG"][0][0], "KCLT", runways["KCLT"][0][0]):
                 recorder.update(sample)
+            # Exercise the 1.2 app record handoff before the website files the PIREP.
+            recorder.eng_starts = [{"n": 2, "seq": 1}, {"n": 1, "seq": 2}]
+            recorder.single_eng_taxi = True
+            recorder.dep_config = {"beacon": True, "nav": True, "landing": None}
+            recorder.arr_config = {"beacon": False, "nav": True, "landing": False}
+            recorder = FlightRecorder.from_export(booking, recorder.export())
             A.save_booking(booking, "PAC0001")
             A.SESSIONS["PAC0001"] = dict(A.SESSION_BLANK, recorder=recorder)
 
@@ -104,9 +111,17 @@ def main():
                     "(SELECT id FROM pireps WHERE pilot_id='PAC0001' AND booking_key=?)",
                     (str(booking["requested_at"]),)).fetchone()[0]
                 report = con.execute(
-                    "SELECT flight_min FROM pireps WHERE pilot_id='PAC0001' AND booking_key=?",
+                    "SELECT flight_min, detail FROM pireps WHERE pilot_id='PAC0001' AND booking_key=?",
                     (str(booking["requested_at"]),)).fetchone()
                 airframe = con.execute("SELECT hours, cycles, location FROM airframes WHERE reg='NTESTPC'").fetchone()
+            saved_config = json.loads(report["detail"])["flight_configuration"]
+            check("engine starts survive the handoff and filing",
+                  [e["n"] for e in saved_config["eng_starts"]] == [2, 1])
+            check("single-engine taxi survives the handoff and filing",
+                  saved_config["single_eng_taxi"] is True)
+            check("departure and arrival lights survive the handoff and filing",
+                  saved_config["dep_config"]["landing"] is None
+                  and saved_config["arr_config"]["landing"] is False)
             check("one PIREP exists for the booking", report_count == 1, report_count)
             check("one finalization marker exists", effect_count == 1, effect_count)
             check("flight pay was recorded once", pay_count == 1, pay_count)

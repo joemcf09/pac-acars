@@ -1,6 +1,21 @@
 PAC ACARS - CHANGELOG
 =====================
 
+1.2.0 (November 2026)
+---------------------
+
+New: flight configuration recording
+- PAC ACARS records confirmed individual engine starts and their order before
+  takeoff. It also notes single-engine taxi during taxi-out when the simulator
+  reports the running state of every engine.
+- Departure and arrival snapshots capture beacon, navigation, strobe, landing
+  and taxi lights when the simulator makes those states available.
+- The PAC website's pilot debrief shows the recorded engine-start order,
+  single-engine taxi and light states after the flight is filed. Missing
+  simulator readings are shown as not recorded.
+- These observations are informational. They do not change the flight grade,
+  score or penalties.
+
 1.1.7 hotfix 1 (November 2026)
 ------------------------------
 Fixed: X-Plane landing rates on sloping runways
