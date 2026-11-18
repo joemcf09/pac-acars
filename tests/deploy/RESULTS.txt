@@ -1,0 +1,33 @@
+
+== T1 first deploy ==
+  PASS first deploy healthy, /up 200 (release 20261118-015019)
+  PASS pilot data seeded and verifiable
+
+== T2 second deploy, data survives ==
+  PASS second deploy healthy (release 20261118-015021)
+  PASS current advanced to a new release
+  PASS previous points at the prior release
+  PASS all pilot data intact across deploy
+
+== T3 additive DB migration tolerated ==
+  PASS app serves /up after an additive column was added
+  PASS DB still reads (pilots + reservation)
+
+== T4 broken release is auto-rolled-back ==
+  PASS deploy of a broken release failed (as it should)
+  PASS site is up after auto-rollback
+  PASS current rolled back to the last good release
+  PASS pilot data intact after auto-rollback
+
+== T5 dependency-install failure aborts before any switch ==
+  PASS deploy aborted when dependency install failed
+  PASS current unchanged (old release still serving)
+  PASS site still up on the previous release
+
+== T6 manual rollback to an explicit earlier release ==
+  PASS rolled back to the chosen release 20261118-015019
+  PASS site healthy after manual rollback
+  PASS pilot data intact after manual rollback
+  PASS rollback --list works
+
+==== 19 passed, 0 failed ====
