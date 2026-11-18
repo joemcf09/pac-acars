@@ -13,6 +13,7 @@ Three runners (each exits non-zero if any check fails; combined output is saved 
 bash tests/deploy/run.sh            # baseline deploy/rollback behavior
 bash tests/deploy/run_findings.sh   # regressions for the seven PR review findings
 bash tests/deploy/run_migration.sh  # migration-script fixes (bulk data, checksums, local edits, disk, units)
+bash tests/deploy/run_bot_secret.sh # every release links shared/data/bot_secret so the Discord bot can start
 bash tests/deploy/run_staging.sh    # production-equivalent: real venv, migrate, systemd unit
 ```
 
