@@ -49,6 +49,7 @@ PRICES = {
     "B752F": {"new": None,  "used": 15e6,  "lease": 0.18e6, "wet": 0.30e6},
     "B738F": {"new": None,  "used": 22e6,  "lease": 0.21e6, "wet": 0.28e6},
     "A306F": {"new": None,  "used": 10e6,  "lease": 0.15e6, "wet": 0.30e6},
+    "A332F": {"new": None,  "used": 38e6,  "lease": 0.40e6, "wet": None},
     "MD11F": {"new": None,  "used": 8e6,   "lease": 0.25e6, "wet": 0.60e6},
     "B733F": {"new": None,  "used": 4e6,   "lease": 0.09e6, "wet": None},
     "B742F": {"new": None,  "used": 2.5e6, "lease": None,   "wet": None},

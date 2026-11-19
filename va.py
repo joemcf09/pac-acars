@@ -28,7 +28,7 @@ RANKS = [
     {"name": "Second Officer", "insignia": "/static/ranks/second-officer.jpg", "hours": 0, "avg": 0, "checkride": True, "unlocks": ["B738F", "B722F", "B732F", "B733F"]},
     {"name": "First Officer", "insignia": "/static/ranks/first-officer.jpg", "hours": 25, "avg": 80, "checkride": True, "unlocks": ["A306F", "B752F"]},
     {"name": "Senior First Officer", "insignia": "/static/ranks/senior-first-officer.jpg", "hours": 75, "avg": 80, "checkride": True, "unlocks": ["MD11F", "B763F"]},
-    {"name": "Captain", "insignia": "/static/ranks/captain.jpg", "hours": 150, "avg": 82, "checkride": True, "unlocks": ["B77F", "B742F"]},
+    {"name": "Captain", "insignia": "/static/ranks/captain.jpg", "hours": 150, "avg": 82, "checkride": True, "unlocks": ["B77F", "A332F", "B742F"]},
     {"name": "Senior Captain", "insignia": "/static/ranks/senior-captain.jpg", "hours": 300, "avg": 85, "checkride": True, "unlocks": ["B748F"]},
 ]
 HOME_BASE = "KCVG"
@@ -47,7 +47,7 @@ CHECKRIDE_ID = "PAC001"
 CHECKRIDE = {"aircraft": "B738F", "min_score": 80, "min_rate": -600, "max_g": 1.8}
 
 # Type ratings, in real-world families: one checkride covers closely related aircraft
-RATING_FAMILY = {"B738F": "B737", "B732F": "B737", "B733F": "B737", "B722F": "B727", "A306F": "A300", "MD11F": "MD-11",
+RATING_FAMILY = {"B738F": "B737", "B732F": "B737", "B733F": "B737", "B722F": "B727", "A306F": "A300", "A332F": "A330", "MD11F": "MD-11",
                  "B752F": "B757/767", "B763F": "B757/767", "B77F": "B777", "B742F": "B747 classic", "B748F": "B747-8"}
 TYPE_CHECKRIDE = {"min_score": 80, "min_rate": -600, "max_g": 1.8, "max_approach_speed_spread": 35,
                   "max_sustained_descent_fpm": 1300, "min_nm": 250, "max_nm": 1000}

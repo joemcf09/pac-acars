@@ -21,7 +21,7 @@ CURFEWS = {
 SLOT_AIRPORTS = {"EGLL", "EGKK", "EHAM", "EDDF", "EDDM", "LFPG", "LFPO", "LSZH", "LEMD", "LIRF", "RJTT", "RJAA", "RKSI", "VHHH",
                  "WSSS", "ZSPD", "ZBAA", "ZGGG", "OMDB", "YSSY", "KJFK", "KLGA"}
 # Two-engine freighters. Three- and four-engine all-cargo aircraft are exempt from ETOPS in US rules.
-TWINS = {"B732F", "B733F", "B738F", "B752F", "B763F", "A306F", "B77F"}
+TWINS = {"B732F", "B733F", "B738F", "B752F", "B763F", "A306F", "A332F", "B77F"}
 ONE_ENGINE_KT = 400          # a typical one-engine-inoperative cruise speed for planning
 ADEQUATE_RWY_FT = 6500
 

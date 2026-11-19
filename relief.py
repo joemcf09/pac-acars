@@ -33,7 +33,7 @@ CHECKS = ("facts", "help", "tone", "links", "timing")
 DEPOTS = [("MPTO", "Panama"), ("GCLP", "Las Palmas"), ("LIBR", "Brindisi"), ("DGAA", "Accra"), ("OMDB", "Dubai"),
           ("WMKK", "Kuala Lumpur")]
 # Freighters in order of preference for a relief airlift: a mid-size widebody first.
-PREFERRED = ["B763F", "A306F", "B752F", "MD11F", "B77F", "B748F", "B742F", "B738F", "B722F", "B733F", "B732F"]
+PREFERRED = ["B763F", "A332F", "A306F", "B752F", "MD11F", "B77F", "B748F", "B742F", "B738F", "B722F", "B733F", "B732F"]
 
 # What each kind of disaster needs, as shares of the payload: (item, why it's needed, share, kg per piece, unit, code)
 CARGO = {

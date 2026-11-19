@@ -30,7 +30,7 @@ WIDTH = 1600                # display copy width
 NAMES = {"ups": ["UPS Airlines", "UPS"], "fedex": ["FedEx Express", "FedEx", "Federal Express"], "atlas": ["Atlas Air"],
          "cathay": ["Cathay Cargo", "Cathay Pacific Cargo", "Cathay Pacific"], "emirates": ["Emirates SkyCargo", "Emirates"],
          "qatar": ["Qatar Airways Cargo", "Qatar Airways"]}
-MODELS = {"A306F": ["A300"], "B763F": ["767"], "B752F": ["757"], "MD11F": ["MD-11", "MD11"], "B748F": ["747-8", "747-867", "747-87"],
+MODELS = {"A306F": ["A300"], "A332F": ["A330"], "B763F": ["767"], "B752F": ["757"], "MD11F": ["MD-11", "MD11"], "B748F": ["747-8", "747-867", "747-87"],
           "B77F": ["777F", "777-F", "777"], "B742F": ["747-2"], "B738F": ["737-8"], "B722F": ["727"]}
 SKIP_WORDS = ("cockpit", "interior", "cabin", "engine", "seat", "logo", "model", "toy", "wheel", "gear", "crash", "wreck", "livery drawing")
 

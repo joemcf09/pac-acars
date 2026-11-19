@@ -144,7 +144,7 @@ DIVISIONS = [
     {"name": "PAC Heritage", "short": "Heritage", "blurb": "Classic jets kept flying for the work they still do best: the 727s, the 737-200 and the 747-200."},
 ]
 DIVISION_DEFAULT = {"B733F": "PAC Feeder", "B738F": "PAC Feeder",
-                    "A306F": "PAC Mainline", "B752F": "PAC Mainline", "B763F": "PAC Mainline",
+                    "A306F": "PAC Mainline", "A332F": "PAC Mainline", "B752F": "PAC Mainline", "B763F": "PAC Mainline",
                     "MD11F": "PAC Heavy", "B77F": "PAC Heavy", "B744F": "PAC Heavy", "B748F": "PAC Heavy",
                     "B722F": "PAC Heritage", "R722F": "PAC Heritage", "B732F": "PAC Heritage", "B742F": "PAC Heritage"}
 
@@ -2726,7 +2726,7 @@ def discord_share():
 
 
 # ---------------------------------------------------------------- flight planning helper
-CEILING_FL = {"B738F": 370, "B732F": 350, "B733F": 370, "B722F": 350, "A306F": 350, "MD11F": 370, "B752F": 390,
+CEILING_FL = {"B738F": 370, "B732F": 350, "B733F": 370, "B722F": 350, "A306F": 350, "A332F": 390, "MD11F": 370, "B752F": 390,
               "B763F": 390, "B77F": 410, "B742F": 350, "B748F": 410}
 
 

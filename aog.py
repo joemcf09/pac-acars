@@ -28,7 +28,7 @@ BOOK_WINDOW_H = 36                    # how long the mission stays open before P
 CONTRACTOR_DELAY_H = 18               # contractor parts arrive this long after the window closes
 CONTRACTOR_COST_MULT = 1.6
 HUBS = ["KCVG", "KMIA", "LIMC", "OMDW", "VHHH", "PANC"]
-WIDE = {"A306F", "B763F", "MD11F", "B77F", "B742F", "B748F"}
+WIDE = {"A306F", "A332F", "B763F", "MD11F", "B77F", "B742F", "B748F"}
 
 # kind -> (ATA, title, kit narrowbody, kit widebody); kit = (contents, weight lb, team, repair hours, cost USD)
 KITS = {

@@ -6,7 +6,7 @@ No urgent flag: these jobs must not enter the separate urgent booking/payment fl
 import json
 import random
 
-HEAVIES = {'A306F', 'MD11F', 'B77F', 'B748F', 'B763F', 'B742F'}
+HEAVIES = {'A306F', 'A332F', 'MD11F', 'B77F', 'B748F', 'B763F', 'B742F'}
 DAILY_LIMIT = 36
 HANDLING_POINTS = 80
 # Explicit civilian candidates: airport data alone does not identify military fields.

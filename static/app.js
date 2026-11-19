@@ -6988,7 +6988,7 @@ const DIVISION_FALLBACK = [{ name: "PAC Feeder", short: "Feeder" }, { name: "PAC
 const divisions = () => (S.divisions && S.divisions.length ? S.divisions : DIVISION_FALLBACK);
 const divOf = code => S.fleet?.[code]?.division || "";
 const divShort = name => (divisions().find(d => d.name === name) || {}).short || String(name || "").replace(/^PAC\s+/, "");
-const FLEET_ORDER = ["B738F", "B722F", "A306F", "MD11F", "B77F", "B748F", "B732F", "B733F", "B752F", "B763F", "B742F"];
+const FLEET_ORDER = ["B738F", "B722F", "A306F", "MD11F", "A332F", "B77F", "B748F", "B732F", "B733F", "B752F", "B763F", "B742F"];
 const simTag = a => a?.sim && a.sim !== "MSFS" ? `<span class="tag ${a.sim === "X-Plane" ? "dark" : "grey"}" style="margin-left:6px">${esc(a.sim)}</span>` : "";
 const NUM_WORDS = ["zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten", "eleven", "twelve", "thirteen", "fourteen", "fifteen"];
 S.fleetSim = "All";
