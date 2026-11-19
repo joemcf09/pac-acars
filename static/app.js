@@ -2721,6 +2721,8 @@ function cargoInventoryDate(timestamp) {
 
 const CARGO_EVENT = {
   SPLIT_LOAD_WAITING: e => `Left at ${e.to_station} after ${e.flight_number}; ready for a later flight (customer already charged)`,
+  SPLIT_LOAD_REVOKED: e => `Recovery withdrawn after the original flight was rejected`,
+  SPLIT_LOAD_RESTORED: e => `Recovery restored after the original flight was accepted`,
   BOOKED: e => `Booked on ${e.flight_number || "a PAC flight"}`,
   TRANSFER_BOOKED: e => `Booked for its next leg on ${e.flight_number || "a PAC flight"}`,
   TRANSFER_CANCELLED: e => `Booking cancelled, waiting at ${e.to_station || "the station"} again`,
