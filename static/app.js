@@ -958,7 +958,7 @@ function dossierHeader(m) {
   const date = t => new Date(t * 1000).toLocaleString("en-US", { timeZone: "UTC", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }) + "Z";
   const chips = [
     ["Distance", `${fmt(dist)} nm`], ["Est. block", hm(m.target_block_min)],
-    ["Payload", m.payload_lbs ? `${fmt(m.payload_lbs)} lb` : "Ferry"],
+    [m.charter && m.payload_lbs ? "Requested cargo" : "Payload", m.payload_lbs ? `${fmt(m.payload_lbs)} lb` : "Ferry"],
     m.reward ? ["Reward", `${fmt(m.reward)} pts`] : null,
     Number(m.deliver_by) > 0 ? ["Arrive by", date(m.deliver_by)] : null,
   ].filter(Boolean);
