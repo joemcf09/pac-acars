@@ -82,6 +82,13 @@ check("time checks cover departure, taxi, airborne, arrival and block",
 check("block segments match the PIREP block time", abs(tc["segments"]["block_min"] - configured["block_min"]) < 0.1,
       (tc["segments"]["block_min"], configured["block_min"]))
 check("time checks and engine review leave the score alone", configured["score"] == p["score"] and configured["status"] == p["status"])
+# volumetric loading, stage 1: a flight with a dispatch gets weight and volume load factors, and the score stays put
+rec.booking["dispatch"] = A.build_dispatch_with_transfers(dict(rec.booking), [])
+loaded = A.build_pirep(rec.booking, rec)
+check("load factors reach PIREP", (loaded.get("load_factors") or {}).get("volume_pct", 0) > 0, loaded.get("load_factors"))
+check("load factors leave the score alone", (loaded["score"], loaded["status"]) == (configured["score"], configured["status"]))
+del rec.booking["dispatch"]
+check("a flight without a dispatch has no load factor", A.build_pirep(rec.booking, rec).get("load_factors") is None)
 rec.eng_starts, rec.single_eng_taxi, rec.dep_config, rec.arr_config = [], False, {}, {}
 check("older flight has no configuration section", A.build_pirep(rec.booking, rec)["flight_configuration"] is None)
 check("older flight has no engine review", A.build_pirep(rec.booking, rec)["engine_review"] is None)

@@ -22,3 +22,5 @@ jobs:
       - run: python tests/test_pirep_retry.py
       - run: python tests/test_a330_p2f.py
       - run: python tests/test_runway_cache.py
+      - run: python tests/test_b744f.py
+      - run: python tests/test_volume.py

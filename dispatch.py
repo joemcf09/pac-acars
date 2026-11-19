@@ -24,6 +24,7 @@ DECKS = {
     "MD11F": {"main": 26, "uld": "PMC", "cap": 13000, "lower": 10, "luld": "AKE", "lcap": 3500},
     "B77F": {"main": 27, "uld": "PMC", "cap": 15000, "lower": 10, "luld": "AKE", "lcap": 3500},
     "B742F": {"main": 29, "uld": "PMC", "cap": 15000, "lower": 9, "luld": "AKE", "lcap": 3500},
+    "B744F": {"main": 30, "uld": "PMC", "cap": 15000, "lower": 9, "luld": "PMC", "lcap": 6000},
     "B748F": {"main": 34, "uld": "PMC", "cap": 15000, "lower": 10, "luld": "AKE", "lcap": 3500},
 }
 
@@ -409,7 +410,7 @@ def attach_transfers(d, shipments, booking):
 # published structural limits (lb): max zero fuel weight and max landing weight; MTOW comes from the fleet data
 LIMITS = {"B732F": (95000, 105000), "B733F": (109600, 116600), "B738F": (138300, 146300), "B722F": (147000, 161000),
           "A306F": (286600, 308600), "MD11F": (461300, 491500), "B752F": (200000, 210000), "B763F": (309000, 326000),
-          "B77F": (547000, 575000), "A332F": (374800, 401200), "B742F": (590000, 660000), "B748F": (721000, 757000)}
+          "B77F": (547000, 575000), "A332F": (374800, 401200), "B742F": (590000, 660000), "B744F": (610000, 666000), "B748F": (721000, 757000)}
 # ICAO emergency response drill codes and packing groups for the dangerous goods PAC carries
 ERG = {"UN3480": ("12FZ", "—"), "UN1066": ("2L", "—"), "UN1760": ("8L", "II"), "UN1845": ("9A", "—"), "UN3481": ("12FZ", "—"), "UN3530": ("9L", "—"), "UN1072": ("2X", "—"), "UN2794": ("8L", "III"),
        "UN1263": ("3L", "II"), "ID8000": ("9L", "—")}

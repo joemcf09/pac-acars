@@ -37,10 +37,10 @@ STAND_SOURCES = {
 }
 
 OLD_STAND_NAMES = {"KCVG": {f"N{i}": f"P{i}" for i in range(1, 9)}}  # stands were N1-N8 when PAC was on the north side
-STAND_INFO = {"F": "Code F (up to 80 m span): 747-8F", "E": "Code E (up to 65 m): 777F, A330-200P2F, 747-200F",
+STAND_INFO = {"F": "Code F (up to 80 m span): 747-8F", "E": "Code E (up to 65 m): 777F, A330-200P2F, 747-200F, 747-400F",
               "D": "Code D (up to 52 m): MD-11F, A300-600F, 767-300F, 757-200F", "C": "Code C (up to 36 m): 737s, 727-200F"}
 
-AIRCRAFT_CODE = {"B748F": "F", "B77F": "E", "B742F": "E", "MD11F": "D", "A306F": "D", "A332F": "E", "B763F": "D", "B752F": "D",
+AIRCRAFT_CODE = {"B748F": "F", "B77F": "E", "B742F": "E", "B744F": "E", "MD11F": "D", "A306F": "D", "A332F": "E", "B763F": "D", "B752F": "D",
                  "B738F": "C", "B732F": "C", "B733F": "C", "B722F": "C"}
 
 GUIDES = {
