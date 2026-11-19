@@ -440,6 +440,12 @@ def create_volume_recovery(con, booking, pirep, pirep_id, pilot_id, fleet, pilot
                             recovery_pirep_id=pirep_id, recovery_source_awbs=source_awbs,
                             recovery_prepaid_lbs=int(shipment.get("weight_lbs") or 0))
             doc = shipment.get("awb_doc") or {}
+            # The synthetic manifest supplies unit paperwork, not a flight that happened.
+            # Keep only origin acceptance until a pilot selects this AWB for a real leg.
+            doc["track"] = [event for event in doc.get("track") or []
+                            if event.get("code") in ("BKD", "RCS")]
+            doc["freight"], doc["others"], doc["total"] = 0, [], 0
+            doc["terms"] = "PREPAID ON ORIGINAL CHARTER"
             screen = doc.get("screen") or {}
             now = time.time()
             con.execute("""INSERT INTO cargo_shipments (id, awb, booking_key, source_awb, origin, destination,
