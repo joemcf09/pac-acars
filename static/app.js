@@ -48,6 +48,7 @@ function show(view) {
   if (view === "commercial" && S.me && !hasCap("commercial")) view = "home";   // scoped section: full admin or the Commercial Director only
   if (view === "fleetmgr" && S.me && !hasCap("fleet")) view = "home";   // scoped section: full admin or the Fleet & Maintenance Manager only
   if (view === "operations" && S.me && !hasCap("operations")) view = "home";   // scoped section: full admin or the Director of Operations only
+  if (view === "academy" && S.me && !hasCap("academy")) view = "home";
   if (!S.me && !PUBLIC_VIEWS.includes(view)) {  // a members' page: sign in first, then go there
     openSignIn(null, view);
     if (!document.querySelector(".view:not([hidden])")) view = "home"; else return;
@@ -88,6 +89,7 @@ function show(view) {
   if (view === "commercial") loadCommercial();
   if (view === "fleetmgr") loadFleetMgr();
   if (view === "operations") loadOps();
+  if (view === "academy") loadAcademyDesk();
   if (view === "messages") loadMessages();
   if (view === "reports") loadProblemReports();
   if (view === "updates") loadWhatsNew();
@@ -5062,7 +5064,7 @@ async function openDetail(id) {
 }
 
 /* ================= VA core ================= */
-const VIEWS = ["privacy", "roster", "home", "dashboard", "missions", "bids", "acars", "fleet", "stations", "downloads", "career", "stats", "finance", "shop", "live", "logbook", "gallery", "handbook", "cargoguide", "staff", "liverylib", "creative", "commercial", "fleetmgr", "operations", "messages", "profile", "pilots", "updates"];
+const VIEWS = ["privacy", "roster", "home", "dashboard", "missions", "bids", "acars", "fleet", "stations", "downloads", "career", "stats", "finance", "shop", "live", "logbook", "gallery", "handbook", "cargoguide", "staff", "liverylib", "creative", "commercial", "fleetmgr", "operations", "academy", "messages", "profile", "pilots", "updates"];
 function hasCap(cap) { return !!(S.me && (S.me.staff || (S.me.staff_caps || []).includes(cap))); }
 const TOUR_ORDER = {};
 function applyCore(d) {

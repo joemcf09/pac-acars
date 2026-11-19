@@ -84,6 +84,15 @@ h1{font:700 clamp(30px,5vw,44px)/1.05 var(--display);margin:4px 0 0;text-wrap:ba
 .nav button:disabled{opacity:.4;cursor:default}
 .count{font:500 13px var(--mono);color:var(--muted);font-variant-numeric:tabular-nums}
 .hint{font-size:13px;color:var(--muted);margin:0}
+.new-material{border-top:1px solid var(--line);padding-top:24px;margin-top:16px}
+.new-material h2{font:700 29px/1.1 var(--display);margin:0 0 8px}
+.material-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:12px;margin:14px 0}
+.material-card{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:16px}
+.material-card h3{margin:0 0 5px;font:700 22px var(--display)}
+.material-card p{margin:5px 0;white-space:pre-wrap}
+.material-card a{color:var(--red)}
+.material-card details{border-top:1px solid var(--line);margin-top:10px;padding-top:10px}
+.material-card summary{cursor:pointer;font-weight:600}
 footer{font-size:13px;color:var(--muted);max-width:80ch}
 button:focus-visible,select:focus-visible{outline:2px solid var(--red);outline-offset:2px}
 @media (max-width:1100px){.stage{grid-template-columns:minmax(0,1fr)}.frame img{max-width:100%;max-height:60vh}}
@@ -100,6 +109,7 @@ button:focus-visible,select:focus-visible{outline:2px solid var(--red);outline-o
   <aside>
     <a class="back" href="/">← Back to pac-va.com</a>
     <div class="brand">PAC Academy<small>Boeing 737-800 cockpit</small></div>
+    <a class="back" href="#academyNew">Courses and resources ↓</a>
     <label class="kicker" for="picker" style="display:none">Lesson</label>
     <select class="picker" id="picker" aria-label="Choose a lesson"></select>
     <ul class="lessons" id="lessons"></ul>
@@ -129,6 +139,10 @@ button:focus-visible,select:focus-visible{outline:2px solid var(--red);outline-o
       </section>
     </div>
     <p class="hint" id="hint" hidden>On a phone, swipe the panel sideways to see all of it.</p>
+    <section class="new-material" id="academyNew" aria-label="More PAC Academy material" hidden>
+      <div class="kicker">More from PAC Academy</div><h2>Courses and resources</h2>
+      <div class="material-grid" id="academyMaterial"></div>
+    </section>
     <footer>Screenshots from the PMDG 737-800 in MSFS. The LevelUp and Zibo 737s in X-Plane use the same panel layout. For simulator training only, not for real-world flight. © Pagani Air Cargo.</footer>
   </main>
 </div>
@@ -1050,6 +1064,16 @@ buildMenu();
 const start = Math.max(0, SLIDES.findIndex(s => "#" + s.id === location.hash));
 openSlide(start, 0, false);
 addEventListener("hashchange", () => { const i = SLIDES.findIndex(s => "#" + s.id === location.hash); if (i >= 0 && i !== S) openSlide(i, 0, false); });
+fetch("/api/academy/content").then(r => r.ok ? r.json() : {items: []}).then(({items}) => {
+  if (!items?.length) return;
+  const courses = items.filter(x => x.kind === "course");
+  const resources = items.filter(x => x.kind === "resource");
+  const paragraphs = s => String(s || "").split(/\n\s*\n/).filter(Boolean).map(p => `<p>${esc(p.trim())}</p>`).join("");
+  const cards = courses.map(c => `<article class="material-card"><h3>${esc(c.title)}</h3>${paragraphs(c.summary)}${paragraphs(c.body)}
+    ${items.filter(x => x.kind === "lesson" && x.course_id === c.id).map((x, i) => `<details><summary>${i + 1}. ${esc(x.title)}</summary>${paragraphs(x.summary)}${paragraphs(x.body)}</details>`).join("")}</article>`);
+  cards.push(...resources.map(x => `<article class="material-card"><h3>${esc(x.title)}</h3>${paragraphs(x.summary)}${paragraphs(x.body)}${x.file_url ? `<p><a href="${x.file_url}">Download ${esc(x.filename || "resource")}</a></p>` : ""}</article>`));
+  if (cards.length) { $("#academyMaterial").innerHTML = cards.join(""); $("#academyNew").hidden = false; }
+}).catch(() => {});
 </script>
 
 </body>

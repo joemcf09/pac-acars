@@ -29,6 +29,7 @@ LOOKBACK_WEEKS = 4
 # for as long as they hold it (rank-independent: it pays for the job, not the rank). Keys match company.ROLES.
 # The owner's CEO role draws nothing. Tune these freely.
 ROLE_STIPEND = {"ceo": 0, "chief_pilot": 2500, "dir_ops": 2500, "fleet_mgr": 2500, "commercial": 2500,
+                "academy_director": 3000,
                 "creative": 1500, "livery_mgr": 1500, "hub_mgr": 1500}
 
 

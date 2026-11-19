@@ -45,7 +45,7 @@ print("Visitors")
 PUBLIC_OK = {
     # public on purpose: search engines, the Academy, conflict maps, the public roster and group flight, partner photos,
     # basic site settings; the load planner pages are empty shells whose data (/api/load-plan) needs a sign-in
-    "/academy", "/academy/", "/academy/<path:name>", "/robots.txt", "/sitemap.xml", "/api/conflict-zones",
+    "/academy", "/academy/", "/academy/<path:name>", "/api/academy/content", "/api/academy/files/<int:item_id>", "/robots.txt", "/sitemap.xml", "/api/conflict-zones",
     "/api/conflict-zones/map", "/media/image", "/api/partner-photos", "/api/partner-photo/<key>/<ac>", "/load-planner",
     "/load-planner-all", "/load-planner-727", "/api/va/config", "/api/public/roster", "/api/public/group-flight",
     "/api/group-flight.ics", "/track", "/track/<path:awb>", "/api/public/track/<path:awb>", "/network", "/api/public/network", "/healthz", "/up",   # air waybill tracking is public (test_tracking.py); /healthz and /up are for outside monitors

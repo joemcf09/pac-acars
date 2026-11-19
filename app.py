@@ -322,6 +322,8 @@ def db():
         manual_pireps.migrate(con)
         import auth
         auth.migrate(con)
+        import academy_content
+        academy_content.migrate(con)
         import group
         group.migrate(con)
         import rotation_planner
@@ -4637,6 +4639,8 @@ import hotels
 hotels.register(app, globals())
 import company
 company.register(app, globals())
+import academy_content
+academy_content.register(app, globals())
 import ceo
 ceo.register(app, globals())
 import growth
