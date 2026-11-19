@@ -24,3 +24,4 @@ jobs:
       - run: python tests/test_runway_cache.py
       - run: python tests/test_b744f.py
       - run: python tests/test_volume.py
+      - run: python tests/test_volume_stage2.py

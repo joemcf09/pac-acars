@@ -894,12 +894,21 @@ document.addEventListener("click", e => {
   if (S.selected && !$("#view-missions")?.hidden) renderDossier();
   if (!$("#view-bids")?.hidden) loadBids();
 });
+// volumetric loading: when the hold fills before the weight limit, the server sends the payload that fits (S.volCap)
+function planPayload(m, ac) {
+  const vc = S.volCap?.[`${m.id}|${ac}`];
+  return vc ? vc.lbs : Math.min(m.payload_lbs, S.fleet[ac]?.max_payload_lbs || m.payload_lbs);
+}
+function volNoteHtml(vc) {
+  if (!vc) return "";
+  return `<div class="notice" style="margin-bottom:10px"><b>Volume limited.</b> This freight averages ${fmt(vc.density_kg_m3)} kg/m³, so the hold (${fmt(vc.volume_ft3)} ft³ usable) is full at ${fmt(vc.lbs)} lb of the ${fmt(vc.from_lbs)} lb consignment. You'll carry ${fmt(vc.lbs)} lb, and PAC charges the customer on chargeable weight, so the flight still pays as a full load.</div>`;
+}
 function simbriefUrl(m, ac) {
   const fl = S.fleet[ac];
   const num = m.id.replace(/\D/g, "");
   const al = m.operator?.code || filingIcao();      // PAC flights are filed as PGI on the networks: PAC is Polar Air Cargo's code
   const p = new URLSearchParams({ airline: al, fltnum: num, orig: m.origin.icao, dest: m.destination.icao, type: myAirframe(ac) || fl.simbrief_airframe || fl.simbrief_type,   // the pilot's own airframe, then PAC's, then SimBrief's default
-    cargo: (Math.min(m.payload_lbs, fl.max_payload_lbs) / 1000).toFixed(1), pax: "0", units: "LBS", callsign: al + num,
+    cargo: (planPayload(m, ac) / 1000).toFixed(1), pax: "0", units: "LBS", callsign: al + num,
     manualrmk: simbriefRemarks(m) });
   if (S.airframe && (S.airframes || []).some(a => a.reg === S.airframe && a.type === ac)) p.set("reg", S.airframe);
   else if (partnerTail(m, ac)) p.set("reg", partnerTail(m, ac));      // the partner's own aircraft, not SimBrief's default tail
@@ -1367,7 +1376,14 @@ async function loadDossierEcon(m) {
     S.econCache ||= {};
     const e = S.econCache[key] || await api("/api/economics/estimate", { method: "POST", body: { mission_id: m.id, charter: m.charter, aircraft: ac, ofp } });
     S.econCache[key] = e;
+    S.volCap ||= {};
+    const vk = `${m.id}|${ac}`, had = JSON.stringify(S.volCap[vk] || null);
+    if (e.volume_cap) S.volCap[vk] = e.volume_cap; else delete S.volCap[vk];
     if (S.selected?.id !== m.id) return;
+    if (had !== JSON.stringify(S.volCap[vk] || null)) {   // the payload that fits changed: refresh the note and the SimBrief link
+      const vn = $("#volNote"); if (vn) vn.innerHTML = volNoteHtml(S.volCap[vk]);
+      const sb = $("#sbPlan"); if (sb) sb.href = simbriefUrl(m, ac);
+    }
     const me = S.me || await loadMe();
     const hrs = (e.block_min || m.target_block_min || 60) / 60;
     let payLine = "", total = null;
@@ -1482,6 +1498,11 @@ function fleetOrder(m) {
 function capacityNote(m, ac) {
   const f = S.fleet[ac];
   if (!f) return "";
+  const vc = S.volCap?.[`${m.id}|${ac}`];
+  // the volume note fills in when the estimate arrives (#volNote); with it, the hold, not the weight, sets the load
+  return `<div id="volNote">${volNoteHtml(vc)}</div>` + (vc ? "" : weightNote(m, ac, f));
+}
+function weightNote(m, ac, f) {
   if (f.max_payload_lbs < m.payload_lbs)
     return `<div class="notice" style="margin-bottom:10px">The ${esc(f.name)} carries up to ${fmt(f.max_payload_lbs)} lb. You'll deliver a partial load of the ${fmt(m.payload_lbs)} lb consignment.</div>`;
   if (!m.aircraft.includes(ac))
@@ -6826,6 +6847,7 @@ function staffSite() {
       <label class="switch-row"><input type="checkbox" data-rule="live_map_public" ${r.live_map_public ? "checked" : ""}><span><b>Live map on the public site</b><br><span class="muted" style="font-size:13px">Visitors can watch PAC flights on the live map (flight numbers, aircraft and routes; never pilots' names). Members always see it.</span></span></label>
       <label class="switch-row"><input type="checkbox" data-rule="enforce_pilot_location" ${r.enforce_pilot_location ? "checked" : ""}><span><b>Pilots fly from where they are</b><br><span class="muted" style="font-size:13px">A pilot's location is where their last flight ended. To fly from anywhere else they jumpseat there, paid from their wallet.</span></span></label>
       <label class="switch-row"><input type="checkbox" data-rule="direct_entry_checkrides" ${r.direct_entry_checkrides !== false ? "checked" : ""}><span><b>Direct entry type checkrides</b><br><span class="muted" style="font-size:13px">Experienced pilots can take any type checkride regardless of rank or hours. An accepted passing report unlocks that family for line flights. Rank and pay keep their existing progression rules. Turning this off restores rank-based access.</span></span></label>
+      <label class="switch-row"><input type="checkbox" data-rule="volumetric_loading" ${r.volumetric_loading ? "checked" : ""}><span><b>Volumetric loading <span class="tag amber">New</span></b><br><span class="muted" style="font-size:13px">Flights carry only what physically fits in the hold. Light, bulky freight (e-commerce, garments, flowers) fills the aircraft before its weight limit, so those flights load less weight, and PAC's contract price uses chargeable weight so a full hold still pays. Off: loads are planned by weight alone.</span></span></label>
       <label class="switch-row"><input type="checkbox" data-rule="require_release_signature" ${r.require_release_signature === true ? "checked" : ""}><span><b>Captain signs the release</b><br><span class="muted" style="font-size:13px">Pilots review and sign the dispatch release (and the NOTOC when dangerous goods are on board) before PAC ACARS will start the flight.</span></span></label>
       <label class="switch-row"><input type="checkbox" data-rule="enforce_ranks" ${r.enforce_ranks ? "checked" : ""}><span><b>Enforce rank limits</b><br><span class="muted" style="font-size:13px">Pilots can only book aircraft their rank has unlocked, and must pass the checkride before flying the line.</span></span></label>
       <label class="switch-row"><input type="checkbox" data-rule="allow_ground_reposition" ${r.allow_ground_reposition ? "checked" : ""}><span><b>Allow ground repositioning</b><br><span class="muted" style="font-size:13px">GSX or slew moves on the ground are logged but not penalized.</span></span></label>

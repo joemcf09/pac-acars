@@ -71,12 +71,17 @@ def contract(mission, fleet, settings, distance_nm):
     cands = [c for c in mission.get("aircraft", []) if c in live]
     fits = [c for c in cands if live[c].get("max_payload_lbs", 0) >= payload * 0.95]
     cands = fits or cands or list(live)[:1]
+    # volumetric loading: the customer is charged on chargeable weight, the higher of actual and volumetric weight,
+    # so bulky freight that fills the hold before the weight limit still prices like a full load
+    import volume
+    fac = (mission.get("volume_cap") or {}).get("chargeable_factor") or (
+        volume.chargeable_factor(volume.mission_density(mission)) if volume.enabled(settings) and payload else 1.0)
     best = None
     for c in cands:
         ac = live[c]
         blk = planned_block(ac, distance_nm)
         carried = min(payload, ac.get("max_payload_lbs", payload))
-        cost = sum(cost_lines(c, ac, distance_nm, blk, planned_fuel(ac, blk), carried / 2.20462, fuel_price).values())
+        cost = sum(cost_lines(c, ac, distance_nm, blk, planned_fuel(ac, blk), carried / 2.20462 * fac, fuel_price).values())
         if best is None or cost > best[1]:
             best = (c, cost)
     price = best[1] * markup(mission) if mission.get("category") != "Ferry" else 0.0

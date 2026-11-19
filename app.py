@@ -172,7 +172,7 @@ DEFAULT_SETTINGS = {"pilot_name": "", "pilot_id": "PAC0001", "simbrief_username"
                     "source": "MSFS", "demo_speedup": 60, "xplane_host": "127.0.0.1", "map_style": "dark", "allow_ground_reposition": True,
                     "enforce_ranks": False, "enforce_airframes": True,
                     "fuel_price_gal": economics.DEFAULT_FUEL_PRICE, "starting_capital": economics.DEFAULT_START_CAPITAL,
-                    "vatsim_cid": "", "ivao_vid": "", "enforce_pilot_location": True, "require_type_ratings": False, "direct_entry_checkrides": True, "require_release_signature": True,
+                    "vatsim_cid": "", "ivao_vid": "", "enforce_pilot_location": True, "require_type_ratings": False, "direct_entry_checkrides": True, "volumetric_loading": False, "require_release_signature": True,
                     "discord_webhook": "", "discord_departures": True, "discord_arrivals": True,
                     "mail_from": "", "mail_from_name": "Pagani Air Cargo", "mail_reply_to": "", "smtp_host": "", "smtp_port": 587,
                     "smtp_security": "starttls", "smtp_user": "", "smtp_pass": "", "mail_auto_welcome": True, "mail_auto_decline": False,
@@ -1721,7 +1721,7 @@ def import_ofp():
             match = next((a for a in mission.get("aircraft") or [] if FLEET.get(a) and ofp["aircraft_icao"] in (FLEET[a]["icao"], FLEET[a]["simbrief_type"])), None)
             if match:
                 ac_code = match
-    errors, warnings = validate_ofp(ofp, mission, ac_code)
+    errors, warnings = validate_ofp(ofp, volume.booking_mission(mission, ac_code, FLEET, settings()), ac_code)
     return jsonify({"ofp": ofp, "errors": errors, "warnings": warnings, "aircraft": ac_code})
 
 
@@ -1748,6 +1748,7 @@ def create_booking():
     err, frame = va.check_booking(m, ac, (body.get("airframe") or "").upper() or None, settings())
     if err:
         return jsonify({"error": err}), 400
+    m = volume.booking_mission(m, ac, FLEET, settings())   # volumetric loading: only what fits in the hold
     ofp = body.get("ofp")
     try:
         transfer_rows, _ = cargo_transfer_selection(body, m, ac, ofp)
@@ -2928,6 +2929,7 @@ def plan_loadsheet():
     ac = FLEET.get(ac_code)
     if not ac:
         return jsonify({"error": "Choose an aircraft."}), 400
+    m = volume.booking_mission(m, ac_code, FLEET, settings())   # volumetric loading: the preliminary sheet shows what fits
     est = plan_estimate(m, ac_code)
     f = est["fuel"]
     seed = manifest_seed_ok(b.get("seed")) or prelim_seed(m, ac_code)
@@ -3821,7 +3823,8 @@ def economics_estimate():
     if code not in FLEET:
         return jsonify({"error": "Unknown aircraft."}), 400
     dist = gc_distance_nm(m["origin"]["lat"], m["origin"]["lon"], m["destination"]["lat"], m["destination"]["lon"])
-    return jsonify(economics.estimate(m, code, FLEET, settings(), dist))
+    m = volume.booking_mission(m, code, FLEET, settings())
+    return jsonify({**economics.estimate(m, code, FLEET, settings(), dist), "volume_cap": m.get("volume_cap")})
 
 
 @app.post("/api/economics/estimate")
@@ -3834,8 +3837,10 @@ def economics_estimate_post():
     code = (m["aircraft"][0] if m.get("charter") else b.get("aircraft")) or m["aircraft"][0]
     ofp = b.get("ofp") or {}
     dist = gc_distance_nm(m["origin"]["lat"], m["origin"]["lon"], m["destination"]["lat"], m["destination"]["lon"])
-    return jsonify(economics.estimate(m, code, FLEET, settings(), dist, payload_lbs=ofp.get("payload_lbs"),
-                                      block_min=ofp.get("est_block_min"), trip_fuel_lbs=ofp.get("trip_fuel_lbs")))
+    m = volume.booking_mission(m, code, FLEET, settings())   # volumetric loading: the payload this aircraft can fit
+    return jsonify({**economics.estimate(m, code, FLEET, settings(), dist, payload_lbs=ofp.get("payload_lbs"),
+                                         block_min=ofp.get("est_block_min"), trip_fuel_lbs=ofp.get("trip_fuel_lbs")),
+                    "volume_cap": m.get("volume_cap")})
 
 
 def _insurance_policy():
