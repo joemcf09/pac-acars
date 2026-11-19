@@ -14,13 +14,22 @@ _RUNWAYS = None
 
 
 def runways(data_dir: Path):
+    """The runway table. A caller may pass a data folder without runways.json (on the server, pilot data lives in
+    shared/data and the reference data ships with the release), so the copy beside this module is the fallback.
+    Only a successful load is remembered: one lookup in the wrong folder must never leave every later landing
+    and takeoff with no runway."""
     global _RUNWAYS
-    if _RUNWAYS is None:
+    if _RUNWAYS:
+        return _RUNWAYS
+    for folder in (Path(data_dir), Path(__file__).resolve().parent / "data"):
         try:
-            _RUNWAYS = json.loads((data_dir / "runways.json").read_text(encoding="utf-8"))
-        except (FileNotFoundError, json.JSONDecodeError):
-            _RUNWAYS = {}
-    return _RUNWAYS
+            loaded = json.loads((folder / "runways.json").read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            continue
+        if loaded:
+            _RUNWAYS = loaded
+            return loaded
+    return {}
 
 
 def _enu(lat0, lon0, lat, lon):
