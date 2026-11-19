@@ -25,7 +25,10 @@
     "tailstrike_pitch": 11.0,
     "fuel_burn_pph": 5300,
     "maint_per_bh": 1400,
-    "ownership_per_bh": 3000
+    "ownership_per_bh": 3000,
+    "cargo_volume_ft3": 6540,
+    "volume_provisional": false,
+    "volume_source": "Boeing 737-800BCF brochure"
   },
   "B722F": {
     "name": "Boeing 727-200F",
@@ -55,7 +58,10 @@
     "tailstrike_pitch": 10.5,
     "fuel_burn_pph": 9500,
     "maint_per_bh": 3000,
-    "ownership_per_bh": 900
+    "ownership_per_bh": 900,
+    "cargo_volume_ft3": 6600,
+    "volume_provisional": false,
+    "volume_source": "Published 727-200F specifications (two sources agree)"
   },
   "A306F": {
     "name": "Airbus A300-600F",
@@ -85,7 +91,10 @@
     "tailstrike_pitch": 12.5,
     "fuel_burn_pph": 11500,
     "maint_per_bh": 2800,
-    "ownership_per_bh": 3500
+    "ownership_per_bh": 3500,
+    "cargo_volume_ft3": 13800,
+    "volume_provisional": true,
+    "volume_source": "Published A300-600F figures vary from 13,800 to 15,000 ft3"
   },
   "B748F": {
     "name": "Boeing 747-8F",
@@ -113,7 +122,10 @@
     "tailstrike_pitch": 11.0,
     "fuel_burn_pph": 22500,
     "maint_per_bh": 4500,
-    "ownership_per_bh": 12000
+    "ownership_per_bh": 12000,
+    "cargo_volume_ft3": 30192,
+    "volume_provisional": false,
+    "volume_source": "Boeing 747-8F brochure"
   },
   "B77F": {
     "name": "Boeing 777F",
@@ -141,7 +153,10 @@
     "tailstrike_pitch": 11.5,
     "fuel_burn_pph": 17500,
     "maint_per_bh": 3200,
-    "ownership_per_bh": 10000
+    "ownership_per_bh": 10000,
+    "cargo_volume_ft3": 23051,
+    "volume_provisional": false,
+    "volume_source": "Published 777F specifications (two sources agree)"
   },
   "MD11F": {
     "name": "McDonnell Douglas MD-11F",
@@ -169,7 +184,10 @@
     "tailstrike_pitch": 10.0,
     "fuel_burn_pph": 15500,
     "maint_per_bh": 4000,
-    "ownership_per_bh": 4500
+    "ownership_per_bh": 4500,
+    "cargo_volume_ft3": 20300,
+    "volume_provisional": true,
+    "volume_source": "Logistics Cluster aircraft specifications (indicative)"
   },
   "A332F": {
     "name": "Airbus A330-200P2F",
@@ -197,7 +215,10 @@
     "tailstrike_pitch": 11.0,
     "fuel_burn_pph": 13000,
     "maint_per_bh": 3000,
-    "ownership_per_bh": 6500
+    "ownership_per_bh": 6500,
+    "cargo_volume_ft3": 16000,
+    "volume_provisional": false,
+    "volume_source": "EFW A330-200P2F specifications"
   },
   "B732F": {
     "name": "Boeing 737-200C Advanced",
@@ -225,7 +246,10 @@
     "tailstrike_pitch": 14.5,
     "fuel_burn_pph": 5500,
     "maint_per_bh": 1800,
-    "ownership_per_bh": 800
+    "ownership_per_bh": 800,
+    "cargo_volume_ft3": 3800,
+    "volume_provisional": true,
+    "volume_source": "Estimate: no published 737-200F figure found"
   },
   "B733F": {
     "name": "Boeing 737-300SF",
@@ -253,7 +277,10 @@
     "tailstrike_pitch": 13.5,
     "fuel_burn_pph": 5000,
     "maint_per_bh": 1600,
-    "ownership_per_bh": 1500
+    "ownership_per_bh": 1500,
+    "cargo_volume_ft3": 4600,
+    "volume_provisional": false,
+    "volume_source": "Published 737-300F specifications (two sources agree)"
   },
   "B752F": {
     "name": "Boeing 757-200F",
@@ -281,7 +308,10 @@
     "tailstrike_pitch": 12.5,
     "fuel_burn_pph": 7000,
     "maint_per_bh": 2000,
-    "ownership_per_bh": 3000
+    "ownership_per_bh": 3000,
+    "cargo_volume_ft3": 8400,
+    "volume_provisional": false,
+    "volume_source": "Published 757-200F figures, checked against the 757-200PCF deck layout"
   },
   "B763F": {
     "name": "Boeing 767-300F",
@@ -309,7 +339,10 @@
     "tailstrike_pitch": 11.0,
     "fuel_burn_pph": 10500,
     "maint_per_bh": 2500,
-    "ownership_per_bh": 5000
+    "ownership_per_bh": 5000,
+    "cargo_volume_ft3": 15724,
+    "volume_provisional": false,
+    "volume_source": "Boeing 767-300BCF brochure, matched by the IAI 767-300BDSF"
   },
   "B742F": {
     "name": "Boeing 747-200F",
@@ -338,6 +371,40 @@
     "tailstrike_pitch": 12.5,
     "fuel_burn_pph": 25000,
     "maint_per_bh": 6000,
-    "ownership_per_bh": 3000
+    "ownership_per_bh": 3000,
+    "cargo_volume_ft3": 26000,
+    "volume_provisional": false,
+    "volume_source": "Same fuselage as the 747-400F (Atlas Air 747-400F specifications)"
+  },
+  "B744F": {
+    "name": "Boeing 747-400F",
+    "icao": "B744",
+    "simbrief_type": "B744",
+    "max_payload_lbs": 249100,
+    "mtow_lbs": 875000,
+    "vmo_note": "Nose-door 747 with a two-pilot glass cockpit, the long-haul workhorse of the cargo world",
+    "range_nm": 4400,
+    "min_rwy_ft": 10500,
+    "cruise_ktas": 490,
+    "mach": 0.85,
+    "role": "Heavy-lift long-haul freighter",
+    "division": "PAC",
+    "engines": "4 × General Electric CF6-80C2B5F",
+    "crew": "2 (Captain, First Officer)",
+    "main_deck": "30 main-deck pallet positions, nose and side cargo doors",
+    "entered_service": 1993,
+    "registrations": [],
+    "description": "The 747-400F bridges the classic 747-200F and the 747-8F: the same nose door and huge main deck, with a two-pilot glass cockpit and longer legs. It carries nearly 250,000 lb, so it suits PAC's heaviest long-haul lanes like Hong Kong to Anchorage and Cincinnati, or Dubai to Europe.",
+    "photo": "/static/pac-logo.png",
+    "thumb": "/static/pac-logo.png",
+    "sim": "MSFS",
+    "sim_model": "",
+    "tailstrike_pitch": 11.0,
+    "fuel_burn_pph": 24000,
+    "maint_per_bh": 5000,
+    "ownership_per_bh": 5500,
+    "cargo_volume_ft3": 26045,
+    "volume_provisional": false,
+    "volume_source": "Atlas Air 747-400F specifications"
   }
 }

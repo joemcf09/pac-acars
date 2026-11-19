@@ -6655,6 +6655,7 @@ const TYPE_FIELDS = [
   ["mach", "Cruise Mach", "number", ""], ["tailstrike_pitch", "Tail-strike pitch (°)", "number", ""], ["fuel_burn_pph", "Fuel burn (lb/h)", "number", ""],
   ["maint_per_bh", "Maintenance ($/block h)", "number", ""], ["ownership_per_bh", "Ownership ($/block h)", "number", ""],
   ["engines", "Engines", "text", ""], ["crew", "Flight crew", "text", ""], ["main_deck", "Main deck", "text", ""], ["entered_service", "Type in service since", "number", ""],
+  ["cargo_volume_ft3", "Cargo volume, main + lower (ft³)", "number", ""], ["volume_source", "Volume source", "text", ""],
   ["description", "Description", "textarea", ""]];
 async function staffTypes(editCode, host = $("#staffBody")) {
   let d;
@@ -6988,7 +6989,7 @@ const DIVISION_FALLBACK = [{ name: "PAC Feeder", short: "Feeder" }, { name: "PAC
 const divisions = () => (S.divisions && S.divisions.length ? S.divisions : DIVISION_FALLBACK);
 const divOf = code => S.fleet?.[code]?.division || "";
 const divShort = name => (divisions().find(d => d.name === name) || {}).short || String(name || "").replace(/^PAC\s+/, "");
-const FLEET_ORDER = ["B738F", "B722F", "A306F", "MD11F", "A332F", "B77F", "B748F", "B732F", "B733F", "B752F", "B763F", "B742F"];
+const FLEET_ORDER = ["B738F", "B722F", "A306F", "MD11F", "A332F", "B77F", "B744F", "B748F", "B732F", "B733F", "B752F", "B763F", "B742F"];
 const simTag = a => a?.sim && a.sim !== "MSFS" ? `<span class="tag ${a.sim === "X-Plane" ? "dark" : "grey"}" style="margin-left:6px">${esc(a.sim)}</span>` : "";
 const NUM_WORDS = ["zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten", "eleven", "twelve", "thirteen", "fourteen", "fifteen"];
 S.fleetSim = "All";
@@ -8521,6 +8522,27 @@ function pacTimingReview(tc, er) {
     <p class="pd-note">Recorded observations only. They do not change the flight grade or your pay.</p>
   </section>`;
 }
+function pacLoadFactor(lf) {
+  if (!lf) return '';
+  const n = v => Number(v).toLocaleString('en-US');
+  const bar = (label, pct, sub) => `<div class="pd-metric"><small>${label}</small><strong>${Math.round(pct)}%</strong>
+    <span class="pd-lf"><i style="width:${Math.min(100, Math.max(0, pct))}%"></i></span><span class="pd-sub">${sub}</span></div>`;
+  const pill = lf.over_volume ? ['Over the hold volume', 'warn'] : lf.limited_by === 'volume' ? ['Volume limited', ''] : ['Weight limited', ''];
+  const why = lf.over_volume
+    ? `As planned, this freight would take more space than the hold has. PAC plans loads by weight today; capping them by volume comes in a later update.`
+    : lf.limited_by === 'volume'
+      ? `The hold fills before the weight limit: this freight averages ${n(lf.load_density)} kg/m³, lighter than the ${n(lf.design_density)} kg/m³ at which this aircraft fills by weight and space together.`
+      : `This freight averages ${n(lf.load_density)} kg/m³, denser than the ${n(lf.design_density)} kg/m³ at which this aircraft fills by weight and space together, so weight runs out first.`;
+  return `<section class="pd-timing" data-pd-section="Load factor">
+    <h3>Load factor</h3>
+    <div class="pd-grid pd-grid-3">
+      ${bar('By weight', lf.weight_pct, `${n(lf.payload_lbs)} of ${n(lf.max_payload_lbs)} lb`)}
+      ${bar('By volume', lf.volume_pct, `${n(lf.volume_ft3)} of ${n(lf.capacity_ft3)} ft³`)}
+      <div class="pd-metric"><small>Limited by</small><strong>${lf.limited_by === 'volume' ? 'Volume' : 'Weight'}</strong><span class="pd-sub"><span class="pd-pill ${pill[1]}">${pill[0]}</span></span></div>
+    </div>
+    <p class="pd-note">${why}${lf.provisional ? ' This aircraft\'s cargo volume is a provisional figure.' : ''} Shown for information: it does not change the grade, pay or revenue.</p>
+  </section>`;
+}
 function pacDebrief(p, d = p) {
   const e = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const n = v => typeof v === 'number' && Number.isFinite(v);
@@ -8558,6 +8580,7 @@ function pacDebrief(p, d = p) {
     <div class="pd-columns"><div><h3>What went well</h3>${list(good) || '<p>Not enough recorded evidence to identify strengths.</p>'}</div><div><h3>${focus.length ? 'Technique notes for next time' : 'Keep it up'}</h3>${list(focus) || '<p>Nothing to work on from this flight. Fly the next one the same way.</p>'}${focus.length && !(d.breakdown || []).some(x => x[1] < 0) ? '<p class="muted" style="font-size:13px">These notes don\'t lower your grade. They\'re what a check captain would mention after the flight.</p>' : ''}</div></div>
     ${pacFlightConfiguration(d.flight_configuration || p.flight_configuration)}
     ${pacTimingReview(d.time_checks || p.time_checks, d.engine_review || p.engine_review)}
+    ${pacLoadFactor(d.load_factors || p.load_factors)}
     ${pacAfterAction(p.debrief || d.debrief)}
     ${pacShipmentDebrief(p, d)}
     <details><summary>The evidence behind the feedback</summary>${list(facts) || '<p>No detailed measurements available for this report.</p>'}<p class="pd-note">The approach check looks at your speed spread below 1,000 ft and your descent rate below 500 ft.</p></details>
@@ -8626,7 +8649,7 @@ function pacReportNav(root) {
     if (['Landing','Takeoff','Replay'].includes(name)) {h.dataset.pdSection=name;sections.push(h);}
   }
   const nav=document.createElement('nav');nav.className='pd-nav';nav.setAttribute('aria-label','Flight report sections');
-  for (const name of ['Summary','Configuration','Timing','Shipment','Landing','Takeoff','Replay']) {
+  for (const name of ['Summary','Configuration','Timing','Load factor','Shipment','Landing','Takeoff','Replay']) {
     const target=sections.find(x=>x.dataset.pdSection===name);if(!target)continue;
     const b=document.createElement('button');b.type='button';b.textContent=name;
     b.onclick=()=>{target.scrollIntoView({block:'start',behavior:'auto'});target.tabIndex=-1;target.focus({preventScroll:true});};nav.appendChild(b);
@@ -8634,7 +8657,7 @@ function pacReportNav(root) {
   root.prepend(nav);
 }
 
-{const style=document.createElement("style");style.textContent=".pac-debrief{border:1px solid var(--line,#d8dce3);border-top:4px solid #c80000;border-radius:8px;background:var(--white,#fff);color:var(--ink,#20252b);padding:24px;margin:18px 0;font:15px/1.6 system-ui}.pd-head{display:flex;justify-content:space-between;gap:24px}.pd-head h2{font-size:30px;margin:5px 0}.pd-head p{margin:4px 0 18px}.pd-head small{font-weight:700;letter-spacing:1px;color:var(--ink,#20252b)}.pd-grade{display:flex;flex-direction:column;align-items:center;min-width:140px}.pd-grade strong{font-size:48px;line-height:1.2}.pd-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}.pd-metric{border:1px solid var(--line,#d8dce3);padding:16px;border-radius:6px;display:flex;flex-direction:column}.pd-metric strong{font-size:25px}.pd-metric strong span{font-size:13px;font-weight:400}.pd-columns{display:grid;grid-template-columns:1fr 1fr;gap:28px;margin:20px 0}.pac-debrief h3{font-size:17px;margin:8px 0}.pac-debrief details{border-top:1px solid var(--line,#d8dce3);padding:14px 0}.pac-debrief summary{cursor:pointer;font-weight:700}.pd-note{color:var(--steel,#586575);font-size:13px}.pac-debrief p{max-width:85ch}@media(max-width:700px){.pd-grid{grid-template-columns:1fr 1fr}.pd-columns{grid-template-columns:1fr;gap:8px}.pd-head{flex-direction:column}.pd-grade{align-items:flex-start}.pac-debrief{padding:16px}}\n.pd-shipment{padding:22px;background:var(--paper,#f6f7f9);border-left:4px solid #c80000;margin:22px 0}.pd-shipment>small{font-weight:700;letter-spacing:1px;color:var(--ink,#20252b)}\n\n.pd-nav{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0 20px}.pd-nav button{background:var(--white,#fff);color:var(--ink,#20252b);border:1px solid var(--line,#ddd);padding:9px 14px;cursor:pointer;border-radius:4px;font:inherit}.pd-nav button:hover,.pd-nav button:focus,.pd-nav button:focus-visible,.pd-nav button:active{outline:2px solid #c80000;color:var(--ink,#20252b)!important;background:var(--white,#fff)!important}.pd-shipment{padding:16px 20px}.pd-shipment details{padding-bottom:0}[data-pd-section]{scroll-margin-top:16px}.pd-configuration{border-top:1px solid var(--line,#d8dce3);padding-top:18px;margin:20px 0}.pd-configuration .pd-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.pd-configuration .pd-metric strong{font-size:19px}.pd-light-list{display:grid;gap:2px;margin-top:7px}.pd-light-list>div{display:flex;justify-content:space-between;gap:12px;font-size:13px}.pd-light-list b{font-weight:600}.pd-configuration .pd-note{margin:12px 0 0}@media(max-width:700px){.pd-configuration .pd-grid{grid-template-columns:1fr}}\n.pd-timing{border-top:1px solid var(--line,#d8dce3);padding-top:18px;margin:20px 0}.pd-timing h4{font-size:16px;margin:22px 0 8px}.pd-timing .pd-metric strong{font-size:21px}.pd-sub{font-size:13px;color:var(--steel,#586575)}.pd-grid-3{grid-template-columns:repeat(3,minmax(0,1fr))}.pd-scroll{overflow-x:auto}.pd-checks{width:100%;border-collapse:collapse;margin-top:12px}.pd-checks td{padding:9px 10px;border-top:1px solid var(--line,#d8dce3);vertical-align:top;font-size:14px}.pd-checks td:first-child{font-weight:600;white-space:nowrap}.pd-checks td:last-child{text-align:right;white-space:nowrap}.pd-pill{display:inline-block;padding:2px 10px;border-radius:999px;font-size:12px;font-weight:700;background:#e6f4ea;color:#17623a}.pd-pill.warn{background:#fff1dc;color:#8a4b00}.pd-pill.na{background:#eceff3;color:#586575}.pd-timing .pd-note{margin:12px 0 0}@media(max-width:700px){.pd-grid-3{grid-template-columns:1fr}}\n";document.head.appendChild(style);}
+{const style=document.createElement("style");style.textContent=".pac-debrief{border:1px solid var(--line,#d8dce3);border-top:4px solid #c80000;border-radius:8px;background:var(--white,#fff);color:var(--ink,#20252b);padding:24px;margin:18px 0;font:15px/1.6 system-ui}.pd-head{display:flex;justify-content:space-between;gap:24px}.pd-head h2{font-size:30px;margin:5px 0}.pd-head p{margin:4px 0 18px}.pd-head small{font-weight:700;letter-spacing:1px;color:var(--ink,#20252b)}.pd-grade{display:flex;flex-direction:column;align-items:center;min-width:140px}.pd-grade strong{font-size:48px;line-height:1.2}.pd-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}.pd-metric{border:1px solid var(--line,#d8dce3);padding:16px;border-radius:6px;display:flex;flex-direction:column}.pd-metric strong{font-size:25px}.pd-metric strong span{font-size:13px;font-weight:400}.pd-columns{display:grid;grid-template-columns:1fr 1fr;gap:28px;margin:20px 0}.pac-debrief h3{font-size:17px;margin:8px 0}.pac-debrief details{border-top:1px solid var(--line,#d8dce3);padding:14px 0}.pac-debrief summary{cursor:pointer;font-weight:700}.pd-note{color:var(--steel,#586575);font-size:13px}.pac-debrief p{max-width:85ch}@media(max-width:700px){.pd-grid{grid-template-columns:1fr 1fr}.pd-columns{grid-template-columns:1fr;gap:8px}.pd-head{flex-direction:column}.pd-grade{align-items:flex-start}.pac-debrief{padding:16px}}\n.pd-shipment{padding:22px;background:var(--paper,#f6f7f9);border-left:4px solid #c80000;margin:22px 0}.pd-shipment>small{font-weight:700;letter-spacing:1px;color:var(--ink,#20252b)}\n\n.pd-nav{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0 20px}.pd-nav button{background:var(--white,#fff);color:var(--ink,#20252b);border:1px solid var(--line,#ddd);padding:9px 14px;cursor:pointer;border-radius:4px;font:inherit}.pd-nav button:hover,.pd-nav button:focus,.pd-nav button:focus-visible,.pd-nav button:active{outline:2px solid #c80000;color:var(--ink,#20252b)!important;background:var(--white,#fff)!important}.pd-shipment{padding:16px 20px}.pd-shipment details{padding-bottom:0}[data-pd-section]{scroll-margin-top:16px}.pd-configuration{border-top:1px solid var(--line,#d8dce3);padding-top:18px;margin:20px 0}.pd-configuration .pd-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.pd-configuration .pd-metric strong{font-size:19px}.pd-light-list{display:grid;gap:2px;margin-top:7px}.pd-light-list>div{display:flex;justify-content:space-between;gap:12px;font-size:13px}.pd-light-list b{font-weight:600}.pd-configuration .pd-note{margin:12px 0 0}@media(max-width:700px){.pd-configuration .pd-grid{grid-template-columns:1fr}}\n.pd-timing{border-top:1px solid var(--line,#d8dce3);padding-top:18px;margin:20px 0}.pd-timing h4{font-size:16px;margin:22px 0 8px}.pd-timing .pd-metric strong{font-size:21px}.pd-sub{font-size:13px;color:var(--steel,#586575)}.pd-grid-3{grid-template-columns:repeat(3,minmax(0,1fr))}.pd-scroll{overflow-x:auto}.pd-checks{width:100%;border-collapse:collapse;margin-top:12px}.pd-checks td{padding:9px 10px;border-top:1px solid var(--line,#d8dce3);vertical-align:top;font-size:14px}.pd-checks td:first-child{font-weight:600;white-space:nowrap}.pd-checks td:last-child{text-align:right;white-space:nowrap}.pd-pill{display:inline-block;padding:2px 10px;border-radius:999px;font-size:12px;font-weight:700;background:#e6f4ea;color:#17623a}.pd-pill.warn{background:#fff1dc;color:#8a4b00}.pd-pill.na{background:#eceff3;color:#586575}.pd-lf{display:block;height:6px;border-radius:3px;background:var(--line,#e3e6eb);margin:6px 0 4px;overflow:hidden}.pd-lf i{display:block;height:100%;background:#C80000}.pd-timing .pd-note{margin:12px 0 0}@media(max-width:700px){.pd-grid-3{grid-template-columns:1fr}}\n";document.head.appendChild(style);}
 
 function pacParkedInit() {
   if (document.getElementById('parkedControls')) return;

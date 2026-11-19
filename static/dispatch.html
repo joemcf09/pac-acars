@@ -411,6 +411,8 @@ function loadsheetLines(d) {
   out.push(esc(L("LOAD IN COMPARTMENTS", 21) + R(N(d.totals.weight_lbs), 8) + "  " + `MAIN/${N(d.totals.main_lbs)} LOWER/${N(d.totals.lower_lbs)}`));
   out.push(esc(L("PASSENGER/CABIN BAG", 21) + R("0", 8) + "  0/0/0/0  TTL 0  CAB 0"));
   out.push(esc(L("TOTAL TRAFFIC LOAD", 21) + R(N(ls.payload), 8)));
+  const lfv = d.load_factors;   // volumetric loading: weight and volume load factor side by side (informational)
+  if (lfv) out.push(esc(L("LOAD FACTOR", 21) + `WT ${Math.round(lfv.weight_pct)}%  VOL ${Math.round(lfv.volume_pct)}%  ${lfv.over_volume ? "CUBE EXCEEDS HOLD VOLUME" : lfv.limited_by === "volume" ? "VOLUME LIMITED" : "WEIGHT LIMITED"}  ${N(lfv.volume_ft3)}/${N(lfv.capacity_ft3)} FT3`));
   out.push(esc(L("DRY OPERATING WEIGHT", 21) + R(N(ls.dow), 8)));
   out.push(esc(L("ZERO FUEL WEIGHT ACTUAL", 24) + R(N(ls.zfw), 8) + "  MAX " + R(N(lim.mzfw), 8) + "  " + lf(0) + "  ADJ"));
   out.push(esc(L("TAKE OFF FUEL", 21) + R(N(ls.tof), 8)));

@@ -46,6 +46,7 @@ PRICES = {
     "B77F":  {"new": 180e6, "used": None,  "lease": 1.20e6, "wet": 1.10e6},
     "B763F": {"new": 100e6, "used": 30e6,  "lease": 0.35e6, "wet": 0.45e6},
     "B748F": {"new": None,  "used": 120e6, "lease": 1.30e6, "wet": 1.30e6},
+    "B744F": {"new": None,  "used": 28e6,  "lease": 0.55e6, "wet": 0.95e6},
     "B752F": {"new": None,  "used": 15e6,  "lease": 0.18e6, "wet": 0.30e6},
     "B738F": {"new": None,  "used": 22e6,  "lease": 0.21e6, "wet": 0.28e6},
     "A306F": {"new": None,  "used": 10e6,  "lease": 0.15e6, "wet": 0.30e6},
@@ -59,7 +60,7 @@ PRICES = {
 NEW_FROM = {"B77F": "boeing", "B763F": "boeing"}
 CONVERTERS = {"B763F": ["bcf", "iai"], "B738F": ["bcf", "iai"], "B752F": ["precision"]}
 LESSORS = ["aercap", "alc", "avolon", "bbam", "smbc", "cam"]
-ACMI = {"B748F": ["atlas"], "B77F": ["atlas"], "B763F": ["atlas", "abx"], "B738F": ["asl"], "B752F": ["asl"], "A306F": ["asl"], "MD11F": ["atlas"]}
+ACMI = {"B748F": ["atlas"], "B744F": ["atlas"], "B77F": ["atlas"], "B763F": ["atlas", "abx"], "B738F": ["asl"], "B752F": ["asl"], "A306F": ["asl"], "MD11F": ["atlas"]}
 LEAD_DAYS = {"new": 60, "conversion": 45, "used": 14, "lease": 7, "wet": 2}
 DELIVERY_CENTER = {"boeing": "KPAE"}          # Boeing delivers widebodies from Paine Field (Everett)
 HUBS = ("KCVG", "LIMC", "KMIA", "OMDW", "VHHH", "PANC")

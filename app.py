@@ -25,6 +25,7 @@ from flask import Flask, jsonify, request, send_file, send_from_directory
 from sim_sources import Telemetry, gc_distance_nm
 from tracker import FlightRecorder, PHASES, zulu, expected_engines
 import flight_timing
+import volume
 import va
 import analysis
 import dispatch
@@ -118,10 +119,10 @@ FLEET = json.loads((RESOURCE_DATA / "fleet.json").read_text(encoding="utf-8"))
 FLEET_CUSTOM_PATH = DATA / "fleet_custom.json"   # your edits, kept apart so updates don't overwrite them
 FLEET_PHOTO_DIR = DATA / "fleet_photos"
 FLEET_TEXT = ("role", "division", "description", "engines", "crew", "main_deck", "sim", "sim_model", "name", "icao", "simbrief_type",
-              "unlock_rank", "simbrief_airframe")
+              "unlock_rank", "simbrief_airframe", "volume_source")
 FLEET_NUM = ("max_payload_lbs", "mtow_lbs", "range_nm", "min_rwy_ft", "cruise_ktas", "mach", "tailstrike_pitch", "fuel_burn_pph",
-             "maint_per_bh", "ownership_per_bh", "entered_service")
-FLEET_EDITABLE = FLEET_TEXT + FLEET_NUM + ("registrations", "photo", "thumb", "retired")
+             "maint_per_bh", "ownership_per_bh", "entered_service", "cargo_volume_ft3")
+FLEET_EDITABLE = FLEET_TEXT + FLEET_NUM + ("registrations", "photo", "thumb", "retired", "volume_provisional")
 FLEET_BASE_CODES = set(FLEET)
 TYPE_DEFAULTS = {"sim": "MSFS", "sim_model": "", "role": "", "division": "PAC", "description": "", "engines": "", "crew": "2 (Captain, First Officer)",
                  "main_deck": "", "mach": 0.8, "entered_service": None, "registrations": [], "photo": "/static/pac-logo.png",
@@ -659,6 +660,11 @@ def build_pirep(booking, rec: FlightRecorder):
     except Exception as e:
         app.logger.exception("flight timing review: %s", e)
         p["time_checks"], p["engine_review"] = None, None
+    try:   # volumetric loading, stage 1: weight and volume load factor, informational only
+        p["load_factors"] = volume.load_factors(booking.get("dispatch"), FLEET.get(booking["aircraft"], {}))
+    except Exception as e:
+        app.logger.exception("load factors: %s", e)
+        p["load_factors"] = None
     series = getattr(rec, "landing_series", None)
     if series and rec.landing:
         near = va.nearest_airport(rec.landing["lat"], rec.landing["lon"], within=4)
@@ -990,6 +996,8 @@ def staff_fleet_type_save():
                 return jsonify({"error": f"{k.replace('_', ' ')} must be a number."}), 400
     if edits.get("unlock_rank") and edits["unlock_rank"] not in [r["name"] for r in va.RANKS]:
         edits["unlock_rank"] = ""
+    if "cargo_volume_ft3" in edits:
+        edits["volume_provisional"] = False   # staff entered the figure themselves
     if is_new:
         missing = [k for k in ("name", "icao", "simbrief_type", "max_payload_lbs", "mtow_lbs", "range_nm", "min_rwy_ft", "cruise_ktas")
                    if not edits.get(k)]
@@ -1936,6 +1944,10 @@ def dispatch_current():
     d["revision"] = releases.revision(booking)
     d["requested_at"] = booking.get("requested_at")
     shipments.enrich(d)                      # full air waybill, acceptance record and tracking for each shipment
+    try:
+        d["load_factors"] = volume.load_factors(d, ac)
+    except Exception:
+        d["load_factors"] = None
     d["release_amended"] = bool(booking.get("release_amended"))
     d["signature_required"] = signature_required(booking)
     d["hoppie"] = bool(__import__("hoppie").logon(DATA))
@@ -2727,7 +2739,7 @@ def discord_share():
 
 # ---------------------------------------------------------------- flight planning helper
 CEILING_FL = {"B738F": 370, "B732F": 350, "B733F": 370, "B722F": 350, "A306F": 350, "A332F": 390, "MD11F": 370, "B752F": 390,
-              "B763F": 390, "B77F": 410, "B742F": 350, "B748F": 410}
+              "B763F": 390, "B77F": 410, "B742F": 350, "B744F": 410, "B748F": 410}
 
 
 def initial_course(a, b):
@@ -3657,7 +3669,7 @@ def file_pirep():
               "takeoff_analysis": p.get("takeoff_analysis"), "economics": p.get("economics"), "integrity": p.get("integrity"),
               "online": p.get("online"), "urgent": p.get("urgent"), "job": p.get("job"), "conflict": p.get("conflict"),
               "debrief": p.get("debrief"), "flight_configuration": p.get("flight_configuration"),
-              "time_checks": p.get("time_checks"), "engine_review": p.get("engine_review")}
+              "time_checks": p.get("time_checks"), "engine_review": p.get("engine_review"), "load_factors": p.get("load_factors")}
     with db() as con:
         con.execute("""INSERT OR IGNORE INTO pireps (filed_at, mission_id, mission_title, category, flight_number, aircraft,
             registration, dep, arr, planned_arr, block_min, flight_min, distance_nm, fuel_used_lbs, payload_lbs,

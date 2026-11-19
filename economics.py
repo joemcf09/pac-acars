@@ -17,7 +17,7 @@ import math
 DEFAULT_FUEL_PRICE = 2.85        # USD per US gallon of Jet-A
 DEFAULT_START_CAPITAL = 100_000_000
 LB_PER_GAL = 6.7
-WIDEBODIES = {"A306F", "A332F", "B763F", "MD11F", "B77F", "B742F", "B748F"}
+WIDEBODIES = {"A306F", "A332F", "B763F", "MD11F", "B77F", "B742F", "B744F", "B748F"}
 THREE_CREW = {"B722F", "B742F"}
 
 # Contract markup over the planned cost of the job, by kind of work
