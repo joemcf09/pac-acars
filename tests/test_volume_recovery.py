@@ -42,6 +42,8 @@ with A.db() as con:
     assert sum(round(r["gross_weight_lbs"]) for r in rows) == mission["volume_cap"]["from_lbs"] - carried
     assert all(r["status"] == "AT_STATION" and r["current_station"] == mission["origin"]["icao"]
                and json.loads(r["data"])["unit_details"] for r in rows)
+    assert all([e["code"] for e in json.loads(r["data"])["awb_doc"]["track"]] == ["BKD", "RCS"]
+               and json.loads(r["data"])["awb_doc"]["total"] == 0 for r in rows)
     options = cargo_network.transfer_options(con, mission["origin"]["icao"],
                                              mission["destination"]["icao"], A.ROUTES.values(), "PAC0001")
     selected = [x for x in options if x["awb"] == awbs[0]]
