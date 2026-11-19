@@ -60,7 +60,8 @@ def remote_update_script(update_sh=f"{PAC_DIR}/current/deploy/update.sh",
     the whole command returns: the cleanup (chown, rm) runs afterward but can
     never change the result, so a failed update can't be masked as success."""
     return (
-        f"set -u; chmod +x {pac_dir}/current/deploy/*.sh || exit 1; "
+        # strip any Windows line endings from the live scripts first, so a release built with them can still deploy
+        f"set -u; sed -i 's/\\r$//' {pac_dir}/current/deploy/*.sh || exit 1; chmod +x {pac_dir}/current/deploy/*.sh || exit 1; "
         f"{update_sh} {zip_remote}; rc=$?; "
         # cleanup is best-effort and must not affect rc
         f"chown -R pac:pac {pac_dir}/releases {pac_dir}/shared {pac_dir}/current {pac_dir}/previous 2>/dev/null || true; "
@@ -107,7 +108,13 @@ def package(zip_path: Path) -> int:
     with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as z:
         for p in files:
             # update.sh looks for a single top-level pac-acars/ folder in the zip
-            z.write(p, Path("pac-acars") / p.relative_to(ROOT))
+            arc = Path("pac-acars") / p.relative_to(ROOT)
+            if p.suffix == ".sh":
+                # Windows checkouts turn line endings into CRLF, and Linux then can't run the script
+                # ("bash\r: No such file or directory"). Always ship shell scripts with LF endings.
+                z.writestr(str(arc).replace("\\", "/"), p.read_bytes().replace(b"\r\n", b"\n"))
+            else:
+                z.write(p, arc)
     mb = zip_path.stat().st_size / (1024 * 1024)
     print(f"  {len(files)} files, {mb:.1f} MB")
     if mb > MAX_MB:
