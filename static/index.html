@@ -24,7 +24,8 @@
 <link rel="icon" href="/static/favicon.png">
 <link href="/static/fonts/fonts.css?v=20261103" rel="stylesheet">
 <link rel="stylesheet" href="/static/vendor/leaflet/leaflet.css">
-<script src="/static/vendor/leaflet/leaflet.js"></script>
+<link rel="preconnect" href="https://server.arcgisonline.com">
+<link rel="preconnect" href="https://discord.com">
 <script>
   // the theme is set before anything draws, so there's no white flash in dark mode
   (function () {
@@ -327,9 +328,10 @@
 
 <div class="toast" id="toast" role="status" hidden></div>
 
+<script src="/static/vendor/leaflet/leaflet.js"></script>   <!-- the map library: needed only once the page script runs, so it no longer holds up the first paint -->
 <script src="/static/cargo-programs.js?v=20261117a"></script>
 <script src="/static/cargo-guide.js?v=ill3-20261110"></script>
 <script src="/static/problem-reports.js?v=20261021"></script>
-<script src="/static/app.js?v=20261119b"></script>
+<script src="/static/app.js?v=20261119c"></script>
 </body>
 </html>

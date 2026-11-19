@@ -1482,13 +1482,14 @@ def reset_photo():
 # ---------------------------------------------------------------- routes
 @app.after_request
 def no_stale_app_files(resp):
-    if request.path in ("/", "/dispatch") or request.path.endswith(("/app.js", "/app.css", "/theme-loadsheet.css", "index.html", "dispatch.html")):
+    if request.path.startswith("/static/") and request.args.get("v") and resp.status_code == 200:
+        # versioned files (app.js?v=20261119b): every change gets a new ?v=, so the old address never changes content
+        # and browsers (and Cloudflare) can keep it for a year without asking again
+        resp.headers["Cache-Control"] = "public, max-age=31536000, immutable"
+    elif request.path in ("/", "/dispatch") or request.path.endswith(("/app.js", "/app.css", "/theme-loadsheet.css", "index.html", "dispatch.html")):
         resp.headers["Cache-Control"] = "no-cache"  # always revalidate, so an update shows up on the next load
-    elif request.path.startswith("/static/") and request.args.get("v") and resp.status_code == 200:
-        # versioned files (style.css?v=20261102): every change gets a new ?v=, so browsers can keep them for a week
-        # instead of asking the server about each one on every page load
-        resp.headers["Cache-Control"] = "public, max-age=604800"
-    elif request.path.startswith(("/static/fonts/", "/static/ranks/", "/static/partners/", "/static/vendor/")) and resp.status_code == 200:
+    elif request.path.startswith(("/static/fonts/", "/static/ranks/", "/static/partners/", "/static/vendor/", "/static/illustrations/",
+                                  "/static/tools/")) and resp.status_code == 200:
         resp.headers["Cache-Control"] = "public, max-age=604800"   # fonts, map library, rank insignia and partner logos rarely change
     return resp
 
