@@ -526,12 +526,27 @@ def landing_weight_check(code, weight):
     return w, lim[1]
 
 
+def single_engine_taxi_plausible(starts, expected):
+    """Single-engine taxi means taxiing out on fewer engines and starting the rest later, on the way to the runway.
+    When every engine was seen starting, that shows as an engine started during taxi-out well after the first one.
+    Engines all started within a couple of minutes (the normal start at the gate or on pushback) can't be one,
+    whatever a single telemetry sample said. Without a complete start record, keep what ACARS reported."""
+    starts = [e for e in (starts or []) if e.get("t") is not None]
+    if not expected or len(starts) < expected:
+        return True
+    starts = sorted(starts, key=lambda e: e["t"])
+    late = [e for e in starts[1:] if e.get("phase") == "TAXI_OUT" and e["t"] - starts[0]["t"] >= 120]
+    return bool(late)
+
+
 def flight_configuration(rec):
     """Return recorded configuration for the pilot debrief, if this flight has any."""
     starts = getattr(rec, "eng_starts", None) or []
     departure = getattr(rec, "dep_config", None) or {}
     arrival = getattr(rec, "arr_config", None) or {}
     single_taxi = bool(getattr(rec, "single_eng_taxi", False))
+    if single_taxi and not single_engine_taxi_plausible(starts, expected_engines(getattr(rec, "booking", None) or {})):
+        single_taxi = False   # older ACARS flagged a single moment while the other engines were still coming up
     if not (starts or departure or arrival or single_taxi):
         return None  # older ACARS records have no configuration capture
     return {"eng_starts": starts, "single_eng_taxi": single_taxi,

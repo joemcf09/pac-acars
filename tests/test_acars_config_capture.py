@@ -263,12 +263,20 @@ class TestSingleEngTaxi:
         return rec
 
     def test_single_eng_taxi_detected(self):
-        """Moving with 1-of-2 engines running during TAXI_OUT sets the flag."""
+        """Moving with 1-of-2 engines running during TAXI_OUT for 30 seconds sets the flag."""
         rec = self._rec_in_taxi()
-        s = _telemetry(t=1200.0, gs=5.0, num_engines=2,
-                       eng1_running=True, eng2_running=False)
-        rec.update(s)
+        for t in (1200.0, 1215.0, 1231.0):
+            rec.update(_telemetry(t=t, gs=5.0, num_engines=2, eng1_running=True, eng2_running=False))
         assert rec.single_eng_taxi is True
+
+    def test_brief_single_engine_moment_is_not_single_engine_taxi(self):
+        """One engine running for a few seconds while the other spools up is a normal start, not single-engine taxi."""
+        rec = self._rec_in_taxi()
+        rec.update(_telemetry(t=1200.0, gs=5.0, num_engines=2, eng1_running=True, eng2_running=False))
+        rec.update(_telemetry(t=1205.0, gs=5.0, num_engines=2, eng1_running=True, eng2_running=False))
+        rec.update(_telemetry(t=1210.0, gs=5.0, num_engines=2, eng1_running=True, eng2_running=True))
+        rec.update(_telemetry(t=1300.0, gs=5.0, num_engines=2, eng1_running=True, eng2_running=True))
+        assert rec.single_eng_taxi is False
 
 
     def test_no_flag_when_engine_status_unknown(self):
@@ -312,8 +320,8 @@ class TestSingleEngTaxi:
     def test_flag_never_resets(self):
         """Once set True the flag stays True."""
         rec = self._rec_in_taxi()
-        rec.update(_telemetry(t=1200.0, gs=5.0, num_engines=2,
-                              eng1_running=True, eng2_running=False))
+        for t in (1200.0, 1231.0):
+            rec.update(_telemetry(t=t, gs=5.0, num_engines=2, eng1_running=True, eng2_running=False))
         assert rec.single_eng_taxi is True
         # both running now
         rec.update(_telemetry(t=1300.0, gs=5.0, num_engines=2,

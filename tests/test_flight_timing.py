@@ -182,3 +182,18 @@ def test_block_summary_message_when_going_on_block():
     rec._in(5800.0, _telemetry(t=5800.0))
     block = [x for x in _texts(rec) if x.startswith("BLOCK ")]
     assert block == ["BLOCK 1:20  TAXI OUT 0:15  AIR 0:55  TAXI IN 0:10"]
+
+
+# ------------------------------------------------------------------ wording and the single-engine taxi check
+def test_a_very_short_taxi_reads_well_under_the_allowance():
+    c = _check(ft.time_checks(_oooi(out=0, off=15, on=70, in_=72), {}, "L", "L"), "taxi_in")
+    assert c["status"] == "ok" and "well under the 30 minute allowance" in c["text"]
+
+
+def test_single_engine_taxi_is_dropped_when_all_engines_started_together():
+    import app as A
+    quad = [{"n": n, "t": 1000.0 + i * 18, "phase": "PUSHBACK" if i < 2 else "TAXI_OUT"} for i, n in enumerate((4, 3, 1, 2))]
+    assert A.single_engine_taxi_plausible(quad, 4) is False          # all four up within a minute: a normal start
+    twin = [{"n": 1, "t": 1000.0, "phase": "PUSHBACK"}, {"n": 2, "t": 1400.0, "phase": "TAXI_OUT"}]
+    assert A.single_engine_taxi_plausible(twin, 2) is True            # second engine started minutes into taxi
+    assert A.single_engine_taxi_plausible(quad[:2], 4) is True        # incomplete record: trust ACARS

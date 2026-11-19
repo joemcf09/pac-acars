@@ -729,10 +729,16 @@ class FlightRecorder:
                 getattr(s, f"eng{n}_running", None)
                 for n in range(1, num + 1)
             ]
-            # Only flag single-engine taxi when every engine state is known.
-            if all(state is not None for state in engine_states):
-                if sum(state is True for state in engine_states) == 1:
+            # Only flag single-engine taxi when every engine state is known, and only after 30 seconds of taxiing on
+            # one engine (a single sample while the other engines are still spooling up is not single-engine taxi).
+            if all(state is not None for state in engine_states) and sum(state is True for state in engine_states) == 1:
+                since = getattr(self, "_single_taxi_since", None)
+                if since is None:
+                    self._single_taxi_since = t
+                elif t - since >= 30:
                     self.single_eng_taxi = True
+            else:
+                self._single_taxi_since = None
 
     def _engine_start_message(self, t, n, num):
         """Tell the pilot in the ACARS log about each confirmed engine start, and once every engine is running.
