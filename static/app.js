@@ -1042,7 +1042,7 @@ function paneBrief(m) {
     ${ok && zoneFor(m)?.level === "restricted" ? `<p class="dp-ready" style="border-color:#c0262d;background:rgba(192,38,45,.07)"><b>You're qualified, but this flight isn't authorized.</b> You can still fly it, but it won't be credited (see the restricted airspace box above).</p>` : ok ? `<p class="dp-ready">No location, rating or rank blocker found. Pick your aircraft next; final checks run when you request the flight. <button type="button" class="linkish" onclick="openPilotGuide('${m.type_checkride || m.category === "Checkride" ? "checkride" : "cargo"}')">Step-by-step guide</button></p>` : ""}`;
 }
 function paneAircraft(m) {
-  const types = m.charter ? `<p class="dp-lead">Charter aircraft: <b>${esc(S.fleet[m.aircraft[0]].name)}</b>. Change it in the charter form and rebuild.</p>` : `
+  const types = m.charter ? `<p class="dp-lead">Charter aircraft: <b>${esc(S.fleet[m.aircraft[0]].name)}</b>. Change it in the charter form and rebuild.</p>${capacityNote(m, S.aircraft)}` : `
     <h3 class="dp-h">Aircraft type</h3>
     ${gravelNote(m)}
     <p class="muted dp-sub">${m.tour || m.rotation || m.types_only || m.category === "Checkride" ? "This flight is for the types listed here." : "Any aircraft in the fleet can fly this mission. Starred types are the best fit for the load and airports."}</p>
