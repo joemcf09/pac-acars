@@ -545,6 +545,25 @@ def set_flight_outcome(con, pirep_id, accepted, keep_cargo=False):
     now = time.time()
     want = "FLIGHT_REINSTATED" if accepted else ("FLIGHT_NOT_CREDITED" if keep_cargo else "FLIGHT_REJECTED")
     outcomes = ("FLIGHT_REJECTED", "FLIGHT_REINSTATED", "FLIGHT_NOT_CREDITED")
+    # A staff rejection that says the flight never happened also withdraws its
+    # unflown split-load orders. Reinstating the PIREP puts them back on the shelf.
+    if accepted or not keep_cargo:
+        recovery_rows = con.execute("""SELECT id, current_station, status FROM cargo_shipments
+            WHERE booking_key LIKE 'RECOVERY:%' AND json_extract(data,'$.recovery_pirep_id')=?""",
+            (pirep_id,)).fetchall()
+        for recovery in recovery_rows:
+            current, wanted = recovery["status"], "AT_STATION" if accepted else "WITHDRAWN"
+            if current != ("WITHDRAWN" if accepted else "AT_STATION"):
+                continue  # already in the target state, or reserved/flown on a later flight
+            event = "SPLIT_LOAD_RESTORED" if accepted else "SPLIT_LOAD_REVOKED"
+            event_number = con.execute("SELECT COUNT(*) FROM cargo_movements WHERE shipment_id=? AND event_type=?",
+                                       (recovery["id"], event)).fetchone()[0]
+            con.execute("UPDATE cargo_shipments SET status=?, updated_at=? WHERE id=?",
+                        (wanted, now, recovery["id"]))
+            con.execute("""INSERT INTO cargo_movements (shipment_id, event_key, event_type, event_time,
+                from_station, to_station, pirep_id, status, details) VALUES (?,?,?,?,?,?,?,?,?)""",
+                (recovery["id"], f"{event}:{pirep_id}:{recovery['id']}:{event_number}", event, now,
+                 recovery["current_station"], recovery["current_station"], pirep_id, wanted, "{}"))
     for a in arrivals:
         latest = con.execute("""SELECT pirep_id FROM cargo_movements WHERE shipment_id=? AND event_type='FLIGHT_ARRIVAL'
             ORDER BY event_time DESC, id DESC LIMIT 1""", (a["shipment_id"],)).fetchone()
