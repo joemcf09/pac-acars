@@ -1,6 +1,6 @@
 function displayPhoto(src, width = 800) {
   if (!src || !/^\/(?:api\/fleet\/[^/]+\/photo(?:\?|$)|gallery\/|static\/fleet\/)/.test(src)) return src;
-  return '/media/image?src=' + encodeURIComponent(src) + '&w=' + width;
+  return '/media/image?src=' + encodeURIComponent(src) + '&w=' + width + '&pipeline=2';
 }
 const $ = s => document.querySelector(s);
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
