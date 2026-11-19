@@ -504,6 +504,8 @@ def validate_ofp(ofp, mission, aircraft_code):
                           f"Plan it again with a {ac['icao']} airframe (your own SimBrief airframe is fine, as long as it's a {ac['icao']}).")
         if ofp.get("payload_lbs", 0) > ac["max_payload_lbs"]:
             errors.append(f"Your plan carries {ofp['payload_lbs']:,} lb, more than the {ac['name']}'s limit of {ac['max_payload_lbs']:,} lb. Check the aircraft picked in step 1, or lower the payload in SimBrief.")
+        if mission.get("volume_cap") and ofp.get("payload_lbs", 0) > mission["payload_lbs"]:
+            errors.append(f"Your plan carries {ofp['payload_lbs']:,} lb, but this freight fills the {ac['name']}'s hold at {mission['payload_lbs']:,} lb. Lower the payload in SimBrief.")
     if ac and ac["max_payload_lbs"] < mission["payload_lbs"]:
         warnings.append(f"The {ac['name']} carries up to {ac['max_payload_lbs']:,} lb, so this is a partial load of the {mission['payload_lbs']:,} lb mission cargo.")
     elif ofp.get("payload_lbs") and ofp["payload_lbs"] < mission["payload_lbs"] * 0.9:
@@ -2925,6 +2927,7 @@ def cargo_transfer_selection(body, mission, aircraft, ofp=None, booking_key=None
 def build_dispatch_with_transfers(booking, selected):
     booking["cargo_transfer_ids"] = [item["id"] for item in selected]
     booking["cargo_transfer_weight_lbs"] = sum(float(item.get("gross_weight_lbs") or 0) for item in selected)
+    booking["cargo_transfer_unit_count"] = sum(len((item.get("data") or {}).get("unit_details") or []) for item in selected)
     manifest = dispatch.generate(booking, FLEET, dispatch_pilot())
     shipments.route_through(manifest, ROUTES.values(), booking.get("manifest_seed") or booking["flight_number"])
     dispatch.attach_transfers(manifest, selected, booking)
@@ -2965,7 +2968,8 @@ def plan_loadsheet():
         transfer_notes = cargo_network.notes(con, [x["id"] for x in transfer_options])
     fake = {"mission": m, "aircraft": ac_code, "ofp": None, "flight_number": m["id"], "requested_at": time.time(),
             "airframe": airframe, "manifest_seed": seed, "cargo_transfer_ids": [item["id"] for item in transfer_rows],
-            "cargo_transfer_weight_lbs": transfer_weight}
+            "cargo_transfer_weight_lbs": transfer_weight,
+            "cargo_transfer_unit_count": sum(len((item.get("data") or {}).get("unit_details") or []) for item in transfer_rows)}
     try:
         d = dispatch.generate(fake, FLEET, dispatch_pilot())
         shipments.route_through(d, ROUTES.values(), seed)
@@ -3005,6 +3009,7 @@ def plan_loadsheet():
                                       "shipper": item["shipper"], "consignee": item["consignee"],
                                       "commodity": item["commodity"], "pieces": item["pieces"],
                                       "gross_weight_lbs": item["gross_weight_lbs"],
+                                      "recovery_for": (item.get("data") or {}).get("recovery_for"),
                                       "truck_nm": round(_airport_nm(m["destination"]["icao"], item["destination"]) or 0) if item.get("truck") else None,
                                       "claimed_by_me": item.get("claimed_by_me"),
                                       "notes": [{"text": n["text"], "pilot": n.get("pilot_name") or n["pilot_id"], "station": n["station"]}
@@ -3688,6 +3693,7 @@ def file_pirep():
               "online": p.get("online"), "urgent": p.get("urgent"), "job": p.get("job"), "conflict": p.get("conflict"),
               "debrief": p.get("debrief"), "flight_configuration": p.get("flight_configuration"),
               "time_checks": p.get("time_checks"), "engine_review": p.get("engine_review"), "load_factors": p.get("load_factors")}
+    recovery_pilot = dispatch_pilot() if (booking.get("mission") or {}).get("volume_cap") else None
     with db() as con:
         con.execute("""INSERT OR IGNORE INTO pireps (filed_at, mission_id, mission_title, category, flight_number, aircraft,
             registration, dep, arr, planned_arr, block_min, flight_min, distance_nm, fuel_used_lbs, payload_lbs,
@@ -3707,6 +3713,7 @@ def file_pirep():
             raise RuntimeError("PIREP filing did not create or find its booking record.")
         pid = filed["id"]
         cargo_network.record_flight(con, booking, p, pid, pid_)
+        cargo_network.create_volume_recovery(con, booking, p, pid, pid_, FLEET, recovery_pilot)
         board_events = []
         try:   # the Discord freight board: claimed and seasonal freight that this flight delivered
             for r_ in con.execute("""SELECT s.awb, s.commodity, s.destination, json_extract(s.data,'$.season_name') AS season,
@@ -4257,7 +4264,8 @@ def cargo_shipments_api():
             s.priority, s.handling, s.security_status, s.created_at, s.updated_at,
             m.event_type AS last_event, m.event_time AS last_event_time, m.flight_number AS last_flight,
             m.pirep_id AS last_pirep, m.pilot_id AS last_pilot, json_extract(s.data,'$.deadline') AS deadline,
-            (s.booking_key LIKE 'ORDER:%') AS is_order, json_extract(s.data,'$.season_name') AS season_name
+            (s.booking_key LIKE 'ORDER:%') AS is_order, json_extract(s.data,'$.season_name') AS season_name,
+            json_extract(s.data,'$.recovery_for') AS recovery_for
             FROM cargo_shipments s
             LEFT JOIN cargo_movements m ON m.id=(
                 SELECT m2.id FROM cargo_movements m2 WHERE m2.shipment_id=s.id ORDER BY m2.event_time DESC,m2.id DESC LIMIT 1

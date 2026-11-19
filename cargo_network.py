@@ -385,6 +385,99 @@ def record_flight(con, booking, pirep, pirep_id, pilot_id):
                 (row["destination"] if trucked else (actual_station or previous_station), status, now, shipment_id))
 
 
+def create_volume_recovery(con, booking, pirep, pirep_id, pilot_id, fleet, pilot):
+    """Tender the unflown part of a volume-limited consignment as waiting freight.
+
+    The booking key makes filing retries idempotent. Each new AWB has a loadable unit
+    manifest and a link to the original flight; it is prepaid by that charter.
+    """
+    cap = (booking.get("mission") or {}).get("volume_cap") or {}
+    if (not cap or pirep.get("status") not in ("Delivered", "Delivered late")
+            or pirep.get("review_status") == "Rejected" or pirep.get("demo")):
+        return []
+    dispatched = booking.get("dispatch") or {}
+    carried = sum(int(s.get("weight_lbs") or 0) for s in dispatched.get("shipments") or []
+                  if not s.get("transfer"))
+    remainder = max(0, int(cap.get("from_lbs") or 0) - carried)
+    if remainder <= 0:
+        return []
+    import dispatch as dispatch_module
+    import shipments as shipments_module
+    mission = booking["mission"]
+    origin = mission["origin"]["icao"]
+    destination = mission["destination"]["icao"]
+    booking_key = f"RECOVERY:{pilot_id}:{booking['requested_at']}"
+    source_awbs = [s["awb"] for s in dispatched.get("shipments") or [] if not s.get("transfer")]
+    made = []
+    batch = 0
+    while remainder:
+        batch_weight = min(remainder, int(mission.get("payload_lbs") or 0),
+                           int(fleet[booking["aircraft"]]["max_payload_lbs"]))
+        if batch_weight <= 0:
+            raise ValueError("Recovery cargo has no available aircraft payload capacity.")
+        fake = {"mission": dict(mission, payload_lbs=batch_weight, volume_cap=None),
+                "aircraft": booking["aircraft"], "ofp": None,
+                "flight_number": booking["flight_number"], "requested_at": booking["requested_at"],
+                "manifest_seed": f"RECOVERY|{booking.get('manifest_seed') or booking_key}|{batch}"}
+        manifest = dispatch_module.generate(fake, fleet, pilot)
+        shipments_module.enrich(manifest)
+        for shipment in manifest.get("shipments") or []:
+            source_awb = shipment["awb"]
+            old = con.execute("SELECT id, awb FROM cargo_shipments WHERE booking_key=? AND source_awb=?",
+                              (booking_key, source_awb)).fetchone()
+            if old:
+                made.append(old["awb"])
+                continue
+            sid = uuid.uuid4().hex
+            new_awb = _next_awb(con, set())
+            unit_details = [{**p, "dg_entry": next((g for g in manifest.get("dg") or []
+                              if g.get("pos") == p.get("pos") and g.get("awb") == source_awb), None)}
+                            for p in manifest.get("positions") or [] if p.get("awb") == source_awb]
+            shipment = _rewrite_awbs(dict(shipment), {source_awb: new_awb})
+            unit_details = _rewrite_awbs(unit_details, {source_awb: new_awb})
+            shipment.update(shipment_id=sid, cargo_source_awb=source_awb, unit_details=unit_details,
+                            recovery=True, recovery_for=booking["flight_number"],
+                            recovery_pirep_id=pirep_id, recovery_source_awbs=source_awbs,
+                            recovery_prepaid_lbs=int(shipment.get("weight_lbs") or 0))
+            doc = shipment.get("awb_doc") or {}
+            # The synthetic manifest supplies unit paperwork, not a flight that happened.
+            # Keep only origin acceptance until a pilot selects this AWB for a real leg.
+            doc["track"] = [event for event in doc.get("track") or []
+                            if event.get("code") in ("BKD", "RCS")]
+            doc["freight"], doc["others"], doc["total"] = 0, [], 0
+            doc["terms"] = "PREPAID ON ORIGINAL CHARTER"
+            screen = doc.get("screen") or {}
+            now = time.time()
+            con.execute("""INSERT INTO cargo_shipments (id, awb, booking_key, source_awb, origin, destination,
+                current_station, status, shipper, consignee, commodity, pieces, gross_weight_lbs,
+                chargeable_weight_kg, priority, handling, security_status, reserved_booking_key,
+                reserved_previous_status, data, created_at, updated_at)
+                VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                (sid, new_awb, booking_key, source_awb, origin, destination, origin, "AT_STATION",
+                 (shipment.get("shipper") or {}).get("name") or "",
+                 (shipment.get("consignee") or {}).get("name") or "", shipment.get("contents") or "",
+                 int(shipment.get("pieces") or 0), float(shipment.get("weight_lbs") or 0), doc.get("chg_kg"),
+                 shipment.get("service"), json.dumps(shipment.get("handling") or []), screen.get("status"),
+                 None, None, json.dumps(shipment, separators=(",", ":"), ensure_ascii=False), now, now))
+            con.execute("""INSERT INTO cargo_movements (shipment_id, event_key, event_type, event_time,
+                from_station, to_station, pilot_id, flight_number, pirep_id, status, details)
+                VALUES (?,?,?,?,?,?,?,?,?,?,?)""",
+                (sid, f"recovery:{booking_key}:{source_awb}", "SPLIT_LOAD_WAITING", now, None, origin,
+                 pilot_id, booking["flight_number"], pirep_id, "AT_STATION",
+                 json.dumps({"source_awbs": source_awbs, "prepaid": True})))
+            made.append(new_awb)
+        remainder -= batch_weight
+        batch += 1
+    source_key = f"{pilot_id}:{booking['requested_at']}"
+    for row in con.execute("SELECT id, data FROM cargo_shipments WHERE booking_key=?", (source_key,)).fetchall():
+        data = json.loads(row["data"])
+        if data.get("recovery_awbs") != made:
+            data["recovery_awbs"] = made
+            con.execute("UPDATE cargo_shipments SET data=? WHERE id=?",
+                        (json.dumps(data, separators=(",", ":"), ensure_ascii=False), row["id"]))
+    return made
+
+
 IDLE_RELEASE_S = 72 * 3600
 
 
@@ -452,6 +545,25 @@ def set_flight_outcome(con, pirep_id, accepted, keep_cargo=False):
     now = time.time()
     want = "FLIGHT_REINSTATED" if accepted else ("FLIGHT_NOT_CREDITED" if keep_cargo else "FLIGHT_REJECTED")
     outcomes = ("FLIGHT_REJECTED", "FLIGHT_REINSTATED", "FLIGHT_NOT_CREDITED")
+    # A staff rejection that says the flight never happened also withdraws its
+    # unflown split-load orders. Reinstating the PIREP puts them back on the shelf.
+    if accepted or not keep_cargo:
+        recovery_rows = con.execute("""SELECT id, current_station, status FROM cargo_shipments
+            WHERE booking_key LIKE 'RECOVERY:%' AND json_extract(data,'$.recovery_pirep_id')=?""",
+            (pirep_id,)).fetchall()
+        for recovery in recovery_rows:
+            current, wanted = recovery["status"], "AT_STATION" if accepted else "WITHDRAWN"
+            if current != ("WITHDRAWN" if accepted else "AT_STATION"):
+                continue  # already in the target state, or reserved/flown on a later flight
+            event = "SPLIT_LOAD_RESTORED" if accepted else "SPLIT_LOAD_REVOKED"
+            event_number = con.execute("SELECT COUNT(*) FROM cargo_movements WHERE shipment_id=? AND event_type=?",
+                                       (recovery["id"], event)).fetchone()[0]
+            con.execute("UPDATE cargo_shipments SET status=?, updated_at=? WHERE id=?",
+                        (wanted, now, recovery["id"]))
+            con.execute("""INSERT INTO cargo_movements (shipment_id, event_key, event_type, event_time,
+                from_station, to_station, pirep_id, status, details) VALUES (?,?,?,?,?,?,?,?,?)""",
+                (recovery["id"], f"{event}:{pirep_id}:{recovery['id']}:{event_number}", event, now,
+                 recovery["current_station"], recovery["current_station"], pirep_id, wanted, "{}"))
     for a in arrivals:
         latest = con.execute("""SELECT pirep_id FROM cargo_movements WHERE shipment_id=? AND event_type='FLIGHT_ARRIVAL'
             ORDER BY event_time DESC, id DESC LIMIT 1""", (a["shipment_id"],)).fetchone()

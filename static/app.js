@@ -899,9 +899,9 @@ function planPayload(m, ac) {
   const vc = S.volCap?.[`${m.id}|${ac}`];
   return vc ? vc.lbs : Math.min(m.payload_lbs, S.fleet[ac]?.max_payload_lbs || m.payload_lbs);
 }
-function volNoteHtml(vc) {
+function volNoteHtml(vc, m) {
   if (!vc) return "";
-  return `<div class="notice" style="margin-bottom:10px"><b>Volume limited.</b> This freight averages ${fmt(vc.density_kg_m3)} kg/m³, so the hold (${fmt(vc.volume_ft3)} ft³ usable) is full at ${fmt(vc.lbs)} lb of the ${fmt(vc.from_lbs)} lb consignment. You'll carry ${fmt(vc.lbs)} lb, and PAC charges the customer on chargeable weight, so the flight still pays as a full load.</div>`;
+  return `<div class="notice" style="margin-bottom:10px"><b>Volume limited.</b> This freight averages ${fmt(vc.density_kg_m3)} kg/m³, so the hold (${fmt(vc.volume_ft3)} ft³ usable) is full at ${fmt(vc.lbs)} lb of the ${fmt(vc.from_lbs)} lb consignment. You'll carry ${fmt(vc.lbs)} lb. After the flight is filed, the remaining ${fmt(vc.from_lbs - vc.lbs)} lb becomes waiting freight at ${esc(m?.origin?.icao || "the origin")} for another pilot to select. PAC charges the customer on chargeable weight; recovery freight is marked prepaid on its next flight.</div>`;
 }
 function simbriefUrl(m, ac) {
   const fl = S.fleet[ac];
@@ -1182,7 +1182,7 @@ function loadsheetHTML(ls, m) {
     <p class="muted">${ls.ferry ? "Ferry flight: the hold is empty." : `${units} unit${units === 1 ? "" : "s"} · ${fmt(ls.totals.pieces)} pieces · ${fmt(ls.totals.weight_lbs)} lb · ${(ls.shipments || []).length} shipment${(ls.shipments || []).length === 1 ? "" : "s"}`}</p></div>
     <span class="ls-status ${ls.ok ? "ok" : "bad"}">${ls.ok ? "Within limits" : "Over a limit"}</span></div>
   ${transferOptions.length ? `<section class="ls-transfer"><h4>Transfer cargo at ${esc(ls.origin.icao)}</h4><p class="muted">Select freight already at this station and routed through ${esc(ls.destination.icao)}. It keeps its original AWB and is delivered only when it reaches its final destination. ${fmt(ls.cargo_transfer_weight_lbs || 0)} lb selected.</p>
-    <div class="ls-transfer-list">${transferOptions.map(x => `<label><input type="checkbox" data-transfer-id="${esc(x.id)}" ${transferIds.has(x.id) ? "checked" : ""}><span><b>${esc(x.awb)}</b> · ${esc(x.commodity || "Cargo")} · ${fmt(x.gross_weight_lbs)} lb · ${fmt(x.pieces)} pcs · final ${esc(x.destination)}${x.claimed_by_me ? ` <span class="tag lane-pref">Held for you</span>` : ""}${x.truck_nm ? ` <span class="tag grey" title="PAC flies it to your destination; the last leg goes by road">last ${fmt(x.truck_nm)} nm by truck</span>` : ""}</span><small>${esc(x.shipper || "—")} → ${esc(x.consignee || "—")}</small>${(x.notes || []).map(n => `<small class="ls-note"><b>Handover note from ${esc(n.pilot)} at ${esc(n.station || "")}:</b> ${esc(n.text)}</small>`).join("")}</label>`).join("")}</div></section>` : ""}
+    <div class="ls-transfer-list">${transferOptions.map(x => `<label><input type="checkbox" data-transfer-id="${esc(x.id)}" ${transferIds.has(x.id) ? "checked" : ""}><span><b>${esc(x.awb)}</b> · ${esc(x.commodity || "Cargo")} · ${fmt(x.gross_weight_lbs)} lb · ${fmt(x.pieces)} pcs · final ${esc(x.destination)}${x.recovery_for ? ` <span class="tag grey">Split load from ${esc(x.recovery_for)} · prepaid</span>` : ""}${x.claimed_by_me ? ` <span class="tag lane-pref">Held for you</span>` : ""}${x.truck_nm ? ` <span class="tag grey" title="PAC flies it to your destination; the last leg goes by road">last ${fmt(x.truck_nm)} nm by truck</span>` : ""}</span><small>${esc(x.shipper || "—")} → ${esc(x.consignee || "—")}</small>${(x.notes || []).map(n => `<small class="ls-note"><b>Handover note from ${esc(n.pilot)} at ${esc(n.station || "")}:</b> ${esc(n.text)}</small>`).join("")}</label>`).join("")}</div></section>` : ""}
   ${partial ? `<div class="notice">The ${esc(ls.aircraft_name)} carries up to ${fmt(ls.limits.max_payload)} lb, so you'll take ${fmt(ls.totals.weight_lbs)} lb of the ${fmt(ls.payload_requested)} lb consignment.</div>` : ""}
   ${!ls.ok ? `<div class="notice err">This load and fuel go over a structural limit${ls.checks.some(c => c.code === "MTOW" && !c.ok) ? ": SimBrief will cut the cargo to fit under the take-off weight limit" : ""}. Pick a larger type on the Aircraft step, or plan less fuel or cargo.</div>` : ""}
   ${lsTabsHTML(ls, units)}
@@ -1381,7 +1381,7 @@ async function loadDossierEcon(m) {
     if (e.volume_cap) S.volCap[vk] = e.volume_cap; else delete S.volCap[vk];
     if (S.selected?.id !== m.id) return;
     if (had !== JSON.stringify(S.volCap[vk] || null)) {   // the payload that fits changed: refresh the note and the SimBrief link
-      const vn = $("#volNote"); if (vn) vn.innerHTML = volNoteHtml(S.volCap[vk]);
+      const vn = $("#volNote"); if (vn) vn.innerHTML = volNoteHtml(S.volCap[vk], m);
       const sb = $("#sbPlan"); if (sb) sb.href = simbriefUrl(m, ac);
     }
     const me = S.me || await loadMe();
@@ -1500,7 +1500,7 @@ function capacityNote(m, ac) {
   if (!f) return "";
   const vc = S.volCap?.[`${m.id}|${ac}`];
   // the volume note fills in when the estimate arrives (#volNote); with it, the hold, not the weight, sets the load
-  return `<div id="volNote">${volNoteHtml(vc)}</div>` + (vc ? "" : weightNote(m, ac, f));
+  return `<div id="volNote">${volNoteHtml(vc, m)}</div>` + (vc ? "" : weightNote(m, ac, f));
 }
 function weightNote(m, ac, f) {
   if (f.max_payload_lbs < m.payload_lbs)
@@ -2693,7 +2693,7 @@ async function loadCargo() {
           : `<b>${esc(x.origin)}</b> → ${via || x.status === "AT_STATION" || x.status === "HELD_AT_STATION" ? `<b class="cgo-now" title="Where it is now">${esc(x.current_station)}</b> → ` : ""}<b>${esc(x.destination)}</b>`;
         return `<tr class="cgo-row" data-cargo-id="${esc(x.id)}" tabindex="0" aria-expanded="false">
           <td class="mono cgo-awb">${trackAwb(x.awb)}</td><td class="mono">${journey}${x.leg_nm ? `<small class="muted cgo-leg" title="Great-circle distance from where it is now, and a typical jet's block time">${fmt(x.leg_nm)} nm · about ${Math.floor(x.leg_block_min / 60)}h ${String(x.leg_block_min % 60).padStart(2, "0")}m</small>` : ""}</td>
-          <td><span class="cgo-com">${esc(x.commodity || "—")}</span>${x.season_name ? ` <span class="tag cgo-season">${esc(x.season_name)}</span>` : ""}<small class="muted">${esc(x.shipper || "")} → ${esc(x.consignee || "")}</small></td>
+          <td><span class="cgo-com">${esc(x.commodity || "—")}</span>${x.season_name ? ` <span class="tag cgo-season">${esc(x.season_name)}</span>` : ""}${x.recovery_for ? ` <span class="tag grey">Split load · ${esc(x.recovery_for)}</span>` : ""}<small class="muted">${esc(x.shipper || "")} → ${esc(x.consignee || "")}</small></td>
           <td class="r mono">${fmt(x.pieces)} · ${fmt(x.gross_weight_lbs)} lb</td>
           <td><span class="cargo-status ${esc((x.status || "").toLowerCase())}">${esc(statusWord[x.status] || x.status)}</span></td>
           <td class="cgo-when">${x.deadline && (x.status === "AT_STATION" || x.status === "HELD_AT_STATION") ? `<span class="${x.deadline * 1000 < Date.now() ? "cgo-late" : ""}">Due ${cargoInventoryDate(x.deadline)}</span>` : cargoInventoryDate(x.updated_at)}${x.last_flight ? `<small class="muted">${esc(x.last_flight)}</small>` : x.is_order ? `<small class="muted">Customer order</small>` : ""}</td></tr>`;
@@ -2720,6 +2720,9 @@ function cargoInventoryDate(timestamp) {
 }
 
 const CARGO_EVENT = {
+  SPLIT_LOAD_WAITING: e => `Left at ${e.to_station} after ${e.flight_number}; ready for a later flight (customer already charged)`,
+  SPLIT_LOAD_REVOKED: e => `Recovery withdrawn after the original flight was rejected`,
+  SPLIT_LOAD_RESTORED: e => `Recovery restored after the original flight was accepted`,
   BOOKED: e => `Booked on ${e.flight_number || "a PAC flight"}`,
   TRANSFER_BOOKED: e => `Booked for its next leg on ${e.flight_number || "a PAC flight"}`,
   TRANSFER_CANCELLED: e => `Booking cancelled, waiting at ${e.to_station || "the station"} again`,
@@ -2769,6 +2772,8 @@ async function toggleCargoHistory(tr) {
         ${e.pilot_id ? `<small class="muted">${esc(e.pilot_name || "")} ${esc(e.pilot_id)}</small>` : ""}
         ${e.pirep_id ? `<button type="button" class="linkish" data-pirep="${e.pirep_id}">PIREP</button>` : ""}</span></li>`).join("") || "<li class='muted'>No movements yet.</li>"}</ol>
       <dl class="cgo-facts"><dt>Tracking</dt><dd>${trackAwb(shipment.awb)}</dd><dt>Shipper</dt><dd>${esc(shipment.shipper)}</dd><dt>Consignee</dt><dd>${esc(shipment.consignee)}</dd>
+        ${d.recovery_for ? `<dt>Split load</dt><dd>Left after ${esc(d.recovery_for)} · already paid on the original charter <button type="button" class="linkish" data-pirep="${Number(d.recovery_pirep_id) || 0}">Original PIREP</button></dd>` : ""}
+        ${d.recovery_awbs?.length ? `<dt>Follow-up freight</dt><dd>${d.recovery_awbs.map(trackAwb).join(" · ")}</dd>` : ""}
         ${d.agent ? `<dt>Forwarder</dt><dd>${esc(d.agent)}</dd>` : ""}<dt>Handling</dt><dd>${esc((shipment.handling || []).join(" · ") || (d.shc || []).join(" ") || "General")}</dd>
         ${a.chg_kg ? `<dt>Chargeable</dt><dd>${cf1(a.chg_kg)} kg</dd>` : ""}${a.temp ? `<dt>Temperature</dt><dd>${esc(a.temp)}</dd>` : ""}
         ${shipment.security_status ? `<dt>Security</dt><dd>${esc(shipment.security_status)}</dd>` : ""}</dl></div>

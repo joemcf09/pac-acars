@@ -115,6 +115,11 @@ def flight_economics(p, booking, fleet, settings, distance_nm):
     wanted = m.get("payload_lbs") or delivered or 1
     notes = [f"Contract priced on the {fleet.get(basis, {}).get('icao', basis)}"] if not ferry else ["Positioning flight: no revenue"]
     revenue = price * min(1.0, delivered / wanted) if not ferry else 0.0
+    prepaid = sum(int(s.get("recovery_prepaid_lbs") or 0)
+                  for s in (booking.get("dispatch") or {}).get("shipments") or [] if s.get("transfer"))
+    if prepaid and not ferry:
+        revenue = price * min(1.0, max(0, delivered - prepaid) / wanted)
+        notes.append(f"{prepaid:,} lb of split-load recovery freight was paid on its original charter")
     if delivered < wanted * 0.98 and not ferry:
         notes.append(f"Carried {delivered / wanted:.0%} of the contracted load")
     status = p.get("status")

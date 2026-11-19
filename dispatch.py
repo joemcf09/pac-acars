@@ -163,9 +163,8 @@ def generate(booking, fleet, pilot, now=None):
     seed = booking.get("manifest_seed") or f"{booking['flight_number']}|{booking.get('requested_at')}"
     rng = random.Random(seed)
     ferry = m.get("category") == "Ferry" or str(m.get("cargo", "")).startswith(("Ferry", "Positioning")) or "(no cargo)" in str(m.get("cargo", ""))
-    payload_target = int(ofp.get("payload_lbs") or min(m["payload_lbs"], ac.get("max_payload_lbs", m["payload_lbs"])))
-    if booking.get("cargo_transfer_ids"):
-        payload_target = min(payload_target, int(m.get("payload_lbs") or 0), int(ac.get("max_payload_lbs") or 0))
+    payload_target = min(int(ofp.get("payload_lbs") or m.get("payload_lbs") or 0),
+                         int(m.get("payload_lbs") or 0), int(ac.get("max_payload_lbs") or 0))
     payload = 0 if ferry else max(0, payload_target - int(booking.get("cargo_transfer_weight_lbs") or 0))
 
     # positions
@@ -181,7 +180,8 @@ def generate(booking, fleet, pilot, now=None):
         pool.sort(key=lambda it: -len(words & set(it[0].lower().replace(",", " ").split())))
         cap_total = deck["main"] * deck["cap"] + len(lower) * deck["lcap"]
         fill = min(1.0, payload / max(1, cap_total) * 1.6 + 0.12)
-        n_main = max(1, min(deck["main"], round(deck["main"] * fill)))
+        reserve_main = min(deck["main"], int(booking.get("cargo_transfer_unit_count") or 0))
+        n_main = max(1, min(deck["main"] - reserve_main, round(deck["main"] * fill)))
         n_low = min(len(lower), round(len(lower) * fill * 0.8))
         slots = [(p, deck["uld"], deck["cap"]) for p in main[:n_main]] + [(p, deck["luld"], deck["lcap"]) for p in lower[:n_low]]
         import wb  # documented per-position limits where PAC has the aircraft's weight-and-balance data
