@@ -700,7 +700,7 @@ function discordWidget(site) {   // the live Discord server widget on the home p
   const inv = String(site.discord_invite || "").trim();
   return `<div class="section-h"><div><div class="kicker">Community</div><h2>Join the crew room</h2><p>The PAC Discord is where pilots swap screenshots, talk routes and get help. See who's around right now.</p></div>${inv ? `<a class="btn ghost small" href="${esc(inv)}" target="_blank" rel="noopener">Join our Discord</a>` : ""}</div>
   <div style="display:flex;flex-wrap:wrap;gap:24px;align-items:flex-start">
-    <iframe src="https://discord.com/widget?id=${id}&theme=dark" title="PAC Discord" width="350" height="420" style="max-width:100%;border:0;border-radius:8px;flex:0 0 auto;background:#2b2d31" allowtransparency="true" loading="lazy" sandbox="allow-popups allow-popups-to-escape-sandbox allow-same-origin allow-scripts"></iframe>
+    <iframe loading="lazy" src="https://discord.com/widget?id=${id}&theme=dark" title="PAC Discord" width="350" height="420" style="max-width:100%;border:0;border-radius:8px;flex:0 0 auto;background:#2b2d31" allowtransparency="true" loading="lazy" sandbox="allow-popups allow-popups-to-escape-sandbox allow-same-origin allow-scripts"></iframe>
     <ul style="flex:1 1 260px;margin:0;padding-left:18px;line-height:1.7">
       <li>Get your rank role and your own <b>/pilot</b> card.</li>
       <li>News, NOTAMs and new liveries as soon as they're out.</li>
@@ -1814,6 +1814,11 @@ async function addZoneOverlayGlobe(map, wrap) {
 }
 
 let worldData;
+// Illustrations come in 640, 1024 and 1600 px widths: the browser picks the smallest that's sharp at the size shown.
+function illSrc(name, sizes, v = "") {
+  const q = v ? `?v=${v}` : "";
+  return `src="/static/illustrations/${name}.webp${q}" srcset="/static/illustrations/640/${name}.webp${q} 640w, /static/illustrations/1024/${name}.webp${q} 1024w, /static/illustrations/${name}.webp${q} 1600w" sizes="${sizes}"`;
+}
 function loadWorld() { return worldData ||= fetch("/static/vendor/world.json").then(r => r.json()).catch(() => null); }
 
 /* Builds a base map that always works: an offline Natural Earth outline underneath,
@@ -5343,7 +5348,7 @@ async function renderHome(h, st) {
   const [news, shots] = await Promise.all([loadNews(), api("/api/gallery?limit=8").catch(() => [])]);
   $("#homeRoot").innerHTML = `
   <section class="hero${S.me ? " hero-slim" : ""}">
-    <img class="bg" fetchpriority="high" decoding="async" src="/static/illustrations/${S.me ? "ill-briefing-room" : "ill-ramp-night"}.webp?v=20261113" alt=""><span class="ill-tag">Illustration</span>
+    <img class="bg" fetchpriority="high" decoding="async" ${illSrc(S.me ? "ill-briefing-room" : "ill-ramp-night", "100vw", "20261113")} alt=""><span class="ill-tag">Illustration</span>
     <div class="hero-in">
       ${live ? `<div class="live-pill"><i></i>${esc(S.booking?.flight_number || "")} in the air · ${esc(st.phase_label)}</div>` : ""}
       <img class="wm" src="/static/pac-wordmark-white.png" alt="Pagani Air Cargo">
@@ -5428,7 +5433,7 @@ async function renderHome(h, st) {
   </div>
 
   <div class="section-h"><div><div class="kicker">Our story</div><h2>Why PAC exists</h2></div></div>
-  <article class="founder pac-story"><figure class="story-fig"><img src="/static/illustrations/ill-hq-dusk.webp" alt="Illustration of the PAC headquarters and freight terminal at KCVG at dusk, with PAC freighters on the apron" loading="lazy" width="1600" height="900"><span class="ill-tag">Illustration</span></figure>
+  <article class="founder pac-story"><figure class="story-fig"><img ${illSrc("ill-hq-dusk", "(max-width: 760px) 100vw, 560px")} alt="Illustration of the PAC headquarters and freight terminal at KCVG at dusk, with PAC freighters on the apron" loading="lazy" width="1600" height="900"><span class="ill-tag">Illustration</span></figure>
     <div><blockquote>${esc(site.story)}</blockquote></div></article>
 
   ${Object.keys(S.partners || {}).length ? `<div class="section-h"><div><div class="kicker">Partners</div><h2>Flying alongside the biggest names in cargo</h2><p>When these operators are short of qualified captains, they hire PAC pilots to fly their aircraft. PAC crews also ride their freighters on partner jumpseat agreements.</p></div><button class="btn ghost small" onclick="S.board='partners';show('missions')">Partner crew requests</button></div>
@@ -9240,7 +9245,7 @@ function whyPacHTML() {
     ["Fly online", "IVAO certified and flying on VATSIM as PGI. A weekly group flight anyone can join.", "This week's group flight", "show('groupflight')"]];
   return `<section class="why-pac" aria-label="Why fly for PAC">
     ${S.me ? "" : `<div class="section-h"><div><div class="kicker">Why PAC</div><h2>A cargo airline that takes the freight seriously</h2></div></div>
-    <div class="why-grid">${pillars.map(([h, p, l, go], i) => `<article class="why-card"><img class="why-img" src="/static/illustrations/${["ill-main-deck-pac", "ill-767-main-deck-loading", "ill-hangar-777f", "ill-ake-lower-hold"][i]}.webp" alt="" loading="lazy"><span class="why-n">0${i + 1}</span><h3>${h}</h3><p>${p}</p><button class="why-link" type="button" onclick="${go}">${l} →</button></article>`).join("")}</div>`}
+    <div class="why-grid">${pillars.map(([h, p, l, go], i) => `<article class="why-card"><img class="why-img" ${illSrc(["ill-main-deck-pac", "ill-767-main-deck-loading", "ill-hangar-777f", "ill-ake-lower-hold"][i], "(max-width: 760px) 100vw, 300px")} alt="" loading="lazy" width="640" height="360"><span class="why-n">0${i + 1}</span><h3>${h}</h3><p>${p}</p><button class="why-link" type="button" onclick="${go}">${l} →</button></article>`).join("")}</div>`}
     <form class="track-strip" onsubmit="event.preventDefault();const v=this.awb.value.replace(/\\D/g,'');if(v)location.href='/track/'+v">
       <div><div class="kicker">Track a shipment</div><b>Where's my freight?</b></div>
       <input name="awb" inputmode="numeric" autocomplete="off" placeholder="901-10000123" aria-label="Air waybill number">
