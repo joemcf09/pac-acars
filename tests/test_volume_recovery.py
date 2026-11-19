@@ -44,6 +44,12 @@ with A.db() as con:
                and json.loads(r["data"])["unit_details"] for r in rows)
     assert all([e["code"] for e in json.loads(r["data"])["awb_doc"]["track"]] == ["BKD", "RCS"]
                and json.loads(r["data"])["awb_doc"]["total"] == 0 for r in rows)
+    cargo_network.set_flight_outcome(con, 19, accepted=False)
+    assert all(con.execute("SELECT status FROM cargo_shipments WHERE id=?", (r["id"],)).fetchone()[0] == "WITHDRAWN"
+               for r in rows)
+    cargo_network.set_flight_outcome(con, 19, accepted=True)
+    assert all(con.execute("SELECT status FROM cargo_shipments WHERE id=?", (r["id"],)).fetchone()[0] == "AT_STATION"
+               for r in rows)
     options = cargo_network.transfer_options(con, mission["origin"]["icao"],
                                              mission["destination"]["icao"], A.ROUTES.values(), "PAC0001")
     selected = [x for x in options if x["awb"] == awbs[0]]
