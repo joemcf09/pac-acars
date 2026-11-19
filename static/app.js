@@ -1892,7 +1892,7 @@ function initMap() {
     d.innerHTML = `<select id="mapStyle" aria-label="Map style">${Object.entries(MAP_STYLES).map(([k, v]) => `<option value="${k}" ${k === (S.settings.map_style || "dark") ? "selected" : ""}>${v.label}</option>`).join("")}</select>
       <label><input type="checkbox" id="followChk" ${S.follow ? "checked" : ""}>Follow aircraft</label>
       <button class="btn ghost small" id="fitRoute" style="padding:3px 8px">Whole route</button>
-      <div class="map-ctl-row"><select id="trafficSel" aria-label="Live traffic"><option value="">No traffic</option><option value="VATSIM">VATSIM traffic</option><option value="IVAO">IVAO traffic</option></select>
+      <div class="map-ctl-row"><select id="trafficSel" aria-label="Live traffic"><option value="">No traffic</option><option value="PAC">PAC company traffic</option><option value="VATSIM">VATSIM traffic</option><option value="IVAO">IVAO traffic</option></select>
         <label><input type="checkbox" id="radarChk">Weather radar</label><span class="live-note" id="liveNote" role="status"></span></div>`;
     L.DomEvent.disableClickPropagation(d);
     d.querySelector("#mapStyle").onchange = async e => {
@@ -1930,16 +1930,26 @@ async function refreshTraffic() {
   const wrap = v => ((v + 540) % 360) - 180;
   const bbox = [Math.max(-90, b.getSouth()), wrap(b.getWest()), Math.min(90, b.getNorth()), wrap(b.getEast())].map(v => v.toFixed(3)).join(",");
   try {
-    const r = await api(`/api/traffic?net=${net}&bbox=${bbox}`);
+    const r = net === "PAC" ? await api("/api/live") : await api(`/api/traffic?net=${net}&bbox=${bbox}`);
+    if (localStorage.getItem("pac-traffic") !== net || !S.layers?.traffic) return;
     S.layers.traffic.clearLayers();
-    r.planes.forEach(p => {
-      if (S.booking && p.cs && p.cs.replace(/\s/g, "") === (S.booking.flight_number || "").replace(/\s/g, "")) return;  // that's you
+    const planes = net === "PAC"
+      ? (r.flights || []).filter(p => p.lat != null && p.lon != null && b.contains([p.lat, p.lon]))
+          .map(p => ({ cs: p.flight, type: p.aircraft, lat: p.lat, lon: p.lon, hdg: p.hdg, alt: p.alt_ft, gs: p.gs, dep: p.dep, arr: p.arr, pilot: p.pilot }))
+      : (r.planes || []);
+    let shown = 0;
+    planes.forEach(p => {
+      if (S.booking && p.cs && p.cs.replace(/\s/g, "") === (S.booking.flight_number || "").replace(/\s/g, "")) return;  // own aircraft
+      shown++;
       L.marker([p.lat, p.lon], { icon: trafficIcon(p.hdg), keyboard: false })
-        .bindTooltip(`<b>${esc(p.cs || "")}</b> ${esc(p.type || "")}<br>${p.alt != null ? (p.alt >= 18000 ? "FL" + Math.round(p.alt / 100) : fmt(p.alt) + " ft") : ""}${p.gs != null ? ` · ${p.gs} kt` : ""}${p.dep || p.arr ? `<br>${esc(p.dep || "?")} → ${esc(p.arr || "?")}` : ""}`, { direction: "top", offset: [0, -8] })
+        .bindTooltip(`<b>${esc(p.cs || "")}</b> ${esc(p.type || "")}${net === "PAC" && p.pilot ? `<br>${esc(p.pilot)}` : ""}<br>${p.alt != null ? (p.alt >= 18000 ? "FL" + Math.round(p.alt / 100) : fmt(p.alt) + " ft") : ""}${p.gs != null ? ` · ${p.gs} kt` : ""}${p.dep || p.arr ? `<br>${esc(p.dep || "?")} → ${esc(p.arr || "?")}` : ""}`, { direction: "top", offset: [0, -8] })
         .addTo(S.layers.traffic);
     });
-    liveNote(`${r.count} on ${net}`);
-  } catch (e) { S.layers.traffic.clearLayers(); liveNote(`${net} unavailable`); }  // never leave another network's traffic showing
+    liveNote(net === "PAC" ? `${shown} PAC pilot${shown === 1 ? "" : "s"} nearby` : `${r.count} on ${net}`);
+  } catch (e) {
+    if (localStorage.getItem("pac-traffic") !== net) return;
+    S.layers.traffic.clearLayers(); liveNote(`${net} unavailable`);
+  }
 }
 async function refreshRadar() {
   if (!S.map) return;
