@@ -3693,6 +3693,7 @@ def file_pirep():
               "online": p.get("online"), "urgent": p.get("urgent"), "job": p.get("job"), "conflict": p.get("conflict"),
               "debrief": p.get("debrief"), "flight_configuration": p.get("flight_configuration"),
               "time_checks": p.get("time_checks"), "engine_review": p.get("engine_review"), "load_factors": p.get("load_factors")}
+    recovery_pilot = dispatch_pilot() if (booking.get("mission") or {}).get("volume_cap") else None
     with db() as con:
         con.execute("""INSERT OR IGNORE INTO pireps (filed_at, mission_id, mission_title, category, flight_number, aircraft,
             registration, dep, arr, planned_arr, block_min, flight_min, distance_nm, fuel_used_lbs, payload_lbs,
@@ -3712,7 +3713,7 @@ def file_pirep():
             raise RuntimeError("PIREP filing did not create or find its booking record.")
         pid = filed["id"]
         cargo_network.record_flight(con, booking, p, pid, pid_)
-        cargo_network.create_volume_recovery(con, booking, p, pid, pid_, FLEET, dispatch_pilot())
+        cargo_network.create_volume_recovery(con, booking, p, pid, pid_, FLEET, recovery_pilot)
         board_events = []
         try:   # the Discord freight board: claimed and seasonal freight that this flight delivered
             for r_ in con.execute("""SELECT s.awb, s.commodity, s.destination, json_extract(s.data,'$.season_name') AS season,
