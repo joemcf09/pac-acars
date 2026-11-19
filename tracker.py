@@ -40,6 +40,12 @@ def expected_engines(booking):
     return ENGINES_BY_ICAO.get(code, 2)
 
 
+def hm(seconds):
+    """H:MM for the ACARS log."""
+    m = int(round(max(0, seconds) / 60))
+    return f"{m // 60}:{m % 60:02d}"
+
+
 def zulu(t):
     return dt.datetime.fromtimestamp(t, dt.timezone.utc).strftime("%H%MZ")
 
@@ -714,6 +720,7 @@ class FlightRecorder:
                         "phase": self.phase,
                         "seq":   len(self.eng_starts) + 1,
                     })
+                    self._engine_start_message(t, n, num)
 
         # ----- single-engine taxi detection (TAXI_OUT only, multi-engine aircraft) -----
 
@@ -726,6 +733,19 @@ class FlightRecorder:
             if all(state is not None for state in engine_states):
                 if sum(state is True for state in engine_states) == 1:
                     self.single_eng_taxi = True
+
+    def _engine_start_message(self, t, n, num):
+        """Tell the pilot in the ACARS log about each confirmed engine start, and once every engine is running.
+        Informational only; a message can never affect the flight."""
+        try:
+            self.msg(t, f"ENG {n} START {zulu(t)}", "info")
+            want = num or expected_engines(self.booking) or 0
+            if want >= 2 and len(self.eng_starts) == want:
+                first, last = self.eng_starts[0]["t"], self.eng_starts[-1]["t"]
+                order = "-".join(str(e["n"]) for e in self.eng_starts)
+                self.msg(t, f"ALL ENGINES RUNNING  ORDER {order}  {int(round(last - first))}S FIRST TO LAST", "info")
+        except Exception:
+            pass
 
     # ---------------------------------------------------------------- OOOI
     def _out(self, t, s):
@@ -816,6 +836,13 @@ class FlightRecorder:
         self.fuel["in"] = s.fuel_lbs
         self.msg(t, f"IN {zulu(t)}  FOB {s.fuel_lbs:,.0f}LB  FLIGHT COMPLETE", "oooi")
         self.arr_config = _config_snapshot(s)   # 1.2: arrival configuration at on-block
+        try:   # 1.2: where the block time went, in the ACARS log (the website shows the same with plan comparisons)
+            o = self.oooi
+            if o["out"] and o["off"] and o["on"]:
+                self.msg(t, f"BLOCK {hm(t - o['out'])}  TAXI OUT {hm(o['off'] - o['out'])}  AIR {hm(o['on'] - o['off'])}  "
+                            f"TAXI IN {hm(t - o['on'])}", "info")
+        except Exception:
+            pass
 
     # ---------------------------------------------------------------- export for the website
     EXPORT_SKIP = {"booking", "db"}

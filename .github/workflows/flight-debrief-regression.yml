@@ -17,6 +17,6 @@ jobs:
         with:
           python-version: '3.11'
       - run: python -m pip install -r requirements.txt pytest
-      - run: python -m pytest -q tests/test_acars_config_capture.py tests/test_mission_worker_data.py
+      - run: python -m pytest -q tests/test_acars_config_capture.py tests/test_flight_timing.py tests/test_mission_worker_data.py
       - run: python tests/test_flights.py
       - run: python tests/test_pirep_retry.py

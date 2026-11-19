@@ -23,7 +23,8 @@ from pathlib import Path
 from flask import Flask, jsonify, request, send_file, send_from_directory
 
 from sim_sources import Telemetry, gc_distance_nm
-from tracker import FlightRecorder, PHASES, zulu
+from tracker import FlightRecorder, PHASES, zulu, expected_engines
+import flight_timing
 import va
 import analysis
 import dispatch
@@ -651,6 +652,13 @@ def build_pirep(booking, rec: FlightRecorder):
         "airframe": booking.get("airframe"),
         "flight_configuration": flight_configuration(rec),
     }
+    try:   # 1.2 review cards: informational only, and they must never stop a PIREP
+        p["time_checks"] = flight_timing.time_checks(o, ofp, AIRPORTS.get(rec.origin["icao"], {}).get("size"),
+                                                     AIRPORTS.get(arr_icao, {}).get("size"))
+        p["engine_review"] = flight_timing.engine_review(getattr(rec, "eng_starts", None), expected_engines(booking))
+    except Exception as e:
+        app.logger.exception("flight timing review: %s", e)
+        p["time_checks"], p["engine_review"] = None, None
     series = getattr(rec, "landing_series", None)
     if series and rec.landing:
         near = va.nearest_airport(rec.landing["lat"], rec.landing["lon"], within=4)
@@ -3648,7 +3656,8 @@ def file_pirep():
               "aircraft_name": p.get("aircraft_name"), "pilot_rank": va.career(va.current_pilot_id())["rank"],
               "takeoff_analysis": p.get("takeoff_analysis"), "economics": p.get("economics"), "integrity": p.get("integrity"),
               "online": p.get("online"), "urgent": p.get("urgent"), "job": p.get("job"), "conflict": p.get("conflict"),
-              "debrief": p.get("debrief"), "flight_configuration": p.get("flight_configuration")}
+              "debrief": p.get("debrief"), "flight_configuration": p.get("flight_configuration"),
+              "time_checks": p.get("time_checks"), "engine_review": p.get("engine_review")}
     with db() as con:
         con.execute("""INSERT OR IGNORE INTO pireps (filed_at, mission_id, mission_title, category, flight_number, aircraft,
             registration, dep, arr, planned_arr, block_min, flight_min, distance_nm, fuel_used_lbs, payload_lbs,

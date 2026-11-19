@@ -1650,6 +1650,7 @@ function renderAcars() {
         <a class="btn ghost" href="/dispatch" target="_blank" rel="noopener" id="dispatchBtn">${needsSignature(b) ? "Review and sign paperwork" : "Dispatch release"}</a>
         <a class="btn ghost" id="unicomBtn" target="_blank" rel="noopener" title="Ready-to-send Unicom calls for this flight, for when no ATC is online">📻 Unicom calls</a>
         <a class="btn ghost" id="radioBtn" target="_blank" rel="noopener" title="Full gate-to-gate ATC radio cheat sheet, filled for this flight">🗒️ Radio cheat sheet</a>
+        <a class="btn ghost" id="sopBtn" href="/static/sop/PAC-SOP.pdf" target="_blank" rel="noopener" title="PAC standard operating procedures (PDF)">📘 SOP procedures</a>
         ${navigraphBtn(b.ofp)}
         <a class="btn" id="openApp" href="${appLink(b)}" title="Opens PAC ACARS on this PC with this flight loaded">Open in PAC ACARS</a>
         <button class="btn ghost" id="cancelBtn">Cancel mission</button>
@@ -8484,6 +8485,42 @@ function pacFlightConfiguration(c) {
     <p class="pd-note">Recorded flight observations only. Configuration does not change the flight grade.</p>
   </section>`;
 }
+function pacTimingReview(tc, er) {
+  if (!tc && !er) return '';
+  const e = value => String(value ?? '').replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+  const mins = v => v == null ? '–' : (v >= 60 ? `${Math.floor(v / 60)}h ${String(Math.round(v % 60)).padStart(2, '0')}m` : `${Math.round(v)} min`);
+  const verdict = {ok: ['On plan', ''], late: ['Late', 'warn'], early: ['Early', 'warn'], over: ['Over', 'warn'], under: ['Short', 'warn'], na: ['Not compared', 'na']};
+  let out = '';
+  if (tc && tc.segments) {
+    const s = tc.segments, z = s.zulu || {};
+    const time = (label, code, sub) => `<div class="pd-metric"><small>${label}</small><strong>${e(code || '–')}</strong><span class="pd-sub">${sub}</span></div>`;
+    out += `<div class="pd-grid">${time('Out of the gate', z.out, 'Block starts')}${time('Airborne', z.off, `Taxi out ${mins(s.taxi_out_min)}`)}${time('Touchdown', z.on, `Airborne ${mins(s.airborne_min)}`)}${time('On the stand', z.in, `Taxi in ${mins(s.taxi_in_min)}`)}</div>
+      <p class="pd-note">Block time ${mins(s.block_min)}. It runs from leaving the gate to the parking brake on the stand.</p>
+      <div class="pd-scroll"><table class="pd-checks"><tbody>${(tc.checks || []).map(c => {
+        const [word, cls] = verdict[c.status] || verdict.na;
+        return `<tr><td>${e(c.label)}</td><td>${e(c.text)}</td><td><span class="pd-pill ${cls}">${word}</span></td></tr>`;
+      }).join('')}</tbody></table></div>`;
+  }
+  if (er) {
+    const gaps = (er.gaps_s || []).map(g => `${Math.round(g)} s`).join(', ');
+    const seqTone = er.sequence && ['listed'].includes(er.sequence.status) ? '' : (er.sequence && ['unlisted', 'incomplete'].includes(er.sequence.status) ? 'warn' : 'na');
+    out += `<h4>Engine start review</h4>
+      <div class="pd-grid pd-grid-3">
+        <div class="pd-metric"><small>Start order</small><strong>${e(er.order_text)}</strong><span class="pd-sub">${er.started} of ${er.expected} engines</span></div>
+        <div class="pd-metric"><small>First to last</small><strong>${er.span_s == null ? '–' : `${Math.round(er.span_s)} s`}</strong><span class="pd-sub">${gaps ? `Gaps ${e(gaps)}` : 'Single start'}</span></div>
+        <div class="pd-metric"><small>First engine</small><strong>${e(er.first_z || '–')}</strong><span class="pd-sub">${e(er.last_z && er.started > 1 ? `Last ${er.last_z}` : '')}</span></div>
+      </div>
+      <div class="pd-scroll"><table class="pd-checks"><tbody>
+        <tr><td>Sequence</td><td>${e(er.sequence ? er.sequence.text : '')}</td><td><span class="pd-pill ${seqTone}">${er.sequence && er.sequence.status === 'listed' ? 'Standard' : er.sequence && er.sequence.status === 'unlisted' ? 'Not listed' : er.sequence && er.sequence.status === 'incomplete' ? 'Incomplete' : 'No standard yet'}</span></td></tr>
+        ${er.timing ? `<tr><td>Start time</td><td>${e(er.timing.text)}</td><td><span class="pd-pill ${er.timing.status === 'ok' ? '' : 'warn'}">${er.timing.status === 'ok' ? 'On target' : 'Slow'}</span></td></tr>` : ''}
+        ${(er.notes || []).map(n => `<tr><td>Note</td><td>${e(n)}</td><td></td></tr>`).join('')}
+      </tbody></table></div>`;
+  }
+  return `<section class="pd-timing" data-pd-section="Timing">
+    <h3>Block time and engine start</h3>${out}
+    <p class="pd-note">Recorded observations only. They do not change the flight grade or your pay.</p>
+  </section>`;
+}
 function pacDebrief(p, d = p) {
   const e = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const n = v => typeof v === 'number' && Number.isFinite(v);
@@ -8520,6 +8557,7 @@ function pacDebrief(p, d = p) {
     <div class="pd-grid">${metric('Touchdown', la.rate_fpm, 'fpm', 'Recorded vertical speed')}${metric('Landing load', la.g, 'G', 'Around touchdown')}${metric('Touchdown speed', la.ias, 'kt', 'Indicated airspeed')}${metric('Takeoff roll', ta.roll_ft, 'ft', 'Recorded ground roll')}</div>
     <div class="pd-columns"><div><h3>What went well</h3>${list(good) || '<p>Not enough recorded evidence to identify strengths.</p>'}</div><div><h3>${focus.length ? 'Technique notes for next time' : 'Keep it up'}</h3>${list(focus) || '<p>Nothing to work on from this flight. Fly the next one the same way.</p>'}${focus.length && !(d.breakdown || []).some(x => x[1] < 0) ? '<p class="muted" style="font-size:13px">These notes don\'t lower your grade. They\'re what a check captain would mention after the flight.</p>' : ''}</div></div>
     ${pacFlightConfiguration(d.flight_configuration || p.flight_configuration)}
+    ${pacTimingReview(d.time_checks || p.time_checks, d.engine_review || p.engine_review)}
     ${pacAfterAction(p.debrief || d.debrief)}
     ${pacShipmentDebrief(p, d)}
     <details><summary>The evidence behind the feedback</summary>${list(facts) || '<p>No detailed measurements available for this report.</p>'}<p class="pd-note">The approach check looks at your speed spread below 1,000 ft and your descent rate below 500 ft.</p></details>
@@ -8588,7 +8626,7 @@ function pacReportNav(root) {
     if (['Landing','Takeoff','Replay'].includes(name)) {h.dataset.pdSection=name;sections.push(h);}
   }
   const nav=document.createElement('nav');nav.className='pd-nav';nav.setAttribute('aria-label','Flight report sections');
-  for (const name of ['Summary','Configuration','Shipment','Landing','Takeoff','Replay']) {
+  for (const name of ['Summary','Configuration','Timing','Shipment','Landing','Takeoff','Replay']) {
     const target=sections.find(x=>x.dataset.pdSection===name);if(!target)continue;
     const b=document.createElement('button');b.type='button';b.textContent=name;
     b.onclick=()=>{target.scrollIntoView({block:'start',behavior:'auto'});target.tabIndex=-1;target.focus({preventScroll:true});};nav.appendChild(b);
@@ -8596,7 +8634,7 @@ function pacReportNav(root) {
   root.prepend(nav);
 }
 
-{const style=document.createElement("style");style.textContent=".pac-debrief{border:1px solid var(--line,#d8dce3);border-top:4px solid #c80000;border-radius:8px;background:var(--white,#fff);color:var(--ink,#20252b);padding:24px;margin:18px 0;font:15px/1.6 system-ui}.pd-head{display:flex;justify-content:space-between;gap:24px}.pd-head h2{font-size:30px;margin:5px 0}.pd-head p{margin:4px 0 18px}.pd-head small{font-weight:700;letter-spacing:1px;color:var(--ink,#20252b)}.pd-grade{display:flex;flex-direction:column;align-items:center;min-width:140px}.pd-grade strong{font-size:48px;line-height:1.2}.pd-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}.pd-metric{border:1px solid var(--line,#d8dce3);padding:16px;border-radius:6px;display:flex;flex-direction:column}.pd-metric strong{font-size:25px}.pd-metric strong span{font-size:13px;font-weight:400}.pd-columns{display:grid;grid-template-columns:1fr 1fr;gap:28px;margin:20px 0}.pac-debrief h3{font-size:17px;margin:8px 0}.pac-debrief details{border-top:1px solid var(--line,#d8dce3);padding:14px 0}.pac-debrief summary{cursor:pointer;font-weight:700}.pd-note{color:var(--steel,#586575);font-size:13px}.pac-debrief p{max-width:85ch}@media(max-width:700px){.pd-grid{grid-template-columns:1fr 1fr}.pd-columns{grid-template-columns:1fr;gap:8px}.pd-head{flex-direction:column}.pd-grade{align-items:flex-start}.pac-debrief{padding:16px}}\n.pd-shipment{padding:22px;background:var(--paper,#f6f7f9);border-left:4px solid #c80000;margin:22px 0}.pd-shipment>small{font-weight:700;letter-spacing:1px;color:var(--ink,#20252b)}\n\n.pd-nav{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0 20px}.pd-nav button{background:var(--white,#fff);color:var(--ink,#20252b);border:1px solid var(--line,#ddd);padding:9px 14px;cursor:pointer;border-radius:4px;font:inherit}.pd-nav button:hover,.pd-nav button:focus,.pd-nav button:focus-visible,.pd-nav button:active{outline:2px solid #c80000;color:var(--ink,#20252b)!important;background:var(--white,#fff)!important}.pd-shipment{padding:16px 20px}.pd-shipment details{padding-bottom:0}[data-pd-section]{scroll-margin-top:16px}.pd-configuration{border-top:1px solid var(--line,#d8dce3);padding-top:18px;margin:20px 0}.pd-configuration .pd-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.pd-configuration .pd-metric strong{font-size:19px}.pd-light-list{display:grid;gap:2px;margin-top:7px}.pd-light-list>div{display:flex;justify-content:space-between;gap:12px;font-size:13px}.pd-light-list b{font-weight:600}.pd-configuration .pd-note{margin:12px 0 0}@media(max-width:700px){.pd-configuration .pd-grid{grid-template-columns:1fr}}\n";document.head.appendChild(style);}
+{const style=document.createElement("style");style.textContent=".pac-debrief{border:1px solid var(--line,#d8dce3);border-top:4px solid #c80000;border-radius:8px;background:var(--white,#fff);color:var(--ink,#20252b);padding:24px;margin:18px 0;font:15px/1.6 system-ui}.pd-head{display:flex;justify-content:space-between;gap:24px}.pd-head h2{font-size:30px;margin:5px 0}.pd-head p{margin:4px 0 18px}.pd-head small{font-weight:700;letter-spacing:1px;color:var(--ink,#20252b)}.pd-grade{display:flex;flex-direction:column;align-items:center;min-width:140px}.pd-grade strong{font-size:48px;line-height:1.2}.pd-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}.pd-metric{border:1px solid var(--line,#d8dce3);padding:16px;border-radius:6px;display:flex;flex-direction:column}.pd-metric strong{font-size:25px}.pd-metric strong span{font-size:13px;font-weight:400}.pd-columns{display:grid;grid-template-columns:1fr 1fr;gap:28px;margin:20px 0}.pac-debrief h3{font-size:17px;margin:8px 0}.pac-debrief details{border-top:1px solid var(--line,#d8dce3);padding:14px 0}.pac-debrief summary{cursor:pointer;font-weight:700}.pd-note{color:var(--steel,#586575);font-size:13px}.pac-debrief p{max-width:85ch}@media(max-width:700px){.pd-grid{grid-template-columns:1fr 1fr}.pd-columns{grid-template-columns:1fr;gap:8px}.pd-head{flex-direction:column}.pd-grade{align-items:flex-start}.pac-debrief{padding:16px}}\n.pd-shipment{padding:22px;background:var(--paper,#f6f7f9);border-left:4px solid #c80000;margin:22px 0}.pd-shipment>small{font-weight:700;letter-spacing:1px;color:var(--ink,#20252b)}\n\n.pd-nav{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0 20px}.pd-nav button{background:var(--white,#fff);color:var(--ink,#20252b);border:1px solid var(--line,#ddd);padding:9px 14px;cursor:pointer;border-radius:4px;font:inherit}.pd-nav button:hover,.pd-nav button:focus,.pd-nav button:focus-visible,.pd-nav button:active{outline:2px solid #c80000;color:var(--ink,#20252b)!important;background:var(--white,#fff)!important}.pd-shipment{padding:16px 20px}.pd-shipment details{padding-bottom:0}[data-pd-section]{scroll-margin-top:16px}.pd-configuration{border-top:1px solid var(--line,#d8dce3);padding-top:18px;margin:20px 0}.pd-configuration .pd-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.pd-configuration .pd-metric strong{font-size:19px}.pd-light-list{display:grid;gap:2px;margin-top:7px}.pd-light-list>div{display:flex;justify-content:space-between;gap:12px;font-size:13px}.pd-light-list b{font-weight:600}.pd-configuration .pd-note{margin:12px 0 0}@media(max-width:700px){.pd-configuration .pd-grid{grid-template-columns:1fr}}\n.pd-timing{border-top:1px solid var(--line,#d8dce3);padding-top:18px;margin:20px 0}.pd-timing h4{font-size:16px;margin:22px 0 8px}.pd-timing .pd-metric strong{font-size:21px}.pd-sub{font-size:13px;color:var(--steel,#586575)}.pd-grid-3{grid-template-columns:repeat(3,minmax(0,1fr))}.pd-scroll{overflow-x:auto}.pd-checks{width:100%;border-collapse:collapse;margin-top:12px}.pd-checks td{padding:9px 10px;border-top:1px solid var(--line,#d8dce3);vertical-align:top;font-size:14px}.pd-checks td:first-child{font-weight:600;white-space:nowrap}.pd-checks td:last-child{text-align:right;white-space:nowrap}.pd-pill{display:inline-block;padding:2px 10px;border-radius:999px;font-size:12px;font-weight:700;background:#e6f4ea;color:#17623a}.pd-pill.warn{background:#fff1dc;color:#8a4b00}.pd-pill.na{background:#eceff3;color:#586575}.pd-timing .pd-note{margin:12px 0 0}@media(max-width:700px){.pd-grid-3{grid-template-columns:1fr}}\n";document.head.appendChild(style);}
 
 function pacParkedInit() {
   if (document.getElementById('parkedControls')) return;
