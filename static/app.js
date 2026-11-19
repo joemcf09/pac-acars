@@ -5297,6 +5297,8 @@ const TECH_PARTNERS = [
   { name: "SayIntentions.AI", kind: "Integration", url: "https://www.sayintentions.ai",
     desc: "AI air traffic control. PAC links to it through VA-Link, so the flights you fly there log straight back to your PAC logbook." },
   { name: "SimBrief by Navigraph", kind: "Dispatch", url: "https://www.simbrief.com",
+    // Navigraph's official logo files, unmodified (light and dark versions), per their brand guidelines
+    logo: "/static/tools/navigraph-logo.svg", logoDark: "/static/tools/navigraph-logo-black.svg", logoAlt: "Navigraph",
     desc: "Every PAC dispatch release is built on a SimBrief OFP: real fuel, weights and routing for your flight." },
   { name: "TFDi Design", kind: "Fleet", url: "https://www.tfdidesign.com",
     desc: "The study-level MD-11, flown in PAC colours as the MD-11F." },
@@ -5415,7 +5417,7 @@ async function renderHome(h, st) {
   ${networkPartners(h)}
 
   <div class="section-h"><div><div class="kicker">Tools &amp; technology</div><h2>What PAC flies with</h2><p>The platforms and add-ons behind every PAC flight. We integrate directly with some of them.</p></div></div>
-  <div class="tech-grid">${TECH_PARTNERS.map(p => `<a class="tech-card"${p.url ? ` href="${esc(p.url)}" target="_blank" rel="noopener"` : ""}><span class="tech-kind">${esc(p.kind)}</span><b>${esc(p.name)}</b><span class="tech-desc">${esc(p.desc)}</span></a>`).join("")}</div>
+  <div class="tech-grid">${TECH_PARTNERS.map(p => `<a class="tech-card"${p.url ? ` href="${esc(p.url)}" target="_blank" rel="noopener"` : ""}><span class="tech-kind">${esc(p.kind)}</span>${p.logo ? `<span class="tech-logo"><img class="light" src="${esc(p.logo)}" alt="${esc(p.logoAlt || p.name)}" loading="lazy"><img class="dark" src="${esc(p.logoDark || p.logo)}" alt="${esc(p.logoAlt || p.name)}" loading="lazy"></span>` : ""}<b>${esc(p.name)}</b><span class="tech-desc">${esc(p.desc)}</span></a>`).join("")}</div>
   <p class="muted" style="font-size:12px;margin:8px 0 0">Product and company names are trademarks of their respective owners. Pagani Air Cargo is a non-commercial flight-simulation community; these references don't imply endorsement or affiliation beyond the integrations noted.</p>
 
   ${(() => { const de = S.settings?.direct_entry_checkrides !== false;   // direct entry: aircraft come from checkrides, not rank

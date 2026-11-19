@@ -663,6 +663,10 @@ img.insignia{display:block;aspect-ratio:3/5;object-fit:contain;background:#14141
 .tech-card .tech-kind{font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--red-deep)}
 .tech-card b{font-size:17px}
 .tech-card .tech-desc{color:var(--steel);font-size:13.5px;line-height:1.45}
+.tech-card .tech-logo img{display:block;height:38px;width:auto}
+.tech-card .tech-logo .dark{display:none}
+html[data-theme="dark"] .tech-card .tech-logo .light{display:none}
+html[data-theme="dark"] .tech-card .tech-logo .dark{display:block}
 
 /* ============ News, NOTAMs, gallery ============ */
 .notam-bar{display:flex;gap:12px;align-items:flex-start;background:#1E2126;color:#fff;border-left:6px solid #FFC845;padding:10px 16px;margin-bottom:14px;border-radius:2px;font-size:14px}
