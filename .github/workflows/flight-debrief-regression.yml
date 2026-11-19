@@ -21,3 +21,4 @@ jobs:
       - run: python tests/test_flights.py
       - run: python tests/test_pirep_retry.py
       - run: python tests/test_a330_p2f.py
+      - run: python tests/test_runway_cache.py
