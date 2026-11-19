@@ -106,6 +106,8 @@ def time_checks(oooi, ofp, dep_size=None, arr_size=None):
                                        ("taxi_in", "Taxi in", seg["taxi_in_min"], in_lo, in_hi)):
         if actual is None:
             checks.append(_check(cid, label, "na", f"{label} was not completed."))
+        elif actual < lo:
+            checks.append(_check(cid, label, "ok", f"{_hm(actual)}, well under the {hi} minute allowance.", _hm(actual), f"{lo}-{hi} min", actual - hi))
         elif actual <= hi:
             checks.append(_check(cid, label, "ok", f"{_hm(actual)}, inside the {lo}-{hi} minute allowance.", _hm(actual), f"{lo}-{hi} min", actual - hi))
         else:
