@@ -10,7 +10,7 @@ import company
 
 con = sqlite3.connect(":memory:")
 con.execute("CREATE TABLE pilots (id TEXT PRIMARY KEY, name TEXT, staff INT)")
-for pid, name, staff in [("PAC0001", "Joseph", 1), ("PAC0014", "Alan", 0), ("PAC0002", "Jose", 0), ("PAC0003", "Mara", 0), ("PAC0004", "Devi", 0), ("PAC0005", "Finn", 0), ("PAC0006", "Omar", 0)]:
+for pid, name, staff in [("PAC0001", "Joseph", 1), ("PAC0014", "Alan", 0), ("PAC0002", "Jose", 0), ("PAC0003", "Mara", 0), ("PAC0004", "Devi", 0), ("PAC0005", "Finn", 0), ("PAC0006", "Omar", 0), ("PAC0007", "Ari", 0)]:
     con.execute("INSERT INTO pilots VALUES (?,?,?)", (pid, name, staff))
 company.migrate(con)                       # seeds the owner's ceo role
 company.assign(con, "PAC0014", "livery_mgr", "")   # Alan: Livery Manager, not a full admin
@@ -18,6 +18,7 @@ company.assign(con, "PAC0003", "creative", "")     # Mara: Creative / Media Dire
 company.assign(con, "PAC0004", "commercial", "")   # Devi: Commercial Director, not a full admin
 company.assign(con, "PAC0005", "fleet_mgr", "")    # Finn: Fleet & Maintenance Manager, not a full admin
 company.assign(con, "PAC0006", "dir_ops", "")      # Omar: Director of Operations, not a full admin
+company.assign(con, "PAC0007", "academy_director", "")
 con.commit()
 
 fails = []
@@ -59,6 +60,10 @@ check("Alan may NOT /api/staff/wallet/<pid>", company.may_path(con, "PAC0014", "
 check("Alan may NOT /api/staff/pilots/<pid>", company.may_path(con, "PAC0014", "/api/staff/pilots/PAC0002") is False)
 check("Alan may NOT /api/staff/roles", company.may_path(con, "PAC0014", "/api/staff/roles") is False)
 check("plain pilot may NOT /api/staff/liveries", company.may_path(con, "PAC0002", "/api/staff/liveries") is False)
+check("Academy path is scoped", company.capability_for("/api/staff/academy/3/file") == "academy")
+check("Academy Director can edit Academy", company.may_path(con, "PAC0007", "/api/staff/academy/3/file") is True)
+check("Academy Director cannot access staff roster", company.may_path(con, "PAC0007", "/api/staff/roster") is False)
+check("ordinary pilot cannot edit Academy", company.may_path(con, "PAC0002", "/api/staff/academy") is False)
 
 # --- Creative / Media: a second scoped role, kept separate from Livery -------
 check("partner-photos path is scoped to creative", company.capability_for("/api/staff/partner-photos") == "creative")

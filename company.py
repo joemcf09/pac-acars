@@ -23,6 +23,7 @@ ROLES = {
     "creative": ("Creative / Media Director", "Screenshots, promo graphics and social media; site announcements and company NOTAMs; promoting PAC on forums and social channels"),
     "livery_mgr": ("Livery Manager", "The PAC livery library and paint kits, across MSFS and X-Plane"),
     "hub_mgr": ("Hub Manager", "A hub's station report, backlog and regular pilots"),
+    "academy_director": ("Academy Director", "Build and publish PAC Academy courses, lessons and training resources"),
 }
 # which roles may do what (the CEO can always do everything)
 CAN = {"ceo_desk": {"ceo"}, "fleet_market": {"ceo", "fleet_mgr"}, "complaints": {"ceo", "commercial"}, "roles": {"ceo"}}
@@ -48,6 +49,7 @@ SCOPE = {
     "commercial": {"roles": {"commercial"}, "paths": ("complaints", "accounts", "lanes", "featured-shipments")},
     "fleet": {"roles": {"fleet_mgr"}, "paths": ("fleet-types", "airframes", "maintenance", "fleet-recs", "fleet-catalog")},
     "operations": {"roles": {"dir_ops"}, "paths": ("cargo-campaigns", "events", "relief")},
+    "academy": {"roles": {"academy_director"}, "paths": ("academy",)},
     # The fleet MARKET itself (buying/leasing, which spends company cash) stays full-admin only, so a
     # Fleet Manager can browse the catalog (fleet-catalog, no cash shown) and file recommendations
     # (fleet-recs), but only the owner approves them, which executes the order under /api/staff/market/rec.
