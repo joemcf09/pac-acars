@@ -71,8 +71,20 @@ check("departure and arrival lights reach PIREP",
       config["dep_config"]["landing"] is None and config["arr_config"]["landing"] is False)
 check("configuration leaves grading unchanged",
       (configured["score"], configured["grade"], configured["breakdown"]) == (p["score"], p["grade"], p["breakdown"]))
+# 1.2 review cards: engine order, block segments and the plan checks reach the PIREP and never change the grade.
+review = configured["engine_review"]
+check("engine review reaches PIREP", review and review["order"] == [2, 1] and review["sequence"]["status"] == "listed", review)
+check("engine review copes with starts that have no timestamp", review["span_s"] is None and review["timing"] is None)
+tc = configured["time_checks"]
+check("time checks reach PIREP", tc and tc["informational"] is True, tc)
+check("time checks cover departure, taxi, airborne, arrival and block",
+      {c["id"] for c in tc["checks"]} == {"departure", "taxi_out", "airborne", "taxi_in", "arrival", "block"}, tc)
+check("block segments match the PIREP block time", abs(tc["segments"]["block_min"] - configured["block_min"]) < 0.1,
+      (tc["segments"]["block_min"], configured["block_min"]))
+check("time checks and engine review leave the score alone", configured["score"] == p["score"] and configured["status"] == p["status"])
 rec.eng_starts, rec.single_eng_taxi, rec.dep_config, rec.arr_config = [], False, {}, {}
 check("older flight has no configuration section", A.build_pirep(rec.booking, rec)["flight_configuration"] is None)
+check("older flight has no engine review", A.build_pirep(rec.booking, rec)["engine_review"] is None)
 rec.eng_starts, rec.single_eng_taxi, rec.dep_config, rec.arr_config = _original_config
 phases = [x["phase"] for x in rec.timeline]
 for ph in ("PUSHBACK", "TAXI_OUT", "TAKEOFF", "INITIAL_CLIMB", "CLIMB", "CRUISE", "DESCENT", "APPROACH", "LANDING", "TAXI_IN", "ARRIVED"):

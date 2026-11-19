@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>PAC Standard Operating Procedures</title>
+<style>
+  @page { size: Letter; margin: 0.6in 0.7in 0.7in; }
+  * { box-sizing: border-box; }
+  body { font: 10.5pt/1.45 "Helvetica Neue", Helvetica, Arial, sans-serif; color: #1c2128; margin: 0; }
+  header { display: flex; align-items: center; justify-content: space-between; gap: 24px; border-bottom: 3px solid #c80000; padding-bottom: 12px; margin-bottom: 14px; }
+  header img { height: 34px; }
+  header .t { text-align: right; }
+  header h1 { font-size: 19pt; margin: 0; letter-spacing: .2px; }
+  header .s { font-size: 9.5pt; color: #586575; margin-top: 2px; }
+  .intro { background: #f4f6f8; border-left: 4px solid #c80000; padding: 9px 12px; margin: 0 0 14px; font-size: 10pt; }
+  h2 { font-size: 12.5pt; margin: 16px 0 6px; padding-bottom: 3px; border-bottom: 1px solid #d8dce3; break-after: avoid; }
+  h2 span { color: #c80000; margin-right: 6px; }
+  ul { margin: 4px 0 6px; padding-left: 18px; }
+  li { margin: 2px 0; }
+  table { width: 100%; border-collapse: collapse; margin: 6px 0 8px; font-size: 10pt; break-inside: avoid; }
+  th, td { text-align: left; padding: 5px 8px; border: 1px solid #d8dce3; vertical-align: top; }
+  th { background: #f4f6f8; font-weight: 700; }
+  .tag { display: inline-block; font-size: 8pt; font-weight: 700; letter-spacing: .4px; text-transform: uppercase; padding: 1px 7px; border-radius: 9px; vertical-align: 1px; }
+  .rec { background: #e8eef7; color: #1d4575; }
+  .rem { background: #fff1dc; color: #8a4b00; }
+  .sco { background: #fde6e6; color: #8a1010; }
+  .two { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .box { border: 1px solid #d8dce3; padding: 4px 12px 8px; break-inside: avoid; }
+  .box h3 { font-size: 10.5pt; margin: 6px 0 2px; }
+  footer { margin-top: 16px; padding-top: 8px; border-top: 1px solid #d8dce3; font-size: 8.5pt; color: #586575; }
+</style>
+</head>
+<body>
+<header>
+  <img src="{{LOGO}}" alt="Pagani Air Cargo">
+  <div class="t"><h1>Standard Operating Procedures</h1><div class="s">PAC ACARS 1.2 &middot; Revision November 2026</div></div>
+</header>
+
+<p class="intro">These are Pagani Air Cargo's standard procedures as PAC ACARS checks them. Reminders appear in the ACARS log as
+<b>PAC SOP</b> messages while you fly. Items marked <span class="tag rec">Recorded</span> are saved for your flight debrief and never change your grade.
+Items marked <span class="tag rem">Reminder</span> are prompts only. Items marked <span class="tag sco">Graded</span> affect your score.</p>
+
+<h2><span>1</span>Before engine start and pushback</h2>
+<ul>
+  <li>Beacon ON before engine start, and before pushback. <span class="tag rem">Reminder</span></li>
+  <li>Load the aircraft type you booked. ACARS compares the engine count and warns if it does not match. <span class="tag rem">Reminder</span></li>
+  <li>If ACARS warns that gross weight is above the maximum takeoff weight, check fuel and payload before you go. <span class="tag rem">Reminder</span></li>
+  <li>MSFS: at pushback ACARS compares the simulator's center of gravity with the takeoff CG on your loadsheet. <span class="tag rem">Reminder</span></li>
+</ul>
+
+<h2><span>2</span>Engine start</h2>
+<p>ACARS logs every confirmed start (<b>ENG 1 START</b>) and, once all engines are running, the order and the time from the first start to the last.
+Engines that were already running when tracking began are not counted.</p>
+<table>
+  <tr><th>Engines</th><th>PAC standard start sequences</th><th>All engines running within</th></tr>
+  <tr><td>2</td><td>{{SEQ_2}}</td><td>{{SPAN_2}}</td></tr>
+  <tr><td>3</td><td>None defined yet</td><td>{{SPAN_3}}</td></tr>
+  <tr><td>4</td><td>{{SEQ_4}}</td><td>{{SPAN_4}}</td></tr>
+</table>
+<p>A sequence that is not listed is reported as &ldquo;not listed&rdquo;, never as an error. <span class="tag rec">Recorded</span></p>
+
+<h2><span>3</span>Taxi, single-engine taxi and block time</h2>
+<ul>
+  <li>Keep taxi speed at or below 30 knots. Each time ACARS sees more, it costs 3 points. <span class="tag sco">Graded</span></li>
+  <li>If you taxi out on one engine of a multi-engine aircraft, ACARS records it. This needs the simulator to report the state of every engine. <span class="tag rec">Recorded</span></li>
+</ul>
+<table>
+  <tr><th>Airport size</th><th>Taxi allowance, each end</th></tr>
+  <tr><td>Large</td><td>{{TAXI_L}} minutes</td></tr>
+  <tr><td>Medium</td><td>{{TAXI_M}} minutes</td></tr>
+  <tr><td>Small</td><td>{{TAXI_S}} minutes</td></tr>
+</table>
+<p>Your debrief checks time in separate steps, so you can see where minutes went. <span class="tag rec">Recorded</span></p>
+<ul>
+  <li><b>Departure:</b> leaving the gate within {{GRACE_DEP}} minutes either side of the planned out time from your SimBrief plan.</li>
+  <li><b>Taxi out and taxi in:</b> inside the allowance for the airport size.</li>
+  <li><b>Airborne:</b> within 5 minutes, or 10 percent, of the planned enroute time.</li>
+  <li><b>Arrival:</b> measured from takeoff. Takeoff plus the planned enroute time plus the taxi-in allowance, with {{GRACE_ARR}} minutes of margin, so a late departure does not hide how the flight itself went.</li>
+  <li><b>Block:</b> total block against the plan, with a note on how much came from airborne time and how much from taxiing.</li>
+</ul>
+
+<h2><span>4</span>Lights</h2>
+<p>When the aircraft reports its lights, ACARS records the beacon, navigation, strobe, landing and taxi lights as you leave the gate and again on the stand.
+<span class="tag rec">Recorded</span></p>
+<table>
+  <tr><th>Phase</th><th>Standard</th></tr>
+  <tr><td>Takeoff</td><td>Landing lights ON for takeoff. Strobes ON when entering the runway.</td></tr>
+  <tr><td>Climb</td><td>Landing lights OFF above 10,000 ft.</td></tr>
+  <tr><td>Descent</td><td>Landing lights ON below 10,000 ft.</td></tr>
+  <tr><td>After landing</td><td>Strobes OFF after vacating the runway.</td></tr>
+</table>
+<p>These come as <b>PAC SOP</b> messages in the ACARS log. <span class="tag rem">Reminder</span></p>
+
+<h2><span>5</span>Climb, descent and approach</h2>
+<ul>
+  <li>250 knots indicated or less below FL100. Exceeding it costs 5 points. <span class="tag sco">Graded</span></li>
+  <li>Stable approach gates at 1,000 ft and 500 ft above the ground: gear down, flaps set by 1,000 ft, sink rate not above 1,000 fpm, and speed within 15 knots over the last 12 seconds.
+      If a gate fails, ACARS calls <b>UNSTABLE AT 1000FT</b> or <b>500FT</b> and suggests a go-around. <span class="tag rem">Reminder</span></li>
+  <li>Fuel is checked against your SimBrief plan at top of climb and top of descent. <span class="tag rem">Reminder</span></li>
+</ul>
+
+<h2><span>6</span>What changes your grade</h2>
+<div class="two">
+  <div class="box"><h3>Graded</h3><ul>
+    <li>Landing rate and landing load</li>
+    <li>Trip fuel well over plan, and landing below reserve fuel</li>
+    <li>Overweight landing and tail strike</li>
+    <li>Bounced landings, taxi speed, 250 knot limit</li>
+    <li>Slew mode or position jumps, and takeoff without a gate departure</li>
+    <li>Late delivery: more than 35 percent over the planned block time, or 25 percent on Critical and High priority flights. Delays you report to dispatch are excused.</li>
+  </ul></div>
+  <div class="box"><h3>Recorded only</h3><ul>
+    <li>Engine start order and start time</li>
+    <li>Single-engine taxi</li>
+    <li>Light positions at the gate and on the stand</li>
+    <li>Taxi allowances and the departure, airborne, arrival and block checks</li>
+    <li>PAC SOP reminders</li>
+  </ul></div>
+</div>
+
+<footer>Pagani Air Cargo is a virtual airline for flight simulation. These procedures are for simulation only and are not for real-world aviation use. Reference values are reviewed as flights are flown and may change.</footer>
+</body>
+</html>
