@@ -107,7 +107,13 @@ def package(zip_path: Path) -> int:
     with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as z:
         for p in files:
             # update.sh looks for a single top-level pac-acars/ folder in the zip
-            z.write(p, Path("pac-acars") / p.relative_to(ROOT))
+            arc = Path("pac-acars") / p.relative_to(ROOT)
+            if p.suffix == ".sh":
+                # Windows checkouts turn line endings into CRLF, and Linux then can't run the script
+                # ("bash\r: No such file or directory"). Always ship shell scripts with LF endings.
+                z.writestr(str(arc).replace("\\", "/"), p.read_bytes().replace(b"\r\n", b"\n"))
+            else:
+                z.write(p, arc)
     mb = zip_path.stat().st_size / (1024 * 1024)
     print(f"  {len(files)} files, {mb:.1f} MB")
     if mb > MAX_MB:
