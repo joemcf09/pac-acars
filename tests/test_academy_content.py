@@ -33,8 +33,22 @@ def test_academy_publication_and_upload():
         assert client.get("/api/academy/content").json["items"] == []
         lesson = client.post("/api/staff/academy", json={"kind": "lesson", "course_id": draft["id"], "title": "ULDs", "body": "Load safely", "published": True}).json["item"]
         assert client.get("/api/academy/content").json["items"] == []
+        uploads = client.post(f"/api/staff/academy/{lesson['id']}/attachments", data={"files": [
+            (io.BytesIO(b"%PDF-1.4\n%%EOF"), "guide.pdf", "application/pdf"),
+            (io.BytesIO(b"\x89PNG\r\n\x1a\nimage"), "diagram.png", "image/png")]})
+        assert uploads.status_code == 200
+        attached = uploads.json["attachments"]
+        assert len(attached) == 2
+        assert client.get(attached[0]["file_url"]).status_code == 404  # parent course is a draft
+        assert client.get(attached[0]["staff_url"]).data.startswith(b"%PDF-")
         client.post("/api/staff/academy", json={**draft, "published": True})
         assert {x["id"] for x in client.get("/api/academy/content").json["items"]} == {draft["id"], lesson["id"]}
+        public_attachments = next(x for x in client.get("/api/academy/content").json["items"] if x["id"] == lesson["id"])["attachments"]
+        assert len(public_attachments) == 2 and "staff_url" not in public_attachments[0]
+        assert client.get(attached[0]["file_url"]).data.startswith(b"%PDF-")
+        assert client.get(attached[1]["file_url"]).data.startswith(b"\x89PNG")
+        assert client.delete(f"/api/staff/academy/attachments/{attached[0]['id']}").status_code == 200
+        assert client.get(attached[0]["file_url"]).status_code == 404
         resource = client.post("/api/staff/academy", json={"kind": "resource", "title": "Checklist", "published": True}).json["item"]
         bad = client.post(f"/api/staff/academy/{resource['id']}/file", data={"file": (io.BytesIO(b"not a pdf"), "fake.pdf", "application/pdf")})
         assert bad.status_code == 400

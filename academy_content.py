@@ -24,13 +24,24 @@ def migrate(con):
         mime TEXT, created_at REAL NOT NULL, updated_at REAL NOT NULL,
         FOREIGN KEY (course_id) REFERENCES academy_content(id))""")
     con.execute("CREATE INDEX IF NOT EXISTS idx_academy_list ON academy_content(published, kind, course_id, position)")
+    con.execute("""CREATE TABLE IF NOT EXISTS academy_attachments (
+        id INTEGER PRIMARY KEY AUTOINCREMENT, item_id INTEGER NOT NULL,
+        filename TEXT NOT NULL, stored_name TEXT NOT NULL, mime TEXT NOT NULL,
+        created_at REAL NOT NULL,
+        FOREIGN KEY (item_id) REFERENCES academy_content(id))""")
+    con.execute("CREATE INDEX IF NOT EXISTS idx_academy_attachments ON academy_attachments(item_id, id)")
 
 
-def _row(r):
+def _row(r, con=None, staff=False):
     d = dict(r)
     d["published"] = bool(d["published"])
     d["file_url"] = f"/api/academy/files/{d['id']}" if d["stored_name"] else None
     d.pop("stored_name")
+    if con is not None:
+        d["attachments"] = [dict(id=a["id"], filename=a["filename"], mime=a["mime"],
+            file_url=f"/api/academy/attachments/{a['id']}",
+            **({"staff_url": f"/api/staff/academy/attachments/{a['id']}"} if staff else {})) for a in con.execute(
+            "SELECT * FROM academy_attachments WHERE item_id=? ORDER BY id", (d["id"],))]
     return d
 
 
@@ -65,7 +76,7 @@ def register(app, g):
                 AND (kind!='lesson' OR course_id IN
                     (SELECT id FROM academy_content WHERE kind='course' AND published=1))
                 ORDER BY position, id""").fetchall()
-            return jsonify({"items": [_row(r) for r in rows]})
+            return jsonify({"items": [_row(r, con) for r in rows]})
 
     @app.get("/api/academy/files/<int:item_id>")
     def academy_public_file(item_id):
@@ -81,10 +92,85 @@ def register(app, g):
             return jsonify({"error": "Resource file is missing."}), 404
         return send_file(p, mimetype=r["mime"], as_attachment=True, download_name=r["filename"], max_age=0)
 
+    @app.get("/api/academy/attachments/<int:attachment_id>")
+    def academy_attachment_file(attachment_id):
+        with g["db"]() as con:
+            r = con.execute("""SELECT a.*, c.published, c.kind, parent.published AS parent_published
+                FROM academy_attachments a JOIN academy_content c ON c.id=a.item_id
+                LEFT JOIN academy_content parent ON parent.id=c.course_id
+                WHERE a.id=?""", (attachment_id,)).fetchone()
+        if not r or not r["published"] or (r["kind"] == "lesson" and not r["parent_published"]):
+            return jsonify({"error": "Attachment not found."}), 404
+        p = file_dir() / r["stored_name"]
+        if not p.is_file():
+            return jsonify({"error": "Attachment file is missing."}), 404
+        return send_file(p, mimetype=r["mime"], as_attachment=r["mime"] == "application/pdf",
+                         download_name=r["filename"], max_age=0)
+
+    @app.post("/api/staff/academy/<int:item_id>/attachments")
+    def academy_add_attachments(item_id):
+        files = request.files.getlist("files")
+        if not files or len(files) > 10:
+            return jsonify({"error": "Choose up to 10 files at a time."}), 400
+        prepared = []
+        for f in files:
+            name = Path(f.filename or "").name[:150]
+            mime = f.mimetype
+            if not name or mime not in MIME or Path(name).suffix.lower() != MIME[mime]:
+                return jsonify({"error": "Use PDF, PNG, JPEG or WebP files."}), 400
+            data = f.stream.read(MAX_FILE + 1)
+            if not data or len(data) > MAX_FILE:
+                return jsonify({"error": "Each file must be between 1 byte and 12 MB."}), 400
+            if not (data.startswith(b"%PDF-") if mime == "application/pdf" else
+                    data.startswith(b"\x89PNG\r\n\x1a\n") if mime == "image/png" else
+                    data.startswith(b"\xff\xd8\xff") if mime == "image/jpeg" else
+                    data.startswith(b"RIFF") and data[8:12] == b"WEBP"):
+                return jsonify({"error": "File contents do not match its type."}), 400
+            prepared.append((name, mime, data))
+        with g["db"]() as con:
+            if not con.execute("SELECT 1 FROM academy_content WHERE id=?", (item_id,)).fetchone():
+                return jsonify({"error": "Save the Academy item first."}), 404
+            if con.execute("SELECT COUNT(*) FROM academy_attachments WHERE item_id=?", (item_id,)).fetchone()[0] + len(prepared) > 30:
+                return jsonify({"error": "Each item can have up to 30 attachments."}), 400
+            written = []
+            try:
+                for name, mime, data in prepared:
+                    stored = uuid.uuid4().hex + MIME[mime]
+                    (file_dir() / stored).write_bytes(data)
+                    written.append(stored)
+                    con.execute("INSERT INTO academy_attachments (item_id,filename,stored_name,mime,created_at) VALUES (?,?,?,?,?)",
+                                (item_id, name, stored, mime, time.time()))
+            except Exception:
+                for stored in written:
+                    (file_dir() / stored).unlink(missing_ok=True)
+                raise
+            return jsonify({"attachments": _row(con.execute("SELECT * FROM academy_content WHERE id=?", (item_id,)).fetchone(), con, staff=True)["attachments"]})
+
+    @app.get("/api/staff/academy/attachments/<int:attachment_id>")
+    def academy_staff_attachment_file(attachment_id):
+        with g["db"]() as con:
+            r = con.execute("SELECT * FROM academy_attachments WHERE id=?", (attachment_id,)).fetchone()
+        if not r:
+            return jsonify({"error": "Attachment not found."}), 404
+        p = file_dir() / r["stored_name"]
+        if not p.is_file():
+            return jsonify({"error": "Attachment file is missing."}), 404
+        return send_file(p, mimetype=r["mime"], as_attachment=False, download_name=r["filename"], max_age=0)
+
+    @app.delete("/api/staff/academy/attachments/<int:attachment_id>")
+    def academy_delete_attachment(attachment_id):
+        with g["db"]() as con:
+            r = con.execute("SELECT * FROM academy_attachments WHERE id=?", (attachment_id,)).fetchone()
+            if not r:
+                return jsonify({"error": "Attachment not found."}), 404
+            con.execute("DELETE FROM academy_attachments WHERE id=?", (attachment_id,))
+            (file_dir() / r["stored_name"]).unlink(missing_ok=True)
+        return jsonify({"deleted": attachment_id})
+
     @app.get("/api/staff/academy")
     def academy_staff_list():
         with g["db"]() as con:
-            return jsonify({"items": [_row(r) for r in con.execute("SELECT * FROM academy_content ORDER BY position, id")]})
+            return jsonify({"items": [_row(r, con, staff=True) for r in con.execute("SELECT * FROM academy_content ORDER BY position, id").fetchall()]})
 
     @app.post("/api/staff/academy")
     def academy_save():
@@ -159,7 +245,11 @@ def register(app, g):
                 return jsonify({"error": "Item not found."}), 404
             if r["kind"] == "course" and con.execute("SELECT 1 FROM academy_content WHERE course_id=? LIMIT 1", (item_id,)).fetchone():
                 return jsonify({"error": "Remove this course's lessons first."}), 409
+            attachments = con.execute("SELECT stored_name FROM academy_attachments WHERE item_id=?", (item_id,)).fetchall()
+            con.execute("DELETE FROM academy_attachments WHERE item_id=?", (item_id,))
             con.execute("DELETE FROM academy_content WHERE id=?", (item_id,))
+            for attachment in attachments:
+                (file_dir() / attachment["stored_name"]).unlink(missing_ok=True)
             if r["stored_name"]:
                 (file_dir() / r["stored_name"]).unlink(missing_ok=True)
             return jsonify({"deleted": item_id})
