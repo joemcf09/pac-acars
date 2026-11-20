@@ -3,3 +3,6 @@
 
 # Shell scripts run on the Linux server and must keep LF endings
 *.sh text eol=lf
+
+# Keep Academy sample PDFs byte-for-byte intact on Windows checkouts
+static/academy/pac-sample-*.pdf binary
