@@ -11,10 +11,11 @@ from reportlab.lib.pagesizes import A4
 from reportlab.lib.styles import ParagraphStyle
 from reportlab.lib.units import mm
 from reportlab.platypus import (
-    SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle,
+    Image, SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle,
 )
 
 OUT = Path(__file__).resolve().parent.parent / "static" / "academy"
+LOGO = OUT.parent / "pac-logo.png"
 RED = colors.HexColor("#c80000")
 INK = colors.HexColor("#202329")
 MUTED = colors.HexColor("#666d76")
@@ -22,7 +23,6 @@ LINE = colors.HexColor("#ced2d7")
 PALE = colors.HexColor("#f4f5f6")
 
 styles = {
-    "brand": ParagraphStyle("brand", fontName="Helvetica-Bold", fontSize=32, leading=32, textColor=RED),
     "brand_sub": ParagraphStyle("brand_sub", fontName="Helvetica", fontSize=8, leading=10, tracking=1.2, textColor=INK),
     "title": ParagraphStyle("title", fontName="Helvetica-Bold", fontSize=20, leading=23, alignment=TA_RIGHT, textColor=INK),
     "eyebrow": ParagraphStyle("eyebrow", fontName="Helvetica", fontSize=8, leading=10, alignment=TA_RIGHT, textColor=MUTED),
@@ -77,7 +77,8 @@ def data_table(headings, rows, widths):
 
 
 def header(title, identifier):
-    left = [p("PAC", "brand"), p("PAGANI AIR CARGO", "brand_sub")]
+    left = [Image(str(LOGO), width=43*mm, height=32.25*mm), Spacer(1, 4),
+            p("PAGANI AIR CARGO", "brand_sub")]
     right = [p("ACADEMY / CARGO OPERATIONS", "eyebrow"), p(title, "title")]
     table = Table([[left, right]], colWidths=[90*mm, 90*mm])
     table.setStyle(TableStyle([
