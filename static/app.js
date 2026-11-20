@@ -6328,13 +6328,14 @@ async function loadOps() {
   const root = $("#opsRoot");
   if (!root) return;
   S.opsTab = S.opsTab || "events";
-  const tabs = [["events", "Events"], ["campaigns", "Campaigns"], ["relief", "Relief missions"]];
+  const tabs = [["exceptions", "Exceptions"], ["events", "Events"], ["campaigns", "Campaigns"], ["relief", "Relief missions"]];
   root.innerHTML = `<div class="profile-bar"><h1>Ops desk</h1><span class="muted">The airline's operational tempo: points events, cargo campaigns and relief missions.</span></div>
     <div class="msg-tabs" style="margin-bottom:16px">${tabs.map(([k, t]) => `<button class="${S.opsTab === k ? "on" : ""}" data-otab="${k}">${t}</button>`).join("")}</div>
     <div id="opsBody"></div>`;
   root.querySelectorAll("[data-otab]").forEach(b => b.onclick = () => { S.opsTab = b.dataset.otab; loadOps(); });
   const body = $("#opsBody");
-  if (S.opsTab === "campaigns") staffCargoCampaigns(body);
+  if (S.opsTab === "exceptions") staffOpsExceptions(body);
+  else if (S.opsTab === "campaigns") staffCargoCampaigns(body);
   else if (S.opsTab === "relief") staffRelief(body);
   else staffEvents(undefined, body);
 }
@@ -6345,10 +6346,10 @@ function renderStaff() {
   const d = S.staff;
   const pendingReviews = d.reviews.filter(r => r.review_status === "Pending").length;
   const pendingApps = d.applications.filter(a => a.status === "Pending").length;
-  const tabs = [["ceo", "CEO desk", 0], ["market", "Fleet market", 0], ["complaints", "Complaints", 0], ["roles", "Roles", 0], ["reports", "Problem reports", 0], ["flightops", "Flight support", 0], ["health", "Operations health", 0], ["campaigns", "Cargo campaigns", 0], ["relief", "Relief missions", 0], ["cargostock", "Cargo stock", 0], ["reviews", "PIREP review", pendingReviews], ["applications", "Applications", pendingApps], ["transfers", "Transfer hours", d.transfer_pending || 0], ["activity", "Activity", d.activity_overdue || 0], ["engagement", "Engagement", d.engagement_pending || 0], ["roster", "Roster", 0], ["support", "Pilot support view", 0],
+  const tabs = [["ceo", "CEO desk", 0], ["market", "Fleet market", 0], ["complaints", "Complaints", 0], ["roles", "Roles", 0], ["reports", "Problem reports", 0], ["flightops", "Flight support", 0], ["exceptions", "Exceptions", 0], ["health", "Operations health", 0], ["campaigns", "Cargo campaigns", 0], ["relief", "Relief missions", 0], ["cargostock", "Cargo stock", 0], ["reviews", "PIREP review", pendingReviews], ["applications", "Applications", pendingApps], ["transfers", "Transfer hours", d.transfer_pending || 0], ["activity", "Activity", d.activity_overdue || 0], ["engagement", "Engagement", d.engagement_pending || 0], ["roster", "Roster", 0], ["support", "Pilot support view", 0],
     ["news", "News", 0], ["mx", "Maintenance", d.airframes.reduce((n, a) => n + (a.open_items || []).length, 0)], ["types", "Fleet types", 0], ["pphotos", "Partner photos", 0], ["airframes", "Airframes", d.airframes.filter(a => ["Maintenance", "Inspection", "A-check due", "Heavy check due", "Heavy check", "Damaged"].includes(a.status)).length], ["events", "Events", 0], ["site", "Site and rules", 0]];
   const GROUPS = [["Company", ["ceo", "market", "complaints", "roles"]], ["Pilots", ["reviews", "applications", "transfers", "activity", "engagement", "roster", "support"]],
-    ["Operations", ["flightops", "reports", "health", "events", "news"]], ["Cargo", ["campaigns", "relief", "cargostock"]], ["Fleet", ["airframes", "mx", "types", "pphotos"]], ["Settings", ["site"]]];
+    ["Operations", ["flightops", "exceptions", "reports", "health", "events", "news"]], ["Cargo", ["campaigns", "relief", "cargostock"]], ["Fleet", ["airframes", "mx", "types", "pphotos"]], ["Settings", ["site"]]];
   const T = Object.fromEntries(tabs.map(t => [t[0], t]));
   if (!T[S.staffTab]) S.staffTab = "reviews";
   const groupOf = k => (GROUPS.find(([, ks]) => ks.includes(k)) || GROUPS[0])[0];
@@ -6360,7 +6361,7 @@ function renderStaff() {
     <div id="staffBody"></div>`;
   document.querySelectorAll("[data-sg]").forEach(b => b.onclick = () => { const ks = GROUPS.find(([g]) => g === b.dataset.sg)[1]; S.staffTab = ks.find(k => T[k]?.[2]) || ks[0]; renderStaff(); });
   document.querySelectorAll("[data-st]").forEach(b => b.onclick = () => { S.staffTab = b.dataset.st; renderStaff(); });
-  ({ ceo: staffCeo, market: staffMarket, complaints: staffComplaints, roles: staffRoles, reports: staffProblemReports, flightops: staffFlightOps, health: staffOperationsHealth, campaigns: staffCargoCampaigns, relief: staffRelief, cargostock: staffCargoStock, reviews: staffReviews, applications: staffApps, transfers: staffTransfers, activity: staffActivity, engagement: staffEngagement, roster: staffRoster, support: staffPilotSupport, news: staffNews, mx: staffMx, types: staffTypes, pphotos: staffPartnerPhotos, airframes: staffAirframes, events: staffEvents, site: staffSite })[S.staffTab]();
+  ({ ceo: staffCeo, market: staffMarket, complaints: staffComplaints, roles: staffRoles, reports: staffProblemReports, flightops: staffFlightOps, exceptions: staffOpsExceptions, health: staffOperationsHealth, campaigns: staffCargoCampaigns, relief: staffRelief, cargostock: staffCargoStock, reviews: staffReviews, applications: staffApps, transfers: staffTransfers, activity: staffActivity, engagement: staffEngagement, roster: staffRoster, support: staffPilotSupport, news: staffNews, mx: staffMx, types: staffTypes, pphotos: staffPartnerPhotos, airframes: staffAirframes, events: staffEvents, site: staffSite })[S.staffTab]();
 }
 async function staffPilotSupport() {
   const host = $("#staffBody");
@@ -6406,6 +6407,57 @@ async function staffPilotSupport() {
       <div class="card" style="padding:14px;margin-top:14px"><h3 style="margin-top:0">Control checks</h3><p><b>ACARS start or resume:</b> ${esc(acarsAction)}</p><p><b>File PIREP:</b> ${a.unfiled_draft ? "A completed server draft is available." : "No completed server draft is detected."}</p><p class="muted" style="margin-bottom:0">This reflects server records at the time of lookup. A pilot's desktop ACARS cache, browser cache, and device connection can differ. Ask them to refresh their page when comparing a missing control.</p></div>`;
   } catch (e) { if (S.staffTab === "support" && S.supportPilot === pid && host.isConnected) $("#supportResult").innerHTML = `<p class="error">${esc(e.message)}</p>`; }
 }
+async function staffOpsExceptions(root) {
+  const host = root || $("#staffBody");
+  host.innerHTML = '<p class="muted">Checking diverted freight and grounded aircraft…</p>';
+  let data;
+  try { data = await api('/api/staff/ops-exceptions'); }
+  catch (err) { host.innerHTML = `<div class="notice err">${esc(err.message)}</div>`; return; }
+  if (!host.isConnected) return;
+  const when = t => t ? new Date(t * 1000).toLocaleString() : '—';
+  const pilotOptions = `<option value="">Choose a pilot…</option>${data.pilots.map(p => `<option value="${esc(p.id)}">${esc(p.name)} · ${esc(p.id)}</option>`).join('')}`;
+  host.innerHTML = `<h2>Ops exception desk</h2><p class="muted">Follow diverted freight and AOG aircraft. A decision sends a Crew Mail dispatch instruction; shipment location and delivery change only through the normal booking and accepted PIREP flow.</p>
+    ${data.cases.length ? data.cases.map(c => {
+      const options = data.bookings.filter(b => b.origin === c.station && b.flight).map(b => `<option value="${esc(b.pilot_id)}|${esc(b.flight)}">${esc(b.flight)} · ${esc(b.origin)} → ${esc(b.destination)} · ${esc(b.pilot_id)}</option>`).join('');
+      return `<section class="card" style="padding:16px;margin:14px 0" data-exception="${esc(c.key)}">
+        <div class="row" style="gap:8px;flex-wrap:wrap;align-items:center"><span class="tag ${c.kind === 'aog' ? 'amber' : 'dark'}">${c.kind === 'aog' ? 'AOG' : 'DIVERTED'}</span><h3 style="margin:0">${esc(c.flight || c.airframe || c.key)} · ${esc(c.station)}</h3><span class="muted">${when(c.opened)}</span></div>
+        <p>${c.kind === 'aog' ? `${esc(c.airframe)} · ${esc(c.title || 'Aircraft grounded')}${c.mission_id ? ` · Recovery mission ${esc(c.mission_id)}` : ''}` : `${c.shipments.length} held shipment${c.shipments.length === 1 ? '' : 's'} awaiting an onward leg`}</p>
+        ${c.shipments.length ? `<div class="table-wrap"><table class="staff-table"><thead><tr><th>Air waybill</th><th>Freight</th><th>Destination</th><th>Weight</th><th>Due</th></tr></thead><tbody>${c.shipments.map(s => `<tr><td><b>${esc(s.awb)}</b></td><td>${esc(s.commodity)} · ${esc(s.pieces)} pcs</td><td>${esc(s.destination)}</td><td>${Math.round(s.weight_lbs || 0).toLocaleString()} lb</td><td>${when(s.deadline)}</td></tr>`).join('')}</tbody></table></div>` : ''}
+        ${c.decision ? `<p class="muted">Latest OCC decision: <b>${esc(c.decision.choice)}</b> by ${esc(c.decision.actor)} · ${when(c.decision.at)}${c.decision.target_flight ? ` · ${esc(c.decision.target_flight)}` : ''}<br>${esc(c.decision.note)}</p>` : '<p class="muted">No OCC decision recorded yet.</p>'}
+        <form class="ops-exception-form" style="display:grid;gap:8px;max-width:760px">
+          <label>Decision <select name="choice"><option value="hold">Hold at station</option>${c.kind === 'diversion' ? '<option value="onward">Plan on a booked PAC flight</option>' : ''}${c.kind === 'diversion' || c.status === 'awaiting_parts' ? '<option value="recovery">Request recovery flight</option>' : ''}</select></label>
+          <label data-recovery-pilot>Receiving pilot (for recovery) <select name="target_pilot">${pilotOptions}</select></label>
+          ${c.kind === 'diversion' ? `<label data-onward-flight>Onward booking (for onward carriage) <select name="target_flight"><option value="">Choose an unsigned flight from ${esc(c.station)}…</option>${options}</select></label>` : ''}
+          <label>OCC instruction / reason <textarea name="note" required minlength="10" maxlength="500" rows="2" placeholder="What should the pilot do next?"></textarea></label>
+          <button class="btn" type="submit">Record decision &amp; send instruction</button>
+        </form></section>`;
+    }).join('') : '<div class="notice">No diverted freight or active AOG cases need a decision.</div>'}
+    <h3>Recent decisions</h3>${data.recent.length ? `<ul>${data.recent.map(a => `<li>${when(a.at)} · ${esc(a.actor)} · ${esc(a.case_key)} · ${esc(a.choice)}${a.target_pilot ? ` → ${esc(a.target_pilot)}` : ''}: ${esc(a.note)}</li>`).join('')}</ul>` : '<p class="muted">None yet.</p>'}`;
+  host.querySelectorAll('.ops-exception-form').forEach(form => {
+    const update = () => {
+      const choice = form.elements.choice.value;
+      form.querySelector('[data-recovery-pilot]').hidden = choice !== 'recovery';
+      const onward = form.querySelector('[data-onward-flight]');
+      if (onward) onward.hidden = choice !== 'onward';
+    };
+    form.elements.choice.onchange = update; update();
+    form.onsubmit = async e => {
+    e.preventDefault();
+    const key = form.closest('[data-exception]').dataset.exception;
+    const values = new FormData(form), choice = values.get('choice');
+    const [bookPilot, bookFlight] = String(values.get('target_flight') || '').split('|');
+    const target_pilot = choice === 'onward' ? bookPilot : choice === 'recovery' ? values.get('target_pilot') : '';
+    const target_flight = choice === 'onward' ? bookFlight : '';
+    const button = form.querySelector('[type=submit]'); button.disabled = true;
+    try {
+      const result = await api(`/api/staff/ops-exceptions/${encodeURIComponent(key)}/decision`, { method: 'POST',
+        body: { choice, target_pilot, target_flight, note: values.get('note') } });
+      toast(result.sent ? 'OCC decision recorded and dispatch instruction sent.' : 'OCC decision recorded. No pilot is linked to this case.'); staffOpsExceptions(host);
+    } catch (err) { toast(err.message); button.disabled = false; }
+    };
+  });
+}
+
 async function staffFlightOps() {
   const host = $("#staffBody");
   host.innerHTML = '<p class="muted">Loading flight support…</p>';

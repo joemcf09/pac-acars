@@ -332,6 +332,8 @@ def db():
         cargo_programs.migrate(con)
         import staff_flight_ops
         staff_flight_ops.migrate(con)
+        import ops_exception_desk
+        ops_exception_desk.migrate(con)
         cargo_network.migrate(con)
         con.commit()
     return con
@@ -4702,6 +4704,8 @@ import manual_pireps
 manual_pireps.register(app, va)
 import staff_flight_ops
 staff_flight_ops.register(app, globals())
+import ops_exception_desk
+ops_exception_desk.register(app, globals())
 
 if __name__ == "__main__":
     DATA.mkdir(exist_ok=True)
