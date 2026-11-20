@@ -5,6 +5,10 @@ from datetime import datetime, timezone
 from flask import request, jsonify, Response
 
 
+class ManualReportValidationError(ValueError):
+    """A report field the pilot can correct before submitting again."""
+
+
 def migrate(con):
     con.execute('CREATE TABLE IF NOT EXISTS manual_pirep_evidence (pirep_id INTEGER PRIMARY KEY, mime TEXT NOT NULL, image BLOB NOT NULL)')
 
@@ -72,29 +76,39 @@ def register(app, va):
         try:
             def field(k,lo,hi):
                 v=b.get(k,'')
-                if not isinstance(v,str) or not lo<=len(v.strip())<=hi: raise ValueError('Check '+k+'.')
+                if not isinstance(v,str) or not lo<=len(v.strip())<=hi: raise ManualReportValidationError('Check '+k.replace('_',' ')+'.')
                 return v.strip()
             flight=field('flight',2,12).upper();dep=field('dep',4,4).upper();arr=field('arr',4,4).upper()
-            if not re.fullmatch('[A-Z0-9-]+',flight): raise ValueError('Use letters and numbers for the flight number.')
-            if dep==arr or dep not in va.C['AIRPORTS'] or arr not in va.C['AIRPORTS']: raise ValueError('Choose two different known ICAO airports.')
+            if not re.fullmatch('[A-Z0-9-]+',flight): raise ManualReportValidationError('Use letters and numbers for the flight number.')
+            if dep==arr or dep not in va.C['AIRPORTS'] or arr not in va.C['AIRPORTS']: raise ManualReportValidationError('Choose two different known ICAO airports.')
             aircraft=field('aircraft',2,20);tail=field('tail',2,20).upper()
-            if aircraft not in va.C['FLEET']: raise ValueError('Choose a PAC aircraft type.')
+            if aircraft not in va.C['FLEET']: raise ManualReportValidationError('Choose a PAC aircraft type.')
             reason=field('reason',10,2000);evidence_note=field('evidence_note',0,2000)
-            minutes=float(b.get('minutes',0))
-            if not 5<=minutes<=1440 or not minutes.is_integer(): raise ValueError('Enter block time in whole minutes (5–1440).')
-            start=datetime.fromisoformat(field('departed',16,25).replace('Z','+00:00'))
+            try: minutes=float(b.get('minutes',0))
+            except (TypeError,ValueError): raise ManualReportValidationError('Enter block time in whole minutes (5–1440).')
+            if not 5<=minutes<=1440 or not minutes.is_integer(): raise ManualReportValidationError('Enter block time in whole minutes (5–1440).')
+            try: start=datetime.fromisoformat(field('departed',16,25).replace('Z','+00:00'))
+            except ValueError: raise ManualReportValidationError('Enter a valid UTC departure date and time.')
             if start.tzinfo is None: start=start.replace(tzinfo=timezone.utc)
             start=start.timestamp();now=time.time()
-            if not now-30*86400<=start<=now or start+minutes*60>now: raise ValueError('Enter a completed flight within the last 30 days, in UTC.')
+            if not now-30*86400<=start<=now or start+minutes*60>now: raise ManualReportValidationError('Enter a completed flight within the last 30 days, in UTC.')
             image=None;mime=None
             raw=b.get('screenshot') or ''
             if raw:
-                if not isinstance(raw,str) or len(raw)>2800000: raise ValueError('Screenshot must be under 2 MB.')
-                head,encoded=raw.split(',',1);image=base64.b64decode(encoded,validate=True)
-                if len(image)>2*1024*1024: raise ValueError('Screenshot must be under 2 MB.')
-                if head=='data:image/png;base64' and image.startswith(b'\x89PNG\r\n\x1a\n'): mime='image/png'
-                elif head=='data:image/jpeg;base64' and image.startswith(b'\xff\xd8\xff'): mime='image/jpeg'
-                else: raise ValueError('Use a PNG or JPEG screenshot.')
+                if not isinstance(raw,str) or len(raw)>2800000: raise ManualReportValidationError('Screenshot must be under 2 MB.')
+                try:
+                    head,encoded=raw.split(',',1)
+                    if not head.startswith('data:') or not head.endswith(';base64'): raise ValueError()
+                    image=base64.b64decode(encoded,validate=True)
+                except (ValueError,binascii.Error): raise ManualReportValidationError('Use a valid PNG, JPEG or WebP screenshot.')
+                if len(image)>2*1024*1024: raise ManualReportValidationError('Screenshot must be under 2 MB.')
+                # FileReader may not know the file's MIME type. Verify the bytes instead.
+                if image.startswith(b'\x89PNG\r\n\x1a\n'): mime='image/png'
+                elif image.startswith(b'\xff\xd8\xff'): mime='image/jpeg'
+                elif image.startswith(b'RIFF') and image[8:12]==b'WEBP': mime='image/webp'
+                else: raise ManualReportValidationError('Use a PNG, JPEG or WebP screenshot.')
+        except ManualReportValidationError as exc:
+            return jsonify(error=str(exc)),400
         except (ValueError,TypeError,OverflowError,binascii.Error):
             return jsonify(error='Check the flight details: valid airports/type, UTC departure within 30 days, completed block time (5–1440 minutes), a reason of 10–2000 characters, and optional PNG/JPEG under 2 MB.'),400
         pid=va.current_pilot_id()

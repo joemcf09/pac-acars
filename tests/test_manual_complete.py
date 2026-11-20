@@ -1,6 +1,6 @@
 """Manual PIREP approval can complete the booked flight: deliver its cargo, move the aircraft and pilot, close the booking.
 Run from the PAC folder: python tests/test_manual_complete.py"""
-import os, shutil, subprocess, sys, tempfile, time, datetime as dt
+import os, shutil, subprocess, sys, tempfile, time, datetime as dt, base64
 from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 if len(sys.argv) == 1:
@@ -29,8 +29,13 @@ with A.db() as con:
 ls = c.post("/api/plan/loadsheet", json={"mission_id": route["id"], "aircraft": ac, "cargo_transfer_ids": [order["id"]]}).json
 b = c.post("/api/booking", json={"mission_id": route["id"], "aircraft": ac, "manifest_seed": ls["seed"], "cargo_transfer_ids": [order["id"]], "zone_ack": True}).json
 dep_t = (dt.datetime.utcnow() - dt.timedelta(hours=3)).strftime("%Y-%m-%dT%H:%M")
-r = c.post("/api/manual-pireps", json={"flight": route["id"], "dep": "KCVG", "arr": route["destination"]["icao"], "tail": tail, "aircraft": ac,
-                                       "departed": dep_t, "minutes": "90", "reason": "Forgot to start ACARS, sound was muted."})
+report = {"flight": route["id"], "dep": "KCVG", "arr": route["destination"]["icao"], "tail": tail, "aircraft": ac,
+          "departed": dep_t, "minutes": "90", "reason": "Forgot to start ACARS, sound was muted."}
+bad_image = c.post("/api/manual-pireps", json=dict(report, screenshot="data:image/webp;base64," + base64.b64encode(b"RIFFwebp").decode()))
+check("unsupported screenshot explains the rejected field", bad_image.status_code == 400 and "PNG, JPEG or WebP" in bad_image.json.get("error", ""), bad_image.json)
+bad_route = c.post("/api/manual-pireps", json=dict(report, dep="XXXX"))
+check("unknown airport explains the rejected field", bad_route.status_code == 400 and "ICAO" in bad_route.json.get("error", ""), bad_route.json)
+r = c.post("/api/manual-pireps", json=report)
 check("the manual report is filed", r.status_code == 201, r.json)
 rid = r.json["id"]
 a = c.post(f"/api/staff/reviews/{rid}", json={"action": "accept", "note": "Screenshot checks out.", "complete_flight": True})
@@ -49,5 +54,14 @@ check("the aircraft is at the arrival airport and free", frame["location"] == de
 check("the pilot is at the arrival airport", loc == dest, loc)
 check("the booking is closed", bk == 0, bk)
 check("still no score", rep["score"] is None and rep["review_status"] == "Accepted", dict(rep))
+webp = b"RIFF\x0c\x00\x00\x00WEBPVP8 "
+older = (dt.datetime.utcnow() - dt.timedelta(days=2)).strftime("%Y-%m-%dT%H:%M")
+with_webp = c.post("/api/manual-pireps", json=dict(report, departed=older,
+    screenshot="data:application/octet-stream;base64," + base64.b64encode(webp).decode()))
+check("WebP evidence is accepted even when the browser reports a generic MIME type", with_webp.status_code == 201, with_webp.json)
+if with_webp.status_code == 201:
+    with A.db() as con:
+        evidence = con.execute("SELECT mime FROM manual_pirep_evidence WHERE pirep_id=?", (with_webp.json["id"],)).fetchone()
+    check("WebP evidence uses the verified image MIME type", evidence["mime"] == "image/webp")
 print(); print("All manual completion checks passed." if not failures else f"{len(failures)} failed: {failures}")
 sys.exit(1 if failures else 0)
