@@ -5306,6 +5306,7 @@ function whenHomeMapVisible(callback) {
 // by itself) and link to PAC's listing there. Add another directory by adding a line.
 const DIRECTORY_BADGES = [
   { name: "VA-List", img: "https://va-list.com/php/rankimage.php?id=1231", href: "https://va-list.com/pagani-air-cargo-1231" },
+  { name: "MyNextAirline", img: "https://mynextairline.com/api/badge/pagani-air-cargo?theme=light", href: "https://mynextairline.com/airlines/pagani-air-cargo" },
 ];
 function directoryBadges() {
   if (!DIRECTORY_BADGES.length) return "";

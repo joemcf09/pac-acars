@@ -1,5 +1,7 @@
 # Pagani Air Cargo ACARS
 
+[![Rate us on MyNextAirline](https://mynextairline.com/api/badge/pagani-air-cargo?theme=light)](https://mynextairline.com/airlines/pagani-air-cargo)
+
 Mission board, SimBrief dispatch, live flight tracking and PIREP logbook for the
 Pagani Air Cargo virtual fleet. It runs on the same PC as your simulator and
 opens in your browser at http://localhost:5050.
