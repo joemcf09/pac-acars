@@ -3,6 +3,7 @@ tick all four checks, calm and with no bonus. Also checks the HUM code fix (HUM 
 Run from the PAC folder: python tests/test_relief.py"""
 import json, os, shutil, subprocess, sys, tempfile, time
 from pathlib import Path
+from unittest.mock import MagicMock, patch
 ROOT = Path(__file__).resolve().parent.parent
 if len(sys.argv) == 1:
     with tempfile.TemporaryDirectory(prefix="pac-relief-") as temp:
@@ -47,6 +48,13 @@ check("the event label names the storm", d["label"].startswith("DELIA, Jamaica")
 held = relief.plan(events[0], dict(ctx, zones=[{"level": "restricted", "prefixes": ["MK"], "name": "Test"}]))
 check("an event in a conflict zone is held, never drafted", held.get("held") and "conflict" in held["reason"])
 
+empty_response = MagicMock()
+empty_response.status = 204
+empty_response.__enter__.return_value = empty_response
+empty_response.read.return_value = b""
+with patch.object(relief.urllib.request, "urlopen", return_value=empty_response):
+    check("GDACS HTTP 204 means no matching alerts", relief.fetch_gdacs(now) == [])
+
 with A.db() as con:
     relief.migrate(con)
     n = relief.refresh(con, ctx, now, events=events)
@@ -63,6 +71,13 @@ with A.db() as con:
     relief.dismiss(con, events[1]["key"])
     check("a dismissed draft stays dismissed", relief.refresh(con, ctx, now, events=events) == 0 and
           con.execute("SELECT status FROM relief_drafts WHERE id=?", (events[1]["key"],)).fetchone()[0] == "dismissed")
+    con.execute("INSERT OR REPLACE INTO relief_meta (k, v) VALUES ('error', 'old JSONDecodeError')")
+    con.execute("INSERT OR REPLACE INTO relief_meta (k, v) VALUES ('fetched', ?)", (str(now - relief.FETCH_EVERY_S - 1),))
+    with patch.object(relief.urllib.request, "urlopen", return_value=empty_response):
+        check("empty GDACS check adds no drafts", relief.refresh(con, ctx, now) == 0)
+    current = relief.listing(con, now)
+    check("successful empty check clears old error without deleting drafts",
+          current["error"] is None and len(current["drafts"]) == 2 and current["fetched"] == now)
 
 check("it shows on the urgent board", any(x["id"] == m["id"] for x in A.va.urgent_missions()))
 c = A.app.test_client()
