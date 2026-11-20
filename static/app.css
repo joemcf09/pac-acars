@@ -1282,10 +1282,6 @@ a.net-logo:hover{opacity:.85}
 @media (max-width:640px){.net-logo{padding:24px}.net-logo img{height:40px}}
 
 /* ============ Directory badges (under the stats band on Home) ============ */
-.dir-badges{display:flex;flex-wrap:wrap;align-items:center;gap:10px 14px;margin:14px 0 0;font-size:13px}
-.dir-badges a{display:inline-flex;line-height:0;border-radius:3px}
-.dir-badges a:focus-visible{outline:2px solid var(--red);outline-offset:2px}
-.dir-badges img{display:block;height:auto;max-height:60px;max-width:min(100%,320px)}
 
 /* ============ Pilots: roster and profiles ============ */
 .roster-tools{display:flex;flex-wrap:wrap;gap:12px 16px;align-items:center;margin:0 0 14px}

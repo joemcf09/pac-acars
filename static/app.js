@@ -5302,17 +5302,6 @@ function whenHomeMapVisible(callback) {
   homeWeatherObserver = observer;
   observer.observe(element);
 }
-// Virtual airline directories PAC is listed in. Their badges are live images from the directory (the rank updates
-// by itself) and link to PAC's listing there. Add another directory by adding a line.
-const DIRECTORY_BADGES = [
-  { name: "VA-List", img: "https://va-list.com/php/rankimage.php?id=1231", href: "https://va-list.com/pagani-air-cargo-1231" },
-  { name: "MyNextAirline", img: "https://mynextairline.com/api/badge/pagani-air-cargo?theme=light", href: "https://mynextairline.com/airlines/pagani-air-cargo" },
-];
-function directoryBadges() {
-  if (!DIRECTORY_BADGES.length) return "";
-  return `<div class="dir-badges" id="dirBadges"><span class="muted">Find us on</span>${DIRECTORY_BADGES.map(b =>
-    `<a href="${esc(b.href)}" target="_blank" rel="noopener" title="Pagani Air Cargo on ${esc(b.name)}"><img src="${esc(b.img)}" alt="Pagani Air Cargo on ${esc(b.name)}" loading="lazy" referrerpolicy="no-referrer-when-downgrade" onerror="this.closest('a').remove(); if (!document.querySelector('#dirBadges a')) document.querySelector('#dirBadges')?.remove()"></a>`).join("")}</div>`;
-}
 function networkPartners(h) {
   // each network's logo shows only once staff switch it on, after that network has accepted PAC (Staff › Site and rules › Flying online)
   const n = h.network_logos || {};
@@ -5391,7 +5380,6 @@ async function renderHome(h, st) {
     <div><span>Stations</span><b>${fmt(t.stations)}</b></div>
     <div><span>Aircraft</span><b>${fmt(t.airframes)}</b></div>
   </div></section>
-  ${directoryBadges()}
   ${whyPacHTML()}
 
   ${news.length ? `<div class="section-h"><div><div class="kicker">Company news</div><h2>What's happening at PAC</h2></div></div>${newsCards(news)}` : ""}
@@ -9323,7 +9311,7 @@ function fmtLbShort(n) { n = Number(n) || 0; return n >= 1e6 ? (n / 1e6).toFixed
 function homeLayout() {
   const root = $("#homeRoot"); if (!root) return;
   const groups = [], byKey = {};
-  const solo = el => el.matches(".hero,.stat-band,.proof-band,.dir-badges,.why-pac,.site-foot,#homeCampaigns,.home-notices,.gf-strip");
+  const solo = el => el.matches(".hero,.stat-band,.proof-band,.why-pac,.site-foot,#homeCampaigns,.home-notices,.gf-strip");
   let cur = null;
   [...root.children].forEach(el => {
     if (solo(el) || el.classList.contains("section-h") || !cur) {
@@ -9350,7 +9338,7 @@ function homeLayout() {
   root.classList.toggle("home-pilot", !!S.me);
   root.classList.remove("home-visitor");
   if (S.me) {
-    const gone = new Set(["the liveries", "operations", "our story", "partners", "career path", "community", "join the crew", "dir-badges"]);
+    const gone = new Set(["the liveries", "operations", "our story", "partners", "career path", "community", "join the crew"]);
     groups.filter(g => gone.has(g.key)).forEach(g => g.els.forEach(el => el.remove()));
     const sb = byKey["stat-band"];
     if (sb) { const h = document.createElement("div"); h.className = "section-h"; h.innerHTML = `<div><div class="kicker">The airline</div><h2>PAC at a glance</h2></div>`; sb.els.unshift(h); }
@@ -9379,7 +9367,7 @@ function homeLayout() {
     lgrid.replaceWith(row); liv.els[liv.els.indexOf(lgrid)] = row;
   }
   const final = put(["hero", "proof-band", "why-pac", "live from the ops center", "the network", "online networks", "the liveries", "join",
-    "our story", "career path", "partners", "community", "join the crew", "dir-badges", "stat-band", "site-foot"]).filter(g => !drop.has(g.key));
+    "our story", "career path", "partners", "community", "join the crew", "stat-band", "site-foot"]).filter(g => !drop.has(g.key));
   const footIdx = final.findIndex(g => g.key === "site-foot");
   if (footIdx > -1) final.push(final.splice(footIdx, 1)[0]);
   final.forEach(g => g.els.forEach(el => root.append(el)));
