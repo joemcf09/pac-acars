@@ -656,7 +656,7 @@ function render() {
   // simulator: follow the detected one (or the last used for this type) until the pilot picks one
   if (!tracking && !pickedSource && S.suggested_source && $("#source").value !== S.suggested_source) $("#source").value = S.suggested_source;
   const why = !pickedSource && $("#source").value === S.suggested_source ? ({ detected: `${S.suggested_source} detected`, "last used": "last used for this aircraft" }[S.suggested_why] || "") : "";
-  $("#stopBtn").classList.toggle("hidden", !(have || S.resumable || practicing) || !!S.result || S.handed_over);
+  $("#stopBtn").classList.toggle("hidden", !(have || S.resumable || practicing) || !!S.result);
   $("#stopBtn").textContent = practicing ? "Stop practice" : "Abort";
   $("#source").disabled = tracking;
   $("#simState").innerHTML = tracking ? (st.connected ? `<span class="dot ok"></span>${esc(S.source)} connected` : st.error ? `<span class="dot bad"></span>${esc(st.error)}` : `<span class="dot warn"></span>Connecting to ${esc(S.source)}…`)
@@ -699,8 +699,9 @@ function render() {
       fc.dataset.shown = "1";
       fc.innerHTML = `<b>On block</b>${d ? `${landingCard(d)}<div class="row" style="gap:12px;margin:4px 0 8px"><span class="gbadge">${esc(d.grade)}</span><div class="small">${d.score}/100 · ${fmt(d.points)} points${d.pay ? ` · pay $${fmt(d.pay.total)}` : ""}<br><span class="muted">${esc(d.status)}${d.review_status === "Pending" ? " · will go to staff review" : ""}</span></div></div>` : `<p class="muted small">Sending the flight to the website…</p>`}
         <textarea id="remarks" rows="2" style="width:100%" placeholder="Remarks for dispatch (optional)"></textarea>
-        <div class="row" style="margin-top:8px"><button class="btn" id="fileBtn">File PIREP</button><a class="btn ghost" href="${esc(cfg.server)}/#acars" target="_blank" rel="noopener">Full report on the website</a></div>`;
+        <div class="row" style="margin-top:8px"><button class="btn" id="fileBtn">File PIREP</button><button class="btn ghost" id="discardDraftBtn">Abort, discard draft</button><a class="btn ghost" href="${esc(cfg.server)}/#acars" target="_blank" rel="noopener">Full report on the website</a></div>`;
       $("#fileBtn").onclick = filePirep;
+      $("#discardDraftBtn").onclick = abortFlight;
     } else if (d && !fc.dataset.draft) { fc.dataset.shown = ""; fc.dataset.draft = "1"; render(); }
   } else if (have && st.tracking && (st.oooi || {}).on && !st.complete && !S.handed_over && !S.result) {
     fc.classList.remove("hidden"); fc.dataset.draft = "";
@@ -758,11 +759,18 @@ $("#testAlarm").onclick = () => {   // the window plays it itself; if it can't, 
 };
 $("#signOutApp").onclick = async () => { try { await api("/api/logout", {}); note("Signed out of PAC ACARS."); poll(); } catch (e) { note(esc(e.message), "err"); } };
 $("#resumeBtn").onclick = () => start(true);
-$("#stopBtn").onclick = async () => {
+async function abortFlight() {
   if (S.practice) { await api("/api/practice/stop", {}); lastLogLen = 0; note("Landing practice finished. Your debriefs stay below until you start a flight."); poll(); return; }
   if (!confirm("Abort this flight? Nothing will be filed.")) return;
   let why = ""; try { why = prompt("Why are you stopping? (optional: sim crash, wrong aircraft, out of time...)", "") || ""; } catch (e) { why = ""; }
-  await api("/api/stop", { reason: why }); lastLogLen = 0; note("Flight aborted."); poll(); };
+  try {
+    await api("/api/stop", { reason: why });
+    lastLogLen = 0;
+    note("Flight aborted. Your booking is still available to retry.");
+    poll();
+  } catch (e) { note(esc(e.message), "err"); }
+}
+$("#stopBtn").onclick = abortFlight;
 $("#practiceBtn").onclick = () => busy($("#practiceBtn"), "Starting…", async () => {
   try { await api("/api/practice/start", { source: $("#source").value }); lastLogLen = 0; note("Landing practice started. Every landing gets a debrief; nothing is filed.", "ok"); poll(); }
   catch (e) { note(esc(e.message), "err"); } });
