@@ -1,6 +1,17 @@
 PAC ACARS - CHANGELOG
 =====================
 
+1.2.1 (November 2026)
+---------------------
+
+Fixed: false gear-up approach alerts in MSFS
+- Read the gear handle in its documented units and also check physical gear
+  extension. This helps aircraft such as the PMDG 737 that can leave the
+  standard handle reading out of sync with the visible gear state.
+- The 1,000 ft and 500 ft alerts still report gear up when the available
+  simulator readings indicate it;
+  the flight grade and approach speed/descent scoring are unchanged.
+
 1.2.0 (November 2026)
 ---------------------
 
