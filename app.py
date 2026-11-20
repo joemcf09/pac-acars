@@ -330,6 +330,8 @@ def db():
         rotation_planner.migrate(con)
         import cargo_programs
         cargo_programs.migrate(con)
+        import staff_flight_ops
+        staff_flight_ops.migrate(con)
         cargo_network.migrate(con)
         con.commit()
     return con
@@ -4698,6 +4700,8 @@ problem_reports.register(app, globals())
 
 import manual_pireps
 manual_pireps.register(app, va)
+import staff_flight_ops
+staff_flight_ops.register(app, globals())
 
 if __name__ == "__main__":
     DATA.mkdir(exist_ok=True)
