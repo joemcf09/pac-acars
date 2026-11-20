@@ -88,6 +88,7 @@ h1{font:700 clamp(30px,5vw,44px)/1.05 var(--display);margin:4px 0 0;text-wrap:ba
 .new-material h2{font:700 29px/1.1 var(--display);margin:0 0 8px}
 .material-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:12px;margin:14px 0}
 .material-card{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:16px}
+.material-card .sample-brand{display:block;width:96px;height:72px;object-fit:cover;margin:0 0 10px;border-radius:5px}
 .material-card h3{margin:0 0 5px;font:700 22px var(--display)}
 .material-card p{margin:5px 0;white-space:pre-wrap}
 .material-card a{color:var(--red)}
@@ -147,18 +148,20 @@ button:focus-visible,select:focus-visible{outline:2px solid var(--red);outline-o
       <p class="sub">Follow one fictional PAC shipment through both documents. Open each sample as you work through the checks below.</p>
       <div class="material-grid">
         <article class="material-card">
+          <img class="sample-brand" src="/static/pac-logo.png" alt="Official Pagani Air Cargo logo" width="96" height="72">
           <div class="kicker">01 · Air waybill</div>
           <h3>What was booked?</h3>
           <p>The air waybill (AWB) identifies the shipment, its shipper and consignee, route, pieces, weight, charges and handling instructions. In the sample, look for <strong>901-10000123</strong>, <strong>10 cartons</strong>, and <strong>KCVG → KMIA</strong>.</p>
           <p><strong>Gross weight</strong> is the freight's actual weight: <strong>1,200 kg</strong>. <strong>Chargeable weight</strong> is used to price this shipment: <strong>1,440 kg</strong>. The aircraft load uses gross weight, never the billing figure.</p>
-          <p><a href="/academy/pac-sample-awb.pdf" target="_blank" rel="noopener">Open sample PAC air waybill (PDF) ↗</a></p>
+          <p><a href="/academy/pac-sample-awb.pdf?v=20261120logo" target="_blank" rel="noopener">Open sample PAC air waybill (PDF) ↗</a></p>
         </article>
         <article class="material-card">
+          <img class="sample-brand" src="/static/pac-logo.png" alt="Official Pagani Air Cargo logo" width="96" height="72">
           <div class="kicker">02 · Cargo manifest</div>
           <h3>What is on the flight?</h3>
           <p>The manifest lists cargo assigned to a flight. Match its AWB number, route, <strong>10 cartons</strong>, and <strong>1,200 kg gross</strong> against the waybill. The sample places the freight at <strong>M01</strong> for this training exercise.</p>
           <p>Both documents show <strong>PER · keep chilled 2–8°C</strong>. That instruction needs attention during acceptance and loading; it is not a substitute for the aircraft's actual load limits or operator procedures.</p>
-          <p><a href="/academy/pac-sample-manifest.pdf" target="_blank" rel="noopener">Open sample PAC cargo manifest (PDF) ↗</a></p>
+          <p><a href="/academy/pac-sample-manifest.pdf?v=20261120logo" target="_blank" rel="noopener">Open sample PAC cargo manifest (PDF) ↗</a></p>
         </article>
         <article class="material-card">
           <div class="kicker">03 · Check yourself</div>

@@ -63,6 +63,14 @@ with A.db() as con:
     con.execute("UPDATE pilots SET password_hash='x', status='Active' WHERE id='PAC0001'")
 with client.session_transaction() as sess:
     sess["pid"] = "PAC0001"
+saved = client.post("/api/settings", json={"volumetric_loading": True})
+check("the switch saves without a separate form submit", saved.status_code == 200 and saved.json.get("volumetric_loading") is True)
+check("the staff page reloads the saved switch", client.get("/api/staff/overview").json["rules"].get("volumetric_loading") is True)
+client.post("/api/settings", json={"volumetric_loading": False})
+check("the staff page reloads the switched-off state", client.get("/api/staff/overview").json["rules"].get("volumetric_loading") is False)
+client.post("/api/settings", json={"volumetric_loading": True})
+check("the app script revalidates on reload", client.get("/static/app.js?v=20261120cargo1").headers.get("Cache-Control") == "no-cache")
+check("Academy sample PDFs revalidate on reload", "max-age=0" in client.get("/academy/pac-sample-awb.pdf?v=20261120logo").headers.get("Cache-Control", ""))
 resp = client.post("/api/economics/estimate", json={"mission_id": "PAC2020", "aircraft": "B752F"})
 r = resp.get_json() or {}
 check("the dossier estimate sends the payload that fits", (r.get("volume_cap") or {}).get("lbs") == vc["lbs"] and r.get("payload_lbs") == vc["lbs"], r.get("volume_cap"))
