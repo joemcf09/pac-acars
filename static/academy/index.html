@@ -93,6 +93,7 @@ h1{font:700 clamp(30px,5vw,44px)/1.05 var(--display);margin:4px 0 0;text-wrap:ba
 .material-card a{color:var(--red)}
 .material-card details{border-top:1px solid var(--line);margin-top:10px;padding-top:10px}
 .material-card summary{cursor:pointer;font-weight:600}
+.material-card .attachment-image{display:block;max-width:100%;max-height:480px;width:auto;height:auto;margin:10px 0;border-radius:5px}
 footer{font-size:13px;color:var(--muted);max-width:80ch}
 button:focus-visible,select:focus-visible{outline:2px solid var(--red);outline-offset:2px}
 @media (max-width:1100px){.stage{grid-template-columns:minmax(0,1fr)}.frame img{max-width:100%;max-height:60vh}}
@@ -1069,9 +1070,12 @@ fetch("/api/academy/content").then(r => r.ok ? r.json() : {items: []}).then(({it
   const courses = items.filter(x => x.kind === "course");
   const resources = items.filter(x => x.kind === "resource");
   const paragraphs = s => String(s || "").split(/\n\s*\n/).filter(Boolean).map(p => `<p>${esc(p.trim())}</p>`).join("");
-  const cards = courses.map(c => `<article class="material-card"><h3>${esc(c.title)}</h3>${paragraphs(c.summary)}${paragraphs(c.body)}
-    ${items.filter(x => x.kind === "lesson" && x.course_id === c.id).map((x, i) => `<details><summary>${i + 1}. ${esc(x.title)}</summary>${paragraphs(x.summary)}${paragraphs(x.body)}</details>`).join("")}</article>`);
-  cards.push(...resources.map(x => `<article class="material-card"><h3>${esc(x.title)}</h3>${paragraphs(x.summary)}${paragraphs(x.body)}${x.file_url ? `<p><a href="${x.file_url}">Download ${esc(x.filename || "resource")}</a></p>` : ""}</article>`));
+  const attachments = x => (x.attachments || []).map(a => a.mime?.startsWith("image/")
+    ? `<a href="${a.file_url}" target="_blank" rel="noopener"><img class="attachment-image" src="${a.file_url}" alt="${esc(a.filename)}" loading="lazy"></a>`
+    : `<p><a href="${a.file_url}">Download ${esc(a.filename)}</a></p>`).join("");
+  const cards = courses.map(c => `<article class="material-card"><h3>${esc(c.title)}</h3>${paragraphs(c.summary)}${paragraphs(c.body)}${attachments(c)}
+    ${items.filter(x => x.kind === "lesson" && x.course_id === c.id).map((x, i) => `<details><summary>${i + 1}. ${esc(x.title)}</summary>${paragraphs(x.summary)}${paragraphs(x.body)}${attachments(x)}</details>`).join("")}</article>`);
+  cards.push(...resources.map(x => `<article class="material-card"><h3>${esc(x.title)}</h3>${paragraphs(x.summary)}${paragraphs(x.body)}${attachments(x)}${x.file_url ? `<p><a href="${x.file_url}">Download ${esc(x.filename || "resource")}</a></p>` : ""}</article>`));
   if (cards.length) { $("#academyMaterial").innerHTML = cards.join(""); $("#academyNew").hidden = false; }
 }).catch(() => {});
 </script>

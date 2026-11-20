@@ -20,7 +20,11 @@ async function loadAcademyDesk(editId = 0) {
       <label><input name="published" type="checkbox" ${selected?.published ? "checked" : ""}> Published (visible on PAC Academy)</label>
       <div class="row"><button class="btn" type="submit">Save material</button><button class="btn ghost" type="button" id="academyClear">New blank item</button></div>
       <p class="muted" style="font-size:13px">Save as a draft, review, then publish. Lessons appear only while their course is published.</p>
-      ${selected?.kind === "resource" ? `<label>Attach PDF or image (12 MB max) <input type="file" id="academyFile" accept=".pdf,.png,.jpg,.jpeg,.webp"></label><button class="btn ghost" id="academyUpload" type="button">Upload file</button>${selected.filename ? `<span>Current file: ${esc(selected.filename)}</span>` : ""}` : ""}
+      ${selected ? `<div><label>Attach PDFs or images (up to 12 MB each) <input type="file" id="academyFiles" accept=".pdf,.png,.jpg,.jpeg,.webp" multiple></label>
+        <button class="btn ghost" id="academyUpload" type="button">Upload selected files</button>
+        ${selected.filename ? `<p>Earlier resource: <a href="${selected.file_url}" target="_blank" rel="noopener">${esc(selected.filename)}</a></p>` : ""}
+        ${(selected.attachments || []).map(a => `<p><a href="${a.staff_url}" target="_blank" rel="noopener">${esc(a.filename)}</a> <button class="btn ghost small" type="button" data-academy-attachment-delete="${a.id}">Remove</button></p>`).join("")}</div>`
+        : `<p class="muted">Save this item, then add PDFs and images.</p>`}
     </form><h2 style="margin-top:26px">Your material</h2>
     ${items.length ? `<div class="table-wrap"><table class="fin-table"><thead><tr><th>Type</th><th>Title</th><th>Status</th><th>Order</th><th>Actions</th></tr></thead><tbody>${items.map(x => `<tr><td>${esc(x.kind)}</td><td><b>${esc(x.title)}</b>${x.kind === "lesson" ? `<br><span class="muted">${esc(courses.find(c => c.id === x.course_id)?.title || "Missing course")}</span>` : ""}</td><td>${x.published ? "Published" : "Draft"}</td><td>${x.position}</td><td><button class="btn ghost small" data-academy-edit="${x.id}">Edit</button> <button class="btn ghost small" data-academy-delete="${x.id}">Delete</button></td></tr>`).join("")}</tbody></table></div>` : '<p class="muted">No material yet. Create a course to start.</p>'}`;
   const f = document.getElementById("academyForm");
@@ -39,11 +43,16 @@ async function loadAcademyDesk(editId = 0) {
   };
   const upload = document.getElementById("academyUpload");
   if (upload) upload.onclick = async () => {
-    const file = document.getElementById("academyFile").files[0]; if (!file) { toast("Choose a file first."); return; }
-    const fd = new FormData(); fd.append("file", file);
-    try { await apiForm(`/api/staff/academy/${selected.id}/file`, fd); toast("Resource uploaded."); loadAcademyDesk(selected.id); }
+    const files = [...document.getElementById("academyFiles").files]; if (!files.length) { toast("Choose files first."); return; }
+    const fd = new FormData(); files.forEach(file => fd.append("files", file));
+    try { await apiForm(`/api/staff/academy/${selected.id}/attachments`, fd); toast("Files uploaded."); loadAcademyDesk(selected.id); }
     catch (err) { toast(err.message); }
   };
+  root.querySelectorAll("[data-academy-attachment-delete]").forEach(b => b.onclick = async () => {
+    if (!confirm("Remove this attachment?")) return;
+    try { await api(`/api/staff/academy/attachments/${b.dataset.academyAttachmentDelete}`, { method: "DELETE" }); loadAcademyDesk(selected.id); }
+    catch (err) { toast(err.message); }
+  });
   root.querySelectorAll("[data-academy-edit]").forEach(b => b.onclick = () => loadAcademyDesk(b.dataset.academyEdit));
   root.querySelectorAll("[data-academy-delete]").forEach(b => b.onclick = async () => {
     if (!confirm("Delete this Academy item?")) return;
