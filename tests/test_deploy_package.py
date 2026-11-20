@@ -35,3 +35,9 @@ def test_program_files_and_reference_data_still_ship():
 def test_pilot_data_still_never_ships():
     for rel in ("data/logbook.db", "data/bot_secret", "data/settings.json", "data/secret_key"):
         assert not _wanted(rel), rel
+
+
+def test_first_deploy_of_bot_restart_fix_passes_override_to_live_updater():
+    # The live updater is from the previous release and may still default to
+    # skipping the bot. The client must pass the restart on this deploy too.
+    assert "PAC_SVC_DISCORD_RESTART='sudo systemctl try-restart pac-discord'" in deploy.remote_update_script()

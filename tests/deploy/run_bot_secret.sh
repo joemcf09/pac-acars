@@ -9,6 +9,7 @@ HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 WORK="$(mktemp -d)"
 setup_env "$WORK/srv" "${PAC_TEST_PORT:-5097}"
 trap 'stop_app; rm -rf "$WORK"' EXIT
+export PAC_SVC_DISCORD_RESTART="printf 'restart\\n' >> '$WORK/discord-restarts'"
 
 UP="$REPO/deploy/update.sh"
 PKG_A="$WORK/a.zip"; PKG_B="$WORK/b.zip"
@@ -35,6 +36,8 @@ if "$UP" "$PKG_B" >"$WORK/b2.log" 2>&1; then
   [ "$(cat "$PAC_DEPLOY_ROOT/releases/$STAMP_A/data/bot_secret" 2>/dev/null)" = "$SECRET" ] && ok "the previous release still reads it (rollback keeps the bot working)" || bad "previous release lost the secret"
   [ "$(cat "$PAC_SHARED_DATA/bot_secret")" = "$SECRET" ] && ok "the shared secret itself is untouched" || bad "shared secret changed"
 else bad "second deploy exited non-zero"; sed 's/^/    /' "$WORK/b2.log"; fi
+
+[ "$(wc -l < "$WORK/discord-restarts" 2>/dev/null)" -eq 2 ] && ok "the bot restart runs on each release switch" || bad "the bot was not restarted on both deploys"
 
 printf '\n==== %d passed, %d failed ====\n' "$PASS" "$FAIL"
 [ "$FAIL" -eq 0 ]

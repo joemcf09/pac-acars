@@ -62,7 +62,10 @@ def remote_update_script(update_sh=f"{PAC_DIR}/current/deploy/update.sh",
     return (
         # strip any Windows line endings from the live scripts first, so a release built with them can still deploy
         f"set -u; sed -i 's/\\r$//' {pac_dir}/current/deploy/*.sh || exit 1; chmod +x {pac_dir}/current/deploy/*.sh || exit 1; "
-        f"{update_sh} {zip_remote}; rc=$?; "
+        # The updater belongs to the release already on the server. Pass the
+        # restart explicitly so the first deploy of this fix also moves the bot
+        # off its old release before that directory can be pruned.
+        f"PAC_SVC_DISCORD_RESTART='sudo systemctl try-restart pac-discord' {update_sh} {zip_remote}; rc=$?; "
         # cleanup is best-effort and must not affect rc
         f"chown -R pac:pac {pac_dir}/releases {pac_dir}/shared {pac_dir}/current {pac_dir}/previous 2>/dev/null || true; "
         f"rm -f {zip_remote} || true; "

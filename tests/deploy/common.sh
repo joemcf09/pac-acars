@@ -37,6 +37,7 @@ setup_env() {
   export PAC_DEPLOY_ROOT="$1" PAC_SHARED_DATA="$1/shared/data" PAC_RELEASES_DIR="$1/releases"
   export PAC_HEALTH_URL="http://127.0.0.1:$2/up" PAC_HEALTH_TIMEOUT="${PAC_HEALTH_TIMEOUT:-10}" PAC_KEEP_RELEASES=5
   export PAC_SVC_RESTART="$DTD/svc.sh restart" PAC_SVC_STOP="$DTD/svc.sh stop" PAC_SVC_ISACTIVE="$DTD/svc.sh is-active"
+  export PAC_SVC_DISCORD_RESTART=""
   export PAC_VENV_BUILD='mkdir -p "$PAC_RELEASE/.venv/bin" && : > "$PAC_RELEASE/.venv/ok"'
   export PAC_PORT="$2" SVC_PIDFILE="$1/pac.pid" SVC_LOG="$1/app.log" PAC_BACKUP_DIR="$1/backups"
   mkdir -p "$PAC_RELEASES_DIR" "$PAC_SHARED_DATA"
