@@ -37,10 +37,17 @@ rec = FlightRecorder(b)
 for s_ in fly(o, rw[o][0][0], d, rw[d][0][0], td_fpm=-150):
     rec.update(s_)
 c.post("/api/acars/app/complete", json={"record": rec.export(), "requested_at": b["requested_at"], "source": "MSFS"})
-c.post("/api/pirep", json={"remarks": "notes"})
+filed = c.post("/api/pirep", json={"remarks": "notes"})
 with A.db() as con:
     sid = con.execute("SELECT id FROM cargo_shipments WHERE status='AT_STATION' AND current_station=?", (d,)).fetchone()[0]
     delivered = con.execute("SELECT id FROM cargo_shipments WHERE status LIKE 'DELIVERED%'").fetchone()
+check("filing offers an optional handoff for waiting freight",
+      filed.status_code == 200 and sid in [x["id"] for x in filed.json.get("handoffs", [])], filed.json.get("handoffs"))
+activity = c.get("/api/cargo/overview").json
+check("network briefing records shipment arrivals",
+      activity["activity_counts"].get("FLIGHT_ARRIVAL", 0) >= 1
+      and any(x["awb"] for x in activity["activity"] if x["event_type"] == "FLIGHT_ARRIVAL"),
+      activity.get("activity_counts"))
 det = c.get(f"/api/cargo/shipments/{sid}").json
 check("the pilot who flew it in may leave a note", det["can_note"] is True, det.get("can_note"))
 r = c.post(f"/api/cargo/shipments/{sid}/notes", json={"text": "AKE in M04, straps checked. Consignee wants it before 0600Z."})

@@ -2166,7 +2166,30 @@ async function filePirep() {
     $("#acars").innerHTML = ""; $("#pirepPanel").innerHTML = "";
     show("logbook");
     offerDeliveryReceipt(r.id);
+    offerCargoHandoff(r.handoffs || []);
   } catch (e) { toast(e.message); }
+}
+
+function offerCargoHandoff(handoffs) {
+  if (!handoffs.length) return;
+  let dlg = $("#cargoHandoffDialog");
+  if (!dlg) { dlg = document.createElement("dialog"); dlg.id = "cargoHandoffDialog"; dlg.className = "journey-dialog"; document.body.append(dlg); }
+  dlg.innerHTML = `<div class="journey-dialog-head"><h2>Cargo handoff at ${esc(handoffs[0].current_station)}</h2><button type="button" class="btn ghost small" data-close>Close</button></div>
+    <div class="journey-dialog-body"><p>The freight below is waiting for another leg. A note is optional; the next pilot will see it on the load sheet.</p>
+      <form id="cargoHandoffForm"><div class="field"><label for="cargoHandoffShipment">Shipment</label><select id="cargoHandoffShipment">${handoffs.map(x => `<option value="${esc(x.id)}">${esc(x.awb)} · ${esc(x.commodity)} · onward to ${esc(x.destination)}</option>`).join("")}</select></div>
+      <div class="field"><label for="cargoHandoffText">Note for the next pilot (optional)</label><textarea id="cargoHandoffText" maxlength="280" rows="3" placeholder="Only if there is something the next crew should know."></textarea></div>
+      <p id="cargoHandoffStatus" role="status"></p><div class="row"><button class="btn" type="submit">Save handoff note</button><button class="btn ghost" type="button" data-close>No issues to report</button></div></form></div>`;
+  dlg.querySelectorAll("[data-close]").forEach(b => b.onclick = () => dlg.close());
+  dlg.querySelector("#cargoHandoffForm").onsubmit = async e => {
+    e.preventDefault();
+    const text = dlg.querySelector("#cargoHandoffText").value.trim();
+    if (!text) { dlg.close(); return; }
+    const id = dlg.querySelector("#cargoHandoffShipment").value;
+    const status = dlg.querySelector("#cargoHandoffStatus");
+    try { await api(`/api/cargo/shipments/${encodeURIComponent(id)}/notes`, { method: "POST", body: { text } }); dlg.close(); toast("Handoff note saved for the next pilot."); }
+    catch (err) { status.textContent = err.message; }
+  };
+  dlg.showModal();
 }
 
 /* ---------------- Logbook ---------------- */
@@ -2559,6 +2582,7 @@ async function loadCargo() {
       <button type="button" role="tab" data-cgo-tab="network">Warehouses and lanes</button>
     </div>
     <div class="cgo-pane" data-pane="waiting">
+      <section id="cgoActivity" class="cgo-activity" aria-label="Cargo network activity"></section>
       <section id="cgoSeasons" class="cgo-seasons" aria-label="Cargo seasons running now"></section>
       <section id="cgoWaiting" class="cgo-waiting" aria-label="Freight waiting at stations"></section>
     </div>
@@ -2589,8 +2613,14 @@ async function loadCargo() {
   root.querySelectorAll("[data-cgo-tab]").forEach(b => b.onclick = () => cargoTab(b.dataset.cgoTab));
   let overview;
   try {
-    const [stations, ov] = await Promise.all([api("/api/cargo/stations"), api("/api/cargo/overview")]);
+    const seenKey = `pac-cargo-seen-${S.me?.id || "pilot"}`;
+    let lastSeen = 0;
+    try { lastSeen = Number(localStorage.getItem(seenKey)) || 0; } catch (e) { /* private window */ }
+    if (!Number.isFinite(lastSeen)) lastSeen = 0;
+    const [stations, ov] = await Promise.all([api("/api/cargo/stations"), api("/api/cargo/overview" + (lastSeen ? `?since=${encodeURIComponent(lastSeen)}` : ""))]);
     overview = ov;
+    renderCargoActivity(ov, lastSeen);
+    try { localStorage.setItem(seenKey, String(ov.activity_at)); } catch (e) { /* private window */ }
     station.innerHTML = `<option value="ALL">All stations</option>` + stations.map(x => `<option value="${esc(x.icao)}">${esc(x.icao)} · ${fmt(x.shipments)}</option>`).join("");
     if (stations.some(x => x.icao === S.cargoStation)) station.value = S.cargoStation;
   } catch (e) { $("#cargoResults").textContent = e.message; return; }
@@ -2713,6 +2743,23 @@ async function loadCargo() {
   $("#cgoAll").onchange = refresh;
   search.oninput = () => { clearTimeout(searchTimer); searchTimer = setTimeout(refresh, 250); };
   await refresh();
+}
+
+function renderCargoActivity(overview, lastSeen) {
+  const el = $("#cgoActivity"); if (!el) return;
+  const n = overview.activity_counts || {};
+  const period = lastSeen && lastSeen < overview.activity_since ? "In the past 7 days"
+    : lastSeen ? "Since your last visit" : "In the past 24 hours";
+  const events = (overview.activity || []).map(e => {
+    const label = e.event_type === "ORDER_WITHDRAWN" ? `${e.awb} moved to another carrier after its deadline`
+      : e.event_type === "TRANSFER_RELEASED" ? `${e.awb} returned to the shelf at ${e.from_station || e.to_station}`
+      : e.status === "AT_STATION" || e.status === "HELD_AT_STATION"
+        ? `${e.awb} arrived at ${e.to_station} and awaits an onward flight to ${e.destination}`
+        : `${e.awb} arrived at ${e.to_station} on ${e.flight_number || "a PAC flight"}`;
+    return `<li><time>${cargoInventoryDate(e.event_time)}</time><span>${esc(label)}</span></li>`;
+  }).join("");
+  el.innerHTML = `<h2>While you were away</h2><p class="muted">${period}, PAC received <b>${fmt(n.ORDER_RECEIVED || 0)}</b> new customer shipments, recorded <b>${fmt(n.FLIGHT_ARRIVAL || 0)}</b> shipment arrivals on PAC flights, and <b>${fmt(n.ORDER_WITHDRAWN || 0)}</b> overdue shipments moved to other carriers. Ground and partner movements never count as a pilot flight.</p>
+    ${events ? `<ul>${events}</ul>` : `<p class="muted">No other cargo movements in this period. Freight waiting below is available for PAC flights.</p>`}`;
 }
 
 function cargoInventoryDate(timestamp) {
