@@ -3,11 +3,11 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>PAC Academy · Boeing 737-800 training · Pagani Air Cargo</title>
-<meta name="description" content="Free 737-800 cockpit training from Pagani Air Cargo: PAC's Boeing-based flows from startup to shutdown and interactive lessons on every panel, for MSFS (PMDG) and X-Plane (LevelUp, Zibo).">
+<title>PAC Academy · Flight and cargo training · Pagani Air Cargo</title>
+<meta name="description" content="PAC Academy simulator training: interactive Boeing 737-800 cockpit lessons and beginner cargo paperwork examples from Pagani Air Cargo.">
 <link rel="canonical" href="https://pac-va.com/academy/">
-<meta property="og:title" content="PAC Academy · Boeing 737-800 training">
-<meta property="og:description" content="Interactive 737-800 cockpit lessons and PAC's standard flows: startup, taxi, takeoff and shutdown.">
+<meta property="og:title" content="PAC Academy · Flight and cargo training">
+<meta property="og:description" content="Interactive 737-800 cockpit lessons and beginner cargo paperwork examples.">
 <meta property="og:image" content="https://pac-va.com/academy/01-cockpit.jpg">
 <meta name="theme-color" content="#c80000">
 <style>html{color-scheme:light}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
@@ -109,7 +109,8 @@ button:focus-visible,select:focus-visible{outline:2px solid var(--red);outline-o
 <div class="app">
   <aside>
     <a class="back" href="/">← Back to pac-va.com</a>
-    <div class="brand">PAC Academy<small>Boeing 737-800 cockpit</small></div>
+    <div class="brand">PAC Academy<small>Flight and cargo training</small></div>
+    <a class="back" href="#cargoPaperwork">Cargo paperwork lesson ↓</a>
     <a class="back" href="#academyNew">Courses and resources ↓</a>
     <label class="kicker" for="picker" style="display:none">Lesson</label>
     <select class="picker" id="picker" aria-label="Choose a lesson"></select>
@@ -140,6 +141,34 @@ button:focus-visible,select:focus-visible{outline:2px solid var(--red);outline-o
       </section>
     </div>
     <p class="hint" id="hint" hidden>On a phone, swipe the panel sideways to see all of it.</p>
+    <section class="new-material" id="cargoPaperwork" aria-labelledby="cargoTitle">
+      <div class="kicker">Cargo operations · beginner lesson</div>
+      <h2 id="cargoTitle">Read an air waybill and cargo manifest</h2>
+      <p class="sub">Follow one fictional PAC shipment through both documents. Open each sample as you work through the checks below.</p>
+      <div class="material-grid">
+        <article class="material-card">
+          <div class="kicker">01 · Air waybill</div>
+          <h3>What was booked?</h3>
+          <p>The air waybill (AWB) identifies the shipment, its shipper and consignee, route, pieces, weight, charges and handling instructions. In the sample, look for <strong>901-10000123</strong>, <strong>10 cartons</strong>, and <strong>KCVG → KMIA</strong>.</p>
+          <p><strong>Gross weight</strong> is the freight's actual weight: <strong>1,200 kg</strong>. <strong>Chargeable weight</strong> is used to price this shipment: <strong>1,440 kg</strong>. The aircraft load uses gross weight, never the billing figure.</p>
+          <p><a href="/academy/pac-sample-awb.pdf" target="_blank" rel="noopener">Open sample PAC air waybill (PDF) ↗</a></p>
+        </article>
+        <article class="material-card">
+          <div class="kicker">02 · Cargo manifest</div>
+          <h3>What is on the flight?</h3>
+          <p>The manifest lists cargo assigned to a flight. Match its AWB number, route, <strong>10 cartons</strong>, and <strong>1,200 kg gross</strong> against the waybill. The sample places the freight at <strong>M01</strong> for this training exercise.</p>
+          <p>Both documents show <strong>PER · keep chilled 2–8°C</strong>. That instruction needs attention during acceptance and loading; it is not a substitute for the aircraft's actual load limits or operator procedures.</p>
+          <p><a href="/academy/pac-sample-manifest.pdf" target="_blank" rel="noopener">Open sample PAC cargo manifest (PDF) ↗</a></p>
+        </article>
+        <article class="material-card">
+          <div class="kicker">03 · Check yourself</div>
+          <h3>Before you release the load</h3>
+          <p>Confirm the AWB number, departure and arrival, piece count, gross weight, and special handling agree. Use gross weight in the load sheet. If either document differs, stop and resolve it with dispatch before continuing.</p>
+          <p>For this sample, the billing charge is <strong>1,440 × $2.50 = $3,600</strong>. That amount never goes into the aircraft weight calculation.</p>
+        </article>
+      </div>
+      <p class="hint">These are fictional PAC simulator training documents, not shipping paperwork or a real-world loading approval.</p>
+    </section>
     <section class="new-material" id="academyNew" aria-label="More PAC Academy material" hidden>
       <div class="kicker">More from PAC Academy</div><h2>Courses and resources</h2>
       <div class="material-grid" id="academyMaterial"></div>
