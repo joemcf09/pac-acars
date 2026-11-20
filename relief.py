@@ -83,6 +83,9 @@ def fetch_gdacs(now=None, opener=None):
     else:
         req = urllib.request.Request(GDACS_URL + "?" + urllib.parse.urlencode(q), headers={"User-Agent": "PAC-VA relief drafts (pac-va.com)"})
         with urllib.request.urlopen(req, timeout=20) as r:
+            # GDACS answers an empty search with HTTP 204 and no JSON body.
+            if r.status == 204:
+                return []
             raw = json.loads(r.read().decode("utf-8"))
     return parse_gdacs(raw, now)
 
