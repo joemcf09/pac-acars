@@ -2,7 +2,7 @@
 ; Built by build_acars.bat after PyInstaller has produced dist\PAC ACARS\
 
 #define AppName "PAC ACARS"
-#define AppVersion "1.2.1"
+#define AppVersion "1.2.2"
 #define Publisher "Pagani Air Cargo"
 
 [Setup]

@@ -66,5 +66,15 @@ check("staff see who, which flight, how far and why", ab and ab[0]["reason"] == 
       and ab[0]["flown_nm"] == 41 and ab[0]["flight"], ab)
 check("the booking is kept", A.load_booking() is not None)
 
+print("Abort after a false on-block handover")
+saved = A.flight_state_path("PAC0001")
+saved.write_bytes(b"unfiled flight draft")
+A.session("PAC0001")["recorder"] = object()
+r = c.post("/api/acars/app/abort", json={"reason": "X-Plane GPU crash on approach", "source": "X-Plane"})
+check("false completion abort answers", r.status_code == 200)
+check("unfiled draft is cleared from memory", A.session("PAC0001").get("recorder") is None)
+check("unfiled draft is cleared from disk", not saved.exists())
+check("flight can be retried on the same booking", A.load_booking() is not None)
+
 print("\nACARS 1.1.7 TEST " + ("PASSED" if not failures else f"FAILED: {failures}"))
 sys.exit(1 if failures else 0)

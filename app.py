@@ -3608,7 +3608,8 @@ def acars_app_abort():
     log_abort(booking, request.get_json(silent=True) or {}, "PAC ACARS")
     if booking and booking.pop("release_start", None):
         save_booking(booking)
-    state.update(remote=None, remote_status=None)
+    state.update(recorder=None, remote=None, remote_status=None)
+    clear_flight_state()
     clear_checkpoint()
     return jsonify({"ok": True})
 

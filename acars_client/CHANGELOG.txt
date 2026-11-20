@@ -1,6 +1,14 @@
 PAC ACARS - CHANGELOG
 =====================
 
+1.2.2 (November 2026)
+---------------------
+
+Fixed: abort an unfiled flight after a false on-block event
+- The completed flight card now offers "Abort, discard draft" before filing.
+- Aborting clears the saved flight draft on the website and keeps the booking
+  available so the pilot can retry after a simulator crash.
+
 1.2.1 (November 2026)
 ---------------------
 
