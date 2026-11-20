@@ -31,6 +31,20 @@ auth._set_password("PAC0014", "Pilot-Test-123")
 pilot = A.app.test_client()
 assert pilot.post("/api/auth/login", json={"pilot_id": "PAC0014", "password": "Pilot-Test-123"}).status_code == 200
 assert pilot.get("/api/staff/flight-ops").status_code == 403
+support_url = "/api/staff/pilot-support/PAC0014"
+assert pilot.get(support_url).status_code == 403
+assert founder.get("/api/staff/pilot-support/PAC9999").status_code == 404
+initial = founder.get(support_url).get_json()
+assert initial["pilot"]["name"] == "Test Pilot" and initial["booking"] is None
+assert not initial["access"]["staff"] and initial["caps"] == []
+assert "password_hash" not in initial["pilot"] and "email" not in initial["pilot"]
+assert "PAC0014" not in A.SESSIONS
+with A.db() as con:
+    con.execute("INSERT INTO roles (pilot_id,role,note,since) VALUES (?,?,?,?)",
+                ("PAC0014", "academy_director", "Test support access", time.time()))
+scoped = founder.get(support_url).get_json()
+assert scoped["caps"] == ["academy"] and scoped["roles"] == ["academy_director"]
+assert pilot.get(support_url).status_code == 403
 
 m = next(x for x in A.MISSIONS.values() if not x.get("job") and not x.get("live") and not x.get("urgent"))
 key = time.time()
@@ -41,6 +55,11 @@ s["recorder"] = SimpleNamespace(complete=True, phase="ARRIVED")
 saved = A.flight_state_path("PAC0014")
 saved.write_bytes(b"test draft")
 A.save_json(A.CHECKPOINT_PATH, {"requested_at": key, "phase": "APPROACH", "saved_at": time.time()})
+support = founder.get(support_url).get_json()
+assert support["booking"]["number"] == "PAC4321"
+assert support["acars"]["unfiled_draft"] and support["acars"]["saved_state"]
+assert support["acars"]["checkpoint"]["phase"] == "APPROACH"
+assert A.load_booking("PAC0014") is not None and saved.exists()
 listed = founder.get("/api/staff/flight-ops").get_json()["flights"]
 assert len(listed) == 1 and listed[0]["draft"] and listed[0]["saved_state"] and listed[0]["checkpoint"]
 path = "/api/staff/flight-ops/PAC0014/intervene"

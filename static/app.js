@@ -6345,9 +6345,9 @@ function renderStaff() {
   const d = S.staff;
   const pendingReviews = d.reviews.filter(r => r.review_status === "Pending").length;
   const pendingApps = d.applications.filter(a => a.status === "Pending").length;
-  const tabs = [["ceo", "CEO desk", 0], ["market", "Fleet market", 0], ["complaints", "Complaints", 0], ["roles", "Roles", 0], ["reports", "Problem reports", 0], ["flightops", "Flight support", 0], ["health", "Operations health", 0], ["campaigns", "Cargo campaigns", 0], ["relief", "Relief missions", 0], ["cargostock", "Cargo stock", 0], ["reviews", "PIREP review", pendingReviews], ["applications", "Applications", pendingApps], ["transfers", "Transfer hours", d.transfer_pending || 0], ["activity", "Activity", d.activity_overdue || 0], ["engagement", "Engagement", d.engagement_pending || 0], ["roster", "Roster", 0],
+  const tabs = [["ceo", "CEO desk", 0], ["market", "Fleet market", 0], ["complaints", "Complaints", 0], ["roles", "Roles", 0], ["reports", "Problem reports", 0], ["flightops", "Flight support", 0], ["health", "Operations health", 0], ["campaigns", "Cargo campaigns", 0], ["relief", "Relief missions", 0], ["cargostock", "Cargo stock", 0], ["reviews", "PIREP review", pendingReviews], ["applications", "Applications", pendingApps], ["transfers", "Transfer hours", d.transfer_pending || 0], ["activity", "Activity", d.activity_overdue || 0], ["engagement", "Engagement", d.engagement_pending || 0], ["roster", "Roster", 0], ["support", "Pilot support view", 0],
     ["news", "News", 0], ["mx", "Maintenance", d.airframes.reduce((n, a) => n + (a.open_items || []).length, 0)], ["types", "Fleet types", 0], ["pphotos", "Partner photos", 0], ["airframes", "Airframes", d.airframes.filter(a => ["Maintenance", "Inspection", "A-check due", "Heavy check due", "Heavy check", "Damaged"].includes(a.status)).length], ["events", "Events", 0], ["site", "Site and rules", 0]];
-  const GROUPS = [["Company", ["ceo", "market", "complaints", "roles"]], ["Pilots", ["reviews", "applications", "transfers", "activity", "engagement", "roster"]],
+  const GROUPS = [["Company", ["ceo", "market", "complaints", "roles"]], ["Pilots", ["reviews", "applications", "transfers", "activity", "engagement", "roster", "support"]],
     ["Operations", ["flightops", "reports", "health", "events", "news"]], ["Cargo", ["campaigns", "relief", "cargostock"]], ["Fleet", ["airframes", "mx", "types", "pphotos"]], ["Settings", ["site"]]];
   const T = Object.fromEntries(tabs.map(t => [t[0], t]));
   if (!T[S.staffTab]) S.staffTab = "reviews";
@@ -6360,7 +6360,51 @@ function renderStaff() {
     <div id="staffBody"></div>`;
   document.querySelectorAll("[data-sg]").forEach(b => b.onclick = () => { const ks = GROUPS.find(([g]) => g === b.dataset.sg)[1]; S.staffTab = ks.find(k => T[k]?.[2]) || ks[0]; renderStaff(); });
   document.querySelectorAll("[data-st]").forEach(b => b.onclick = () => { S.staffTab = b.dataset.st; renderStaff(); });
-  ({ ceo: staffCeo, market: staffMarket, complaints: staffComplaints, roles: staffRoles, reports: staffProblemReports, flightops: staffFlightOps, health: staffOperationsHealth, campaigns: staffCargoCampaigns, relief: staffRelief, cargostock: staffCargoStock, reviews: staffReviews, applications: staffApps, transfers: staffTransfers, activity: staffActivity, engagement: staffEngagement, roster: staffRoster, news: staffNews, mx: staffMx, types: staffTypes, pphotos: staffPartnerPhotos, airframes: staffAirframes, events: staffEvents, site: staffSite })[S.staffTab]();
+  ({ ceo: staffCeo, market: staffMarket, complaints: staffComplaints, roles: staffRoles, reports: staffProblemReports, flightops: staffFlightOps, health: staffOperationsHealth, campaigns: staffCargoCampaigns, relief: staffRelief, cargostock: staffCargoStock, reviews: staffReviews, applications: staffApps, transfers: staffTransfers, activity: staffActivity, engagement: staffEngagement, roster: staffRoster, support: staffPilotSupport, news: staffNews, mx: staffMx, types: staffTypes, pphotos: staffPartnerPhotos, airframes: staffAirframes, events: staffEvents, site: staffSite })[S.staffTab]();
+}
+async function staffPilotSupport() {
+  const host = $("#staffBody");
+  const roster = S.staff.roster || [];
+  if (!roster.length) { host.innerHTML = '<p class="muted">No pilots in the roster.</p>'; return; }
+  const pid = roster.some(p => p.id === S.supportPilot) ? S.supportPilot : roster[0].id;
+  S.supportPilot = pid;
+  host.innerHTML = `<div class="card" style="padding:18px"><h2 style="margin-top:0">Pilot support view</h2>
+    <p class="muted">Read-only preview of the pilot's website access and server-side flight state. It does not sign in as the pilot or change their flight.</p>
+    <label for="supportPilot">Pilot</label> <select id="supportPilot">${roster.map(p => `<option value="${esc(p.id)}" ${p.id === pid ? "selected" : ""}>${esc(p.name)} · ${esc(p.id)}</option>`).join("")}</select>
+    <div id="supportResult" style="margin-top:18px"><p class="muted">Loading pilot state…</p></div></div>`;
+  $("#supportPilot").onchange = e => { S.supportPilot = e.target.value; staffPilotSupport(); };
+  try {
+    const d = await api(`/api/staff/pilot-support/${encodeURIComponent(pid)}`);
+    if (S.staffTab !== "support" || S.supportPilot !== pid || !host.isConnected) return;
+    const p = d.pilot, b = d.booking, a = d.acars;
+    const all = [["Main", ["Home", "Dashboard", "Missions", "My bids", "ACARS"]],
+      ["Operations", ["Fleet", "Live map", "Stations", "Cargo inventory", "Cargo network", "Track a shipment"]],
+      ["My career", ["Career", "Logbook", "My stats", "Shop", "Finance"]],
+      ["Crew room", ["Crew mail", "Pilots", "Roster & flight log", "Gallery", "What's new"]],
+      ["Learn", ["PAC Academy", "Handbook", "Cargo guide", "Downloads", "Report a problem"]]];
+    const management = [["Livery library", "liveries"], ["Media", "creative"], ["Commercial", "commercial"],
+      ["Fleet & maintenance", "fleet"], ["Ops desk", "operations"], ["Academy desk", "academy"]];
+    const item = x => `<span class="tag grey" style="margin:3px">${esc(x)}</span>`;
+    const line = (label, value) => `<tr><th style="text-align:left;padding:7px 16px 7px 0">${esc(label)}</th><td>${esc(value ?? "—")}</td></tr>`;
+    const phase = a.phase || "No active server tracking";
+    const acarsAction = !b ? "No booking: book a flight before starting ACARS." :
+      b.release_required && !b.release_signed ? "Start blocked: captain must sign the current dispatch release." :
+      a.remote_live ? "Desktop ACARS is reporting live; use that flight session." :
+      a.unfiled_draft ? "Completed unfiled draft detected; review and file its PIREP." :
+      a.saved_state || a.checkpoint ? "A saved flight state exists; ACARS may offer Resume." :
+      "Booking and release permit ACARS start, subject to the pilot's local app connection.";
+    $("#supportResult").innerHTML = `<div class="row" style="gap:8px;flex-wrap:wrap;margin-bottom:14px"><b>${esc(p.name)} · ${esc(p.id)}</b><span class="tag ${p.status === "Active" ? "green" : "amber"}">${esc(p.status || "Unknown")}</span>${p.staff ? '<span class="tag dark">Full admin</span>' : ""}</div>
+      ${p.can_sign_in ? "" : '<p class="tag amber">This pilot cannot currently sign in; the menu below is their projected access after sign-in is restored.</p>'}
+      <div class="row" style="gap:18px;flex-wrap:wrap;align-items:start">
+        <section class="card" style="padding:14px;flex:1;min-width:260px"><h3 style="margin-top:0">What appears in their menu</h3>
+          ${all.map(([group, items]) => `<p style="margin:10px 0 3px"><b>${esc(group)}</b></p><div>${items.map(item).join("")}</div>`).join("")}
+          ${p.staff || d.caps.length ? `<p style="margin:10px 0 3px"><b>Management</b></p><div>${management.filter(([, cap]) => p.staff || d.caps.includes(cap)).map(([name]) => item(name)).join("")}${p.staff ? item("Staff") : ""}</div>` : '<p class="muted">Management menu is hidden for this pilot.</p>'}
+        </section>
+        <section class="card" style="padding:14px;flex:1;min-width:260px"><h3 style="margin-top:0">Pilot and flight state</h3>
+          <table>${line("Home hub", p.hub)}${line("Current station", p.location)}${line("Line checkride", p.checkride)}${line("Roles", d.roles.join(", ") || "None")}${line("Scoped access", d.caps.join(", ") || "None")}${line("Booked flight", b ? `${b.number || "—"} · ${b.origin || "?"} → ${b.destination || "?"}` : "None")}${line("Aircraft", b ? `${b.aircraft || "—"}${b.airframe ? " · " + b.airframe : ""}` : "—")}${line("Dispatch release", b ? (b.release_required ? (b.release_signed ? "Signed" : "Signature needed") : "Signature not required") : "—")}${line("ACARS phase", phase)}${line("Desktop connected", a.remote_live ? "Yes, recent signal" : "No recent signal")}${line("Unfiled draft", a.unfiled_draft ? "Yes" : "No server draft")}${line("Saved flight", a.saved_state ? "Yes" : "No")}${line("Desktop checkpoint", a.checkpoint ? `${a.checkpoint.phase || "Saved"}` : "No")}</table>
+        </section></div>
+      <div class="card" style="padding:14px;margin-top:14px"><h3 style="margin-top:0">Control checks</h3><p><b>ACARS start or resume:</b> ${esc(acarsAction)}</p><p><b>File PIREP:</b> ${a.unfiled_draft ? "A completed server draft is available." : "No completed server draft is detected."}</p><p class="muted" style="margin-bottom:0">This reflects server records at the time of lookup. A pilot's desktop ACARS cache, browser cache, and device connection can differ. Ask them to refresh their page when comparing a missing control.</p></div>`;
+  } catch (e) { if (S.staffTab === "support" && S.supportPilot === pid && host.isConnected) $("#supportResult").innerHTML = `<p class="error">${esc(e.message)}</p>`; }
 }
 async function staffFlightOps() {
   const host = $("#staffBody");
@@ -6738,10 +6782,12 @@ function staffRoster() {
         <button class="btn ghost small" type="button" data-signin="${p.id}" title="A one-time link to set or reset their password">Sign-in link</button>
         <button class="btn ghost small" type="button" data-letter="${p.id}" title="A letter with a fresh sign-in link, ready to send">Letter</button>
         ${p.id === S.me?.id ? "" : `<button class="btn ghost small danger" type="button" data-remove="${p.id}" title="Remove this pilot from PAC">Remove</button>`}
-        <button class="btn ghost small" type="button" data-ratings="${p.id}" title="Grant or remove type ratings">Ratings</button></td></tr>`).join("")}</tbody></table></div>
+        <button class="btn ghost small" type="button" data-ratings="${p.id}" title="Grant or remove type ratings">Ratings</button>
+        <button class="btn ghost small" type="button" data-support="${p.id}" title="Inspect this pilot's access and flight state">Support view</button></td></tr>`).join("")}</tbody></table></div>
     <p class="muted" style="font-size:13px">Transfer hours count towards rank, not towards PAC totals or leaderboards. Pilots normally request them under Career (reviewed in the Transfer hours tab); editing them here is for corrections. Tick <b>PRA</b> for pilots cleared to fly the Kodiak for Pagani Remote Aviation; they show in that division on the group hub. Each pilot signs in with their own pilot ID; <b>Sign-in link</b> makes a one-time link to set or reset a pilot's password.</p>`;
   document.querySelectorAll("[data-signin]").forEach(b => b.onclick = () => showSigninLink(b.dataset.signin));
   document.querySelectorAll("[data-ratings]").forEach(b => b.onclick = () => staffRatings(b.dataset.ratings));
+  document.querySelectorAll("[data-support]").forEach(b => b.onclick = () => { S.supportPilot = b.dataset.support; S.staffTab = "support"; renderStaff(); });
   document.querySelectorAll("[data-letter]").forEach(b => b.onclick = () => openLetter("reminder", { pid: b.dataset.letter }));
   document.querySelectorAll("[data-remove]").forEach(b => b.onclick = () => removePilot(b.dataset.remove));
   document.querySelectorAll("[data-wadj]").forEach(b => b.onclick = async () => {
