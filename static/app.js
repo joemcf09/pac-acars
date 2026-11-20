@@ -2170,15 +2170,15 @@ async function filePirep() {
   } catch (e) { toast(e.message); }
 }
 
-function offerCargoHandoff(handoffs) {
+function offerCargoHandoff(handoffs, preview = false) {
   if (!handoffs.length) return;
   let dlg = $("#cargoHandoffDialog");
   if (!dlg) { dlg = document.createElement("dialog"); dlg.id = "cargoHandoffDialog"; dlg.className = "journey-dialog"; document.body.append(dlg); }
   dlg.innerHTML = `<div class="journey-dialog-head"><h2>Cargo handoff at ${esc(handoffs[0].current_station)}</h2><button type="button" class="btn ghost small" data-close>Close</button></div>
-    <div class="journey-dialog-body"><p>The freight below is waiting for another leg. A note is optional; the next pilot will see it on the load sheet.</p>
+    <div class="journey-dialog-body">${preview ? `<p class="notice">Preview only. This sample does not create a shipment, flight, or note.</p>` : ""}<p>The freight below is waiting for another leg. A note is optional; the next pilot will see it on the load sheet.</p>
       <form id="cargoHandoffForm"><div class="field"><label for="cargoHandoffShipment">Shipment</label><select id="cargoHandoffShipment">${handoffs.map(x => `<option value="${esc(x.id)}">${esc(x.awb)} · ${esc(x.commodity)} · onward to ${esc(x.destination)}</option>`).join("")}</select></div>
       <div class="field"><label for="cargoHandoffText">Note for the next pilot (optional)</label><textarea id="cargoHandoffText" maxlength="280" rows="3" placeholder="Only if there is something the next crew should know."></textarea></div>
-      <p id="cargoHandoffStatus" role="status"></p><div class="row"><button class="btn" type="submit">Save handoff note</button><button class="btn ghost" type="button" data-close>No issues to report</button></div></form></div>`;
+      <p id="cargoHandoffStatus" role="status"></p><div class="row"><button class="btn" type="submit">${preview ? "Preview note" : "Save handoff note"}</button><button class="btn ghost" type="button" data-close>No issues to report</button></div></form></div>`;
   dlg.querySelectorAll("[data-close]").forEach(b => b.onclick = () => dlg.close());
   dlg.querySelector("#cargoHandoffForm").onsubmit = async e => {
     e.preventDefault();
@@ -2186,6 +2186,7 @@ function offerCargoHandoff(handoffs) {
     if (!text) { dlg.close(); return; }
     const id = dlg.querySelector("#cargoHandoffShipment").value;
     const status = dlg.querySelector("#cargoHandoffStatus");
+    if (preview) { status.textContent = "Preview complete. No note was saved."; return; }
     try { await api(`/api/cargo/shipments/${encodeURIComponent(id)}/notes`, { method: "POST", body: { text } }); dlg.close(); toast("Handoff note saved for the next pilot."); }
     catch (err) { status.textContent = err.message; }
   };
@@ -2759,7 +2760,11 @@ function renderCargoActivity(overview, lastSeen) {
     return `<li><time>${cargoInventoryDate(e.event_time)}</time><span>${esc(label)}</span></li>`;
   }).join("");
   el.innerHTML = `<h2>While you were away</h2><p class="muted">${period}, PAC received <b>${fmt(n.ORDER_RECEIVED || 0)}</b> new customer shipments, recorded <b>${fmt(n.FLIGHT_ARRIVAL || 0)}</b> shipment arrivals on PAC flights, and <b>${fmt(n.ORDER_WITHDRAWN || 0)}</b> overdue shipments moved to other carriers. Ground and partner movements never count as a pilot flight.</p>
+    ${S.me?.staff ? `<button class="btn ghost small" type="button" id="cgoPreviewHandoff">Preview postflight handoff</button>` : ""}
     ${events ? `<ul>${events}</ul>` : `<p class="muted">No other cargo movements in this period. Freight waiting below is available for PAC flights.</p>`}`;
+  if (S.me?.staff) $("#cgoPreviewHandoff").onclick = () => offerCargoHandoff([{
+    id: "preview", awb: "TRAINING-ONLY", commodity: "Fresh flowers", current_station: "KMIA", destination: "TJSJ",
+  }], true);
 }
 
 function cargoInventoryDate(timestamp) {
