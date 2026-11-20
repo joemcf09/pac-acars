@@ -36,10 +36,10 @@
     document.documentElement.dataset.design = localStorage.getItem("pac-design") || "loadsheet";
   })();
 </script>
-<link rel="stylesheet" href="/static/app.css?v=20261119a">
+<link rel="stylesheet" href="/static/app.css?v=20261119badges1">
 <link rel="stylesheet" href="/static/theme-loadsheet.css?v=home-20261110">
 <link rel="stylesheet" href="/static/usability.css?v=20261021">
-<link rel="stylesheet" href="/static/navigation.css?v=20261021">
+<link rel="stylesheet" href="/static/navigation.css?v=20261119badges1">
 <link rel="stylesheet" href="/static/problem-reports.css?v=20261021">
 <link rel="stylesheet" href="/static/profile-panel.css?v=20261021">
 <link rel="stylesheet" href="/static/home-board.css?v=20261021">
@@ -53,6 +53,10 @@
 <header class="pac-nav-v2">
   <a class="brand" href="#home" aria-label="Pagani Air Cargo home" style="color:inherit;text-decoration:none"><img src="/static/pac-wordmark-white.png" alt="Pagani Air Cargo"><span>Flight Operations</span></a>
   <button id="navToggle" aria-expanded="false" aria-controls="mainNav">Menu ☰</button><nav id="mainNav" aria-label="Main"><button data-view="home">Home</button><button data-view="dashboard">Dashboard</button><button data-view="missions">Missions</button><button data-view="bids">My bids<span class="nav-badge" id="bidsCount" hidden>1</span></button><button data-view="acars">ACARS</button><div class="nav-group"><button class="nav-disclosure" aria-expanded="false" aria-controls="navGroup0">Operations <span aria-hidden="true">▾</span></button><div class="nav-panel" id="navGroup0" hidden><button data-view="fleet">Fleet</button><button data-view="live">Live map</button><button data-view="stations">Stations</button><button data-view="cargo">Cargo inventory</button><button data-view="network">Cargo network</button><button data-view="track">Track a shipment</button></div></div><div class="nav-group"><button class="nav-disclosure" aria-expanded="false" aria-controls="navGroup1">My career <span aria-hidden="true">▾</span></button><div class="nav-panel" id="navGroup1" hidden><button data-view="career">Career</button><button data-view="logbook">Logbook</button><button data-view="stats">My stats</button><button data-view="shop">Shop</button><button data-view="finance">Finance</button></div></div><div class="nav-group"><button class="nav-disclosure" aria-expanded="false" aria-controls="navGroup2">Crew room <span aria-hidden="true">▾</span></button><div class="nav-panel" id="navGroup2" hidden><button data-view="messages">Crew mail<span class="nav-badge" id="msgCount" hidden></span></button><button data-view="pilots">Pilots</button><button data-view="roster">Roster &amp; flight log</button><button data-view="gallery">Gallery</button><button data-view="updates">What’s new <span id="pxUpdateCount" class="nav-badge" hidden></span></button></div></div><div class="nav-group"><button class="nav-disclosure" aria-expanded="false" aria-controls="navGroup3">Learn <span aria-hidden="true">▾</span></button><div class="nav-panel" id="navGroup3" hidden><button type="button" onclick="location.href='/academy/'">PAC Academy</button><button data-view="handbook">Handbook</button><button data-view="cargoguide">Cargo guide</button><button data-view="downloads">Downloads &amp; cheat sheets</button><button data-view="reports">Report a problem</button></div></div><div class="nav-group" id="mgmtGroup"><button class="nav-disclosure" id="mgmtDisclosure" aria-expanded="false" aria-controls="navGroupMgmt"><span class="disc-text">Management</span> <span class="disc-caret" aria-hidden="true">▾</span></button><div class="nav-panel" id="navGroupMgmt" hidden><button data-view="liverylib" data-cap="liveries">Livery library</button><button data-view="creative" data-cap="creative">Media</button><button data-view="commercial" data-cap="commercial">Commercial</button><button data-view="fleetmgr" data-cap="fleet">Fleet &amp; maintenance</button><button data-view="operations" data-cap="operations">Ops desk</button><button data-view="academy" data-cap="academy">Academy desk</button><button data-view="staff">Staff</button></div></div></nav>
+  <div class="header-badges" aria-label="PAC directory ratings">
+    <a href="https://mynextairline.com/airlines/pagani-air-cargo" target="_blank" rel="noopener" title="Pagani Air Cargo on MyNextAirline"><img src="https://mynextairline.com/api/badge/pagani-air-cargo?theme=light" width="150" height="48" alt="Pagani Air Cargo rating on MyNextAirline"></a>
+    <a href="https://va-list.com/pagani-air-cargo-1231" target="_blank" rel="noopener" title="Pagani Air Cargo on VA-List"><img src="https://va-list.com/php/rankimage.php?id=1231" width="150" height="50" alt="Pagani Air Cargo on VA-List"></a>
+  </div>
   <div class="pilot">
     <a href="#bids" id="bidPill" class="bid-pill" hidden onclick="show('bids');return false" title="Your current bid"></a>
     <div class="nav-group account-group"><button id="pilotChip" aria-label="Pilot account" class="pilot-chip nav-disclosure" aria-expanded="false" aria-controls="accountMenu"><img id="pilotThumb" alt=""><span id="pilotLabel"></span><span aria-hidden="true">▾</span></button>
@@ -334,6 +338,6 @@
 <script src="/static/cargo-guide.js?v=ill3-20261110"></script>
 <script src="/static/problem-reports.js?v=20261021"></script>
 <script src="/static/academy-desk.js?v=20261119a"></script>
-<script src="/static/app.js?v=20261119academy1"></script>
+<script src="/static/app.js?v=20261119badges1"></script>
 </body>
 </html>

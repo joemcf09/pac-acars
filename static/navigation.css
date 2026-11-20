@@ -9,7 +9,15 @@
 .pac-nav-v2 #navToggle{display:none}
 .pac-nav-v2 .account-group .nav-panel{left:auto;right:0}
 .pac-nav-v2 #pilotChip{background:transparent;color:inherit;border:0;min-height:44px}
+.pac-nav-v2 .header-badges{display:none}
 html[data-design="classic"] body>header.pac-nav-v2{gap:4px 16px;padding:8px 20px;overflow:visible}
+@media(min-width:1121px){
+ html[data-design="classic"] .pac-nav-v2 .header-badges{display:flex;align-items:center;gap:8px;margin-left:auto}
+ html[data-design="classic"] .pac-nav-v2 .header-badges a{display:block;line-height:0;border-radius:3px}
+ html[data-design="classic"] .pac-nav-v2 .header-badges a:focus-visible{outline:2px solid #fff;outline-offset:2px}
+ html[data-design="classic"] .pac-nav-v2 .header-badges img{display:block;width:150px;max-height:50px;object-fit:contain}
+ html[data-design="classic"] body>header.pac-nav-v2 .pilot{margin-left:0}
+}
 html[data-design="classic"] .pac-nav-v2 nav{order:3;flex-basis:100%;height:44px;margin:0;flex-wrap:nowrap}
 html[data-design="classic"] .pac-nav-v2 nav>button,html[data-design="classic"] .pac-nav-v2 nav .nav-disclosure{padding:0 14px;height:44px}
 html[data-design="classic"] .pac-nav-v2 .pilot{margin-left:auto}
