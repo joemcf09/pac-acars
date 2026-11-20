@@ -6388,7 +6388,7 @@ async function staffFlightOps() {
     const reason = prompt(`Reason for ${action === 'clear_draft' ? 'clearing this draft' : 'releasing this booking'}?`, 'Simulator crash; pilot cannot complete flight');
     if (!reason) return;
     if (!confirm(`${action === 'clear_draft' ? 'Clear the saved draft and keep the booking' : 'Release the booking, aircraft and cargo'} for ${btn.dataset.pilot}?`)) return;
-    try { await api(`/api/staff/flight-ops/${encodeURIComponent(btn.dataset.pilot)}/intervene`, { method: 'POST', body: { action, reason, booking_key: Number(btn.dataset.key) } }); toast('Intervention recorded. Ask the pilot to reopen ACARS.'); staffFlightOps(); }
+    try { await api(`/api/staff/flight-ops/${encodeURIComponent(btn.dataset.pilot)}/intervene`, { method: 'POST', body: { action, reason, booking_key: Number(btn.dataset.key) } }); toast('Intervention recorded. Ask the pilot to reopen ACARS.'); loadStaff(); }
     catch (err) { toast(err.message); }
   });
   host.querySelector('#flightIncidentForm').onsubmit = async e => {
@@ -6404,7 +6404,7 @@ async function staffFlightOps() {
     if (!amount) return;
     const note = prompt('Why is this payment being awarded?', 'Simulator crash goodwill payment');
     if (!note || !confirm(`Pay ${money(amount)} goodwill for incident #${btn.dataset.goodwill}? This updates the pilot wallet.`)) return;
-    try { await api(`/api/staff/flight-incidents/${btn.dataset.goodwill}/goodwill`, { method: 'POST', body: { amount, note } }); toast('Goodwill payment recorded.'); staffFlightOps(); loadMe(); }
+    try { await api(`/api/staff/flight-incidents/${btn.dataset.goodwill}/goodwill`, { method: 'POST', body: { amount, note } }); toast('Goodwill payment recorded.'); loadStaff(); loadMe(); }
     catch (err) { toast(err.message); }
   });
   host.querySelectorAll('[data-close-incident]').forEach(btn => btn.onclick = async () => {
