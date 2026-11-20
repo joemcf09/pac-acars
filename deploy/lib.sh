@@ -37,7 +37,7 @@ HEALTH_TIMEOUT="${PAC_HEALTH_TIMEOUT:-30}"
 SVC_RESTART="${PAC_SVC_RESTART:-sudo systemctl restart pac}"
 SVC_STOP="${PAC_SVC_STOP:-sudo systemctl stop pac}"
 SVC_ISACTIVE="${PAC_SVC_ISACTIVE:-systemctl is-active --quiet pac}"
-SVC_DISCORD_RESTART="${PAC_SVC_DISCORD_RESTART:-}"   # empty = skip (handled by caller)
+SVC_DISCORD_RESTART="${PAC_SVC_DISCORD_RESTART-sudo systemctl try-restart pac-discord}"   # explicit empty = skip in isolated tests
 
 # How a release builds its own virtual environment. Overridable so the harness
 # can exercise the "dependency install failed" path deterministically.

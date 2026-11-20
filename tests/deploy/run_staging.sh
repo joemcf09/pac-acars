@@ -61,6 +61,7 @@ sect "S2 deploy + rollback on the migrated layout, run from the release venv"
 export PAC_DEPLOY_ROOT="$FLAT" PAC_SHARED_DATA="$FLAT/shared/data" PAC_RELEASES_DIR="$FLAT/releases"
 export PAC_HEALTH_URL="http://127.0.0.1:$PORT/up" PAC_HEALTH_TIMEOUT=45 PAC_KEEP_RELEASES=5
 export PAC_SVC_RESTART="$HERE/svc.sh restart" PAC_SVC_STOP="$HERE/svc.sh stop" PAC_SVC_ISACTIVE="$HERE/svc.sh is-active"
+export PAC_SVC_DISCORD_RESTART=""
 export PAC_PORT="$PORT" SVC_PIDFILE="$FLAT/pac.pid" SVC_LOG="$FLAT/app.log" PAC_BACKUP_DIR="$FLAT/backups"
 export PAC_SVC_PYTHON="$FLAT/current/.venv/bin/python"   # production-equivalent: the release's own venv
 unset PAC_VENV_BUILD                                      # real venv builds on deploy too
