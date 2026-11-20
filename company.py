@@ -48,7 +48,7 @@ SCOPE = {
     "creative": {"roles": {"creative"}, "paths": ("partner-photos", "news")},
     "commercial": {"roles": {"commercial"}, "paths": ("complaints", "accounts", "lanes", "featured-shipments")},
     "fleet": {"roles": {"fleet_mgr"}, "paths": ("fleet-types", "airframes", "maintenance", "fleet-recs", "fleet-catalog")},
-    "operations": {"roles": {"dir_ops"}, "paths": ("cargo-campaigns", "events", "relief")},
+    "operations": {"roles": {"dir_ops"}, "paths": ("cargo-campaigns", "events", "relief", "ops-exceptions")},
     "academy": {"roles": {"academy_director"}, "paths": ("academy",)},
     # The fleet MARKET itself (buying/leasing, which spends company cash) stays full-admin only, so a
     # Fleet Manager can browse the catalog (fleet-catalog, no cash shown) and file recommendations
