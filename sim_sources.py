@@ -26,6 +26,15 @@ def altimeter_alt(indicated, true_ft):
     return indicated
 
 
+def msfs_gear_down(handle, extended_pct):
+    """Use physical extension when available; add-ons may leave the standard handle at zero."""
+    if extended_pct is not None and float(extended_pct) >= 95:
+        return True
+    if handle is not None:
+        return float(handle) >= 0.5
+    return True  # no reliable gear data: do not issue a false gear-up warning
+
+
 @dataclass
 class Telemetry:
     t: float
@@ -152,7 +161,8 @@ class MSFSSource:
         "pbrake": ("BRAKE PARKING POSITION", "bool"),
         "fuel": ("FUEL TOTAL QUANTITY WEIGHT", "pounds"),
         "weight": ("TOTAL WEIGHT", "pounds"),
-        "gear": ("GEAR HANDLE POSITION", "bool"),
+        "gear": ("GEAR HANDLE POSITION", "percent over 100"),
+        "gear_extended": ("GEAR TOTAL PCT EXTENDED", "percent"),
         "flaps": ("FLAPS HANDLE PERCENT", "percent over 100"),
         "g": ("G FORCE", "gforce"),
         "td": ("PLANE TOUCHDOWN NORMAL VELOCITY", "feet per minute"),
@@ -170,7 +180,7 @@ class MSFSSource:
         "n_eng": ("NUMBER OF ENGINES", "number"),
         "cg": ("CG PERCENT", "percent"),          # 1.1.7: checked against the loadsheet at OUT
     }
-    OPTIONAL = ("bank", "beacon", "landing_lt", "strobe", "nav_lt", "taxi_lt", "n_eng", "cg")
+    OPTIONAL = ("bank", "beacon", "landing_lt", "strobe", "nav_lt", "taxi_lt", "n_eng", "cg", "gear_extended")
     # Near the ground (landing) only these are re-read each sample; the rest reuse their last value. Each
     # SimConnect request costs ~20 ms, so reading all ~37 took ~0.8 s and the touchdown fell between samples.
     FAST = ("lat", "lon", "agl", "ias", "gs", "vs", "on_ground", "g", "td", "hdg", "pitch")
@@ -277,7 +287,7 @@ class MSFSSource:
             eng1_running=_flag(v["eng1"]), eng2_running=_flag(v["eng2"]),
             eng3_running=_flag(v["eng3"]), eng4_running=_flag(v["eng4"]),
             parking_brake=bool(v["pbrake"]), fuel_lbs=num("fuel"), weight_lbs=num("weight"),
-            gear_down=bool(v["gear"]) if v["gear"] is not None else True,
+            gear_down=msfs_gear_down(v["gear"], v["gear_extended"]),
             flaps=num("flaps"), g=num("g", 1.0),
             touchdown_fpm=touchdown_fpm,
             slew=bool(v["slew"]),
