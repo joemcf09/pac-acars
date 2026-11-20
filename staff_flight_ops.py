@@ -31,6 +31,48 @@ def register(app, C):
     def incident(con, iid):
         return con.execute("SELECT * FROM flight_incidents WHERE id=?", (iid,)).fetchone()
 
+    @app.get("/api/staff/pilot-support/<pid>")
+    def staff_pilot_support(pid):
+        """Read-only projection of a pilot's site access and current flight state."""
+        pid = pid.upper()
+        with C["db"]() as con:
+            row = con.execute("SELECT id,name,status,hub,location,checkride,staff,password_hash IS NOT NULL AS has_password FROM pilots WHERE id=?", (pid,)).fetchone()
+            if not row:
+                return jsonify(error="Pilot not found."), 404
+            roles = {r[0] for r in con.execute("SELECT role FROM roles WHERE pilot_id=?", (pid,))}
+        company = C["company"]
+        caps = sorted(cap for cap, spec in company.SCOPE.items() if roles & spec["roles"])
+        booking = C["load_booking"](pid)
+        # A support lookup must not create an empty flight session or saved-state directory.
+        s = C["SESSIONS"].get(pid) or {}
+        rec = s.get("recorder")
+        remote_seen = s.get("remote_seen") or 0
+        remote_live = bool(s.get("remote") and time.time() - remote_seen < 60)
+        cp = C["load_json"](C["CHECKPOINT_PATH"], None) if booking else None
+        checkpoint = cp if cp and cp.get("requested_at") == booking.get("requested_at") else None
+        saved_path = C["DATA"] / "flights" / f"{pid}.pkl"
+        signed = bool(booking and C["releases"].valid_signature(booking))
+        sign_required = bool(booking and C["signature_required"](booking))
+        flight = None
+        if booking:
+            mission = booking.get("mission") or {}
+            flight = {"number": booking.get("flight_number"), "origin": (mission.get("origin") or {}).get("icao"),
+                      "destination": (mission.get("destination") or {}).get("icao"),
+                      "aircraft": booking.get("aircraft"), "airframe": booking.get("airframe"),
+                      "booked_at": booking.get("requested_at"), "release_required": sign_required,
+                      "release_signed": signed, "release_amended": bool(booking.get("release_amended"))}
+        pilot = {k: row[k] for k in ("id", "name", "status", "hub", "location", "checkride", "staff")}
+        pilot["can_sign_in"] = bool(row["has_password"] and row["status"] not in ("Suspended", "Removed"))
+        return jsonify({"pilot": pilot, "roles": sorted(roles), "caps": caps,
+                        "access": {"staff": bool(row["staff"]), "sections": [cap for cap in company.SCOPE if row["staff"] or cap in caps]},
+                        "booking": flight,
+                        "acars": {"remote_live": remote_live, "remote_seen": remote_seen or None,
+                                  "phase": (s.get("remote_status") or {}).get("phase") or getattr(rec, "phase", None),
+                                  "unfiled_draft": bool(rec and getattr(rec, "complete", False)),
+                                  "saved_state": saved_path.exists(),
+                                  "checkpoint": {k: checkpoint.get(k) for k in ("phase", "saved_at", "source")}
+                                      if checkpoint else None}})
+
     @app.get("/api/staff/flight-ops")
     def staff_flight_ops_list():
         with C["db"]() as con:
