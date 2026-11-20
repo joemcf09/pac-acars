@@ -3731,6 +3731,12 @@ def file_pirep():
             app.logger.exception("freight board: %s", e)
         if p.get("review_status") == "Rejected":      # e.g. a restricted conflict-zone flight: its cargo stays put
             cargo_network.set_flight_outcome(con, pid, accepted=False)
+        p["handoffs"] = [dict(row) for row in con.execute("""SELECT s.id, s.awb, s.commodity,
+            s.current_station, s.destination FROM cargo_movements m
+            JOIN cargo_shipments s ON s.id=m.shipment_id
+            WHERE m.pirep_id=? AND m.event_type='FLIGHT_ARRIVAL' AND m.pilot_id=?
+            AND s.status IN ('AT_STATION','HELD_AT_STATION') AND s.current_station!=s.destination
+            ORDER BY s.awb""", (pid, pid_)).fetchall()] if p.get("review_status") != "Rejected" else []
         if p.get("conflict_note") and con.execute("SELECT review_note FROM pireps WHERE id=?", (pid,)).fetchone()[0] is None:
             con.execute("UPDATE pireps SET review_note=?, reviewed_at=? WHERE id=?", (p["conflict_note"], time.time(), pid))
     for ev_ in board_events:          # after the filing transaction, so the bot's event log isn't locked out
@@ -4177,6 +4183,11 @@ def cargo_overview():
     stock_cargo_orders()
     now = time.time()
     week = now - 7 * 86400
+    try:
+        seen = float(request.args.get("since") or 0)
+    except (TypeError, ValueError):
+        seen = 0
+    since = max(week, seen) if 0 < seen <= now else now - 86400
     overdue_s = 72 * 3600              # freight waiting at a station more than three days
     with db() as con:
         waiting = con.execute("""SELECT current_station AS station, destination, COUNT(*) AS shipments,
@@ -4192,6 +4203,15 @@ def cargo_overview():
                 AND COALESCE(json_extract(data,'$.deadline'), updated_at + ?) < ?""", (overdue_s, now)).fetchone()[0],
             "exceptions": con.execute("SELECT COUNT(*) FROM cargo_shipments WHERE status='EXCEPTION'").fetchone()[0],
         }
+        activity_counts = {r["event_type"]: r["n"] for r in con.execute("""SELECT event_type, COUNT(*) AS n
+            FROM cargo_movements WHERE event_time>? AND event_type IN
+            ('ORDER_RECEIVED','ORDER_WITHDRAWN','FLIGHT_ARRIVAL','TRANSFER_RELEASED')
+            GROUP BY event_type""", (since,)).fetchall()}
+        activity = [dict(r) for r in con.execute("""SELECT m.event_type, m.event_time, m.from_station,
+            m.to_station, m.flight_number, m.status, s.awb, s.destination
+            FROM cargo_movements m JOIN cargo_shipments s ON s.id=m.shipment_id
+            WHERE m.event_time>? AND m.event_type IN ('ORDER_WITHDRAWN','FLIGHT_ARRIVAL','TRANSFER_RELEASED')
+            ORDER BY m.event_time DESC,m.id DESC LIMIT 8""", (since,)).fetchall()]
     groups = []
     for w in waiting:
         direct = cargo_network.has_route(ROUTES.values(), w["station"], w["destination"])
@@ -4217,7 +4237,9 @@ def cargo_overview():
     for x in sheds:
         x["city"] = (AIRPORTS.get(x["station"]) or {}).get("city")
     coming = [{"id": s["id"], "name": s["name"], "blurb": s["blurb"], "cargo": s["cargo"], "starts": d.isoformat()} for d, s in seasons.upcoming()]
-    return jsonify({"counts": counts, "waiting": groups, "overdue_hours": overdue_s // 3600, "seasons": in_season, "coming": coming, "sheds": sheds[:8]})
+    return jsonify({"counts": counts, "waiting": groups, "overdue_hours": overdue_s // 3600, "seasons": in_season,
+                    "coming": coming, "sheds": sheds[:8], "activity": activity, "activity_counts": activity_counts,
+                    "activity_since": since, "activity_at": now})
 
 
 @app.get("/api/cargo/shipments")

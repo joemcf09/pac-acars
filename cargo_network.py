@@ -48,6 +48,7 @@ def migrate(con):
     )""")
     con.execute("CREATE INDEX IF NOT EXISTS idx_cargo_shipments_station ON cargo_shipments(current_station, status)")
     con.execute("CREATE INDEX IF NOT EXISTS idx_cargo_movements_shipment ON cargo_movements(shipment_id, event_time)")
+    con.execute("CREATE INDEX IF NOT EXISTS idx_cargo_movements_time ON cargo_movements(event_time)")
     columns = {row["name"] for row in con.execute("PRAGMA table_info(cargo_shipments)")}
     if "reserved_booking_key" not in columns:
         con.execute("ALTER TABLE cargo_shipments ADD COLUMN reserved_booking_key TEXT")
