@@ -6345,10 +6345,10 @@ function renderStaff() {
   const d = S.staff;
   const pendingReviews = d.reviews.filter(r => r.review_status === "Pending").length;
   const pendingApps = d.applications.filter(a => a.status === "Pending").length;
-  const tabs = [["ceo", "CEO desk", 0], ["market", "Fleet market", 0], ["complaints", "Complaints", 0], ["roles", "Roles", 0], ["reports", "Problem reports", 0], ["health", "Operations health", 0], ["campaigns", "Cargo campaigns", 0], ["relief", "Relief missions", 0], ["cargostock", "Cargo stock", 0], ["reviews", "PIREP review", pendingReviews], ["applications", "Applications", pendingApps], ["transfers", "Transfer hours", d.transfer_pending || 0], ["activity", "Activity", d.activity_overdue || 0], ["engagement", "Engagement", d.engagement_pending || 0], ["roster", "Roster", 0],
+  const tabs = [["ceo", "CEO desk", 0], ["market", "Fleet market", 0], ["complaints", "Complaints", 0], ["roles", "Roles", 0], ["reports", "Problem reports", 0], ["flightops", "Flight support", 0], ["health", "Operations health", 0], ["campaigns", "Cargo campaigns", 0], ["relief", "Relief missions", 0], ["cargostock", "Cargo stock", 0], ["reviews", "PIREP review", pendingReviews], ["applications", "Applications", pendingApps], ["transfers", "Transfer hours", d.transfer_pending || 0], ["activity", "Activity", d.activity_overdue || 0], ["engagement", "Engagement", d.engagement_pending || 0], ["roster", "Roster", 0],
     ["news", "News", 0], ["mx", "Maintenance", d.airframes.reduce((n, a) => n + (a.open_items || []).length, 0)], ["types", "Fleet types", 0], ["pphotos", "Partner photos", 0], ["airframes", "Airframes", d.airframes.filter(a => ["Maintenance", "Inspection", "A-check due", "Heavy check due", "Heavy check", "Damaged"].includes(a.status)).length], ["events", "Events", 0], ["site", "Site and rules", 0]];
   const GROUPS = [["Company", ["ceo", "market", "complaints", "roles"]], ["Pilots", ["reviews", "applications", "transfers", "activity", "engagement", "roster"]],
-    ["Operations", ["reports", "health", "events", "news"]], ["Cargo", ["campaigns", "relief", "cargostock"]], ["Fleet", ["airframes", "mx", "types", "pphotos"]], ["Settings", ["site"]]];
+    ["Operations", ["flightops", "reports", "health", "events", "news"]], ["Cargo", ["campaigns", "relief", "cargostock"]], ["Fleet", ["airframes", "mx", "types", "pphotos"]], ["Settings", ["site"]]];
   const T = Object.fromEntries(tabs.map(t => [t[0], t]));
   if (!T[S.staffTab]) S.staffTab = "reviews";
   const groupOf = k => (GROUPS.find(([, ks]) => ks.includes(k)) || GROUPS[0])[0];
@@ -6360,7 +6360,58 @@ function renderStaff() {
     <div id="staffBody"></div>`;
   document.querySelectorAll("[data-sg]").forEach(b => b.onclick = () => { const ks = GROUPS.find(([g]) => g === b.dataset.sg)[1]; S.staffTab = ks.find(k => T[k]?.[2]) || ks[0]; renderStaff(); });
   document.querySelectorAll("[data-st]").forEach(b => b.onclick = () => { S.staffTab = b.dataset.st; renderStaff(); });
-  ({ ceo: staffCeo, market: staffMarket, complaints: staffComplaints, roles: staffRoles, reports: staffProblemReports, health: staffOperationsHealth, campaigns: staffCargoCampaigns, relief: staffRelief, cargostock: staffCargoStock, reviews: staffReviews, applications: staffApps, transfers: staffTransfers, activity: staffActivity, engagement: staffEngagement, roster: staffRoster, news: staffNews, mx: staffMx, types: staffTypes, pphotos: staffPartnerPhotos, airframes: staffAirframes, events: staffEvents, site: staffSite })[S.staffTab]();
+  ({ ceo: staffCeo, market: staffMarket, complaints: staffComplaints, roles: staffRoles, reports: staffProblemReports, flightops: staffFlightOps, health: staffOperationsHealth, campaigns: staffCargoCampaigns, relief: staffRelief, cargostock: staffCargoStock, reviews: staffReviews, applications: staffApps, transfers: staffTransfers, activity: staffActivity, engagement: staffEngagement, roster: staffRoster, news: staffNews, mx: staffMx, types: staffTypes, pphotos: staffPartnerPhotos, airframes: staffAirframes, events: staffEvents, site: staffSite })[S.staffTab]();
+}
+async function staffFlightOps() {
+  const host = $("#staffBody");
+  host.innerHTML = '<p class="muted">Loading flight support…</p>';
+  let d;
+  try { d = await api('/api/staff/flight-ops'); }
+  catch (err) { host.innerHTML = `<div class="notice err">${esc(err.message)}</div>`; return; }
+  const pilots = (S.staff?.roster || []).map(p => `<option value="${esc(p.id)}">${esc(p.name)} · ${esc(p.id)}</option>`).join('');
+  const when = t => t ? new Date(t * 1000).toLocaleString() : '—';
+  host.innerHTML = `<h2>Flight intervention desk</h2><p class="muted">Inspect a pilot's booking and saved ACARS state. Ask the pilot to stop their desktop ACARS first. Clearing a draft keeps the booking; releasing it returns the aircraft and cargo to the board. Neither action files a PIREP.</p>
+    ${d.flights.length ? `<div class="table-wrap"><table class="staff-table"><thead><tr><th>Pilot / flight</th><th>Booking</th><th>ACARS state</th><th>Action</th></tr></thead><tbody>${d.flights.map(f => `<tr><td><b>${esc(f.pilot)}</b><br><small>${esc(f.pilot_id)} · ${esc(f.flight || '—')}</small></td><td>${esc(f.dep || '—')} → ${esc(f.arr || '—')}<br><small>${esc(f.airframe || f.aircraft || '—')} · ${when(f.booked_at)}</small></td><td>${f.draft ? '<span class="tag amber">Unfiled draft</span> ' : ''}${f.remote ? '<span class="tag green">ACARS connected</span> ' : ''}${f.saved_state ? '<span class="tag">Saved state</span> ' : ''}${f.checkpoint ? `<span class="tag">Checkpoint ${esc(f.checkpoint.phase || 'saved')} · ${when(f.checkpoint.saved_at)}</span> ` : ''}${esc(f.phase || '')}</td><td><div class="row" style="flex-wrap:wrap;gap:5px"><button class="btn ghost small" data-intervene="clear_draft" data-pilot="${esc(f.pilot_id)}" data-key="${esc(f.booking_key)}">Clear draft</button><button class="btn ghost small danger" data-intervene="release_booking" data-pilot="${esc(f.pilot_id)}" data-key="${esc(f.booking_key)}">Release booking</button></div></td></tr>`).join('')}</tbody></table></div>` : '<p class="muted">No active bookings.</p>'}
+    <h3>Simulator and operations incidents</h3><p class="muted">Record the issue and evidence. A goodwill payment is a wallet adjustment; it does not add flight hours, deliver cargo, or move an aircraft.</p>
+    <form id="flightIncidentForm" class="panel" style="padding:14px;display:grid;gap:8px;max-width:720px">
+      <label>Pilot <select name="pilot_id" required>${pilots}</select></label>
+      <label>Type <select name="kind"><option value="simulator_crash">Simulator crash</option><option value="acars_error">ACARS error</option><option value="dispatch_error">Dispatch error</option><option value="other">Other</option></select></label>
+      <label>Flight number (optional) <input name="flight" maxlength="20" placeholder="PAC1234"></label>
+      <label>What happened? <textarea name="summary" required minlength="10" maxlength="500" rows="2"></textarea></label>
+      <label>Evidence or links (optional) <textarea name="evidence_note" maxlength="2000" rows="2"></textarea></label>
+      <label>Screenshot (optional, PNG/JPEG up to 2 MB) <input name="screenshot" type="file" accept="image/png,image/jpeg"></label>
+      <button class="btn" type="submit">Open incident</button></form>
+    ${d.incidents.length ? `<div class="table-wrap" style="margin-top:14px"><table class="staff-table"><thead><tr><th>Case</th><th>Issue</th><th>Resolution</th><th>Action</th></tr></thead><tbody>${d.incidents.map(i => `<tr><td><b>#${i.id}</b> · ${esc(i.status)}<br><small>${esc(i.pilot || i.pilot_id)} · ${esc(i.flight || '—')}<br>${when(i.created_at)}</small></td><td><b>${esc(i.kind.replaceAll('_', ' '))}</b><br>${esc(i.summary)}${i.evidence_note ? `<br><small>${esc(i.evidence_note)}</small>` : ''}${i.evidence_mime ? `<br><a href="/api/staff/flight-incidents/${i.id}/evidence" target="_blank" rel="noopener">View screenshot</a>` : ''}</td><td>${i.goodwill_amount ? `${money(i.goodwill_amount)} goodwill<br><small>${esc(i.goodwill_note || '')}</small>` : 'No goodwill paid'}${i.resolution ? `<br>${esc(i.resolution)}` : ''}</td><td>${i.status === 'Open' ? `<div class="row" style="gap:5px;flex-wrap:wrap">${i.goodwill_at ? '' : `<button class="btn ghost small" data-goodwill="${i.id}">Award goodwill</button>`}<button class="btn ghost small" data-close-incident="${i.id}">Close case</button></div>` : ''}</td></tr>`).join('')}</tbody></table></div>` : '<p class="muted">No incidents recorded.</p>'}
+    <h3>Recent interventions</h3>${d.actions.length ? `<ul>${d.actions.map(a => `<li>${when(a.at)} · ${esc(a.actor)} ${esc(a.action.replaceAll('_', ' '))} for ${esc(a.pilot_id)} (${esc(a.flight || '—')}): ${esc(a.reason)}</li>`).join('')}</ul>` : '<p class="muted">None yet.</p>'}`;
+  host.querySelectorAll('[data-intervene]').forEach(btn => btn.onclick = async () => {
+    const action = btn.dataset.intervene;
+    const reason = prompt(`Reason for ${action === 'clear_draft' ? 'clearing this draft' : 'releasing this booking'}?`, 'Simulator crash; pilot cannot complete flight');
+    if (!reason) return;
+    if (!confirm(`${action === 'clear_draft' ? 'Clear the saved draft and keep the booking' : 'Release the booking, aircraft and cargo'} for ${btn.dataset.pilot}?`)) return;
+    try { await api(`/api/staff/flight-ops/${encodeURIComponent(btn.dataset.pilot)}/intervene`, { method: 'POST', body: { action, reason, booking_key: Number(btn.dataset.key) } }); toast('Intervention recorded. Ask the pilot to reopen ACARS.'); staffFlightOps(); }
+    catch (err) { toast(err.message); }
+  });
+  host.querySelector('#flightIncidentForm').onsubmit = async e => {
+    e.preventDefault(); const form = e.currentTarget, button = form.querySelector('[type=submit]'); button.disabled = true;
+    try { const body = Object.fromEntries(new FormData(form)); const file = form.querySelector('[name=screenshot]').files[0];
+      if (file) { if (file.size > 2*1024*1024) throw Error('Screenshot must be under 2 MB.'); body.screenshot = await new Promise((resolve, reject) => { const r = new FileReader(); r.onload = () => resolve(r.result); r.onerror = reject; r.readAsDataURL(file); }); }
+      else delete body.screenshot;
+      await api('/api/staff/flight-incidents', { method: 'POST', body }); toast('Incident opened.'); staffFlightOps();
+    } catch (err) { toast(err.message); button.disabled = false; }
+  };
+  host.querySelectorAll('[data-goodwill]').forEach(btn => btn.onclick = async () => {
+    const amount = Number(prompt('Goodwill payment in PAC dollars (maximum $5,000):', ''));
+    if (!amount) return;
+    const note = prompt('Why is this payment being awarded?', 'Simulator crash goodwill payment');
+    if (!note || !confirm(`Pay ${money(amount)} goodwill for incident #${btn.dataset.goodwill}? This updates the pilot wallet.`)) return;
+    try { await api(`/api/staff/flight-incidents/${btn.dataset.goodwill}/goodwill`, { method: 'POST', body: { amount, note } }); toast('Goodwill payment recorded.'); staffFlightOps(); loadMe(); }
+    catch (err) { toast(err.message); }
+  });
+  host.querySelectorAll('[data-close-incident]').forEach(btn => btn.onclick = async () => {
+    const resolution = prompt('How was this incident resolved?', 'Draft cleared and pilot informed'); if (!resolution) return;
+    try { await api(`/api/staff/flight-incidents/${btn.dataset.closeIncident}/close`, { method: 'POST', body: { resolution } }); toast('Incident closed.'); staffFlightOps(); }
+    catch (err) { toast(err.message); }
+  });
 }
 /* Staff › Engagement: new pilots who never flew and lapsed pilots, with a one-click reminder */
 async function staffEngagement() {
