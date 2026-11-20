@@ -6903,6 +6903,7 @@ function staffSite() {
   const r = S.staff.rules, st = S.staff.site;
   $("#staffBody").innerHTML = `<div class="two-col" style="align-items:start">
     <section class="panel" style="padding:4px 20px 12px"><h2 style="padding:14px 0 0">Airline rules</h2>
+      <p class="muted" style="font-size:13px;margin:4px 0">Changes to these switches save automatically.</p>
       <label class="switch-row"><input type="checkbox" data-rule="enforce_airframes" ${r.enforce_airframes ? "checked" : ""}><span><b>Airframes must be at the departure airport</b><br><span class="muted" style="font-size:13px">Pilots fly the aircraft that's physically there, or ferry one in first. Off: any available airframe of the type can be used, and it moves to wherever it lands.</span></span></label>
       <label class="switch-row"><input type="checkbox" data-rule="reuse_pilot_ids" ${r.reuse_pilot_ids ? "checked" : ""}><span><b>Reuse pilot IDs <span class="tag amber">Testing</span></b><br><span class="muted" style="font-size:13px">While this is on, a removed pilot's ID is given to the next pilot, so you can test joining over and over. <b>Turn it off before PAC goes live</b>, or a new pilot could inherit an old pilot's ID.</span></span></label>
       <label class="switch-row"><input type="checkbox" data-rule="require_type_ratings" ${r.require_type_ratings ? "checked" : ""}><span><b>Type ratings required</b><br><span class="muted" style="font-size:13px">Pilots need the type rating for an aircraft family before flying it (earned with a short checkride; types already flown count).</span></span></label>
@@ -6993,8 +6994,20 @@ function staffSite() {
     location.reload();
   };
   document.querySelectorAll("[data-rule]").forEach(el => el.onchange = async () => {
-    S.settings = await api("/api/settings", { method: "POST", body: { [el.dataset.rule]: el.checked } });
-    S.staff.rules[el.dataset.rule] = el.checked; toast("Rule updated.");
+    const enabled = el.checked;
+    el.disabled = true;
+    try {
+      const saved = await api("/api/settings", { method: "POST", body: { [el.dataset.rule]: enabled } });
+      if (saved[el.dataset.rule] !== enabled) throw new Error("The rule was not saved. Please try again.");
+      S.settings = saved;
+      S.staff.rules[el.dataset.rule] = enabled;
+      toast("Rule saved.");
+    } catch (e) {
+      el.checked = !enabled;
+      toast(e.message);
+    } finally {
+      el.disabled = false;
+    }
   });
   const showBackups = r => { $("#backupList").innerHTML = `<div>Folder: <span style="font-family:var(--mono);font-size:12px">${esc(r.folder)}</span></div>` +
     (r.backups.length ? `<ul style="margin:6px 0 0;padding-left:18px">${r.backups.slice(0, 6).map(b => `<li>${esc(b.name)} · ${fmt(b.size_kb)} KB</li>`).join("")}</ul>${r.backups.length > 6 ? `<div>…and ${r.backups.length - 6} older</div>` : ""}` : "<div>No backups yet.</div>") +

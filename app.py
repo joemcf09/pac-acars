@@ -1486,9 +1486,10 @@ def reset_photo():
 # ---------------------------------------------------------------- routes
 @app.after_request
 def no_stale_app_files(resp):
-    if request.path.startswith("/static/") and request.args.get("v") and resp.status_code == 200:
-        # versioned files (app.js?v=20261119b): every change gets a new ?v=, so the old address never changes content
-        # and browsers (and Cloudflare) can keep it for a year without asking again
+    if request.path in ("/static/app.js", "/static/app.css") and resp.status_code == 200:
+        resp.headers["Cache-Control"] = "no-cache"  # revalidate these entry files when the page loads
+    elif request.path.startswith("/static/") and request.args.get("v") and resp.status_code == 200:
+        # Other versioned static assets keep their long lifetime; app.js and app.css revalidate above.
         resp.headers["Cache-Control"] = "public, max-age=31536000, immutable"
     elif request.path in ("/", "/dispatch") or request.path.endswith(("/app.js", "/app.css", "/theme-loadsheet.css", "index.html", "dispatch.html")):
         resp.headers["Cache-Control"] = "no-cache"  # always revalidate, so an update shows up on the next load
@@ -1537,12 +1538,12 @@ def academy_old_address():
 
 @app.get("/academy/")
 def academy_page():
-    return send_from_directory(ACADEMY_DIR, "index.html")
+    return send_from_directory(ACADEMY_DIR, "index.html", max_age=0)
 
 
 @app.get("/academy/<path:name>")
 def academy_file(name):
-    return send_from_directory(ACADEMY_DIR, name, max_age=86400)
+    return send_from_directory(ACADEMY_DIR, name, max_age=0 if name in ("pac-sample-awb.pdf", "pac-sample-manifest.pdf") else 86400)
 
 
 SITE_URL = "https://pac-va.com"

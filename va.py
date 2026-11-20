@@ -3040,6 +3040,8 @@ def staff_overview():
                               "enforce_pilot_location": bool(s.get("enforce_pilot_location", True)),
                               "require_type_ratings": bool(s.get("require_type_ratings", False)),
                               "direct_entry_checkrides": bool(s.get("direct_entry_checkrides", True)),
+                              "volumetric_loading": bool(s.get("volumetric_loading", False)),
+                              "reuse_pilot_ids": bool(s.get("reuse_pilot_ids", False)),
                               "require_release_signature": bool(s.get("require_release_signature", True)),
                               "shop_enabled": bool(s.get("shop_enabled", True)),
                               "live_map_public": bool(s.get("live_map_public"))}})
