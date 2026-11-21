@@ -685,11 +685,12 @@ function selectMission(id) {
   const m = S.booking?.mission?.id === id ? S.booking.mission : allFlights().find(x => x.id === id);
   if (!m) return;
   if (!S.selected && !$("#view-missions").hidden) S.missionBrowseScrollY = window.scrollY;
-  if (S.selected?.id !== id) { S.ofp = null; S.ofpErrors = []; S.ofpWarnings = []; S.planned = false; S.aircraft = m.aircraft[0]; S.airframe = S.pendingAirframe || (m.urgent && m.suggested_airframe) || defaultAirframe(m, S.aircraft); S.pendingAirframe = null; }
+  if (S.selected?.id !== id) { S.ofp = null; S.ofpErrors = []; S.ofpWarnings = []; S.planned = false; S.aircraft = m.aircraft[0]; S.airframe = S.pendingAirframe || (m.urgent && m.suggested_airframe) || defaultAirframe(m, S.aircraft); S.pendingAirframe = null; S.briefReviewed = false; S.plannerDraftRestored = false; S.cargoChange = null; S.cargoPending = null; }
   if (S.selected?.id !== id && (S.acFilter || S.simFilter || S.boardQualifiedOnly || S.boardAvailableOnly)) {
     const matched = boardMatchTypes(m)[0];
     if (matched) { S.aircraft = matched; S.airframe = defaultAirframe(m,matched); }
   }
+  if (S.selected?.id !== id) applyPlanningDraft(m, readPlanningDraft());
   S.selected = m;
   document.querySelectorAll(".waybill").forEach(b => b.setAttribute("aria-selected", b.dataset.id === id));
   renderDossier();
@@ -699,6 +700,7 @@ function selectMission(id) {
 }
 function backToFlights() {
   S.selected = null;
+  S.plannerDraftRestored = false;
   renderDossier();
   if (S.board === "network") {
     S._netKey = null;
@@ -938,6 +940,64 @@ function simbriefUrl(m, ac) {
 /* ---------------- Flight planning: four steps on tabs (Briefing, Aircraft, Load sheet, SimBrief & request) ---------------- */
 try { S.extraFuel = Number(localStorage.getItem("pac-extra-fuel")) || 0; } catch (_) {}
 const DTABS = [["brief", "Briefing"], ["aircraft", "Aircraft"], ["load", "Load sheet"], ["plan", "SimBrief & request"]];
+const PLANNING_DRAFT_AGE = 7 * 24 * 60 * 60 * 1000;
+function planningDraftKey() { return S.me?.id ? `pac-planning-draft-v1-${S.me.id}` : null; }
+function clearPlanningDraft() { const key = planningDraftKey(); if (key) try { localStorage.removeItem(key); } catch (_) {} }
+function readPlanningDraft() {
+  const key = planningDraftKey(); if (!key) return null;
+  try {
+    const draft = JSON.parse(localStorage.getItem(key) || "null");
+    if (!draft || !draft.savedAt || Date.now() - draft.savedAt > PLANNING_DRAFT_AGE || draft.savedAt > Date.now() + 60000) { clearPlanningDraft(); return null; }
+    return draft;
+  } catch (_) { clearPlanningDraft(); return null; }
+}
+function savePlanningDraft() {
+  const key = planningDraftKey(), m = S.selected;
+  if (!key || !m || S.booking) return;
+  const draft = { savedAt: Date.now(), missionId: m.id, origin: m.origin.icao, destination: m.destination.icao, payload: Number(m.payload_lbs || 0), category: m.category,
+    board: S.board, aircraft: S.aircraft, airframe: S.airframe, transferIds: S.cargoTransferIds?.[m.id] || [],
+    tab: S.dTab || "brief", briefReviewed: !!S.briefReviewed,
+    seed: S.lsCache?.[lsKey(m)]?.seed ?? (S.planningSeedByMission?.[m.id]?.aircraft === S.aircraft ? S.planningSeedByMission[m.id].seed : null), seedAircraft: S.aircraft,
+    charterSpec: m.charter ? { ...m.charter, customer_id: S.charterSpec?.customer_id || "", shipment_id: S.charterSpec?.shipment_id || "" } : null };
+  try { localStorage.setItem(key, JSON.stringify(draft)); } catch (_) { /* private window or storage full */ }
+}
+function applyPlanningDraft(m, draft, restoreBoard = false) {
+  if (!draft || draft.missionId !== m.id || draft.origin !== m.origin.icao || draft.destination !== m.destination.icao || draft.payload !== Number(m.payload_lbs || 0) || draft.category !== m.category) return false;
+  if (restoreBoard && document.querySelector(`[data-board="${CSS.escape(draft.board || "")}"]`)) S.board = draft.board;
+  if (!m.charter && draft.aircraft && S.fleet[draft.aircraft] && !S.fleet[draft.aircraft].retired && fleetOrder(m).includes(draft.aircraft)) S.aircraft = draft.aircraft;
+  S.airframe = null;
+  const frame = (S.airframes || []).find(a => a.reg === draft.airframe && a.type === S.aircraft && a.status === "Available" && a.location === m.origin.icao);
+  if (frame) S.airframe = frame.reg;
+  else if (!draft.airframe) S.airframe = defaultAirframe(m, S.aircraft);
+  S.cargoTransferIds[m.id] = Array.isArray(draft.transferIds) ? draft.transferIds.filter(x => typeof x === "string").slice(0, 50) : [];
+  if (draft.seedAircraft === S.aircraft && ((typeof draft.seed === "string" && draft.seed.length < 100) || Number.isSafeInteger(draft.seed)))
+    (S.planningSeedByMission ||= {})[m.id] = { aircraft: S.aircraft, seed: draft.seed };
+  S.dTab = DTABS.some(([key]) => key === draft.tab) ? draft.tab : "brief";
+  S.dTabFor = m.id;
+  S.briefReviewed = !!draft.briefReviewed;
+  return true;
+}
+async function restorePlanningDraft(clearMissing = false) {
+  if (S.booking) { clearPlanningDraft(); S.planningDraftChecked = true; return; }
+  const draft = readPlanningDraft();
+  if (!draft) { S.planningDraftChecked = true; return; }
+  let m = allFlights().find(x => x.id === draft.missionId);
+  if (!m && draft.charterSpec) {
+    try {
+      const quote = await api("/api/charter/quote", { method: "POST", body: draft.charterSpec });
+      m = quote.mission;
+      S.charterMission = m; S.charterWarnings = quote.warnings;
+      S.charterSpec = { ...draft.charterSpec, _o: null, _d: null };
+    } catch (_) { if (clearMissing) S.planningDraftChecked = true; return; }
+  }
+  if (S.selected) { S.planningDraftChecked = true; return; }
+  if (!m) { if (clearMissing) S.planningDraftChecked = true; return; }
+  S.aircraft = m.aircraft[0];
+  if (!applyPlanningDraft(m, draft, true)) { clearPlanningDraft(); S.planningDraftChecked = true; return; }
+  S.selected = m;
+  S.plannerDraftRestored = true;
+  S.planningDraftChecked = true;
+}
 function dossierAcReady(m) {
   if (m.training || m.contract || m.charter) return !!(S.aircraft || m.charter);
   const ac = S.aircraft;
@@ -950,12 +1010,28 @@ function lsKey(m) {
   const transfers = (S.cargoTransferIds?.[m.id] || []).slice().sort().join(",");
   return `${m.id}|${m.charter ? m.aircraft[0] : S.aircraft}|${m.charter ? "" : S.airframe || ""}|${transfers}`;
 }
-function dossierTabDone(m, t) {
-  if (t === "brief") return S.dTab !== "brief";
-  if (t === "aircraft") return dossierAcReady(m);
-  if (t === "load") return !!(S.lsSeen || {})[lsKey(m)];
-  if (t === "plan") return !!(S.ofp && !S.ofpErrors.length);
-  return false;
+function dossierTabState(m, t) {
+  if (t === "brief") return S.briefReviewed ? { label: "Reviewed", kind: "ready" } : { label: "Review", kind: "pending" };
+  if (t === "aircraft") return dossierAcReady(m) ? { label: "Ready", kind: "ready" } : { label: "Needs attention", kind: "attention" };
+  if (t === "load") {
+    if (m.training) return { label: "No cargo", kind: "ready" };
+    const ls = S.lsCache?.[lsKey(m)];
+    return !ls ? { label: "Check load", kind: "pending" } : !ls.ok ? { label: "Over limit", kind: "attention" }
+      : ls.balance?.available && !ls.balance.within_envelope ? { label: "Balance issue", kind: "attention" }
+      : { label: "Within limits", kind: "ready" };
+  }
+  if (t === "plan") return S.ofpErrors?.length ? { label: "Fix OFP", kind: "attention" } : S.ofp ? { label: "OFP ready", kind: "ready" } : { label: "No OFP yet", kind: "pending" };
+  return { label: "", kind: "pending" };
+}
+function updateDossierTabStatus(m) {
+  DTABS.forEach(([key], i) => {
+    const b = $(`#dpt-${key}`); if (!b) return;
+    const state = dossierTabState(m, key);
+    b.classList.toggle("done", state.kind === "ready");
+    b.classList.toggle("attention", state.kind === "attention");
+    b.querySelector(".n").textContent = state.kind === "ready" ? "✓" : i + 1;
+    b.querySelector(".dp-step-status").textContent = state.label;
+  });
 }
 function dossierBlockers(m) {   // the readiness check, short: only shown when something needs arranging
   if (S.booking) return "";
@@ -993,12 +1069,14 @@ function renderDossier() {
   d.hidden = !m;
   if (!m) { d.innerHTML = `<div class="d-body"><h2>Choose a mission</h2><p class="muted">Pick a waybill from the list to read the briefing, plan it in SimBrief and request it for your next flight.</p></div>`; return; }
   if (S.dTabFor !== m.id) { S.dTab = "brief"; S.dTabFor = m.id; }
+  savePlanningDraft();
   const held = !!S.booking, tab = S.dTab || "brief", ix = DTABS.findIndex(t => t[0] === tab);
   const next = DTABS[ix + 1], prev = DTABS[ix - 1];
   d.innerHTML = `${dossierHeader(m)}
+  ${S.plannerDraftRestored ? `<p class="dp-draft-note" role="status">Draft restored on this device. Recheck aircraft availability, cargo and your SimBrief OFP before requesting.</p>` : ""}
   <div class="dp-tabs" role="tablist" aria-label="Plan this flight">${DTABS.map(([k, label], i) => {
-    const done = k !== tab && dossierTabDone(m, k);
-    return `<button type="button" role="tab" id="dpt-${k}" aria-controls="dpPane" aria-selected="${k === tab}" tabindex="${k === tab ? 0 : -1}" data-tab="${k}" class="${done ? "done" : ""}"><span class="n">${done ? "✓" : i + 1}</span>${label}</button>`;
+    const state = dossierTabState(m, k);
+    return `<button type="button" role="tab" id="dpt-${k}" aria-controls="dpPane" aria-selected="${k === tab}" tabindex="${k === tab ? 0 : -1}" data-tab="${k}" class="${state.kind === "ready" ? "done" : state.kind === "attention" ? "attention" : ""}"><span class="n">${state.kind === "ready" ? "✓" : i + 1}</span><span class="dp-tab-copy"><span>${label}</span><small class="dp-step-status">${state.label}</small></span></button>`;
   }).join("")}</div>
   ${dossierBlockers(m)}
   <div class="dp-pane" id="dpPane" role="tabpanel" aria-labelledby="dpt-${tab}" tabindex="-1">${held && tab !== "brief"
@@ -1009,8 +1087,8 @@ function renderDossier() {
   loadDossierEcon(m);
   if (tab === "brief") { loadDossierWx(m); fillZoneBrief(m); }
   if (tab === "load" && !held) loadLoadsheet(m);
-  if (tab === "plan" && !held) { loadPlanHelper(m); ensureLoadsheet(m).then(() => planVsLoad(m)).catch(() => {}); }
-  const go = t => { S.dTab = t; renderDossier(); const top = $("#dossier").getBoundingClientRect().top; if (top < 0) $("#dossier").scrollIntoView({ behavior: "smooth", block: "start" }); $("#dpPane")?.focus({ preventScroll: true }); };
+  if (tab === "plan" && !held) { loadPlanHelper(m); ensureLoadsheet(m).then(() => { if (S.selected?.id === m.id) { updateDossierTabStatus(m); planVsLoad(m); } }).catch(() => {}); }
+  const go = t => { if (tab === "brief" && t !== "brief") S.briefReviewed = true; S.dTab = t; renderDossier(); const top = $("#dossier").getBoundingClientRect().top; if (top < 0) $("#dossier").scrollIntoView({ behavior: "smooth", block: "start" }); $("#dpPane")?.focus({ preventScroll: true }); };
   d.querySelectorAll("[data-tab]").forEach(b => b.onclick = () => go(b.dataset.tab));
   d.querySelectorAll("[data-go]").forEach(b => b.onclick = () => go(b.dataset.go));
   d.querySelector(".dp-tabs").onkeydown = e => {
@@ -1018,8 +1096,8 @@ function renderDossier() {
     e.preventDefault(); const j = (ix + keys[e.key] + DTABS.length) % DTABS.length; go(DTABS[j][0]); $(`#dpt-${DTABS[j][0]}`)?.focus();
   };
   if (held) return;
-  d.querySelectorAll("input[name=ac]").forEach(r => r.onchange = () => { S.aircraft = r.value; S.ofp = null; S.ofpErrors = []; S.airframe = defaultAirframe(m, r.value); renderDossier(); });
-  d.querySelectorAll("input[name=af]").forEach(r => r.onchange = () => { S.airframe = r.value; renderDossier(); });
+  d.querySelectorAll("input[name=ac]").forEach(r => r.onchange = () => { S.aircraft = r.value; S.ofp = null; S.ofpErrors = []; S.airframe = defaultAirframe(m, r.value); S.cargoChange = null; renderDossier(); });
+  d.querySelectorAll("input[name=af]").forEach(r => r.onchange = () => { S.airframe = r.value; S.cargoChange = null; renderDossier(); });
   d.querySelectorAll("[data-ferry]").forEach(b => b.onclick = () => ferryAirframe(b.dataset.ferry, m));
   d.querySelectorAll("[data-repo]").forEach(b => b.onclick = e => { e.preventDefault(); openReposition(b.dataset.repo, () => selectMission(m.id)); });
   if (tab !== "plan") return;
@@ -1128,31 +1206,44 @@ async function ensureLoadsheet(m) {
   if (S.lsCache[key]) return S.lsCache[key];
   // same mission and type with another tail: keep the same units (the seed), just a new tail on the sheet
   const prior = Object.entries(S.lsCache).find(([k]) => k.startsWith(`${m.id}|${m.charter ? m.aircraft[0] : S.aircraft}|`))?.[1];
-  const ls = await api("/api/plan/loadsheet", { method: "POST", body: { mission_id: m.id, charter: m.charter, aircraft: m.charter ? m.aircraft[0] : S.aircraft, airframe: m.contract ? null : S.airframe, seed: prior?.seed, cargo_transfer_ids: S.cargoTransferIds?.[m.id] || [] } });
+  const savedSeed = S.planningSeedByMission?.[m.id];
+  const ls = await api("/api/plan/loadsheet", { method: "POST", body: { mission_id: m.id, charter: m.charter, aircraft: m.charter ? m.aircraft[0] : S.aircraft, airframe: m.contract ? null : S.airframe, seed: prior?.seed ?? (savedSeed?.aircraft === S.aircraft ? savedSeed.seed : null), cargo_transfer_ids: S.cargoTransferIds?.[m.id] || [] } });
   return (S.lsCache[key] = ls);
 }
 async function loadLoadsheet(m) {
   const el = $("#lsPanel"); if (!el) return;
   const key = lsKey(m);
-  S.lsSeen ||= {};
   try {
     const ls = await ensureLoadsheet(m);
     if ($("#lsPanel") !== el || lsKey(m) !== key) return;
+    if (S.cargoPending?.missionId === m.id) {
+      S.cargoChange = cargoChangeMessage(S.cargoPending, ls);
+      S.cargoPending = null;
+    }
     el.innerHTML = loadsheetHTML(ls, m);
-    if (!S.lsSeen[key]) { S.lsSeen[key] = true; d_markTab("load"); }
+    updateDossierTabStatus(m);
+    savePlanningDraft();
     el.querySelectorAll("[data-pos]").forEach(c => c.onclick = () => lsFocus(el, c.dataset.pos));
     wireTransferCargo(el, ls, m);
     wireCargoFolder(el, ls);
     wireLsTabs(el, ls);
   } catch (e) {
+    S.cargoPending = null;
+    updateDossierTabStatus(m);
     el.innerHTML = `<div class="notice">${esc(e.message)}${(S.cargoTransferIds?.[m.id] || []).length ? ' <button type="button" class="linkish" data-clear-transfers>Clear selected transfer cargo</button>' : ""}</div>`;
     el.querySelector("[data-clear-transfers]")?.addEventListener("click", () => {
       S.cargoTransferIds[m.id] = [];
+      savePlanningDraft();
       loadLoadsheet(m);
     });
   }
 }
-function d_markTab(k) { const b = $(`#dpt-${k}`); if (b && b.getAttribute("aria-selected") !== "true") { b.classList.add("done"); b.querySelector(".n").textContent = "✓"; } }
+function cargoChangeMessage(before, ls) {
+  const transfer = Number(ls.cargo_transfer_weight_lbs || 0), payload = Number(ls.totals.weight_lbs || 0);
+  const change = (label, delta) => `${label} ${delta > 0 ? "increased" : delta < 0 ? "decreased" : "stayed the same"}${delta ? ` by ${fmt(Math.abs(delta))} lb` : ""}`;
+  const payloadDelta = payload - before.payload;
+  return `${change("Transfer cargo", transfer - before.transfer)}; ${change("other cargo", payload - transfer - (before.payload - before.transfer))}; ${change("total payload", payloadDelta)} at ${fmt(payload)} lb.${payloadDelta ? " The weight and limit bars have been recalculated." : " The weight bars can stay the same because the cargo mix changed, not the total weight."}`;
+}
 function lsFocus(root, pos) {
   root.querySelectorAll(".on").forEach(x => x.classList.remove("on"));
   root.querySelectorAll(`[data-pos="${CSS.escape(pos)}"]`).forEach(x => x.classList.add("on"));
@@ -1195,10 +1286,11 @@ function loadsheetHTML(ls, m) {
   const transferOptions = ls.transfer_options || [];
   const transferWeight = Number(ls.cargo_transfer_weight_lbs || 0);
   const totalPayload = Number(ls.totals.weight_lbs || 0);
+  const balanceIssue = ls.balance?.available && !ls.balance.within_envelope;
   return `
   <div class="ls-title"><div><span class="kicker">Preliminary load sheet</span><h3>${esc(ls.aircraft_name)}${tail ? ` · <span class="mono">${esc(tail)}</span>` : ""} · ${esc(ls.origin.icao)} → ${esc(ls.destination.icao)}</h3>
     <p class="muted">${ls.ferry ? "Ferry flight: the hold is empty." : `${units} unit${units === 1 ? "" : "s"} · ${fmt(ls.totals.pieces)} pieces · ${fmt(ls.totals.weight_lbs)} lb · ${(ls.shipments || []).length} shipment${(ls.shipments || []).length === 1 ? "" : "s"}`}</p></div>
-    <span class="ls-status ${ls.ok ? "ok" : "bad"}">${ls.ok ? "Within limits" : "Over a limit"}</span></div>
+    <span class="ls-status ${ls.ok && !balanceIssue ? "ok" : "bad"}">${!ls.ok ? "Over a weight limit" : balanceIssue ? "Balance needs review" : "Within limits"}</span></div>
   <details class="ls-guide"><summary><span class="ls-guide-icon" aria-hidden="true">?</span><span><b>Why do these numbers look like this?</b><small>A quick guide to the cargo, fuel and weight checks on this flight</small></span></summary>
     <div class="ls-guide-grid">
       <section><h4>1 · Cargo makes the payload</h4><p>${fmt(Math.max(0, totalPayload - transferWeight))} lb other cargo + ${fmt(transferWeight)} lb selected transfer cargo = <b>${fmt(totalPayload)} lb payload</b>. Checked transfer freight takes the place of other cargo within the planned load; it does not go on top.</p></section>
@@ -1213,6 +1305,7 @@ function loadsheetHTML(ls, m) {
     <div><span>Transfer cargo</span><b>${fmt(transferWeight)} lb</b><small>${transferIds.size} selected from this station</small></div>
     <div class="ls-payload-total"><span>Total payload</span><b>${fmt(totalPayload)} lb</b><small>Used in the weight and limit checks below</small></div>
   </div>` : ""}
+  ${S.cargoChange ? `<p class="ls-change" role="status"><b>What changed?</b> ${esc(S.cargoChange)}</p>` : ""}
   ${transferOptions.length ? `<section class="ls-transfer"><h4>Choose transfer cargo at ${esc(ls.origin.icao)}</h4><p class="muted">Select freight already at this station and routed through ${esc(ls.destination.icao)}. It keeps its original AWB and is delivered only when it reaches its final destination.</p>
     <p class="ls-transfer-breakdown"><b>Included in this load:</b> ${fmt(transferWeight)} lb selected transfer freight + ${fmt(Math.max(0, totalPayload - transferWeight))} lb other cargo = <b>${fmt(totalPayload)} lb total payload</b>. Checked freight replaces other cargo; it is not added on top. The green limit bars can stay the same when only the cargo mix changes.</p>
     <div class="ls-transfer-list">${transferOptions.map(x => `<label><input type="checkbox" data-transfer-id="${esc(x.id)}" ${transferIds.has(x.id) ? "checked" : ""}><span><b>${esc(x.awb)}</b> · ${esc(x.commodity || "Cargo")} · ${fmt(x.gross_weight_lbs)} lb · ${fmt(x.pieces)} pcs · final ${esc(x.destination)}${x.recovery_for ? ` <span class="tag grey">Split load from ${esc(x.recovery_for)} · prepaid</span>` : ""}${x.claimed_by_me ? ` <span class="tag lane-pref">Held for you</span>` : ""}${x.truck_nm ? ` <span class="tag grey" title="PAC flies it to your destination; the last leg goes by road">last ${fmt(x.truck_nm)} nm by truck</span>` : ""}</span><small>${esc(x.shipper || "—")} → ${esc(x.consignee || "—")}</small>${(x.notes || []).map(n => `<small class="ls-note"><b>Handover note from ${esc(n.pilot)} at ${esc(n.station || "")}:</b> ${esc(n.text)}</small>`).join("")}</label>`).join("")}</div></section>` : ""}
@@ -1277,8 +1370,15 @@ function wireTransferCargo(el, ls, m) {
       toast(`Transfer cargo cannot exceed this flight's ${fmt(limit)} lb payload plan.`);
       return;
     }
+    S.cargoPending = { missionId: m.id, transfer: Number(ls.cargo_transfer_weight_lbs || 0), payload: Number(ls.totals.weight_lbs || 0) };
+    S.cargoChange = null;
     S.cargoTransferIds[m.id] = ids;
+    savePlanningDraft();
     delete S.lsCache?.[lsKey(m)];
+    updateDossierTabStatus(m);
+    el.querySelectorAll("[data-transfer-id]").forEach(x => x.disabled = true);
+    el.querySelector(".ls-change")?.remove();
+    el.querySelector(".ls-payload-summary")?.insertAdjacentHTML("afterend", `<p class="ls-change" role="status">Recalculating the cargo mix and weight limits…</p>`);
     loadLoadsheet(m);
   });
 }
@@ -1655,6 +1755,7 @@ async function requestMission(ofp, zoneAck = false) {
     const seed = (S.lsCache || {})[lsKey(S.selected)]?.seed;   // the preliminary load sheet becomes the release's load
     try {
       S.booking = await api("/api/booking", { method: "POST", body: { mission_id: S.selected.id, charter: S.selected.charter, aircraft: S.selected.charter ? S.selected.aircraft[0] : S.aircraft, ofp, airframe: S.airframe, manifest_seed: seed, zone_ack: zoneAck, cargo_transfer_ids: S.cargoTransferIds?.[S.selected.id] || [] } });
+      clearPlanningDraft();
     } catch (e) {
       if (e.data?.needs_zone_ack) return confirmZone(e.data.zone, () => requestMission(ofp, true));
       throw e;
@@ -5173,6 +5274,11 @@ async function refreshCore({profileOnly = false} = {}) {
     (async () => { try { S.jobs = await api("/api/jobs"); const n = S.jobs.filter(j => !j.contract).length, jc = $("#jobsCount"); if (jc) { jc.textContent = n; jc.hidden = !n; } } catch (e) { /* ignore */ } })(),
     (async () => { try { S.urgent = await api("/api/urgent"); const c = $("#urgentCount"); if (c) { c.textContent = S.urgent.length; c.hidden = !S.urgent.length; } } catch (e) { /* ignore */ } })()
   ]);
+  if (!S.planningDraftChecked) {
+    if (S.selected) S.planningDraftChecked = true;
+    else await restorePlanningDraft(true);
+    if (!$("#view-missions").hidden) renderMissions();
+  }
 }
 function eventMatches(e, m) {
   if (e.categories?.length && !e.categories.includes(m.category)) return false;
@@ -7952,6 +8058,7 @@ function gcnm(a, b) {
     Object.assign(S, { missions: d.missions, fleet: d.fleet, settings: d.settings, phases: d.phases, booking: d.booking, profile: d.profile, routes: d.routes || [], cargoTypes: d.cargo_types || [] });
     if ((d.live_public || d.settings?.live_map_public) && !PUBLIC_VIEWS.includes("live")) PUBLIC_VIEWS.push("live");
     applyCore(d);
+    await restorePlanningDraft();
   } catch (e) { console.error(e); toast(e.status ? `The PAC website answered with an error (${e.status}): ${e.message}` : `Couldn't load the PAC website: ${e.message}`, 15000); return; }
   if (S.partial?.length) toast(`Some parts didn't load (${S.partial.join(", ")}). Staff: the server log says why.`, 10000);
   if (S.me) renderPilot();
