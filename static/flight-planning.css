@@ -38,6 +38,12 @@ html[data-design="loadsheet"] .dp-stn b { font-family: var(--stencil); font-weig
 .dp-tabs .n { flex: 0 0 auto; width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center; font-size: 12.5px; border: 2px solid var(--line); background: var(--white); }
 .dp-tabs button[aria-selected="true"] .n { border-color: var(--red); color: var(--red); }
 .dp-tabs button.done .n { background: var(--red); border-color: var(--red); color: #fff; }
+.dp-tab-copy { display: flex; flex-direction: column; gap: 2px; text-align: left; }
+.dp-step-status { display: block; font-size: 11px; font-weight: 600; color: var(--steel); }
+.dp-tabs button.done .dp-step-status { color: var(--ok-ink); }
+.dp-tabs button.attention .dp-step-status { color: var(--red); }
+.dp-tabs button.attention .n { border-color: var(--red); color: var(--red); }
+.dp-draft-note { margin: 0; padding: 10px 22px; border-bottom: 1px solid var(--line); background: var(--ok-wash); color: var(--ok-ink); font-size: 13px; max-width: none !important; }
 .dp-blockers { margin: 16px 22px 0; padding: 10px 14px; border-left: 4px solid var(--amber); background: var(--note-wash); font-size: 14px; }
 .dp-blockers ul { margin: 4px 0 0; padding-left: 18px; }
 .dp-blockers li { margin: 4px 0; }
@@ -92,6 +98,7 @@ html[data-theme="dark"] .linkish { color: #ff8f8f; }
 .ls-payload-summary b { color: var(--ink); font-size: 21px; font-variant-numeric: tabular-nums; }
 .ls-payload-summary small { color: var(--steel); font-size: 12px; }
 .ls-payload-summary .ls-payload-total { background: var(--ok-wash); }
+.ls-change { margin: 0 !important; max-width: none !important; padding: 10px 13px; border: 1px solid var(--line); border-left: 4px solid var(--red); background: var(--white); font-size: 13px; line-height: 1.5; }
 @media (max-width: 650px) { .ls-guide-grid, .ls-payload-summary { grid-template-columns: 1fr; } .ls-guide-grid section { border-right: 0; } .ls-payload-summary > div { border-right: 0; border-bottom: 1px solid var(--line); } .ls-payload-summary > div:last-child { border-bottom: 0; } }
 .ls-transfer { border: 1px solid var(--line); border-left: 4px solid var(--red); padding: 12px 14px; background: var(--paper); }
 .ls-transfer h4 { margin-bottom: 4px; }
@@ -181,6 +188,8 @@ html[data-theme="dark"] .linkish { color: #ff8f8f; }
   .dp-chips > div { padding: 8px 16px; flex-basis: 33%; border-bottom: 1px solid rgba(255,255,255,.14); }
   .dp-stn b { font-size: 24px; }
   .dp-tabs button { flex-direction: column; gap: 4px; font-size: 12px; padding: 10px 4px; text-align: center; }
+  .dp-tab-copy { text-align: center; }
+  .dp-step-status { font-size: 10px; }
   .dp-pane, .dp-foot { padding-left: 16px; padding-right: 16px; }
   .dp-blockers { margin: 14px 16px 0; }
   .ls-grid { grid-template-columns: 1fr; }
