@@ -498,7 +498,7 @@ function renderMissions() {
     const score = m => (m.origin.icao === S.me?.location?.icao ? 4 : 0) + (boardMatchTypes(m).some(a=>boardQualified(m,a)&&boardAvailable(m,a)) ? 2 : 0);
     list = [...list].sort((a,b)=>score(b)-score(a));
   }
-  if (S.board === 'network') drawNetwork(list);
+  if (S.board === 'network' && !S.selected) drawNetwork(list);
   const shown = boardPage(list);
   $("#sortBar").insertAdjacentHTML("beforeend",shipmentFilterNote());
   const count = $('#boardCount');
@@ -684,6 +684,7 @@ function selectMission(id) {
   if ((id === (S.checkrideId||'PAC001') || String(id).startsWith('TR-')) && S.booking?.mission?.id !== id) { openTraining(id); return; }
   const m = S.booking?.mission?.id === id ? S.booking.mission : allFlights().find(x => x.id === id);
   if (!m) return;
+  if (!S.selected && !$("#view-missions").hidden) S.missionBrowseScrollY = window.scrollY;
   if (S.selected?.id !== id) { S.ofp = null; S.ofpErrors = []; S.ofpWarnings = []; S.planned = false; S.aircraft = m.aircraft[0]; S.airframe = S.pendingAirframe || (m.urgent && m.suggested_airframe) || defaultAirframe(m, S.aircraft); S.pendingAirframe = null; }
   if (S.selected?.id !== id && (S.acFilter || S.simFilter || S.boardQualifiedOnly || S.boardAvailableOnly)) {
     const matched = boardMatchTypes(m)[0];
@@ -695,6 +696,18 @@ function selectMission(id) {
   highlightNetRoute();
   $("#dossier").scrollIntoView({ behavior: "smooth" });
   $("#dossier").focus({preventScroll:true});
+}
+function backToFlights() {
+  S.selected = null;
+  renderDossier();
+  if (S.board === "network") {
+    S._netKey = null;
+    renderMissions();
+  }
+  requestAnimationFrame(() => {
+    window.scrollTo({ top: S.missionBrowseScrollY || 0 });
+    $("#manifest").focus({ preventScroll: true });
+  });
 }
 function discordWidget(site) {   // the live Discord server widget on the home page (Staff › Site and rules › Letters and links)
   const id = String(site?.discord_widget || "").match(/\d{17,20}/)?.[0];
@@ -966,7 +979,7 @@ function dossierHeader(m) {
   ].filter(Boolean);
   const stn = (a, label) => `<div class="dp-stn"><small>${label}</small><b>${esc(a.icao)}</b><span>${esc(a.city || a.name || "")}</span><a href="#stations" class="st-link" data-station="${esc(a.icao)}">Station guide</a></div>`;
   return `<div class="dp-head">
-    <div class="dp-top"><button type="button" class="dp-back" onclick="document.getElementById('manifest').scrollIntoView({block:'start'});document.getElementById('manifest').focus({preventScroll:true})">← Back to flights</button>
+    <div class="dp-top"><button type="button" class="dp-back" onclick="backToFlights()">← Back to flights</button>
       <span class="dp-kind">${esc(m.id)} · ${esc(m.category)} · ${esc(m.priority)} priority</span>
       <button type="button" class="dp-crew" onclick="planSelectedWithCrew()">Plan with crew →</button></div>
     <h2>${esc(m.title)}</h2>
@@ -976,6 +989,7 @@ function dossierHeader(m) {
 }
 function renderDossier() {
   const m = S.selected, d = $("#dossier");
+  $("#missionBrowse").hidden = !!m;
   d.hidden = !m;
   if (!m) { d.innerHTML = `<div class="d-body"><h2>Choose a mission</h2><p class="muted">Pick a waybill from the list to read the briefing, plan it in SimBrief and request it for your next flight.</p></div>`; return; }
   if (S.dTabFor !== m.id) { S.dTab = "brief"; S.dTabFor = m.id; }
@@ -1185,7 +1199,12 @@ function loadsheetHTML(ls, m) {
   <div class="ls-title"><div><span class="kicker">Preliminary load sheet</span><h3>${esc(ls.aircraft_name)}${tail ? ` · <span class="mono">${esc(tail)}</span>` : ""} · ${esc(ls.origin.icao)} → ${esc(ls.destination.icao)}</h3>
     <p class="muted">${ls.ferry ? "Ferry flight: the hold is empty." : `${units} unit${units === 1 ? "" : "s"} · ${fmt(ls.totals.pieces)} pieces · ${fmt(ls.totals.weight_lbs)} lb · ${(ls.shipments || []).length} shipment${(ls.shipments || []).length === 1 ? "" : "s"}`}</p></div>
     <span class="ls-status ${ls.ok ? "ok" : "bad"}">${ls.ok ? "Within limits" : "Over a limit"}</span></div>
-  ${transferOptions.length ? `<section class="ls-transfer"><h4>Transfer cargo at ${esc(ls.origin.icao)}</h4><p class="muted">Select freight already at this station and routed through ${esc(ls.destination.icao)}. It keeps its original AWB and is delivered only when it reaches its final destination.</p>
+  ${!ls.ferry ? `<div class="ls-payload-summary" aria-label="Payload breakdown">
+    <div><span>Other cargo</span><b>${fmt(Math.max(0, totalPayload - transferWeight))} lb</b><small>Assigned to this flight</small></div>
+    <div><span>Transfer cargo</span><b>${fmt(transferWeight)} lb</b><small>${transferIds.size} selected from this station</small></div>
+    <div class="ls-payload-total"><span>Total payload</span><b>${fmt(totalPayload)} lb</b><small>Used in the weight and limit checks below</small></div>
+  </div>` : ""}
+  ${transferOptions.length ? `<section class="ls-transfer"><h4>Choose transfer cargo at ${esc(ls.origin.icao)}</h4><p class="muted">Select freight already at this station and routed through ${esc(ls.destination.icao)}. It keeps its original AWB and is delivered only when it reaches its final destination.</p>
     <p class="ls-transfer-breakdown"><b>Included in this load:</b> ${fmt(transferWeight)} lb selected transfer freight + ${fmt(Math.max(0, totalPayload - transferWeight))} lb other cargo = <b>${fmt(totalPayload)} lb total payload</b>. Checked freight replaces other cargo; it is not added on top. The green limit bars can stay the same when only the cargo mix changes.</p>
     <div class="ls-transfer-list">${transferOptions.map(x => `<label><input type="checkbox" data-transfer-id="${esc(x.id)}" ${transferIds.has(x.id) ? "checked" : ""}><span><b>${esc(x.awb)}</b> · ${esc(x.commodity || "Cargo")} · ${fmt(x.gross_weight_lbs)} lb · ${fmt(x.pieces)} pcs · final ${esc(x.destination)}${x.recovery_for ? ` <span class="tag grey">Split load from ${esc(x.recovery_for)} · prepaid</span>` : ""}${x.claimed_by_me ? ` <span class="tag lane-pref">Held for you</span>` : ""}${x.truck_nm ? ` <span class="tag grey" title="PAC flies it to your destination; the last leg goes by road">last ${fmt(x.truck_nm)} nm by truck</span>` : ""}</span><small>${esc(x.shipper || "—")} → ${esc(x.consignee || "—")}</small>${(x.notes || []).map(n => `<small class="ls-note"><b>Handover note from ${esc(n.pilot)} at ${esc(n.station || "")}:</b> ${esc(n.text)}</small>`).join("")}</label>`).join("")}</div></section>` : ""}
   ${partial ? `<div class="notice">The ${esc(ls.aircraft_name)} carries up to ${fmt(ls.limits.max_payload)} lb, so you'll take ${fmt(ls.totals.weight_lbs)} lb of the ${fmt(ls.payload_requested)} lb consignment.</div>` : ""}

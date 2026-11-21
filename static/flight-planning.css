@@ -3,7 +3,8 @@
    preliminary load sheet. Uses the site's color tokens, so the classic and
    Load Sheet designs and the dark theme all follow automatically.
    ========================================================================== */
-#view-missions #dossier { max-width: 1120px; overflow: hidden; }
+#missionBrowse[hidden] { display: none !important; }
+#view-missions #dossier { max-width: 1280px; width: 100%; margin: 0 auto; overflow: hidden; }
 
 /* ---------- header ---------- */
 .dp-head { background: var(--panel-dark); color: #fff; padding: 14px 22px 0; }
@@ -68,6 +69,14 @@ html[data-theme="dark"] .linkish { color: #ff8f8f; }
 .ls-title { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; }
 .ls-title h3 { margin: 3px 0 2px; font-size: 18px; }
 .ls-title p { margin: 0; font-size: 13.5px; }
+.ls-payload-summary { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); border: 1px solid var(--line); background: var(--white); }
+.ls-payload-summary > div { display: flex; flex-direction: column; gap: 4px; min-width: 0; padding: 13px 16px; border-right: 1px solid var(--line); }
+.ls-payload-summary > div:last-child { border-right: 0; }
+.ls-payload-summary span { color: var(--steel); font-size: 12px; text-transform: uppercase; letter-spacing: .05em; }
+.ls-payload-summary b { color: var(--ink); font-size: 21px; font-variant-numeric: tabular-nums; }
+.ls-payload-summary small { color: var(--steel); font-size: 12px; }
+.ls-payload-summary .ls-payload-total { background: var(--ok-wash); }
+@media (max-width: 650px) { .ls-payload-summary { grid-template-columns: 1fr; } .ls-payload-summary > div { border-right: 0; border-bottom: 1px solid var(--line); } .ls-payload-summary > div:last-child { border-bottom: 0; } }
 .ls-transfer { border: 1px solid var(--line); border-left: 4px solid var(--red); padding: 12px 14px; background: var(--paper); }
 .ls-transfer h4 { margin-bottom: 4px; }
 .ls-transfer > p { margin: 0 0 9px; font-size: 13px; }
