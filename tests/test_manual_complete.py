@@ -15,6 +15,8 @@ def check(name, cond, detail=""):
     print(("  ok  " if cond else "  FAIL ") + name + ("" if cond else f" · {detail}"))
     if not cond: failures.append(name)
 c = A.app.test_client()
+anonymous = A.app.test_client().get('/api/manual-pireps/latest-flight')
+check('booking lookup requires sign-in', anonymous.status_code == 401, anonymous.json)
 c.post("/api/auth/setup", json={"password": "Manual-Test-1"})
 c.post("/api/settings", json={"enforce_pilot_location": False, "enforce_airframes": False, "enforce_ranks": False,
                               "require_type_ratings": False, "require_release_signature": False})
@@ -28,6 +30,11 @@ with A.db() as con:
     con.execute("UPDATE airframes SET location='KCVG', status='Available' WHERE reg=?", (tail,))
 ls = c.post("/api/plan/loadsheet", json={"mission_id": route["id"], "aircraft": ac, "cargo_transfer_ids": [order["id"]]}).json
 b = c.post("/api/booking", json={"mission_id": route["id"], "aircraft": ac, "manifest_seed": ls["seed"], "cargo_transfer_ids": [order["id"]], "zone_ack": True}).json
+latest = c.get('/api/manual-pireps/latest-flight')
+check('latest booking fills only known flight details', latest.status_code == 200 and
+      all(latest.json.get(k) == v for k, v in {'flight': route['id'], 'dep': 'KCVG',
+      'arr': route['destination']['icao'], 'aircraft': ac}.items()) and
+      'departed' not in latest.json and 'minutes' not in latest.json, latest.json)
 dep_t = (dt.datetime.utcnow() - dt.timedelta(hours=3)).strftime("%Y-%m-%dT%H:%M")
 report = {"flight": route["id"], "dep": "KCVG", "arr": route["destination"]["icao"], "tail": tail, "aircraft": ac,
           "departed": dep_t, "minutes": "90", "reason": "Forgot to start ACARS, sound was muted."}
@@ -54,6 +61,15 @@ check("the aircraft is at the arrival airport and free", frame["location"] == de
 check("the pilot is at the arrival airport", loc == dest, loc)
 check("the booking is closed", bk == 0, bk)
 check("still no score", rep["score"] is None and rep["review_status"] == "Accepted", dict(rep))
+already_reported = c.get('/api/manual-pireps/latest-flight')
+check('reported flight is not offered again', already_reported.status_code == 404, already_reported.json)
+recovery_booking = {'mission': route, 'aircraft': ac, 'flight_number': 'PACREC1',
+                    'airframe': tail, 'requested_at': time.time()}
+A.save_booking(recovery_booking, notify=False)
+A.clear_booking()
+recovered = c.get('/api/manual-pireps/latest-flight')
+check('a cleared booking remains available for manual entry', recovered.status_code == 200 and
+      recovered.json['flight'] == 'PACREC1' and recovered.json['source'] == 'recent PAC booking', recovered.json)
 webp = b"RIFF\x0c\x00\x00\x00WEBPVP8 "
 older = (dt.datetime.utcnow() - dt.timedelta(days=2)).strftime("%Y-%m-%dT%H:%M")
 with_webp = c.post("/api/manual-pireps", json=dict(report, departed=older,
