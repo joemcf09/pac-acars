@@ -11,6 +11,34 @@ class ManualReportValidationError(ValueError):
 
 def migrate(con):
     con.execute('CREATE TABLE IF NOT EXISTS manual_pirep_evidence (pirep_id INTEGER PRIMARY KEY, mime TEXT NOT NULL, image BLOB NOT NULL)')
+    con.execute('''CREATE TABLE IF NOT EXISTS manual_pirep_booking_snapshots (
+        pilot_id TEXT NOT NULL, booking_key TEXT NOT NULL, flight TEXT NOT NULL,
+        dep TEXT NOT NULL, arr TEXT NOT NULL, aircraft TEXT NOT NULL, tail TEXT,
+        booked_at REAL NOT NULL, PRIMARY KEY (pilot_id, booking_key))''')
+    con.execute('CREATE INDEX IF NOT EXISTS idx_manual_booking_recent ON manual_pirep_booking_snapshots(pilot_id, booked_at DESC)')
+
+
+def booking_summary(booking):
+    mission = booking.get('mission') or {}
+    dep = (mission.get('origin') or {}).get('icao')
+    arr = (mission.get('destination') or {}).get('icao')
+    booked_at = booking.get('requested_at')
+    if not all((booking.get('flight_number'), dep, arr, booking.get('aircraft'), booked_at)):
+        return None
+    return dict(flight=booking['flight_number'], dep=dep, arr=arr,
+                aircraft=booking['aircraft'], tail=booking.get('airframe') or '',
+                booked_at=float(booked_at), booking_key=str(booked_at))
+
+
+def remember_booking(con, pilot_id, booking):
+    """Retain only the booked route and aircraft, never telemetry or claimed flight times."""
+    summary = booking_summary(booking)
+    if summary:
+        con.execute('''INSERT OR REPLACE INTO manual_pirep_booking_snapshots
+            (pilot_id, booking_key, flight, dep, arr, aircraft, tail, booked_at)
+            VALUES (?,?,?,?,?,?,?,?)''',
+            (pilot_id, summary['booking_key'], summary['flight'], summary['dep'],
+             summary['arr'], summary['aircraft'], summary['tail'], summary['booked_at']))
 
 
 def review(va, report_id, body):
@@ -51,6 +79,7 @@ def complete(con, r):
     booking = json.loads(row['data']) if row else None
     m = (booking or {}).get('mission') or {}
     if booking and (m.get('origin') or {}).get('icao') == dep and (m.get('destination') or {}).get('icao') == arr:
+        remember_booking(con, pilot, booking)
         if (booking.get('dispatch') or {}).get('shipments'):
             cargo_network.record_flight(con, booking, {'arr': arr, 'status': 'Delivered', 'flight_number': r['flight_number']}, r['id'], pilot)
             out['cargo'] = con.execute("SELECT COUNT(*) FROM cargo_movements WHERE pirep_id=? AND event_type='FLIGHT_ARRIVAL'", (r['id'],)).fetchone()[0]
@@ -65,6 +94,39 @@ def complete(con, r):
 
 def register(app, va):
     import auth
+
+    @app.get('/api/manual-pireps/latest-flight')
+    def latest_flight():
+        if not auth.current():
+            return jsonify(error='Please sign in.'), 401
+        pilot_id = va.current_pilot_id()
+        cutoff = time.time() - 30 * 86400
+        with va.C['db']() as con:
+            candidates = []
+            current = con.execute('SELECT data FROM bookings WHERE pilot_id=?', (pilot_id,)).fetchone()
+            if current:
+                summary = booking_summary(json.loads(current['data']))
+                if summary:
+                    summary['source'] = 'current PAC booking'
+                    candidates.append(summary)
+            for row in con.execute('''SELECT * FROM manual_pirep_booking_snapshots
+                    WHERE pilot_id=? AND booked_at>=? ORDER BY booked_at DESC LIMIT 20''', (pilot_id, cutoff)):
+                summary = dict(row)
+                summary['source'] = 'recent PAC booking'
+                candidates.append(summary)
+            for summary in sorted(candidates, key=lambda item: item['booked_at'], reverse=True):
+                if summary['booked_at'] < cutoff:
+                    continue
+                filed = con.execute('''SELECT id FROM pireps WHERE pilot_id=? AND flight_number=?
+                    AND dep=? AND arr=? AND aircraft=? AND filed_at>=?
+                    AND review_status!='Rejected' LIMIT 1''',
+                    (pilot_id, summary['flight'], summary['dep'], summary['arr'],
+                     summary['aircraft'], summary['booked_at'])).fetchone()
+                if not filed:
+                    return jsonify({key: summary[key] for key in
+                                    ('flight', 'dep', 'arr', 'aircraft', 'tail', 'booked_at', 'source')})
+        return jsonify(error='No recent unreported PAC booking was found. You can still enter the flight details manually.'), 404
+
     @app.post('/api/manual-pireps')
     def submit():
         if not auth.current():

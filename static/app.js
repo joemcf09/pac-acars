@@ -8694,6 +8694,19 @@ function openManualReport(){
  const error=$('#mp-error');
  error.className='notice err';error.hidden=true;error.tabIndex=-1;
  dlg.querySelector('#manualPirepForm > p:nth-of-type(2)').insertAdjacentElement('afterend',error);
+ error.insertAdjacentHTML('afterend','<button class="btn ghost" type="button" id="mp-latest">Use my latest PAC booking</button><p class="muted" id="mp-latest-status" role="status">This fills the booked flight, route and aircraft only. Enter your actual departure time, block time and explanation.</p>');
+ $('#mp-latest').onclick=async()=>{
+   const button=$('#mp-latest'),status=$('#mp-latest-status');button.disabled=true;status.textContent='Looking up your recent booking…';
+   try{
+     const booking=await api('/api/manual-pireps/latest-flight');
+     for(const field of ['flight','dep','arr','aircraft','tail']){
+       const input=$(`#mp-${field}`);
+       if(input&&booking[field])input.value=booking[field];
+     }
+     status.textContent=`Filled from your ${booking.source}. Check the details and enter your actual departure time, block time and explanation before submitting.`;
+   }catch(err){status.textContent=err.message||'Could not find a recent booking. Enter the details manually.';}
+   finally{button.disabled=false;}
+ };
  $('#mp-cancel').onclick=()=>dlg.close();
  $('#manualPirepForm').onsubmit=async e=>{
    e.preventDefault();

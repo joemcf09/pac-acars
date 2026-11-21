@@ -2337,6 +2337,7 @@ def save_booking(booking, pid=None, notify=True):
             cargo_network.register_booking(con, booking, pid)
         con.execute("INSERT OR REPLACE INTO bookings (pilot_id, data, requested_at) VALUES (?,?,?)",
                     (pid, json.dumps(booking), booking.get("requested_at") or time.time()))
+        manual_pireps.remember_booking(con, pid, booking)
     if notify and "SI" in globals():
         SI.notify(pid, "flight booked or changed")   # the pilot's SayIntentions crew learn about it
 
@@ -2346,7 +2347,9 @@ def clear_booking(pid=None):
     with db() as con:
         row = con.execute("SELECT data FROM bookings WHERE pilot_id=?", (pid,)).fetchone()
         if row:
-            cargo_network.release_booking(con, json.loads(row["data"]), pid)
+            booking = json.loads(row["data"])
+            manual_pireps.remember_booking(con, pid, booking)
+            cargo_network.release_booking(con, booking, pid)
         con.execute("DELETE FROM bookings WHERE pilot_id=?", (pid,))
     if "SI" in globals():
         SI.notify(pid, "flight finished or canceled")
