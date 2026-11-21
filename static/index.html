@@ -46,7 +46,7 @@
 <link rel="stylesheet" href="/static/home-layout.css?v=20261022">
 <link rel="stylesheet" href="/static/mission-accents.css?v=20261022">
 <link rel="stylesheet" href="/static/pilot-experience.css?v=20261022">
-<link rel="stylesheet" href="/static/flight-planning.css?v=hub-spoke-cargo-20261108">
+<link rel="stylesheet" href="/static/flight-planning.css?v=20261121planner1">
 <link rel="stylesheet" href="/static/group-flight.css?v=20261103b">
 </head>
 <body>
@@ -116,6 +116,7 @@
 
   <!-- ================= Missions ================= -->
   <section class="view" id="view-missions" hidden>
+    <div id="missionBrowse">
     <div class="mb-heading"><div><h1>Where will you fly next?</h1><p>A quick sector, a different destination, or something worth making time for.</p></div><button type="button" class="btn ghost" onclick="openPilotGuide('cargo')">Help me choose</button></div>
     <div id="heldBanner"></div>
     <div class="pilot-strip" id="pilotStrip"></div>
@@ -156,8 +157,9 @@
     <div class="board">
       <div class="manifest" id="manifest" tabindex="-1" aria-label="Matching flights"></div>
       <div id="boardPagination"></div>
-      <aside class="dossier" id="dossier" tabindex="-1" aria-label="Flight briefing" hidden></aside>
     </div>
+    </div>
+    <aside class="dossier" id="dossier" tabindex="-1" aria-label="Flight planning" hidden></aside>
   </section>
 
   <!-- ================= ACARS ================= -->
@@ -338,6 +340,6 @@
 <script src="/static/cargo-guide.js?v=ill3-20261110"></script>
 <script src="/static/problem-reports.js?v=20261021"></script>
 <script src="/static/academy-desk.js?v=20261119files1"></script>
-<script src="/static/app.js?v=20261120pilotsupport1"></script>
+<script src="/static/app.js?v=20261121planner1"></script>
 </body>
 </html>
