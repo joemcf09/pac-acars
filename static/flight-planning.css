@@ -71,6 +71,7 @@ html[data-theme="dark"] .linkish { color: #ff8f8f; }
 .ls-transfer { border: 1px solid var(--line); border-left: 4px solid var(--red); padding: 12px 14px; background: var(--paper); }
 .ls-transfer h4 { margin-bottom: 4px; }
 .ls-transfer > p { margin: 0 0 9px; font-size: 13px; }
+.ls-transfer > p.ls-transfer-breakdown { background: var(--white); border: 1px solid var(--line); padding: 9px 10px; line-height: 1.45; }
 .ls-transfer-list { display: grid; gap: 5px; }
 .ls-transfer-list label { display: flex; align-items: center; gap: 9px; padding: 7px 9px; border: 1px solid var(--line); background: var(--white); font-size: 13px; cursor: pointer; }
 .ls-transfer-list input { flex: 0 0 auto; }
