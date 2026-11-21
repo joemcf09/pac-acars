@@ -69,6 +69,22 @@ html[data-theme="dark"] .linkish { color: #ff8f8f; }
 .ls-title { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; }
 .ls-title h3 { margin: 3px 0 2px; font-size: 18px; }
 .ls-title p { margin: 0; font-size: 13.5px; }
+.ls-guide { border: 1px solid var(--line); border-left: 4px solid var(--red); background: var(--white); }
+.ls-guide > summary { display: flex; align-items: center; gap: 11px; padding: 12px 14px; cursor: pointer; list-style: none; }
+.ls-guide > summary::-webkit-details-marker { display: none; }
+.ls-guide > summary::after { content: "Show guide"; margin-left: auto; color: var(--red); font-size: 12px; font-weight: 700; white-space: nowrap; }
+.ls-guide[open] > summary::after { content: "Hide guide"; }
+.ls-guide > summary:focus-visible { outline: 2px solid var(--red); outline-offset: -3px; }
+.ls-guide-icon { display: grid; place-items: center; flex: 0 0 26px; width: 26px; height: 26px; border-radius: 50%; color: var(--red); border: 2px solid currentColor; font-weight: 800; }
+.ls-guide > summary b, .ls-guide > summary small { display: block; }
+.ls-guide > summary b { color: var(--ink); font-size: 14px; }
+.ls-guide > summary small { color: var(--steel); font-size: 12px; margin-top: 2px; }
+.ls-guide-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); border-top: 1px solid var(--line); }
+.ls-guide-grid section { padding: 13px 16px; min-width: 0; border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+.ls-guide-grid section:nth-child(2n) { border-right: 0; }
+.ls-guide-grid h4 { color: var(--ink); margin: 0 0 5px; }
+.ls-guide-grid p { margin: 0; color: var(--ink); font-size: 13px; line-height: 1.55; max-width: none; }
+.ls-guide-foot { margin: 0; padding: 10px 16px; color: var(--steel); font-size: 12px; max-width: none !important; }
 .ls-payload-summary { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); border: 1px solid var(--line); background: var(--white); }
 .ls-payload-summary > div { display: flex; flex-direction: column; gap: 4px; min-width: 0; padding: 13px 16px; border-right: 1px solid var(--line); }
 .ls-payload-summary > div:last-child { border-right: 0; }
@@ -76,7 +92,7 @@ html[data-theme="dark"] .linkish { color: #ff8f8f; }
 .ls-payload-summary b { color: var(--ink); font-size: 21px; font-variant-numeric: tabular-nums; }
 .ls-payload-summary small { color: var(--steel); font-size: 12px; }
 .ls-payload-summary .ls-payload-total { background: var(--ok-wash); }
-@media (max-width: 650px) { .ls-payload-summary { grid-template-columns: 1fr; } .ls-payload-summary > div { border-right: 0; border-bottom: 1px solid var(--line); } .ls-payload-summary > div:last-child { border-bottom: 0; } }
+@media (max-width: 650px) { .ls-guide-grid, .ls-payload-summary { grid-template-columns: 1fr; } .ls-guide-grid section { border-right: 0; } .ls-payload-summary > div { border-right: 0; border-bottom: 1px solid var(--line); } .ls-payload-summary > div:last-child { border-bottom: 0; } }
 .ls-transfer { border: 1px solid var(--line); border-left: 4px solid var(--red); padding: 12px 14px; background: var(--paper); }
 .ls-transfer h4 { margin-bottom: 4px; }
 .ls-transfer > p { margin: 0 0 9px; font-size: 13px; }

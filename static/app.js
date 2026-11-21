@@ -1199,6 +1199,15 @@ function loadsheetHTML(ls, m) {
   <div class="ls-title"><div><span class="kicker">Preliminary load sheet</span><h3>${esc(ls.aircraft_name)}${tail ? ` · <span class="mono">${esc(tail)}</span>` : ""} · ${esc(ls.origin.icao)} → ${esc(ls.destination.icao)}</h3>
     <p class="muted">${ls.ferry ? "Ferry flight: the hold is empty." : `${units} unit${units === 1 ? "" : "s"} · ${fmt(ls.totals.pieces)} pieces · ${fmt(ls.totals.weight_lbs)} lb · ${(ls.shipments || []).length} shipment${(ls.shipments || []).length === 1 ? "" : "s"}`}</p></div>
     <span class="ls-status ${ls.ok ? "ok" : "bad"}">${ls.ok ? "Within limits" : "Over a limit"}</span></div>
+  <details class="ls-guide"><summary><span class="ls-guide-icon" aria-hidden="true">?</span><span><b>Why do these numbers look like this?</b><small>A quick guide to the cargo, fuel and weight checks on this flight</small></span></summary>
+    <div class="ls-guide-grid">
+      <section><h4>1 · Cargo makes the payload</h4><p>${fmt(Math.max(0, totalPayload - transferWeight))} lb other cargo + ${fmt(transferWeight)} lb selected transfer cargo = <b>${fmt(totalPayload)} lb payload</b>. Checked transfer freight takes the place of other cargo within the planned load; it does not go on top.</p></section>
+      <section><h4>2 · Build up the aircraft weight</h4><p>${fmt(L.dow)} lb dry operating weight + ${fmt(L.payload)} lb payload = <b>${fmt(L.zfw)} lb zero fuel weight</b>. Add ${fmt(L.tof)} lb takeoff fuel for <b>${fmt(L.tow)} lb at takeoff</b>.</p></section>
+      <section><h4>3 · Fuel changes during the flight</h4><p>The ${fmt(f.block)} lb block fuel includes ${fmt(f.taxi)} lb for taxi. After taxi, ${fmt(L.tof)} lb remains for takeoff. Burning an estimated ${fmt(L.trip)} lb on the trip leaves an estimated <b>${fmt(L.law)} lb landing weight</b>.</p></section>
+      <section><h4>4 · Read the green bars</h4><p>Each bar compares a planned weight with one aircraft limit. The margin is the gap to that limit. The smallest structural margin is <b>${fmt(L.underload)} lb</b>; that is not permission to add that much cargo. Check the separate MAX PL payload bar too.</p></section>
+    </div>
+    <p class="ls-guide-foot">These are PAC planning estimates. The dispatch release uses the fuel and weights from your SimBrief OFP when you request the flight.</p>
+  </details>
   ${!ls.ferry ? `<div class="ls-payload-summary" aria-label="Payload breakdown">
     <div><span>Other cargo</span><b>${fmt(Math.max(0, totalPayload - transferWeight))} lb</b><small>Assigned to this flight</small></div>
     <div><span>Transfer cargo</span><b>${fmt(transferWeight)} lb</b><small>${transferIds.size} selected from this station</small></div>
@@ -1226,7 +1235,7 @@ function loadsheetHTML(ls, m) {
         <tr class="sum"><td>Take-off weight</td><td>${fmt(L.tow)}</td></tr>
         <tr><td>− Trip fuel</td><td>${fmt(L.trip)}</td></tr>
         <tr class="sum"><td>Landing weight</td><td>${fmt(L.law)}</td></tr>
-        <tr class="under"><td>Underload before limits</td><td>${fmt(L.underload)}</td></tr></tbody></table>
+        <tr class="under"><td>Smallest structural margin</td><td>${fmt(L.underload)}</td></tr></tbody></table>
       <p class="muted ls-fine">${ls.dow_source?.kind === "learned" ? `Dry operating weight from ${ls.dow_source.flights} recent PAC flights on this type (their SimBrief plans).` : "Dry operating weight estimated from published limits; it becomes exact once a few PAC flights on this type have been filed with an OFP."}</p>
     </section>
     <section><h4>Against the limits</h4>${ls.checks.map(gauge).join("")}</section>
