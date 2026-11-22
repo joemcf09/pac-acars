@@ -5720,8 +5720,55 @@ async function renderHome(h, st) {
     if (S.homeMap) S.homeMap.remove();
     S.homeDots = [];
     const base = makeBaseMap($("#homeMap"), { theme: "light", style: S.settings.map_style === "dark" ? "light" : (S.settings.map_style || "light") });
-    S.homeMap = base.map; S.homeMap.setView([30, 5], 2); S.homeMap.sc
-... 4280 bytes omitted ...
+    S.homeMap = base.map; S.homeMap.setView([30, 5], 2); S.homeMap.scrollWheelZoom.disable(); setTimeout(() => S.homeMap && S.homeMap.invalidateSize(), 200); try { new ResizeObserver(() => S.homeMap && S.homeMap.invalidateSize()).observe($("#homeMap")); } catch (e) { /* older browsers */ }
+    const count = {};
+    S.routes.forEach(r => {
+      L.polyline(gcPath(r.origin, r.destination), { color: "#C80000", weight: 1, opacity: .3, interactive: false }).addTo(S.homeMap);
+      [r.origin, r.destination].forEach(a => count[a.icao] = { a, n: (count[a.icao]?.n || 0) + 1 });
+    });
+    Object.values(count).forEach(({ a, n }) => {
+      const main = a.icao === "KCVG", hub = hubs.some(h => h[0] === a.icao);
+      (S.homeDots ||= []).push([a.icao, L.circleMarker([a.lat, a.lon], { radius: main ? 9 : hub ? 6 : 3, color: "#fff", weight: main ? 3 : 1, fillColor: hub ? "#C80000" : "#1E2126", fillOpacity: 1 })
+        .bindTooltip(`${a.icao} · ${esc(a.city)} (${n})`, { className: "stn-tip", direction: "top" }).addTo(S.homeMap)]);
+    });
+    setTimeout(() => S.homeMap.invalidateSize(), 60);
+    whenHomeMapVisible(() => loadNetworkWx(() => {
+      if (!S.netWx || !S.homeMap) return;
+      (S.homeDots || []).forEach(([ic, mk]) => { const c = wxColor(ic); if (c) mk.setStyle({ color: c, weight: 2.5 }); });
+      wxLegend(S.homeMap);
+    }));
+  }
+}
+
+/* ================= Transfer hours (pilot side) ================= */
+const trDate = t => new Date(t * 1000).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+async function fillTransfers() {
+  const el = $("#transferPanel");
+  if (!el) return;
+  let d;
+  try { d = await api("/api/transfers"); } catch (e) { el.innerHTML = ""; return; }
+  S.transfers = d;
+  const r = d.rules, last = d.requests[0];
+  const tag = st => `<span class="tag ${st === "Pending" ? "amber" : st === "Approved" ? "green" : ""}">${esc(st)}</span>`;
+  const history = d.requests.map(q => `<div class="tr-hist">
+      <div><b>${q.status === "Approved" ? `${esch(q.credited)} hours credited` : q.status === "Pending" ? "Waiting for staff" : "Not verified"}</b> ${tag(q.status)}
+        <span class="muted small">sent ${trDate(q.submitted)}${q.reviewed_at ? ` · reviewed ${trDate(q.reviewed_at)}` : ""}</span></div>
+      <div class="muted small">${q.sources.map(s => `${esc(s.name)} (${esch(s.hours)} h claimed${q.status === "Approved" ? s.approved ? `, ${esch(s.verified)} verified` : ", not verified" : ""})`).join(" · ")}</div>
+      ${q.note ? `<div class="small">Staff note: ${esc(q.note)}</div>` : ""}</div>`).join("");
+  el.innerHTML = `<section class="panel tr-panel" aria-labelledby="trHead">
+    <div class="tr-top"><div><span class="kicker">Experience from other airlines</span><h2 id="trHead">Transfer hours</h2>
+      <p class="muted" style="margin:4px 0 0;max-width:72ch">Flown at another virtual airline or on VATSIM/IVAO? Send your verified hours and PAC credits <b>half of them, up to ${r.cap} hours</b>, towards rank. That can take you as far as Senior First Officer; Captain is earned at PAC. The checkride, your average score and type ratings still apply, and transfer hours never add pay, points or leaderboard hours.</p></div>
+      <div class="tr-now"><span>Credited now</span><b>${esch(d.transfer_hours)} h</b><small>${d.transfer_hours > r.cap ? "set by staff" : `of ${r.cap} max`}</small></div></div>
+    ${d.can_request ? `<div class="row" style="align-items:center;gap:12px;margin-top:12px"><button class="btn" type="button" id="trOpen">${d.is_appeal ? "Appeal with new proof" : "Request transfer hours"}</button>
+        <span class="muted small">${d.is_appeal ? "This is your one appeal. " : ""}Open until ${trDate(d.closes)}.</span></div>`
+      : d.why_not ? `<p class="small muted" style="margin:12px 0 0">${esc(d.why_not)}</p>` : ""}
+    ${history ? `<div class="tr-history">${history}</div>` : ""}</section>`;
+  const b = $("#trOpen"); if (b) b.onclick = openTransferForm;
+}
+function openTransferForm() {
+  const d = S.transfers, r = d.rules, dlg = $("#transferDlg");
+  $("#trTitle").textContent = d.is_appeal ? "Appeal: transfer hours" : "Request transfer hours";
+  const row = i => `<fieldset class="tr-src" data-src="${i}"><legend>Source ${i + 1}${i ? ` <button type="button" class="btn ghost small" data-src-del="${i}">Remove</button>` : ""}</legend>
     <div class="tr-grid">
       <label>Type<select name="kind"><option value="va">Virtual airline</option><option value="network">VATSIM or IVAO</option></select></label>
       <label>Name<input name="name" maxlength="80" placeholder="e.g. Delta Virtual Airlines" required></label>
