@@ -47,8 +47,11 @@ with A.db() as con:
 print("Opening a case away from a hub")
 check("a case is opened, awaiting parts", case and ev and not ev["at_hub"])
 with A.db() as con:
-    alerts = [dict(r) for r in con.execute("SELECT recipient,subject,body FROM messages WHERE subject LIKE 'AOG action · N901PC%'")]
+    alerts = [dict(r) for r in con.execute("SELECT sender,recipient,subject,body FROM messages WHERE subject LIKE 'AOG action · N901PC%'")]
 check("Fleet, Ops and CEO each get a direct Crew Mail alert", {r['recipient'] for r in alerts} == {'PAC0198', 'PAC0197', 'PAC0001'})
+check("AOG handoffs are sent by the system, not the CEO", all(r['sender'] == 'SYSTEM' for r in alerts))
+ceo_alert = next(m for m in c.get('/api/messages').get_json()['messages'] if m['subject'].startswith('AOG action · N901PC'))
+check("CEO sees an automated sender and cannot reply to the alert", ceo_alert['sender_name'] == 'PAC Operations (automated)' and not ceo_alert['replyable'])
 check("linked Fleet Manager is included for a Discord DM", ev['staff_discord'] == ['998877'], ev['staff_discord'])
 check("Fleet alert gives an action and source flight", any(r['recipient'] == 'PAC0198' and 'PAC1234' in r['body'] and 'Fleet & maintenance' in r['body'] for r in alerts))
 check("a recovery mission is posted from a PAC hub", ev["mission"] and ev["mission"].startswith("PAC88") and ev["hub"] in aog.HUBS, ev)
