@@ -5673,9 +5673,101 @@ async function renderHome(h, st) {
 
   ${discordWidget(site)}
 
-  <div class="section-h" id="apply"><div><div class="kicker">Join the crew</div><h2>Fly for Pagani Air Cargo</h2></div><button class="btn ghost small" onclick="show('handbook')">Rea
-... 14410 bytes omitted ...
-t.push({ kind: f.querySelector("[name=kind]").value, name: f.querySelector("[name=name]").value.trim(), url: f.querySelector("[name=url]").value.trim(), hours: f.querySelector("[name=hours]").value });
+  <div class="section-h" id="apply"><div><div class="kicker">Join the crew</div><h2>Fly for Pagani Air Cargo</h2></div><button class="btn ghost small" onclick="show('handbook')">Read the handbook</button></div>
+  <div class="apply">
+    <div class="pitch"><h2>Get your wings in red</h2><p style="margin:0">${esc(site.recruiting)}</p>
+      <ol><li>Apply below. Staff review every application.</li><li>Choose a supported training airport for your free 737 line checkride. ACARS grades it.</li><li>Join the line as a Second Officer on the 737 and 727, and work your way to the 747-8F.</li></ol></div>
+    <form id="applyForm" autocomplete="on">
+      <div class="field"><label for="ap_name">Full name</label><input id="ap_name" name="name" required autocomplete="name"></div>
+      <div class="field"><label for="ap_email">Email</label><input id="ap_email" name="email" type="email" required autocomplete="email"></div>
+      <div class="field"><label for="ap_country">Country</label><input id="ap_country" name="country" autocomplete="country-name"></div>
+      <div class="field"><label for="ap_discord">Discord username (optional)</label><input id="ap_discord" name="discord"></div>
+      <div class="field"><label for="ap_sim">Simulator</label><select id="ap_sim" name="simulator"><option>MSFS 2024</option><option>MSFS 2020</option><option>X-Plane 12</option><option>X-Plane 11</option><option>Prepar3D</option></select></div>
+      <div class="field"><label for="ap_exp">Simulator experience</label><select id="ap_exp" name="experience"><option>New to airliners</option><option>Under 100 hours</option><option>100–500 hours</option><option>500+ hours</option><option>Real-world pilot</option></select></div>
+      <div class="field"><label for="ap_hub">Preferred hub</label><select id="ap_hub" name="hub">${hubs.map(([ic, n]) => `<option value="${ic}">${ic} ${esc(n)}</option>`).join("")}</select></div>
+      <div class="field full"><label for="ap_source">Where did you hear about us?</label><select id="ap_source" name="source">
+        <option value="">— Select —</option><option>Reddit</option><option>Simdispatch (VA directory)</option><option>VA-List.com</option>
+        <option>X-Plane Community forum</option><option>X-Plane.org forums</option><option>Flightsim.to</option><option>Hangar Addons</option>
+        <option>My Next Airline</option><option>VATSIM forum</option><option>IVAO forum</option><option>Discord</option>
+        <option>A friend / word of mouth</option><option>Other</option></select></div>
+      <div class="field full"><label for="ap_why">Why do you want to fly with PAC?</label><textarea id="ap_why" name="motivation" rows="3"></textarea></div>
+      <label class="full" style="display:flex;gap:10px;font-size:14px;align-items:flex-start"><input type="checkbox" name="agree" style="margin-top:3px;accent-color:#fff"> I've read the <a href="#handbook" onclick="show('handbook');return false">pilot handbook</a> and will fly by its rules.</label>
+      <p class="full ap-privacy">Staff use your details only to review your application and, if you join, to run your PAC account. See the <a href="#privacy" onclick="show('privacy');return false">privacy policy</a>.</p>
+      <div class="full"><button class="btn light" type="submit" style="background:#fff;color:var(--red);border-color:#fff">Submit application</button></div>
+    </form>
+  </div>
+  ${siteFooter(site)}`;
+  homeLayout();
+  fillHomeCampaigns(); buildBoard($("#fbDep")); buildBoard($("#fbArr")); refreshBoard(); tickClock(); tickCountdowns();
+  bindShots($("#homeRoot"), shots, () => loadHome());
+  const hero = $("#homeRoot .hero");
+  gfHomeStrip();
+  const notices = news.filter(n => n.kind === 'notam');
+  if (S.me && hero && notices.length) hero.insertAdjacentHTML('afterend', `<section class="home-notices" aria-label="Latest company notices"><div class="home-notices-heading"><b>Latest notices</b><span>${notices.length} company notice${notices.length===1?'':'s'} · Select a title to read</span></div>${notices.map(n=>`<details${n.important?' class="notice-important"':''}><summary>${n.important?'<span class="notice-priority">Important</span>':''}${esc(n.title)}</summary><div class="home-notice-body">${esc(n.body || 'No further details.')}<small>${esc(n.author || 'PAC Operations')}${n.time?' · '+new Date(n.time*1000).toLocaleDateString('en-US'):''}</small></div></details>`).join('')}</section>`);
+  if (hero && S.me) hero.insertAdjacentHTML('afterend', `<section class="home-next" id="homeNext">${homeNextHTML(st)}</section>`);
+  if (hero && S.me && !S.me.activity) loadMe().then(() => { const hn = $("#homeNext"); if (hn) hn.innerHTML = homeNextHTML(st); }).catch(() => {});
+  if ($("#heroApply")) $("#heroApply").onclick = e => { e.preventDefault(); $("#apply").scrollIntoView({ behavior: "smooth" }); };
+  document.querySelectorAll("[data-photo]").forEach(b => b.onclick = () => { const a = S.fleet[b.dataset.photo]; openPhoto(a.photo, a.name); });
+  if ($("#applyForm")) $("#applyForm").onsubmit = async e => {
+    e.preventDefault();
+    const fd = Object.fromEntries(new FormData(e.target).entries()); fd.agree = !!e.target.agree.checked;
+    try {
+      await api("/api/applications", { method: "POST", body: fd });
+      e.target.innerHTML = `<div class="full"><h3 style="font-size:22px;margin:0 0 8px">Application received</h3><p style="margin:0">Thanks, ${esc(fd.name.split(" ")[0])}. Staff will review it shortly. Once approved, your next step is the 737 line checkride.</p></div>`;
+    } catch (err) { toast(err.message); }
+  };
+  if (HAS_MAP) {
+    if (S.homeMap) S.homeMap.remove();
+    S.homeDots = [];
+    const base = makeBaseMap($("#homeMap"), { theme: "light", style: S.settings.map_style === "dark" ? "light" : (S.settings.map_style || "light") });
+    S.homeMap = base.map; S.homeMap.setView([30, 5], 2); S.homeMap.sc
+... 4280 bytes omitted ...
+    <div class="tr-grid">
+      <label>Type<select name="kind"><option value="va">Virtual airline</option><option value="network">VATSIM or IVAO</option></select></label>
+      <label>Name<input name="name" maxlength="80" placeholder="e.g. Delta Virtual Airlines" required></label>
+      <label class="wide">Logbook or profile link<input name="url" type="url" maxlength="300" placeholder="https://…" required></label>
+      <label>Hours shown<input name="hours" type="number" min="0.1" step="0.1" required></label>
+      <label>Screenshot showing your name or pilot ID and the hours<input name="proof" type="file" accept="image/png,image/jpeg,image/webp" required></label>
+    </div></fieldset>`;
+  let n = 1;
+  const paint = () => {
+    $("#trBody").innerHTML = `<form id="trForm" class="tr-form">
+      <p class="small" style="margin:0">Each source needs a link to your logbook or profile page and a screenshot of it. <b>The screenshot must show your name or pilot ID together with your hours</b>: many VA systems need a login, so staff may not be able to open the link and will go by the screenshot. If staff can't confirm it's you, they may ask for a quick Discord screen share.</p>
+      <ul class="small muted" style="margin:0;padding-left:18px">
+        <li>Hours at different virtual airlines add up.</li>
+        <li>VATSIM/IVAO hours are usually the same flights as your VA hours, so they don't add on top: staff use whichever total is larger.</li>
+        <li>PAC credits half of the verified total, up to ${r.cap} hours. ${d.is_appeal ? "This is your appeal, so there's no further request after it." : "You get one request and one appeal."}</li>
+      </ul>
+      <div id="trSrcs">${Array.from({ length: n }, (_, i) => row(i)).join("")}</div>
+      ${n < r.max_sources ? `<button type="button" class="btn ghost small" id="trAdd" style="align-self:flex-start">+ Add another source</button>` : ""}
+      <label>Anything staff should know? (optional)<textarea name="comment" maxlength="1000" rows="2" placeholder="e.g. my pilot ID there was DAL1234"></textarea></label>
+      <div class="tr-est small" id="trEst"></div>
+      <div class="auth-err" id="trErr" role="alert"></div>
+      <div class="row"><button class="btn" type="submit">Send to staff</button><button class="btn ghost" type="button" data-tr-cancel>Cancel</button></div></form>`;
+    $("#trAdd") && ($("#trAdd").onclick = () => { keep(); n++; paint(); restore(); });
+    document.querySelectorAll("[data-src-del]").forEach(b => b.onclick = () => { keep(); saved.splice(+b.dataset.srcDel, 1); n--; paint(); restore(); });
+    $("[data-tr-cancel]").onclick = () => dlg.close();
+    $("#trForm").oninput = est;
+    $("#trForm").onsubmit = send;
+    est();
+  };
+  let saved = [];
+  const srcEls = () => [...document.querySelectorAll("#trSrcs [data-src]")];
+  const keep = () => { saved = srcEls().map(f => ({ kind: f.querySelector("[name=kind]").value, name: f.querySelector("[name=name]").value, url: f.querySelector("[name=url]").value, hours: f.querySelector("[name=hours]").value, file: f.querySelector("[name=proof]").files[0] || null })); };
+  const restore = () => srcEls().forEach((f, i) => { const v = saved[i]; if (!v) return;
+    f.querySelector("[name=kind]").value = v.kind; f.querySelector("[name=name]").value = v.name; f.querySelector("[name=url]").value = v.url; f.querySelector("[name=hours]").value = v.hours;
+    if (v.file) { const dt = new DataTransfer(); dt.items.add(v.file); f.querySelector("[name=proof]").files = dt.files; } });
+  const est = () => {
+    let va = 0, net = 0;
+    srcEls().forEach(f => { const h = Number(f.querySelector("[name=hours]").value) || 0; f.querySelector("[name=kind]").value === "network" ? net += h : va += h; });
+    const base = Math.max(va, net), cr = Math.min(r.cap, Math.round(base * r.share * 10) / 10);
+    $("#trEst").innerHTML = base ? `If staff verify everything: <b>${esch(Math.round(base * 10) / 10)} h</b>${va && net ? ` (the larger of ${esch(va)} h VA and ${esch(net)} h network)` : ""} → <b>${esch(cr)} h credited</b>${base * r.share > r.cap ? ` (capped at ${r.cap})` : ""}.` : "";
+  };
+  const send = async e => {
+    e.preventDefault();
+    const btn = e.target.querySelector("[type=submit]"), fd = new FormData(), list = [];
+    srcEls().forEach((f, i) => {
+      list.push({ kind: f.querySelector("[name=kind]").value, name: f.querySelector("[name=name]").value.trim(), url: f.querySelector("[name=url]").value.trim(), hours: f.querySelector("[name=hours]").value });
       const file = f.querySelector("[name=proof]").files[0]; if (file) fd.append(`proof${i}`, file);
     });
     fd.append("sources", JSON.stringify(list));
@@ -9987,4 +10079,3 @@ async function staffRelief(host = $("#staffBody")) {
   });
   body.querySelectorAll("[data-close]").forEach(b => b.onclick = async () => { if (await send(b.dataset.close, "close")) { toast("Mission closed."); staffRelief(host); } });
 }
-
