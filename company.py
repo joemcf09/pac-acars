@@ -30,7 +30,7 @@ ROLES = {
 ROLE_PLAYBOOK = {
     "ceo": ("Review unresolved staff alerts and decisions; assign an owner for each issue.", "Use Staff for cross-team review and approve spending or exceptions that need owner authority."),
     "chief_pilot": ("Review flight safety concerns referred by Operations or Maintenance.", "Ask the CEO for the relevant PIREP, contact the pilot for context, and escalate any safety restriction; do not clear maintenance write-ups."),
-    "dir_ops": ("Follow diversions, delayed freight and AOG cases in Ops desk → Exceptions.", "Record a hold, onward carriage or recovery decision and send the pilot an OCC instruction; confirm cargo movement through the accepted PIREP flow."),
+    "dir_ops": ("Follow diversions, delayed freight and AOG cases in Ops desk → Exceptions.", "Record a hold, onward carriage or recovery decision and send the pilot an OCC instruction. Publish a separate company NOTAM or announcement when all pilots need an update; confirm cargo movement through the accepted PIREP flow."),
     "fleet_mgr": ("Review grounded aircraft and write-ups in Fleet & maintenance → Maintenance.", "Check the linked flight measurements and AOG recovery status; keep the tail grounded until the inspection or repair is complete, then record rectification before clearing."),
     "commercial": ("Review customer complaints and affected shipments in Commercial.", "Coordinate a customer update with Operations; do not promise delivery until the shipment record confirms it."),
     "creative": ("Review approved company announcements and NOTAMs in Media & comms.", "Publish operational notices only after Operations confirms the facts; avoid presenting an open AOG as resolved."),
@@ -68,7 +68,8 @@ CAN = {"ceo_desk": {"ceo"}, "fleet_market": {"ceo", "fleet_mgr"}, "complaints": 
 # tested. Built incrementally, one clean role at a time.
 SCOPE = {
     "liveries": {"roles": {"livery_mgr"}, "paths": ("liveries",)},
-    "creative": {"roles": {"creative"}, "paths": ("partner-photos", "news")},
+    "creative": {"roles": {"creative"}, "paths": ("partner-photos",)},
+    "notices": {"roles": {"creative", "dir_ops"}, "paths": ("news",)},
     "commercial": {"roles": {"commercial"}, "paths": ("complaints", "accounts", "lanes", "featured-shipments")},
     "fleet": {"roles": {"fleet_mgr"}, "paths": ("fleet-types", "airframes", "maintenance", "fleet-recs", "fleet-catalog")},
     "operations": {"roles": {"dir_ops"}, "paths": ("cargo-campaigns", "events", "relief", "ops-exceptions")},

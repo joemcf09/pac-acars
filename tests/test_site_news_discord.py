@@ -12,6 +12,8 @@ for _f in ("logbook.db", "settings.json", "secret_key", "site.json"):
     (DATA / _f).unlink(missing_ok=True)
 
 import app as A  # noqa: E402
+import auth  # noqa: E402
+import company  # noqa: E402
 import discord_bot as DB  # noqa: E402
 
 failures = []
@@ -26,7 +28,6 @@ def check(name, cond, detail=""):
 c = A.app.test_client()
 c.post("/api/auth/setup", json={"password": "News-Discord-Pass-1"})
 c.post("/api/settings", json={"discord_bot_enabled": True, "discord_bot_token": "test-token"})
-
 
 def events():
     with A.db() as con:
@@ -59,6 +60,23 @@ check("news keeps its paragraphs", card["description"] == "Line one.\n\nLine two
 check("important posts are PAC red", card["colour"] == DB.PAC_RED)
 long = DB.site_news_card({"kind": "news", "title": "x", "body": "word " * 1200}, "https://pac-va.com")
 check("very long posts fit Discord's limit", len(long["description"]) <= 3900)
+
+with A.db() as con:
+    con.execute("INSERT INTO pilots (id,name,email,hub,joined,status,checkride,staff) VALUES "
+                "('PAC0006','Ops Manager','ops@example.com','KCVG',1767225600,'Active','Passed',0)")
+    company.assign(con, "PAC0006", "dir_ops", "")
+auth._set_password("PAC0006", "Ops-News-Pass-123")
+ops = A.app.test_client()
+check("Ops role holder can sign in", ops.post("/api/auth/login", json={"pilot_id": "PAC0006", "password": "Ops-News-Pass-123"}).status_code == 200)
+check("Ops role holder sees notices capability", "notices" in ops.get("/api/pilot/me").json["staff_caps"])
+posted = ops.post("/api/staff/news", json={"kind": "notam", "title": "AOG at EPKK", "body": "N743PC remains grounded pending inspection.", "discord": True})
+check("Ops role holder can publish a company NOTAM", posted.status_code == 200, posted.status_code)
+check("Ops NOTAM appears in the public site feed", any(n["title"] == "AOG at EPKK" for n in ops.get("/api/news").json))
+check("Ops NOTAM is queued for the Discord channel", events()[-1]["title"] == "AOG at EPKK")
+announcement = ops.post("/api/staff/news", json={"kind": "news", "title": "Recovery update", "body": "Inspection is underway.", "discord": True})
+check("Ops role holder can publish an announcement", announcement.status_code == 200, announcement.status_code)
+check("Ops announcement appears in the public site feed", any(n["title"] == "Recovery update" for n in ops.get("/api/news").json))
+check("Ops announcement is queued for Discord", events()[-1]["title"] == "Recovery update")
 
 print("\nSITE NEWS DISCORD TEST", "PASSED" if not failures else f"FAILED ({len(failures)}): {failures}")
 sys.exit(1 if failures else 0)

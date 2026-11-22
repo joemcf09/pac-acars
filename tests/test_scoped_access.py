@@ -68,9 +68,9 @@ check("ordinary pilot cannot edit Academy", company.may_path(con, "PAC0002", "/a
 # --- Creative / Media: a second scoped role, kept separate from Livery -------
 check("partner-photos path is scoped to creative", company.capability_for("/api/staff/partner-photos") == "creative")
 check("partner-photos sub-path (browse) scoped", company.capability_for("/api/staff/partner-photos/FX/B77F/browse") == "creative")
-check("news path is scoped to creative", company.capability_for("/api/staff/news") == "creative")
-check("news sub-path (delete one) scoped", company.capability_for("/api/staff/news/42") == "creative")
-check("Mara's caps = [creative]", company.caps_of(con, "PAC0003") == ["creative"], company.caps_of(con, "PAC0003"))
+check("news path is scoped to notices", company.capability_for("/api/staff/news") == "notices")
+check("news sub-path (delete one) scoped", company.capability_for("/api/staff/news/42") == "notices")
+check("Mara's caps = [creative, notices]", company.caps_of(con, "PAC0003") == ["creative", "notices"], company.caps_of(con, "PAC0003"))
 check("Mara MAY /api/staff/partner-photos", company.may_path(con, "PAC0003", "/api/staff/partner-photos") is True)
 check("Mara MAY partner-photos sub-path", company.may_path(con, "PAC0003", "/api/staff/partner-photos/FX/B77F") is True)
 check("Mara MAY /api/staff/news (announcements/NOTAMs)", company.may_path(con, "PAC0003", "/api/staff/news") is True)
@@ -117,7 +117,11 @@ check("Devi (commercial) may NOT /api/staff/fleet-types", company.may_path(con, 
 for p in ("cargo-campaigns", "events", "relief"):
     check(f"{p} path is scoped to operations", company.capability_for("/api/staff/" + p) == "operations",
           company.capability_for("/api/staff/" + p))
-check("Omar's caps = [operations]", company.caps_of(con, "PAC0006") == ["operations"], company.caps_of(con, "PAC0006"))
+check("Omar's caps = [notices, operations]", company.caps_of(con, "PAC0006") == ["notices", "operations"], company.caps_of(con, "PAC0006"))
+check("Omar MAY publish company notices", company.may_path(con, "PAC0006", "/api/staff/news") is True)
+check("Omar MAY manage posted company notices", company.may_path(con, "PAC0006", "/api/staff/news/7") is True)
+check("Omar may NOT manage partner photos", company.may_path(con, "PAC0006", "/api/staff/partner-photos") is False)
+check("Finn (fleet only) may NOT publish notices", company.may_path(con, "PAC0005", "/api/staff/news") is False)
 check("Omar MAY /api/staff/events", company.may_path(con, "PAC0006", "/api/staff/events") is True)
 check("Omar MAY /api/staff/cargo-campaigns", company.may_path(con, "PAC0006", "/api/staff/cargo-campaigns") is True)
 check("Omar MAY /api/staff/relief/<id>/post", company.may_path(con, "PAC0006", "/api/staff/relief/x/post") is True)

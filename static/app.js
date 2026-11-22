@@ -6480,13 +6480,14 @@ async function loadOps() {
   const root = $("#opsRoot");
   if (!root) return;
   S.opsTab = S.opsTab || "events";
-  const tabs = [["exceptions", "Exceptions"], ["events", "Events"], ["campaigns", "Campaigns"], ["relief", "Relief missions"]];
+  const tabs = [["exceptions", "Exceptions"], ["notices", "Notices & announcements"], ["events", "Events"], ["campaigns", "Campaigns"], ["relief", "Relief missions"]];
   root.innerHTML = `<div class="profile-bar"><h1>Ops desk</h1><span class="muted">The airline's operational tempo: points events, cargo campaigns and relief missions.</span></div>
     <div class="msg-tabs" style="margin-bottom:16px">${tabs.map(([k, t]) => `<button class="${S.opsTab === k ? "on" : ""}" data-otab="${k}">${t}</button>`).join("")}</div>
     <div id="opsBody"></div>`;
   root.querySelectorAll("[data-otab]").forEach(b => b.onclick = () => { S.opsTab = b.dataset.otab; loadOps(); });
   const body = $("#opsBody");
   if (S.opsTab === "exceptions") staffOpsExceptions(body);
+  else if (S.opsTab === "notices") staffNews(undefined, body);
   else if (S.opsTab === "campaigns") staffCargoCampaigns(body);
   else if (S.opsTab === "relief") staffRelief(body);
   else staffEvents(undefined, body);
@@ -7017,7 +7018,7 @@ async function staffNews(edit, body = $("#staffBody")) {
       <div class="field full"><label for="nw_body">Text</label><textarea id="nw_body" name="body" rows="3" maxlength="2000">${esc(n?.body || "")}</textarea></div>
       <label class="full" style="display:flex;gap:8px;align-items:center"><input type="checkbox" name="important" ${n?.important ? "checked" : ""} style="accent-color:var(--red)"> Important (shown first, in red)</label>
       <label class="full" style="display:flex;gap:8px;align-items:center"><input type="checkbox" name="discord" ${n ? "" : "checked"} style="accent-color:var(--red)"> ${n ? "Post the updated version to Discord too" : "Post it to Discord too (NOTAMs go to the NOTAM channel, news to announcements)"}</label>
-      <p class="muted full" style="margin:0;font-size:13px">News appears on the home page. Company NOTAMs also show as a banner on the home page and mission board, and are sent to pilots as ACARS messages when they start tracking, so keep them short: one rule or warning each. Use News for longer announcements.</p>
+      <p class="muted full" style="margin:0;font-size:13px">News appears on the home page. Company NOTAMs also show as a banner on the home page and mission board, and are sent to pilots as ACARS messages when they start tracking, so keep them short: one rule or warning each. Use News for longer announcements. An OCC decision in Exceptions only sends Crew Mail to the affected pilot; publish a separate post here for a company-wide update. Discord posting uses the selected channel only when the box is checked and the bot is available.</p>
       <div class="full row"><button class="btn" type="submit">${n ? "Save" : "Post"}</button>${n ? `<button class="btn ghost" type="button" id="nwCancel">Cancel</button>` : ""}</div></form>
     <div class="table-wrap"><table class="staff-table"><thead><tr><th>Posted</th><th>Type</th><th>Title</th><th>Until</th><th></th></tr></thead><tbody>
     ${list.map(x => `<tr><td>${new Date(x.time * 1000).toISOString().substr(0, 10)}</td><td>${x.kind === "notam" ? '<span class="tag amber" style="margin:0">NOTAM</span>' : '<span class="tag grey" style="margin:0">News</span>'}${x.important ? ' <span class="tag" style="margin:0">Important</span>' : ""}</td>
@@ -7027,7 +7028,7 @@ async function staffNews(edit, body = $("#staffBody")) {
     e.preventDefault();
     const body2 = Object.fromEntries(new FormData(e.target).entries());
     body2.important = !!e.target.important.checked; body2.discord = !!e.target.discord.checked; if (n) body2.id = n.id;
-    try { await api("/api/staff/news", { method: "POST", body: body2 }); toast(n ? "Post updated." : "Posted."); S.news = null; staffNews(undefined, body); } catch (err) { toast(err.message); }
+    try { await api("/api/staff/news", { method: "POST", body: body2 }); toast(n ? "Post updated on the site." : "Posted on the site."); S.news = null; staffNews(undefined, body); } catch (err) { toast(err.message); }
   };
   if ($("#nwCancel")) $("#nwCancel").onclick = () => staffNews(undefined, body);
   body.querySelectorAll("[data-nedit]").forEach(b => b.onclick = () => staffNews(+b.dataset.nedit, body));
