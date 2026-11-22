@@ -25,4 +25,3 @@
 html[data-theme="dark"] #view-missions .mb-choice-actions .btn[aria-pressed="true"]{background:var(--red);border-color:var(--red);color:#fff}
 @media(max-width:650px){#view-missions .mb-choice-actions{width:100%}#view-missions .mb-choice-actions .btn{flex:1}#view-missions .mb-card:hover{transform:none}}
 @media(prefers-reduced-motion:reduce){#view-missions .mb-card{transition:none}}
-
