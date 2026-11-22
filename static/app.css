@@ -2,6 +2,7 @@
   --on-accent:#FFFFFF; --panel-dark:#1E2126; --ok-wash:#E3F4EA; --warn-wash:#FFF1CC; --note-wash:#FFF7E0; --ok-ink:#17693C; --warn-ink:#7A5600;
   --red:#C80000; --red-deep:#9A0000; --red-wash:#FBEAEA;
   --white:#FFFFFF; --paper:#F3F4F6; --ink:#1E2126; --steel:#5E6470; --line:#D9DCE1;
+  --card:#FFFFFF; --panel:#FFFFFF; --muted:#5E6470; --accent:#2D4F7C;
   --scope:#1B1E23; --scope-2:#252930; --scope-line:#363B44; --scope-text:#EEF0F2; --scope-dim:#8E96A3;
   --amber:#F2A900; --go:#2FB36B;
   --font:"Saira",system-ui,-apple-system,"Segoe UI",sans-serif;
@@ -925,6 +926,7 @@ button.rec{cursor:pointer}button.rec:hover{border-color:var(--red)}
 html[data-theme="dark"]{
   --panel-dark:#2A2F38;
   --white:#1D2127; --paper:#121418; --ink:#E6E8EB; --steel:#9AA2AE; --line:#30353E; --red-wash:#3A1E21;
+  --card:#1D2127; --panel:#1D2127; --muted:#9AA2AE; --accent:#A8CEFF;
   --ok-wash:#16301F; --warn-wash:#3A3016; --note-wash:#332B17; --ok-ink:#7FD9A2; --warn-ink:#F0C66A;
   color-scheme:dark;
 }
@@ -1916,7 +1918,14 @@ html[data-design="loadsheet"] :is(.relief-draft,.relief-notice,.relief-checks){b
 .mkt-price{font-weight:700;font-size:16px}.mkt-order{margin-top:14px;display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end}.mkt-order h3{width:100%;margin:0}
 .mkt-disc{font-size:12px;margin-top:18px}
 .cmp{border:1px solid var(--line,#d8dde3);border-radius:10px;padding:12px;margin-bottom:10px;background:var(--card,#fff)}.cmp.answered{opacity:.7}
+html[data-theme="dark"] .cmp.answered{opacity:1;border-color:var(--line)}
 .cmp-acts{display:flex;flex-wrap:wrap;gap:6px}
+
+/* Keep inherited light-theme text off pale panels when dark mode is active. */
+html[data-theme="dark"] .aog-board{background:var(--red-wash);color:var(--ink)}
+html[data-theme="dark"] .rotation-saved{background:var(--card);border-color:var(--line);border-left-color:var(--red)}
+html[data-theme="dark"] .rotation-warning,
+html[data-theme="dark"] .cgo-note-list li{background:var(--note-wash);color:var(--ink);border-color:var(--warn-ink)}
 
 /* staff: section buttons above the page tabs, so nothing scrolls sideways */
 .staff-groups{display:flex;flex-wrap:wrap;gap:6px;margin:16px 0 10px}
