@@ -1136,6 +1136,8 @@ function paneBrief(m) {
     ${ok && zoneFor(m)?.level === "restricted" ? `<p class="dp-ready" style="border-color:#c0262d;background:rgba(192,38,45,.07)"><b>You're qualified, but this flight isn't authorized.</b> You can still fly it, but it won't be credited (see the restricted airspace box above).</p>` : ok ? `<p class="dp-ready">No location, rating or rank blocker found. Pick your aircraft next; final checks run when you request the flight. <button type="button" class="linkish" onclick="openPilotGuide('${m.type_checkride || m.category === "Checkride" ? "checkride" : "cargo"}')">Step-by-step guide</button></p>` : ""}`;
 }
 function paneAircraft(m) {
+  const recoveryPositioning = m.aog_case && !(S.airframes || []).some(a => a.status === "Available" && a.location === m.origin.icao && m.aircraft.includes(a.type))
+    ? `<div class="notice"><b>Bring an aircraft to ${esc(m.origin.icao)} first.</b> The engineers and kit leave from this airport, but no suitable PAC tail is parked here. Choose a qualified type and an available tail below, then click <b>Fly it to ${esc(m.origin.icao)}</b>. PAC will build a ferry charter from that tail's current airport; you do not need to find a job on that route. Jumpseat to the tail's airport if needed. After the ferry flight is accepted and the aircraft reaches ${esc(m.origin.icao)}, reopen ${esc(m.id)} and fly the recovery leg.</div>` : "";
   const types = m.charter ? `<p class="dp-lead">Charter aircraft: <b>${esc(S.fleet[m.aircraft[0]].name)}</b>. Change it in the charter form and rebuild.</p>${capacityNote(m, S.aircraft)}` : `
     <h3 class="dp-h">Aircraft type</h3>
     ${gravelNote(m)}
@@ -1147,7 +1149,7 @@ function paneAircraft(m) {
   const poss = n => /s$/i.test(n) ? `${n}'` : `${n}'s`;   // "UPS Airlines'", "Atlas Air's"
   const tail = m.contract ? `<div class="notice">You fly <b>${esc(poss(m.operator.name))}</b> ${ptail ? `<b>${esc(ptail)}</b>, one of their ${esc(S.fleet[S.aircraft]?.name || "")}s,` : "aircraft"} under callsign <b>${esc(m.operator.callsign)}</b> (${esc(m.id)}). No PAC airframe is used${ptail ? `: SimBrief gets ${esc(ptail)} as the registration. Load ${esc(m.operator.name)} livery if you have it.` : `: load any ${esc(S.fleet[S.aircraft]?.name || "")} livery you like.`}</div>`
     : `<h3 class="dp-h">Airframe</h3>${airframePicker(m, S.aircraft)}`;
-  return `${types}${tail}<details class="journey-help"><summary>Aircraft missing? Understand travel and ferry options</summary>${travelGuideHTML()}</details>`;
+  return `${recoveryPositioning}${types}${tail}<details class="journey-help"><summary>Aircraft missing? Understand travel and ferry options</summary>${travelGuideHTML()}</details>`;
 }
 function paneLoad(m) {
   if (m.training) return `<div class="notice">Training flight: no cargo is carried, so there's no load sheet. Plan it in SimBrief with an empty hold.</div>`;
@@ -7420,13 +7422,15 @@ function aogBoard() {
   return `<section class="aog-board" aria-label="Aircraft on ground">
     <h2>🔧 Aircraft on ground</h2>
     <p class="muted">Grounded away from maintenance. Fly the recovery mission to get the parts and engineers there: the aircraft returns to service when the repair is done.</p>
-    ${list.map(a => { const g = a.aog; return `<div class="aog-card">
+    ${list.map(a => { const g = a.aog, mission = (S.urgent || []).find(m => m.id === g.mission_id);
+      const needsFerry = mission && !(S.airframes || []).some(f => f.status === "Available" && f.location === g.hub && mission.aircraft.includes(f.type));
+      return `<div class="aog-card">
       <div class="aog-top"><b>${esc(a.reg)}</b> <span class="muted">${esc(S.fleet[a.type]?.name || a.type)} · at ${esc(g.station)}</span><span class="aog-title">${esc(g.title)}</span></div>
       <ol class="aog-steps"><li class="done">Grounded after ${esc(g.cause_flight || "its last flight")}</li>
         <li class="${step(a, 1)}">${g.status === "awaiting_parts" ? (g.contractor ? `Contractor flying ${fmt(g.weight_lbs)} lb of parts in, due ${when(g.parts_due)}` : `Waiting for ${fmt(g.weight_lbs)} lb of parts and the ${esc(g.team || "engineers")} from ${esc(g.hub)}`) : "Parts and engineers on site"}</li>
         <li class="${step(a, 2)}">${g.status === "repairing" ? `Repair under way, back in service about ${when(g.repair_until)}` : "Repair"}</li>
         <li>Back in service</li></ol>
-      ${g.status === "awaiting_parts" && g.mission_id && !g.contractor ? `<button class="btn small" onclick="show('missions')">Fly recovery mission ${esc(g.mission_id)} →</button>` : ""}
+      ${g.status === "awaiting_parts" && g.mission_id && !g.contractor ? `${needsFerry ? `<p class="muted"><b>Aircraft positioning needed at ${esc(g.hub)}.</b> Open the recovery plan, choose an available aircraft on the Aircraft step, and use <b>Fly it to ${esc(g.hub)}</b> to create a ferry charter. No matching job-board route is required.</p>` : ""}<button class="btn small" onclick="flyMission('${esc(g.mission_id)}')">Plan recovery mission ${esc(g.mission_id)} →</button>` : ""}
     </div>`; }).join("")}
   </section>`;
 }
