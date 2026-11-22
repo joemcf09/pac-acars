@@ -103,6 +103,8 @@ check("Finn's caps = [fleet]", company.caps_of(con, "PAC0005") == ["fleet"], com
 check("Finn MAY /api/staff/fleet-types", company.may_path(con, "PAC0005", "/api/staff/fleet-types") is True)
 check("Finn MAY /api/staff/airframes", company.may_path(con, "PAC0005", "/api/staff/airframes") is True)
 check("Finn MAY /api/staff/maintenance/<id>", company.may_path(con, "PAC0005", "/api/staff/maintenance/5") is True)
+check("Fleet Manager may read one write-up's flight context", company.may_path(con, "PAC0005", "/api/staff/maintenance/5/context") is True)
+check("plain pilot may not read Fleet flight context", company.may_path(con, "PAC0002", "/api/staff/maintenance/5/context") is False)
 check("Finn MAY /api/staff/fleet-recs (recommend)", company.may_path(con, "PAC0005", "/api/staff/fleet-recs") is True)
 check("Finn MAY /api/staff/fleet-catalog (browse, no cash)", company.may_path(con, "PAC0005", "/api/staff/fleet-catalog") is True)
 check("Finn may NOT /api/staff/market (money, admin-only)", company.may_path(con, "PAC0005", "/api/staff/market") is False)

@@ -3415,6 +3415,7 @@ def enforce_overdue():
         import aog
         with C["db"]() as con:
             events = [("aog_resolved", e) for e in aog.tick(con, now)]
+            events.extend(("aog_staff_alert", e) for e in aog.reconcile_staff_alerts(con, now))
             import heavy_check
             heavy_check.tick(con, now)
     except Exception as e:
@@ -3488,6 +3489,34 @@ def maintenance_list():
                 r["overdue"] = bool(r["status"] == "open" and r["due"] and r["due"] < time.time())
             return jsonify({"items": rows, "ata": ATA})
     return jsonify({"items": open_items(reg), "ata": ATA})
+
+
+@bp.get("/api/staff/maintenance/<int:iid>/context")
+def staff_maintenance_context(iid):
+    """Flight evidence for one write-up, available to Fleet staff without the full PIREP feed."""
+    with C["db"]() as con:
+        import aog
+        aog.init(con)
+        item = con.execute("SELECT reg,flight,pirep_id,source FROM maint WHERE id=?", (iid,)).fetchone()
+        if not item:
+            return jsonify({"error": "Write-up not found."}), 404
+        report = con.execute("""SELECT p.id,p.flight_number,p.dep,p.arr,p.planned_arr,p.aircraft,p.registration,
+            p.landing_rate,p.landing_g,p.score,p.grade,p.status,p.review_status,p.filed_at,
+            p.payload_lbs,p.remarks,p.pilot_id,pl.name AS pilot_name
+            FROM pireps p LEFT JOIN pilots pl ON pl.id=p.pilot_id WHERE p.id=?""",
+            (item["pirep_id"],)).fetchone() if item["pirep_id"] else None
+        case = con.execute("""SELECT id,status,mission_id,hub,station,contractor,parts_due,repair_until,
+            cause_flight FROM aog_cases WHERE reg=? AND (cause_pirep=? OR cause_flight=?)
+            ORDER BY id DESC LIMIT 1""", (item["reg"], item["pirep_id"], item["flight"])).fetchone()
+        cargo = []
+        if report:
+            cargo = [dict(r) for r in con.execute("""SELECT s.awb,s.commodity,s.gross_weight_lbs,
+                s.destination,s.current_station,s.status,m.status AS arrival_status
+                FROM cargo_movements m JOIN cargo_shipments s ON s.id=m.shipment_id
+                WHERE m.pirep_id=? AND m.event_type='FLIGHT_ARRIVAL' ORDER BY s.awb LIMIT 50""",
+                (report["id"],))]
+    return jsonify(item=dict(item), report=dict(report) if report else None,
+                   aog=dict(case) if case else None, cargo=cargo)
 
 
 @bp.post("/api/maintenance")

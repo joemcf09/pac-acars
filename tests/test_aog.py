@@ -11,7 +11,7 @@ if len(sys.argv) == 1:
         sys.exit(subprocess.run([sys.executable, __file__, "--isolated"], cwd=ROOT, env=dict(os.environ, PAC_DATA_DIR=str(data))).returncode)
 sys.path.insert(0, str(ROOT))
 import app as A  # noqa: E402
-import va, aog  # noqa: E402
+import va, aog, company  # noqa: E402
 
 failures = []
 def check(name, cond, detail=""):
@@ -35,6 +35,10 @@ code = next(k for k in ("B738F", "B733F", "B763F") if k in A.FLEET)
 station = next(i for i in ("KCLT", "KATL", "KJFK", "KORD") if i in A.AIRPORTS)
 now = time.time()
 with A.db() as con:
+    con.execute("INSERT INTO pilots (id,name,status,discord_id) VALUES ('PAC0198','Fleet lead','Active','998877')")
+    con.execute("INSERT INTO pilots (id,name,status) VALUES ('PAC0197','Ops lead','Active')")
+    company.assign(con, 'PAC0198', 'fleet_mgr')
+    company.assign(con, 'PAC0197', 'dir_ops')
     con.execute("INSERT OR REPLACE INTO airframes (reg, type, location, status, hours, cycles, hours_since_check) VALUES ('N901PC',?,?,'Available',100,50,10)", (code, station))
     con.execute("INSERT OR REPLACE INTO airframes (reg, type, location, status, hours, cycles, hours_since_check) VALUES ('N902PC',?,'KCVG','Available',100,50,10)", (code,))
     iid = va.create_item(con, "N901PC", 5, "Hard landing inspection after PAC1234", "grounding", source="acars", flight="PAC1234")
@@ -42,6 +46,11 @@ with A.db() as con:
 
 print("Opening a case away from a hub")
 check("a case is opened, awaiting parts", case and ev and not ev["at_hub"])
+with A.db() as con:
+    alerts = [dict(r) for r in con.execute("SELECT recipient,subject,body FROM messages WHERE subject LIKE 'AOG action · N901PC%'")]
+check("Fleet, Ops and CEO each get a direct Crew Mail alert", {r['recipient'] for r in alerts} == {'PAC0198', 'PAC0197', 'PAC0001'})
+check("linked Fleet Manager is included for a Discord DM", ev['staff_discord'] == ['998877'], ev['staff_discord'])
+check("Fleet alert gives an action and source flight", any(r['recipient'] == 'PAC0198' and 'PAC1234' in r['body'] and 'Fleet & maintenance' in r['body'] for r in alerts))
 check("a recovery mission is posted from a PAC hub", ev["mission"] and ev["mission"].startswith("PAC88") and ev["hub"] in aog.HUBS, ev)
 m, st = va.urgent_by_id(ev["mission"])
 check("the mission is an open urgent request to the stranded aircraft", st == "open" and m["destination"]["icao"] == station and m["aog_case"] == case["id"])
@@ -65,6 +74,27 @@ with A.db() as con:
     again, _ = aog.open_case(con, "N901PC", code, station, "hard_landing", [iid], "PAC1235", None, va.C, now)
 check("a news post announces it", len(news) == 1)
 check("a second grounding doesn't open a second case", again is None)
+with A.db() as con:
+    alert_count = con.execute("SELECT COUNT(*) FROM messages WHERE subject LIKE 'AOG action · N901PC%'").fetchone()[0]
+check("retrying the case does not duplicate staff alerts", alert_count == len(alerts))
+with A.db() as con:
+    con.execute("DELETE FROM messages WHERE recipient='PAC0198' AND subject LIKE 'AOG action · N901PC%'")
+    catchup = aog.reconcile_staff_alerts(con, now + 60)
+    no_repeat = aog.reconcile_staff_alerts(con, now + 120)
+check("active legacy case sends Fleet a one-time catch-up alert", len(catchup) == 1 and catchup[0]['staff_discord'] == ['998877'] and not no_repeat)
+with A.db() as con:
+    report_id = con.execute("""INSERT INTO pireps (filed_at,flight_number,pilot_id,dep,arr,landing_rate,
+        landing_g,status,review_status) VALUES (?,?,?,?,?,?,?,?,?)""",
+        (now, 'PAC1234', 'PAC0001', 'KCVG', station, -680, 2.12, 'Delivered', 'Pending')).lastrowid
+    con.execute("UPDATE maint SET pirep_id=? WHERE id=?", (report_id, iid))
+detail = c.get(f'/api/staff/maintenance/{iid}/context')
+evidence = detail.get_json() or {}
+check("Fleet flight details include landing rate and G", detail.status_code == 200 and
+      evidence.get('report', {}).get('landing_rate') == -680 and evidence['report']['landing_g'] == 2.12)
+check("Fleet flight details include the AOG recovery mission", evidence.get('aog', {}).get('mission_id') == ev['mission'])
+check("flight evidence stays behind staff sign-in", A.app.test_client().get(f'/api/staff/maintenance/{iid}/context').status_code in (401, 403))
+briefing = c.get('/api/pilot/dashboard').get_json() or {}
+check("staff dashboard includes role-specific action guidance", any(r['role'] == 'ceo' and r['action'] for r in briefing.get('staff_playbook', [])))
 
 print("Recovery flight delivers, repair, return to service")
 with A.db() as con:

@@ -25,6 +25,29 @@ ROLES = {
     "hub_mgr": ("Hub Manager", "A hub's station report, backlog and regular pilots"),
     "academy_director": ("Academy Director", "Build and publish PAC Academy courses, lessons and training resources"),
 }
+# Shown to each role holder on their dashboard. Keep the action and escalation
+# explicit; a role title alone does not tell a new staff member what to do.
+ROLE_PLAYBOOK = {
+    "ceo": ("Review unresolved staff alerts and decisions; assign an owner for each issue.", "Use Staff for cross-team review and approve spending or exceptions that need owner authority."),
+    "chief_pilot": ("Review flight safety concerns referred by Operations or Maintenance.", "Ask the CEO for the relevant PIREP, contact the pilot for context, and escalate any safety restriction; do not clear maintenance write-ups."),
+    "dir_ops": ("Follow diversions, delayed freight and AOG cases in Ops desk → Exceptions.", "Record a hold, onward carriage or recovery decision and send the pilot an OCC instruction; confirm cargo movement through the accepted PIREP flow."),
+    "fleet_mgr": ("Review grounded aircraft and write-ups in Fleet & maintenance → Maintenance.", "Check the linked flight measurements and AOG recovery status; keep the tail grounded until the inspection or repair is complete, then record rectification before clearing."),
+    "commercial": ("Review customer complaints and affected shipments in Commercial.", "Coordinate a customer update with Operations; do not promise delivery until the shipment record confirms it."),
+    "creative": ("Review approved company announcements and NOTAMs in Media & comms.", "Publish operational notices only after Operations confirms the facts; avoid presenting an open AOG as resolved."),
+    "livery_mgr": ("Maintain the approved livery library and installation guidance.", "Check a submitted paint against the aircraft type and simulator before publishing; refer flight or maintenance issues to the owning team."),
+    "hub_mgr": ("Watch the assigned hub's cargo backlog and aircraft availability.", "Ask the CEO for the station report, raise handling or aircraft issues with Operations, and confirm the shipment record before reporting a delivery."),
+    "academy_director": ("Keep Academy lessons and training resources current.", "Update training guidance when a confirmed procedure changes; route live flight incidents to Operations and Maintenance."),
+}
+
+
+def playbook_for(con, pid):
+    """Return only the signed-in pilot's role guidance; read-only for dashboard use."""
+    try:
+        roles = [r[0] for r in con.execute("SELECT role FROM roles WHERE pilot_id=? ORDER BY role", (pid,))]
+    except Exception:
+        return []
+    return [{"role": role, "title": ROLES[role][0], "watch": ROLE_PLAYBOOK[role][0],
+             "action": ROLE_PLAYBOOK[role][1]} for role in roles if role in ROLES and role in ROLE_PLAYBOOK]
 # which roles may do what (the CEO can always do everything)
 CAN = {"ceo_desk": {"ceo"}, "fleet_market": {"ceo", "fleet_mgr"}, "complaints": {"ceo", "commercial"}, "roles": {"ceo"}}
 
@@ -193,7 +216,8 @@ def register(app, g):
     def roles_list():
         import payroll
         with g["db"]() as con:
-            return jsonify({"roles": [{"key": k, "title": v[0], "does": v[1], "pay": payroll.ROLE_STIPEND.get(k, 0)} for k, v in ROLES.items()],
+            return jsonify({"roles": [{"key": k, "title": v[0], "does": v[1], "pay": payroll.ROLE_STIPEND.get(k, 0),
+                                      "watch": ROLE_PLAYBOOK[k][0], "action": ROLE_PLAYBOOK[k][1]} for k, v in ROLES.items()],
                             "holders": holders(con), "mine": sorted(roles_of(con, pid())), "can_assign": may(con, pid(), "roles")})
 
     @app.post("/api/staff/roles")

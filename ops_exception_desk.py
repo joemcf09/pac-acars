@@ -46,14 +46,15 @@ def _cases(con):
     import aog
     aog.init(con)
     for row in con.execute("""SELECT a.id,a.reg,a.station,a.title,a.cause_flight,a.cause_pirep,
-        a.opened,a.status,a.mission_id,p.pilot_id FROM aog_cases a
+        a.opened,a.status,a.mission_id,p.pilot_id,p.landing_rate,p.landing_g,p.review_status FROM aog_cases a
         LEFT JOIN pireps p ON p.id=a.cause_pirep
         WHERE a.status IN ('awaiting_parts','repairing') ORDER BY a.opened DESC"""):
         key = f"AOG:{row['id']}"
         cases[key] = {"key": key, "kind": "aog", "station": row["station"],
             "flight": row["cause_flight"], "pilot_id": row["pilot_id"], "opened": row["opened"],
             "shipments": [], "mission_id": row["mission_id"], "airframe": row["reg"],
-            "title": row["title"], "status": row["status"]}
+            "title": row["title"], "status": row["status"], "landing_rate": row["landing_rate"],
+            "landing_g": row["landing_g"], "review_status": row["review_status"]}
     if cases:
         for row in con.execute("""SELECT * FROM ops_exception_actions WHERE id IN
             (SELECT MAX(id) FROM ops_exception_actions GROUP BY case_key)"""):
