@@ -75,6 +75,36 @@ for n in range(6):
         break
 else:
     check("generated 737 manifests use M01-M10, M12 and the holds, each within its real limit", True)
+check("737 main-deck ULD labels keep P12 distinct from full-size AAY bays",
+      all(p["uld"] == ("COMPACT" if p["pos"] == "M12" else "AAY")
+          for p in rel["positions"] if p["pos"].startswith("M")))
+full_bk = dict(bk, mission=dict(mission, payload_lbs=52800), ofp={"payload_lbs": 52800})
+full_rel = dispatch.generate(full_bk, FLEET, "Test Pilot")
+generated_p12 = [p for p in full_rel["positions"] if p["pos"] == "M12"]
+check("generated P12 freight has a compact unit ID, not a full-size AAY ID",
+      len(generated_p12) == 1 and generated_p12[0]["uld"] == "COMPACT"
+      and generated_p12[0]["unit"].startswith("PAC-P12-"), generated_p12)
+transfer = {"id": 1, "awb": "901-00000001", "destination": "MYNN", "data": {
+    "contents": "Transfer test", "unit_details": [{"weight_lbs": 2000, "pieces": 1, "contents": "Transfer test", "shc": ["GEN"]}]}}
+single_slot = copy.deepcopy(rel)
+single_slot["deck"]["main"], single_slot["deck"]["lower"] = ["M12"], []
+single_slot["positions"] = [p for p in single_slot["positions"] if p["pos"] != "M12"]
+loaded = dispatch.attach_transfers(single_slot, [transfer], bk)
+p12 = [p for p in loaded["positions"] if p["pos"] == "M12"]
+check("transfer into P12 uses a compact load within the documented position limit",
+      len(p12) == 1 and p12[0]["uld"] == "COMPACT" and p12[0]["unit"].startswith("PAC-P12-")
+      and p12[0]["weight_lbs"] <= caps["M12"])
+oversize = copy.deepcopy(rel)
+oversize["deck"]["main"], oversize["deck"]["lower"] = ["M12"], []
+oversize["positions"] = [p for p in oversize["positions"] if p["pos"] != "M12"]
+too_heavy = copy.deepcopy(transfer)
+too_heavy["data"]["unit_details"][0]["weight_lbs"] = caps["M12"] + 1
+try:
+    dispatch.attach_transfers(oversize, [too_heavy], bk)
+except ValueError:
+    check("transfer cargo over P12 limit is rejected", True)
+else:
+    check("transfer cargo over P12 limit is rejected", False)
 paper = dispatch.paperwork(rel, FLEET)
 ls = paper["loadsheet"]
 check("the release loadsheet uses the verified calculation", ls["cg_source"] == "calculated" and paper["balance"]["available"], ls["cg_source"])

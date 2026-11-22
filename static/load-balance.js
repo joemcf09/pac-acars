@@ -39,7 +39,7 @@
       <strong>${ph.pct_mac}% <small>MAC</small></strong><small>Limits ${ph.fwd_limit}–${ph.aft_limit}% · index ${ph.index}</small></div>`;
     const tow = $('cgTowMetric'); if (tow) tow.textContent = `${to.pct_mac}% MAC`;
     box.innerHTML = `<div class="panel-heading"><div><span class="eyebrow">WEIGHT AND BALANCE${pending ? ' · UPDATING…' : ''}</span><h2>Center of gravity</h2></div>
-        <span class="cg-status ${b.ok ? 'ok' : 'bad'}">${b.ok ? 'Within limits' : 'Out of limits'}</span></div>
+        <span class="cg-status ${b.ok ? 'ok' : 'bad'}">${b.ok ? 'Within modeled limits' : 'Outside modeled limits'}</span></div>
       ${b.provisional ? `<p class="notice"><strong>Provisional.</strong> ${esc(b.provisional_note)}</p>` : ''}
       <div class="cg-grid3">${cell(zf)}${cell(to)}${cell(lw)}
         <div class="cg-cell"><span>Takeoff trim</span>${b.trim_units != null ? `<strong>${b.trim_units.toFixed(2)} <small>units</small></strong><small>Flaps ${esc(b.trim_flaps)} · set before takeoff</small>` : `<strong style="font-size:18px">From the FMC</strong><small>TAKEOFF REF page</small>`}</div></div>

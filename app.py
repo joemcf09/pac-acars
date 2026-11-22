@@ -29,6 +29,7 @@ import volume
 import va
 import analysis
 import dispatch
+import wb
 import shipments  # noqa: E402  (air waybills, acceptance and tracking)
 import cargo_network
 import cargo_orders  # noqa: E402  (customer orders waiting at stations)
@@ -3012,6 +3013,7 @@ def plan_loadsheet():
     keep = ("ferry", "aircraft", "aircraft_name", "icao", "tail", "origin", "destination", "deck", "positions", "dg", "shc",
             "totals", "shipments", "onward", "international", "block_min")
     out = {k: d.get(k) for k in keep}
+    out["position_limits"] = wb.position_limits_lbs(ac_code) or {}
     out.update({"seed": seed, "mission_id": m["id"], "loadsheet": ls, "limits": lim, "checks": checks, "balance": paper.get("balance"),
                 "min_release_fuel": paper["min_release_fuel"], "fuel": f, "cruise_fl": est["cruise_fl"],
                 "alternate": est["alternate"], "payload_requested": m.get("payload_lbs") or 0,

@@ -1253,10 +1253,11 @@ function lsFocus(root, pos) {
   if (row) { const box = row.closest(".ls-table-wrap"); if (box) box.scrollTop = row.offsetTop - box.clientHeight / 2; }
 }
 const LS_CLASS = p => p.dg ? "dg" : p.shc.some(c => ["PER", "PIL", "COL", "PES", "PEF", "CRT", "EAT"].includes(c)) ? "cool" : p.shc.includes("VAL") ? "val" : p.shc.some(c => ["AOG", "HEA", "BIG"].includes(c)) ? "heavy" : p.shc.includes("AVI") ? "avi" : "gen";
-function deckRow(list, byPos, cap, label) {
+function deckRow(list, byPos, cap, label, positionLimits = {}) {
   return `<div class="ls-deck-row"><span class="ls-deck-label">${label}</span><div class="ls-cells">${list.map(pos => {
-    const p = byPos[pos], fill = p ? Math.max(.08, Math.min(1, p.weight_lbs / cap)) : 0;
-    return p ? `<button type="button" class="ls-cell ${LS_CLASS(p)}" data-pos="${esc(pos)}" title="${esc(`${pos} · ${p.unit} · ${p.contents} · ${fmt(p.weight_lbs)} lb${p.dg ? " · DG " + p.dg : ""}`)}" aria-label="${esc(`${pos}, ${p.contents}, ${fmt(p.weight_lbs)} pounds`)}"><i style="height:${Math.round(fill * 100)}%"></i><span>${esc(pos.replace(" BULK", ""))}</span></button>`
+    const p = byPos[pos], limit = Math.min(cap, Number(positionLimits[pos]) || cap);
+    const fill = p ? Math.max(.08, Math.min(1, p.weight_lbs / limit)) : 0;
+    return p ? `<button type="button" class="ls-cell ${LS_CLASS(p)}" data-pos="${esc(pos)}" title="${esc(`${pos} · ${p.unit} · ${p.contents} · ${fmt(p.weight_lbs)} lb / ${fmt(limit)} lb modeled position limit${p.dg ? " · DG " + p.dg : ""}`)}" aria-label="${esc(`${pos}, ${p.contents}, ${fmt(p.weight_lbs)} pounds of ${fmt(limit)} pound modeled position limit`)}"><i style="height:${Math.round(fill * 100)}%"></i><span>${esc(pos.replace(" BULK", ""))}</span></button>`
       : `<span class="ls-cell empty" title="${esc(pos)} · empty"><span>${esc(pos.replace(" BULK", ""))}</span></span>`;
   }).join("")}</div></div>`;
 }
@@ -1292,7 +1293,7 @@ function loadsheetHTML(ls, m) {
   return `
   <div class="ls-title"><div><span class="kicker">Preliminary load sheet</span><h3>${esc(ls.aircraft_name)}${tail ? ` · <span class="mono">${esc(tail)}</span>` : ""} · ${esc(ls.origin.icao)} → ${esc(ls.destination.icao)}</h3>
     <p class="muted">${ls.ferry ? "Ferry flight: the hold is empty." : `${units} unit${units === 1 ? "" : "s"} · ${fmt(ls.totals.pieces)} pieces · ${fmt(ls.totals.weight_lbs)} lb · ${(ls.shipments || []).length} shipment${(ls.shipments || []).length === 1 ? "" : "s"}`}</p></div>
-    <span class="ls-status ${ls.ok && !balanceIssue ? "ok" : "bad"}">${!ls.ok ? "Over a weight limit" : balanceIssue ? "Balance needs review" : "Within limits"}</span></div>
+    <span class="ls-status ${ls.ok && !balanceIssue ? "ok" : "bad"}">${!ls.ok ? "Over a modeled weight limit" : balanceIssue ? "Balance needs review" : "Within modeled limits"}</span></div>
   <details class="ls-guide"><summary><span class="ls-guide-icon" aria-hidden="true">?</span><span><b>Why do these numbers look like this?</b><small>A quick guide to the cargo, fuel and weight checks on this flight</small></span></summary>
     <div class="ls-guide-grid">
       <section><h4>1 · Cargo makes the payload</h4><p>${fmt(Math.max(0, totalPayload - transferWeight))} lb other cargo + ${fmt(transferWeight)} lb selected transfer cargo = <b>${fmt(totalPayload)} lb payload</b>. Checked transfer freight takes the place of other cargo within the planned load; it does not go on top.</p></section>
@@ -1317,8 +1318,8 @@ function loadsheetHTML(ls, m) {
   <div class="ls-pane" data-lspane="load" ${(S.lsTab || "load") === "load" || !units ? "" : "hidden"}>
   ${ls.ferry ? "" : `<div class="ls-deck" aria-label="Cargo positions, nose on the left">
     <div class="ls-nose" aria-hidden="true">NOSE</div>
-    <div class="ls-decks">${deckRow(ls.deck.main, byPos, ls.deck.cap, `Main deck · ${esc(ls.deck.uld)}`)}${ls.deck.lower.length ? deckRow(ls.deck.lower, byPos, ls.deck.lcap, `Lower · ${esc(ls.deck.luld)}`) : ""}</div></div>
-    <div class="ls-legend"><span class="gen">General</span><span class="cool">Temperature / perishable</span><span class="val">Valuable</span><span class="heavy">Heavy / AOG / outsize</span><span class="avi">Live animals</span><span class="dg">Dangerous goods</span><span class="muted">Bar height = weight against the unit's ${fmt(ls.deck.cap)} lb limit. Click a unit.</span></div>
+    <div class="ls-decks">${deckRow(ls.deck.main, byPos, ls.deck.cap, ls.aircraft === "B738F" ? "Main deck · AAY bays + compact P12" : `Main deck · ${esc(ls.deck.uld)}`, ls.position_limits)}${ls.deck.lower.length ? deckRow(ls.deck.lower, byPos, ls.deck.lcap, `Lower · ${esc(ls.deck.luld)}`, ls.position_limits) : ""}</div></div>
+    <div class="ls-legend"><span class="gen">General</span><span class="cool">Temperature / perishable</span><span class="val">Valuable</span><span class="heavy">Heavy / AOG / outsize</span><span class="avi">Live animals</span><span class="dg">Dangerous goods</span><span class="muted">Bar height = planned weight against that position's modeled limit. Select a position for details.</span></div>
     <div class="ls-unit muted" id="lsUnit">Click a unit on the deck to see what's in it.</div>`}
   <div class="ls-grid">
     <section><h4>Weights (lb)</h4>
@@ -1331,7 +1332,7 @@ function loadsheetHTML(ls, m) {
         <tr><td>− Trip fuel</td><td>${fmt(L.trip)}</td></tr>
         <tr class="sum"><td>Landing weight</td><td>${fmt(L.law)}</td></tr>
         <tr class="under"><td>Smallest structural margin</td><td>${fmt(L.underload)}</td></tr></tbody></table>
-      <p class="muted ls-fine">${ls.dow_source?.kind === "learned" ? `Dry operating weight from ${ls.dow_source.flights} recent PAC flights on this type (their SimBrief plans).` : "Dry operating weight estimated from published limits; it becomes exact once a few PAC flights on this type have been filed with an OFP."}</p>
+      <p class="muted ls-fine">${ls.dow_source?.kind === "learned" ? `Dry operating weight estimated from ${ls.dow_source.flights} recent PAC SimBrief plans for this type; check your aircraft's own figures.` : "Dry operating weight estimated from published limits. Recent PAC SimBrief plans may improve the estimate, but do not verify this airframe's actual weight."}</p>
     </section>
     <section><h4>Against the limits</h4>${ls.checks.map(gauge).join("")}</section>
     <section><h4>Fuel estimate (lb)</h4>
