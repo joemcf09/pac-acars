@@ -28,6 +28,16 @@ DECKS = {
     "B748F": {"main": 34, "uld": "PMC", "cap": 15000, "lower": 10, "luld": "AKE", "lcap": 3500},
 }
 
+
+def _unit_for_position(code, pos, default_uld):
+    # AEI configuration M has ten full-size bays plus a 61.5 x 88 in P12.
+    # No certified ULD type has been selected for PAC's compact bay.
+    return "COMPACT" if code == "B738F" and pos == "M12" else default_uld
+
+
+def _unit_id(uld, rng):
+    return f"PAC-P12-{rng.randrange(10000, 99999)}" if uld == "COMPACT" else f"{uld}{rng.randrange(10000, 99999)}PC"
+
 SHC_NAMES = {
     "GEN": "General cargo", "PER": "Perishable", "PIL": "Pharmaceuticals", "COL": "Cool goods", "CRT": "Controlled room temperature",
     "ICE": "Dry ice", "ELI": "Lithium ion batteries (Section II)", "RLI": "Lithium ion batteries (fully regulated)", "HEA": "Heavy cargo",
@@ -183,7 +193,7 @@ def generate(booking, fleet, pilot, now=None):
         reserve_main = min(deck["main"], int(booking.get("cargo_transfer_unit_count") or 0))
         n_main = max(1, min(deck["main"] - reserve_main, round(deck["main"] * fill)))
         n_low = min(len(lower), round(len(lower) * fill * 0.8))
-        slots = [(p, deck["uld"], deck["cap"]) for p in main[:n_main]] + [(p, deck["luld"], deck["lcap"]) for p in lower[:n_low]]
+        slots = [(p, _unit_for_position(code, p, deck["uld"]), deck["cap"]) for p in main[:n_main]] + [(p, deck["luld"], deck["lcap"]) for p in lower[:n_low]]
         import wb  # documented per-position limits where PAC has the aircraft's weight-and-balance data
         caps = wb.position_limits_lbs(code)
         if caps:
@@ -223,7 +233,7 @@ def generate(booking, fleet, pilot, now=None):
             if uld == "BULK":
                 unit_id = "BULK"
             else:
-                unit_id = f"{uld}{rng.randrange(10000, 99999)}PC"
+                unit_id = _unit_id(uld, rng)
             positions.append({"pos": pos, "uld": uld, "unit": unit_id, "awb": awb(rng), "contents": desc, "shc": list(shc),
                               "pieces": pcs, "weight_lbs": int(w), "dg": None})
             if dgkey:
@@ -296,14 +306,16 @@ def attach_transfers(d, shipments, booking):
         return d
     occupied = {p["pos"] for p in d.get("positions") or []}
     deck = d["deck"]
+    import wb
+    caps = wb.position_limits_lbs(d["aircraft"]) or {}
     slots = []
     for pos in deck["main"]:
         if pos not in occupied:
-            slots.append((pos, deck["uld"], int(deck["cap"])))
+            slots.append((pos, _unit_for_position(d["aircraft"], pos, deck["uld"]), min(int(deck["cap"]), caps.get(pos, int(deck["cap"])))))
     for pos in deck["lower"]:
         if pos not in occupied:
             cap = int(deck["lcap"])
-            slots.append((pos, deck["luld"], cap))
+            slots.append((pos, deck["luld"], min(cap, caps.get(pos, cap))))
 
     for item in shipments:
         shipment = dict(item["data"])
@@ -344,7 +356,7 @@ def attach_transfers(d, shipments, booking):
                 remaining_pieces -= unit_pieces
                 remaining_weight -= chunk
                 unit_rng = random.Random("{}|{}|{}".format(booking.get("manifest_seed"), item["awb"], pos))
-                unit_id = "BULK" if uld == "BULK" else f"{uld}{unit_rng.randrange(10000, 99999)}PC"
+                unit_id = "BULK" if uld == "BULK" else _unit_id(uld, unit_rng)
                 position = {
                     "pos": pos, "uld": uld, "unit": unit_id, "awb": item["awb"],
                     "contents": source.get("contents") or shipment.get("contents") or "Transfer cargo",
