@@ -1530,6 +1530,9 @@ def refresh_mission_board(here=None):
     month = dt.datetime.now(dt.timezone.utc).month
     with C["db"]() as con:
         con.execute("UPDATE live_missions SET status='expired' WHERE status='open' AND expires < ?", (now,))
+        # Generic scenario ferries have no assigned tail or actual C-check due. Only
+        # heavy_check.ferry_job may claim that an airframe needs a C-check.
+        con.execute("UPDATE live_missions SET status='expired' WHERE status='open' AND scenario_key LIKE 'ferry_mro|%'")
         con.execute("DELETE FROM live_missions WHERE status IN ('expired','completed') AND created < ?", (now - 30 * 86400,))
         open_ = [dict(r) for r in con.execute("SELECT * FROM live_missions WHERE status='open' ORDER BY created")]
         recent = {r[0] for r in con.execute("SELECT scenario_key FROM live_missions WHERE created > ?", (now - LIVE_NO_REPEAT_DAYS * 86400,))}
@@ -1555,7 +1558,7 @@ def refresh_mission_board(here=None):
         if need > 0:
             rng = random.Random(f"{now // 600}|{len(open_)}|{here}")
             here_open = sum(1 for r in open_ if json.loads(r["data"])["origin"]["icao"] == here)
-            in_season = [sc for sc in MG.SCENARIOS if not sc["months"] or month in sc["months"]]
+            in_season = [sc for sc in MG.SCENARIOS if sc["key"] != "ferry_mro" and (not sc["months"] or month in sc["months"])]
             weights = [sc["weight"] * (1.6 if sc["months"] else 1.0) for sc in in_season]
             classics = [m for k, m in C["MISSIONS"].items() if k != CHECKRIDE_ID]
             tries = 0
