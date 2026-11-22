@@ -2042,8 +2042,8 @@ def enrich_pirep(p, booking, rec):
         flags.append(p["status"])
     if any(e["kind"] == "slew" for e in rec.events):
         flags.append("Position jump or slew")
-    if (p.get("takeoff_analysis") or {}).get("tail_strike"):
-        flags.append("Tail strike")
+    if (p.get("takeoff_analysis") or {}).get("tail_clearance_warning"):
+        flags.append("Takeoff pitch reached tail-clearance reference; review for possible contact")
     integ = p.get("integrity") or {}
     if integ.get("paused_air_min", 0) >= 10:
         flags.append(f"Paused {integ['paused_air_min']:.0f} min in flight")

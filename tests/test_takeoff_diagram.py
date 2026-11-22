@@ -69,3 +69,24 @@ def test_liftoff_far_past_runway_end_keeps_the_diagram_and_is_marked_estimated()
     assert ta["liftoff_ft"] > ta["runway_length_ft"]
     assert ta["remaining_ft"] == 0
     assert ta["roll_ft"] > 0
+
+
+def test_airborne_pitch_below_five_feet_is_not_ground_pitch():
+    rows = _series(200, 9000)
+    first_air = next(i for i, row in enumerate(rows) if row[8] == 0)
+    rows[first_air][1] = 2.0
+    rows[first_air][10] = 13.0
+    ta = analysis.analyze_takeoff(rows, 0, ["KONT"], DATA, tail_limit=11.5)
+    assert ta["max_pitch_ground"] == 5.5
+    assert ta["tail_clearance_warning"] is False
+    assert ta["tail_strike"] is False
+
+
+def test_ground_pitch_reference_is_review_only_without_contact_evidence():
+    rows = _series(200, 9000)
+    last_ground = max(i for i, row in enumerate(rows) if row[8] == 1)
+    rows[last_ground][10] = 11.7
+    ta = analysis.analyze_takeoff(rows, 0, ["KONT"], DATA, tail_limit=11.5)
+    assert ta["max_pitch_ground"] == 11.7
+    assert ta["tail_clearance_warning"] is True
+    assert ta["tail_strike"] is False

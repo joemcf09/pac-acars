@@ -4829,7 +4829,7 @@ async function drawTakeoffCard(canvas, c) {
   x.fillStyle = "#C80000"; x.fillRect(0, PH, W, 108);
   x.fillStyle = "#fff"; x.font = F(800, 70); x.fillText(`${c.dep}  →  ${c.arr}`, 52, PH + 80);
   if (ta.runway) { x.textAlign = "right"; x.font = F(700, 40); x.fillText(`RWY ${ta.runway}`, W - 52, PH + 72); x.textAlign = "left"; }
-  // pitch gauge 0..16 deg with the tail-strike zone
+  // pitch gauge 0..16 deg with a tail-clearance reference (not a contact sensor)
   const cx = 300, cy = 1030, R = 210, max = 16, lim = ta.tail_limit || 12;
   const ang = v => Math.PI + Math.min(Math.max(v, 0), max) / max * Math.PI;
   [[0, lim - 2, "#4BD07F"], [lim - 2, lim, "#FFC845"], [lim, max, "#FF4D4D"]].forEach(([a, b, col]) => { x.beginPath(); x.strokeStyle = col; x.lineWidth = 34; x.arc(cx, cy, R, ang(a) + .01, ang(b) - .01); x.stroke(); });
@@ -4839,8 +4839,9 @@ async function drawTakeoffCard(canvas, c) {
   if (pv != null) { const a = ang(pv); x.strokeStyle = "#fff"; x.lineWidth = 10; x.lineCap = "round"; x.beginPath(); x.moveTo(cx, cy); x.lineTo(cx + Math.cos(a) * (R - 18), cy + Math.sin(a) * (R - 18)); x.stroke();
     x.fillStyle = "#fff"; x.beginPath(); x.arc(cx, cy, 16, 0, Math.PI * 2); x.fill(); }
   x.fillStyle = "#fff"; x.font = F(800, 92); x.fillText(pv != null ? `${pv}°` : "–", cx, cy + 98);
-  x.fillStyle = ta.tail_strike ? "#FF4D4D" : "#4BD07F"; x.font = F(700, 28);
-  x.fillText(ta.tail_strike ? "TAIL STRIKE" : ta.tail_margin != null ? `${ta.tail_margin}° TAIL MARGIN` : "PITCH ON THE GROUND", cx, cy + 142);
+  const clearanceWarning = ta.tail_clearance_warning === true || ta.tail_strike === true; // older PIREPs used this name for a pitch estimate
+  x.fillStyle = clearanceWarning ? "#FFC845" : "#4BD07F"; x.font = F(700, 28);
+  x.fillText(clearanceWarning ? "CLEARANCE REVIEW" : ta.tail_margin != null ? `${ta.tail_margin}° BELOW REFERENCE` : "PITCH ON THE GROUND", cx, cy + 142);
   x.textAlign = "left";
   [["ROTATE", ta.rotate_ias != null ? `${ta.rotate_ias} kt` : "–"], ["LIFTOFF", ta.liftoff_ias != null ? `${ta.liftoff_ias} kt` : "–"],
    ["GROUND ROLL", ta.roll_ft != null ? `${fmt(ta.roll_ft)} ft` : "–"], ["INITIAL CLIMB", ta.climb_fpm != null ? `${fmt(ta.climb_fpm)} fpm` : "–"]].forEach(([l, v], i) => {
@@ -4885,17 +4886,19 @@ function takeoffChart(ta) {
 function takeoffSection(id, c) {
   const ta = c.ta;
   if (!ta) return "";
+  const clearanceWarning = ta.tail_clearance_warning === true || ta.tail_strike === true;
   const cells = [
     ["Runway", ta.runway ? `${ta.airport} ${ta.runway}` : "–", ta.runway_length_ft ? `${fmt(ta.runway_length_ft)} ft long` : ""],
     ["Rotate", ta.rotate_ias != null ? `${ta.rotate_ias} kt` : "–", ta.rotation_rate != null ? `${ta.rotation_rate}°/s rotation rate` : ""],
     ["Liftoff", `${ta.liftoff_ias} kt`, ta.liftoff_pitch != null ? `${ta.liftoff_pitch}° pitch` : ""],
-    ["Pitch on the ground", ta.max_pitch_ground != null ? `${ta.max_pitch_ground}°` : "–", ta.tail_limit ? (ta.tail_strike ? `Tail strike: limit ${ta.tail_limit}°` : `${ta.tail_margin}° below the ${ta.tail_limit}° tail-strike pitch`) : ""],
+    ["Pitch on the ground", ta.max_pitch_ground != null ? `${ta.max_pitch_ground}°` : "–", ta.tail_limit ? (clearanceWarning ? `Above ${ta.tail_limit}° clearance reference; review possible contact` : `${ta.tail_margin}° below the ${ta.tail_limit}° clearance reference`) : ""],
     ["Ground roll", ta.roll_ft != null ? `${fmt(ta.roll_ft)} ft` : "–", ta.remaining_ft != null ? `${fmt(ta.remaining_ft)} ft of runway left` : ""],
     ["Initial climb", ta.climb_fpm != null ? `${fmt(ta.climb_fpm)} fpm` : "–", ta.time_to_1000_s != null ? `1,000 ft after ${ta.time_to_1000_s} s` : ""],
   ];
   return `<div class="landing-wrap"><div class="landing-card"><canvas id="${id}" width="1080" height="1350" aria-label="Takeoff card for ${esc(c.flight)}"></canvas>
       <div class="row"><button class="btn small" type="button" data-dl-card="${id}">Download takeoff card</button></div></div>
-    <div><div class="la-facts">${cells.map(([l, v, sub]) => `<div><span>${l}</span><b style="${l === "Pitch on the ground" && ta.tail_strike ? "color:var(--red)" : ""}">${esc(v)}</b>${sub ? `<small>${esc(sub)}</small>` : ""}</div>`).join("")}</div>
+    <div><div class="la-facts">${cells.map(([l, v, sub]) => `<div><span>${l}</span><b style="${l === "Pitch on the ground" && clearanceWarning ? "color:#9a6700" : ""}">${esc(v)}</b>${sub ? `<small>${esc(sub)}</small>` : ""}</div>`).join("")}</div>
+      ${clearanceWarning ? `<div class="notice" style="margin-top:12px">Recorded pitch crossed the type's estimated tail-clearance reference. ACARS did not measure tail contact. Review the takeoff; this reading alone does not confirm damage.${ta.tail_strike === true && ta.tail_clearance_warning !== true ? " This older PIREP was scored under the previous rule." : ""}</div>` : ""}
       ${ta.touchback ? `<div class="notice" style="margin-top:12px">The wheels touched the runway again after liftoff. Rotate a little more positively to the target pitch.</div>` : ""}
       ${takeoffDiagram(ta)}</div></div>`;
 }
@@ -6086,7 +6089,7 @@ function renderHandbook(cfg) {
       <li>Fly in real time. ACARS detects sim-rate acceleration and pauses (see Flight integrity).</li></ul>`],
     ["integrity", "Flight integrity", `<ul><li><b>Sim rate:</b> while you're parked at the stand (loading, boarding, unloading) you can speed the sim up as much as you like. Once you're moving, or in the air, more than 10 seconds above 1× sends the flight to staff review.</li>
       <li><b>Pauses:</b> short pauses are fine. More than 10 minutes paused in the air sends the flight to review.</li>
-      <li><b>Tail strikes:</b> ACARS records pitch through the takeoff roll and compares it with each type's tail-strike pitch. A tail strike costs 25 points, grounds the airframe for inspection and goes to review.</li>
+      <li><b>Tail clearance:</b> ACARS compares recorded ground pitch with the type's approximate clearance reference. Crossing it sends the PIREP to staff for review; pitch alone does not prove contact or automatically ground the aircraft.</li>
       <li><b>Takeoff analysis:</b> every PIREP shows rotation speed, liftoff speed and pitch, ground roll, runway remaining and initial climb, with a downloadable takeoff card.</li></ul>`],
     ["urgent", "Urgent requests", `<p>Every 40 minutes or so a new urgent request appears (AOG engines, blood products, line-stop parts, ship and data-center spares, antivenom, rescue teams, grid repairs and more), up to six at a time. Each uses an aircraft that's already in position.</p>
       <ul><li>Book it before the offer expires.</li><li>Block in before the delivery deadline for ×1.5 points and full revenue. Miss it and the customer takes half the revenue back.</li></ul>`],
@@ -6195,12 +6198,11 @@ function renderHandbook(cfg) {
       <tr><td>Landing load over 1.8 G / 2.5 G</td><td>−10 / −20</td></tr><tr><td>Trip fuel burned more than 15% / 25% over plan (burning less, e.g. after a shortcut, never costs points)</td><td>−5 / −10</td></tr>
       <tr><td>Landing below final reserve fuel</td><td>−15</td></tr><tr><td>Landing over the aircraft's max landing weight (up to 5% / more than 5% over)</td><td>−10 / −20</td></tr><tr><td>Overspeed below 10,000 ft / fast taxi / bounce</td><td>−5 / −3 / −5 each</td></tr>
       <tr><td>Position jump or slew in the air</td><td>−15</td></tr><tr><td>Airborne without a gate departure / a second takeoff roll</td><td>−10 / −10</td></tr>
-      <tr><td>Tail strike</td><td>−25</td></tr>
       <tr><td>Diversion declared to dispatch / diverted to the OFP alternate undeclared / parked elsewhere</td><td>−10 / −20 / −40 and failed</td></tr>
       <tr><td>Critical or High priority within 10% of planned block</td><td>+5</td></tr><tr><td>Late: over 25% (urgent) or 35% (standard)</td><td>−10 / −5</td></tr></table>
       <p>Grades: A 90+, B 80+, C 70+, D 60+, F below. Points are the flight's reward scaled by your score, plus any event, featured-route or tour bonus.</p>`],
     ["review", "PIREP review", `<p>Flights scoring ${rv.auto_accept_score} or more with no flags are accepted automatically. Anything flagged goes to staff for review:</p>
-      <ul><li>Landing firmer than ${Math.abs(rv.hard_landing_fpm)} fpm or above ${rv.max_landing_g} G</li><li>Diverted or failed flights</li><li>Position jumps or slew in the air</li><li>A tail strike</li><li>More than 10 minutes paused in the air, or more than 10 seconds above 1× sim rate once moving</li><li>More than ${rv.max_bounces} bounce${rv.max_bounces === 1 ? "" : "s"}</li><li>Score below ${rv.auto_accept_score}</li></ul>
+      <ul><li>Landing firmer than ${Math.abs(rv.hard_landing_fpm)} fpm or above ${rv.max_landing_g} G</li><li>Diverted or failed flights</li><li>Position jumps or slew in the air</li><li>Ground pitch crossing the tail-clearance reference (possible contact, not confirmed)</li><li>More than 10 minutes paused in the air, or more than 10 seconds above 1× sim rate once moving</li><li>More than ${rv.max_bounces} bounce${rv.max_bounces === 1 ? "" : "s"}</li><li>Score below ${rv.auto_accept_score}</li></ul>
       <p>Pending and rejected flights stay in your logbook, but only accepted flights count towards hours, rank, points, awards and leaderboards.</p>`],
     ["airframes", "Airframes and maintenance", `<ul><li>A landing firmer than ${Math.abs(rv.hard_landing_fpm)} fpm grounds the airframe for a hard-landing inspection until staff release it.</li>
       <li>Every ${cfg.a_check_hours} flight hours the airframe is due an A-check and is grounded until staff sign it off.</li>
@@ -7046,7 +7048,7 @@ const TYPE_FIELDS = [
   ["sim_model", "Add-on aircraft", "text", ""], ["division", "Division", "text", "PAC"], ["role", "Role", "text", ""],
   ["unlock_rank", "Unlocked at rank", "rank", ""], ["max_payload_lbs", "Max payload (lb)", "number", ""], ["mtow_lbs", "MTOW (lb)", "number", ""],
   ["range_nm", "Typical range (nm)", "number", ""], ["min_rwy_ft", "Runway needed (ft)", "number", ""], ["cruise_ktas", "Cruise speed (kt TAS)", "number", ""],
-  ["mach", "Cruise Mach", "number", ""], ["tailstrike_pitch", "Tail-strike pitch (°)", "number", ""], ["fuel_burn_pph", "Fuel burn (lb/h)", "number", ""],
+  ["mach", "Cruise Mach", "number", ""], ["tailstrike_pitch", "Tail-clearance reference pitch (°)", "number", ""], ["fuel_burn_pph", "Fuel burn (lb/h)", "number", ""],
   ["maint_per_bh", "Maintenance ($/block h)", "number", ""], ["ownership_per_bh", "Ownership ($/block h)", "number", ""],
   ["engines", "Engines", "text", ""], ["crew", "Flight crew", "text", ""], ["main_deck", "Main deck", "text", ""], ["entered_service", "Type in service since", "number", ""],
   ["cargo_volume_ft3", "Cargo volume, main + lower (ft³)", "number", ""], ["volume_source", "Volume source", "text", ""],
@@ -9020,7 +9022,7 @@ function pacDebrief(p, d = p) {
   if (!tips.length && n(la.touchdown_ft)) good.push(`Touched down in the zone, ${la.touchdown_ft.toLocaleString()} ft past the threshold${n(la.rate_fpm) ? `, at ${la.rate_fpm} fpm` : ''}.`);
   if (n(ta.climb_fpm)) facts.push(`Initial climb averaged ${Math.round(ta.climb_fpm).toLocaleString()} fpm between 50 and 1,000 ft.`);
   if (ta.touchback === true) focus.push('Ground contact was detected after becoming airborne. Review the takeoff trace and simulator conditions.');
-  if (ta.tail_strike === true) focus.push('Recorded pitch reached the configured tail-clearance limit. This is a calculated indication, not confirmation of physical contact.');
+  if (ta.tail_clearance_warning === true || ta.tail_strike === true) focus.push('Recorded pitch reached the estimated tail-clearance reference. Staff should review possible contact; ACARS did not measure a strike.');
   if (n(d.trip_burn_lbs) && n(d.planned_trip_lbs) && d.planned_trip_lbs > 0) {
     const pct = (d.trip_burn_lbs / d.planned_trip_lbs - 1) * 100;
     facts.push(`Trip fuel: ${Math.round(d.trip_burn_lbs).toLocaleString()} lb used versus ${Math.round(d.planned_trip_lbs).toLocaleString()} lb planned (${pct >= 0 ? '+' : ''}${pct.toFixed(1)}%). Winds, routing and cruise level all affect this.`);
