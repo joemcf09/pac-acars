@@ -2458,7 +2458,14 @@ function mxItems(items, staff = false) {
       i.severity === "grounding" ? " · <b style='color:var(--red)'>Grounding</b>" : ` · deferred cat ${i.category}, due ${when(i.due)}${i.overdue ? " · <b style='color:var(--red)'>OVERDUE</b>" : ""}`}</small></span>
     ${staff && i.status !== "cleared" ? `<span class="row" style="flex-wrap:nowrap"><input data-mxnote="${i.id}" placeholder="Rectification" style="border:1px solid var(--line);border-radius:3px;padding:6px 8px;width:170px">
       <button class="btn small" type="button" data-mxclear="${i.id}">Clear</button>
-      ${i.severity === "grounding" ? `<button class="btn ghost small" type="button" data-mxdefer="${i.id}">Defer</button>` : `<button class="btn ghost small" type="button" data-mxground="${i.id}">Ground</button>`}</span>` : "<span></span>"}</div>`).join("")}</div>`;
+      ${i.severity === "grounding" ? `<button class="btn ghost small" type="button" data-mxdefer="${i.id}">Defer</button>` : `<button class="btn ghost small" type="button" data-mxground="${i.id}">Ground</button>`}</span>` : "<span></span>"}
+    ${staff && i.pirep_id ? `<div class="mx-context"><button class="btn ghost small" type="button" data-mxcontext="${i.id}">Flight details · ${esc(i.flight || 'PIREP')}</button><div data-mxcontext-body="${i.id}" hidden></div></div>` : ''}</div>`).join("")}</div>`;
+}
+function mxContextHTML(data) {
+  const p = data.report, a = data.aog, when = t => t ? new Date(t * 1000).toLocaleString() : '—';
+  return `<div class="mx-context-grid"><div><h4>Flight evidence</h4>${p ? `<p><b>${esc(p.flight_number)}</b> · ${esc(p.dep)} → ${esc(p.arr)} · ${esc(p.pilot_name || p.pilot_id)}<br>Landing: <b>${p.landing_rate == null ? 'Not recorded' : `${fmt(p.landing_rate)} fpm`}</b> · <b>${p.landing_g == null ? 'G not recorded' : `${Number(p.landing_g).toFixed(2)} G`}</b><br>PIREP: ${esc(p.status || '—')} · ${esc(p.review_status || '—')} · ${when(p.filed_at)}${p.remarks ? `<br>Remarks: ${esc(p.remarks)}` : ''}</p>` : '<p>There is no linked PIREP for this write-up.</p>'}</div>
+    <div><h4>Aircraft recovery</h4>${a ? `<p><b>${esc(a.status.replaceAll('_', ' '))}</b> at ${esc(a.station)}${a.mission_id ? ` · Recovery mission ${esc(a.mission_id)} from ${esc(a.hub)}` : a.contractor ? ' · Contractor bringing parts' : ''}<br>${a.repair_until ? `Repair estimate: ${when(a.repair_until)}` : a.parts_due ? `Parts due: ${when(a.parts_due)}` : 'Parts or inspection status is pending.'}</p>` : '<p>No AOG recovery case is linked to this write-up.</p>'}</div></div>
+    <h4>Freight on this arrival</h4>${data.cargo.length ? `<ul>${data.cargo.map(s => `<li><b>${esc(s.awb)}</b> · ${esc(s.commodity)} · ${fmt(s.gross_weight_lbs)} lb · ${esc(s.arrival_status)} at ${esc(s.current_station)} · final ${esc(s.destination)}</li>`).join('')}</ul>` : '<p>No shipment arrival records are linked to this PIREP.</p>'}<p class="muted">Fleet verifies the aircraft and records maintenance. Operations handles held or diverted freight and sends the pilot an OCC instruction; the accepted PIREP and shipment records determine cargo movement.</p>`;
 }
 function openFaultAfter(reg, pirepId, flight) {
   const dlg = $("#msgDlg"), form = $("#msgForm");
@@ -2473,13 +2480,20 @@ function openFaultAfter(reg, pirepId, flight) {
 async function staffMx(host = $("#staffBody")) {
   let open = [], all = [];
   try { [open, all] = await Promise.all([api("/api/maintenance").then(r => r.items), api("/api/maintenance?all=1").then(r => r.items)]); } catch (e) { toast(e.message); }
-  host.innerHTML = `<p class="muted" style="margin:0 0 12px;font-size:14px">Open write-ups across the fleet. Clearing a grounding item returns the aircraft to service once nothing else grounds it. Deferred items ground the aircraft automatically when they run past their deadline.</p>
+  host.innerHTML = `<div class="notice" style="margin-bottom:12px"><b>When an aircraft is grounded:</b> ACARS automatically opens a write-up for a recorded hard landing or tail strike; you do not need to issue a second report. Open Flight details for the touchdown measurements, PIREP state, recovery mission and freight record. Keep the aircraft grounded while the inspection or repair is pending. Record the rectification before clearing a write-up; the AOG recovery flow can clear it automatically when repairs finish. Operations owns pilot instructions and cargo rerouting.</div>
     <h3 style="margin:0 0 8px">Open (${open.length})</h3>${mxItems(open, true)}
-    <h3 style="margin:18px 0 8px">Recently cleared</h3>${mxItems(all.filter(i => i.status === "cleared").slice(0, 15))}`;
+    <h3 style="margin:18px 0 8px">Recently cleared</h3>${mxItems(all.filter(i => i.status === "cleared").slice(0, 15), true)}`;
   const act = async (id, body, msg) => { try { await api("/api/staff/maintenance/" + id, { method: "POST", body }); toast(msg); await refreshCore(); staffMx(host); } catch (e) { toast(e.message); } };
   host.querySelectorAll("[data-mxclear]").forEach(b => b.onclick = () => act(b.dataset.mxclear, { action: "clear", note: host.querySelector(`[data-mxnote="${b.dataset.mxclear}"]`).value }, "Write-up cleared."));
   host.querySelectorAll("[data-mxdefer]").forEach(b => b.onclick = () => act(b.dataset.mxdefer, { action: "defer", category: "C" }, "Deferred for 10 days."));
   host.querySelectorAll("[data-mxground]").forEach(b => b.onclick = () => act(b.dataset.mxground, { action: "ground" }, "Aircraft grounded."));
+  host.querySelectorAll("[data-mxcontext]").forEach(b => b.onclick = async () => {
+    const panel = host.querySelector(`[data-mxcontext-body="${b.dataset.mxcontext}"]`);
+    if (!panel.hidden) { panel.hidden = true; return; }
+    panel.hidden = false; panel.innerHTML = '<p class="muted">Loading flight details…</p>';
+    try { panel.innerHTML = mxContextHTML(await api(`/api/staff/maintenance/${b.dataset.mxcontext}/context`)); }
+    catch (e) { panel.innerHTML = `<p class="error">${esc(e.message)}</p>`; }
+  });
 }
 
 /* ================= My stats, records, airport collection and monthly recap ================= */
@@ -6554,12 +6568,12 @@ async function staffOpsExceptions(root) {
   if (!host.isConnected) return;
   const when = t => t ? new Date(t * 1000).toLocaleString() : '—';
   const pilotOptions = `<option value="">Choose a pilot…</option>${data.pilots.map(p => `<option value="${esc(p.id)}">${esc(p.name)} · ${esc(p.id)}</option>`).join('')}`;
-  host.innerHTML = `<h2>Ops exception desk</h2><p class="muted">Follow diverted freight and AOG aircraft. A decision sends a Crew Mail dispatch instruction; shipment location and delivery change only through the normal booking and accepted PIREP flow.</p>
+  host.innerHTML = `<h2>Ops exception desk</h2><div class="notice"><b>OCC handoff:</b> Review the flight and affected freight, coordinate the aircraft restriction with Fleet, then record a hold, onward or recovery decision with a specific pilot instruction. For AOG aircraft, the write-up and recovery mission are created automatically; Fleet owns inspection and clearance. Your decision sends Crew Mail but does not move cargo or release the aircraft. Confirm actual delivery through the accepted PIREP and shipment records.</div>
     ${data.cases.length ? data.cases.map(c => {
       const options = data.bookings.filter(b => b.origin === c.station && b.flight).map(b => `<option value="${esc(b.pilot_id)}|${esc(b.flight)}">${esc(b.flight)} · ${esc(b.origin)} → ${esc(b.destination)} · ${esc(b.pilot_id)}</option>`).join('');
       return `<section class="card" style="padding:16px;margin:14px 0" data-exception="${esc(c.key)}">
         <div class="row" style="gap:8px;flex-wrap:wrap;align-items:center"><span class="tag ${c.kind === 'aog' ? 'amber' : 'dark'}">${c.kind === 'aog' ? 'AOG' : 'DIVERTED'}</span><h3 style="margin:0">${esc(c.flight || c.airframe || c.key)} · ${esc(c.station)}</h3><span class="muted">${when(c.opened)}</span></div>
-        <p>${c.kind === 'aog' ? `${esc(c.airframe)} · ${esc(c.title || 'Aircraft grounded')}${c.mission_id ? ` · Recovery mission ${esc(c.mission_id)}` : ''}` : `${c.shipments.length} held shipment${c.shipments.length === 1 ? '' : 's'} awaiting an onward leg`}</p>
+        <p>${c.kind === 'aog' ? `${esc(c.airframe)} · ${esc(c.title || 'Aircraft grounded')}${c.mission_id ? ` · Recovery mission ${esc(c.mission_id)}` : ''}<br>Landing: ${c.landing_rate == null ? 'rate not recorded' : `${fmt(c.landing_rate)} fpm`} · ${c.landing_g == null ? 'G not recorded' : `${Number(c.landing_g).toFixed(2)} G`} · PIREP ${esc(c.review_status || 'unknown')}` : `${c.shipments.length} held shipment${c.shipments.length === 1 ? '' : 's'} awaiting an onward leg`}</p>
         ${c.shipments.length ? `<div class="table-wrap"><table class="staff-table"><thead><tr><th>Air waybill</th><th>Freight</th><th>Destination</th><th>Weight</th><th>Due</th></tr></thead><tbody>${c.shipments.map(s => `<tr><td><b>${esc(s.awb)}</b></td><td>${esc(s.commodity)} · ${esc(s.pieces)} pcs</td><td>${esc(s.destination)}</td><td>${Math.round(s.weight_lbs || 0).toLocaleString()} lb</td><td>${when(s.deadline)}</td></tr>`).join('')}</tbody></table></div>` : ''}
         ${c.decision ? `<p class="muted">Latest OCC decision: <b>${esc(c.decision.choice)}</b> by ${esc(c.decision.actor)} · ${when(c.decision.at)}${c.decision.target_flight ? ` · ${esc(c.decision.target_flight)}` : ''}<br>${esc(c.decision.note)}</p>` : '<p class="muted">No OCC decision recorded yet.</p>'}
         <form class="ops-exception-form" style="display:grid;gap:8px;max-width:760px">
@@ -8305,12 +8319,22 @@ async function loadPilotBriefing() {
     <article class="brief-card"><div class="kicker">Get back to base</div><h3>${d.at_home ? 'You’re home at ' + esc(d.hub.icao) : esc(d.location.icao) + ' → ' + esc(d.hub.icao)}</h3>${d.at_home ? '<p>Explore departures from your current station to plan your next trip.</p>' : d.home_options.length ? d.home_options.map(legs => `<div class="brief-connection">${legs.map(leg).join('')}${legs.length > 1 ? '<small>Two sectors. Review each leg separately; onward aircraft availability may change.</small>' : ''}</div>`).join('') : '<p>No direct or one-stop scheduled option matches your current qualifications and aircraft requirements.</p><button class="btn ghost small" type="button" data-brief-view="missions">Explore other missions</button>'}<p class="brief-note">Suggestions are not reservations. Aircraft, location and qualification checks apply when booking.</p></article></div>
     <article class="brief-card brief-departures"><div class="kicker">Departures from ${esc(d.location.icao)}</div><h3>Where will you fly next?</h3>${departures.length ? `<div class="brief-departure-grid">${departures.map(leg).join('')}</div><p class="brief-note">Showing ${departures.length} additional scheduled departures. Return options are listed above.</p>` : '<p>No additional matching departures. Review the return options above or explore the mission board.</p>'}</article>`;
     root.querySelector('[data-brief-refresh]').onclick = loadPilotBriefing;
+    if (d.staff_playbook?.length) {
+      const duties = document.createElement('section'); duties.className = 'brief-card staff-duty-card';
+      const desks = { ceo: ['staff', 'Open Staff'], dir_ops: ['operations', 'Open Ops desk'], fleet_mgr: ['fleetmgr', 'Open Maintenance'], commercial: ['commercial', 'Open Commercial'], creative: ['creative', 'Open Media & comms'], livery_mgr: ['liverylib', 'Open Livery library'], academy_director: ['academy', 'Open Academy'] };
+      duties.innerHTML = `<div class="kicker">Your staff responsibilities</div><h3>What to watch and what to do</h3><div class="staff-duty-grid">${d.staff_playbook.map(r => `<div><h4>${esc(r.title)}</h4><p><b>Watch:</b> ${esc(r.watch)}</p><p><b>Action:</b> ${esc(r.action)}</p>${desks[r.role] ? `<button class="btn ghost small" type="button" data-brief-view="${desks[r.role][0]}">${desks[r.role][1]} →</button>` : ''}</div>`).join('')}</div><p class="brief-note">Crew Mail carries direct staff alerts. Check the relevant desk for live details before acting; ask the CEO when the case falls outside your role.</p>`;
+      root.querySelector('.brief-overview').after(duties);
+    }
     const now=document.createElement('section');now.className='brief-card now-card';root.querySelector('.brief-overview').after(now);loadHappeningNow(now,d);const crewPanel=document.createElement('section');crewPanel.className='brief-card';now.after(crewPanel);loadDashboardCrew(crewPanel);
     const planner = document.createElement('section');
     planner.className = 'brief-card rotation-planner';
     root.querySelector('.brief-departures').before(planner);
     loadRotationPlanner(planner, d);
-    root.querySelectorAll('[data-brief-view]').forEach(b => b.onclick = () => show(b.dataset.briefView));
+    root.querySelectorAll('[data-brief-view]').forEach(b => b.onclick = () => {
+      if (b.dataset.briefView === 'fleetmgr') S.fleetTab = 'mx';
+      if (b.dataset.briefView === 'operations') S.opsTab = 'exceptions';
+      show(b.dataset.briefView);
+    });
     root.querySelectorAll('[data-brief-flight]').forEach(b => b.onclick = () => flyMission(b.dataset.briefFlight));
   } catch (e) {
     if (version !== briefingVersion || !root.isConnected) return;
@@ -9994,7 +10018,7 @@ async function staffRoles() {
   const by = {}; d.holders.forEach(h => (by[h.role] = by[h.role] || []).push(h));
   body.innerHTML = `<p class="muted">Management work follows the role, not the account. Hand a role to a pilot and its tasks move with it. Only the CEO can change roles.</p>
     <div class="table-wrap"><table class="fin-table"><thead><tr><th>Role</th><th>What they own</th><th class="r">Weekly pay</th><th>Held by</th></tr></thead><tbody>
-    ${d.roles.map(r => `<tr><td><b>${esc(r.title)}</b></td><td class="muted">${esc(r.does)}</td><td class="r">${r.pay ? "$" + r.pay.toLocaleString("en-US") + "/wk" : "—"}</td><td>${(by[r.key] || []).map(h => `${esc(h.name || h.pilot_id)} <span class="muted">${esc(h.pilot_id)}</span>${d.can_assign ? ` <button class="btn ghost" type="button" data-rm="${esc(h.pilot_id)}|${r.key}">Remove</button>` : ""}`).join("<br>") || '<span class="muted">Open</span>'}</td></tr>`).join("")}</tbody></table></div>
+    ${d.roles.map(r => `<tr><td><b>${esc(r.title)}</b></td><td class="muted">${esc(r.does)}<details><summary>What to watch and do</summary><p><b>Watch:</b> ${esc(r.watch)}</p><p><b>Action:</b> ${esc(r.action)}</p></details></td><td class="r">${r.pay ? "$" + r.pay.toLocaleString("en-US") + "/wk" : "—"}</td><td>${(by[r.key] || []).map(h => `${esc(h.name || h.pilot_id)} <span class="muted">${esc(h.pilot_id)}</span>${d.can_assign ? ` <button class="btn ghost" type="button" data-rm="${esc(h.pilot_id)}|${r.key}">Remove</button>` : ""}`).join("<br>") || '<span class="muted">Open</span>'}</td></tr>`).join("")}</tbody></table></div>
     ${d.can_assign ? `<section class="panel mkt-order"><h3>Give a role</h3><label>Pilot ID <input id="roPid" placeholder="PAC0002"></label><label>Role <select id="roRole">${d.roles.map(r => `<option value="${r.key}">${esc(r.title)}</option>`).join("")}</select></label><button class="btn" id="roGo" type="button">Give role</button></section>` : ""}`;
   const send = async x => { try { await api("/api/staff/roles", { method: "POST", body: x }); staffRoles(); } catch (e) { toast(e.message); } };
   body.querySelectorAll("[data-rm]").forEach(b => b.onclick = () => { const [p, r] = b.dataset.rm.split("|"); send({ pilot_id: p, role: r, remove: true }); });

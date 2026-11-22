@@ -166,7 +166,59 @@ def open_case(con, reg, code, station, kind, item_ids, cause_flight, cause_pirep
     event = {"reg": reg, "type": case["type_name"], "station": station, "title": kit["title"], "cause": cause_flight,
              "mission": mission["id"] if mission else None, "hub": hub, "weight_lbs": kit["weight_lbs"], "repair_hours": kit["repair_hours"],
              "at_hub": at_hub}
+    event["staff_discord"] = notify_staff(con, case, mission, now)
     return case, event
+
+
+def notify_staff(con, case, mission, now):
+    """One direct alert per active role holder; the public dispatch post is not a staff handoff."""
+    import messaging
+    messaging.migrate(con)
+    roles = {
+        "fleet_mgr": "Fleet: inspect the linked flight and grounding write-up in Fleet & maintenance → Maintenance. Keep the tail grounded until the inspection or repair is complete; record rectification before clearing it.",
+        "dir_ops": "Operations: review this AOG in Ops desk → Exceptions. Record the hold or recovery decision and send a dispatch instruction to the pilot. Confirm any cargo disposition from shipment records.",
+        "chief_pilot": "Chief Pilot: review the landing circumstances with the pilot and coordinate any safety follow-up with Maintenance. Do not clear the aircraft yourself.",
+        "ceo": "CEO: monitor the Fleet and Operations handoff; resolve staffing or spending decisions they escalate.",
+    }
+    try:
+        rows = con.execute("""SELECT r.pilot_id,r.role,p.discord_id FROM roles r JOIN pilots p ON p.id=r.pilot_id
+            WHERE r.role IN ('fleet_mgr','dir_ops','chief_pilot','ceo')
+              AND COALESCE(p.status,'Active')='Active'""").fetchall()
+    except Exception:
+        return []
+    by_pilot = {}
+    for row in rows:
+        entry = by_pilot.setdefault(row["pilot_id"], {"steps": [], "discord_id": row["discord_id"]})
+        entry["steps"].append(roles[row["role"]])
+    ceo = next((row["pilot_id"] for row in rows if row["role"] == "ceo"), "PAC0001")
+    subject = f"AOG action · {case['reg']} · case {case['id']}"
+    newly_notified = set()
+    for pid, entry in by_pilot.items():
+        if con.execute("SELECT 1 FROM messages WHERE recipient=? AND subject=? LIMIT 1", (pid, subject)).fetchone():
+            continue
+        body = (f"{case['reg']} is grounded at {case['station']} after {case['cause_flight'] or 'a flight'}: {case['title']}.\n"
+                f"{('Recovery mission ' + mission['id'] + ' is open.') if mission else 'The repair or contractor path is underway.'}\n\n"
+                + "\n".join(entry["steps"]) + "\n\nThis automated alert does not release the aircraft or deliver cargo. Reply to the CEO if you need help.")
+        con.execute("INSERT INTO messages (sender,recipient,subject,body,time) VALUES (?,?,?,?,?)",
+                    (ceo, pid, subject, body, now))
+        if entry["discord_id"]:
+            newly_notified.add(str(entry["discord_id"]))
+    return sorted(newly_notified)
+
+
+def reconcile_staff_alerts(con, now=None):
+    """Catch up role holders on active cases opened before direct staff alerts existed."""
+    init(con)
+    events = []
+    for row in con.execute("""SELECT id,reg,type,station,title,cause_flight,mission_id,status
+        FROM aog_cases WHERE status IN ('awaiting_parts','repairing') ORDER BY id"""):
+        case = dict(row)
+        mission = {"id": row["mission_id"]} if row["mission_id"] and row["status"] == "awaiting_parts" else None
+        recipients = notify_staff(con, case, mission, now or time.time())
+        if recipients:
+            events.append({"reg": row["reg"], "station": row["station"], "cause": row["cause_flight"],
+                           "staff_discord": recipients})
+    return events
 
 
 def parts_delivered(con, case_id, flight, pilot_id, now=None):

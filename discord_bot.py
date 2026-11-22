@@ -468,6 +468,16 @@ def run(cfg):
         except discord.Forbidden:
             print(f"Can't post in #{ch.name}: give the bot Send Messages and Embed Links there.")
 
+    async def dm_aog_staff(d):
+        # Crew Mail is the durable alert; Discord DMs are a best-effort nudge.
+        for discord_id in d.get("staff_discord") or []:
+            try:
+                user = client.get_user(int(discord_id)) or await client.fetch_user(int(discord_id))
+                await user.send(f"PAC staff action: **{d['reg']}** is AOG at **{d['station']}** after {d.get('cause') or 'a flight'}. "
+                                f"Open your PAC Crew Mail and the relevant staff desk for the handoff: {site.rstrip('/')}/#dashboard")
+            except (ValueError, discord.Forbidden, discord.HTTPException, discord.NotFound):
+                print(f"Could not DM linked staff member {discord_id} about AOG {d['reg']}.")
+
     async def handle(ev):
         kind, d = ev["kind"], ev["data"]
         if kind == "pirep":
@@ -508,6 +518,9 @@ def run(cfg):
                                f"Recovery mission **{d['mission']}** from {d['hub']}: fly {d['weight_lbs']:,} lb of parts and the engineers in. Repair takes about {d['repair_hours']} h once they arrive. Who's going? ✈️")
             else:
                 await post(ch, f"🔧 **AOG: {d['reg']}** grounded at **{d['station']}**: {d['title'].lower()}. A contractor is flying the parts in.")
+            await dm_aog_staff(d)
+        elif kind == "aog_staff_alert":
+            await dm_aog_staff(d)
         elif kind == "aog_parts":
             mention = f"<@{d['discord_id']}>" if d.get("discord_id") else d.get("pilot")
             await post("dispatch" if channel("dispatch") else "news",

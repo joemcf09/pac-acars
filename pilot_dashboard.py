@@ -47,6 +47,7 @@ def register(app, context):
         import auth
         import va
         import shop
+        import company
         who = auth.current()
         if not who:
             return jsonify({"error": "Please sign in."}), 401
@@ -65,6 +66,7 @@ def register(app, context):
             passes = shop.expiries(pid, con)
             filed = con.execute("SELECT COUNT(*) FROM pireps WHERE pilot_id=? AND COALESCE(demo,0)=0", (pid,)).fetchone()[0]
             fleet_pass = car["rank_index"] > 0 and any(passes.get(k, 0) > time.time() for k in shop.TIMED)
+            staff_playbook = company.playbook_for(con, pid)
         settings = context["settings"]()
         fleet = context["FLEET"]
         eligible = {t for t, f in fleet.items() if not f.get("retired")
@@ -80,6 +82,7 @@ def register(app, context):
                             "checkride_needed": pilot.get("checkride") not in ("Passed", "Waived") and not direct_types,
                             "checkride_id": va.CHECKRIDE_ID,
                             "eligible_types": sorted(eligible), "departures": departures, "departure_count": count,
-                            "home_options": home, "at_home": here == hub, "flights_filed": filed})
+                            "home_options": home, "at_home": here == hub, "flights_filed": filed,
+                            "staff_playbook": staff_playbook})
         response.headers["Cache-Control"] = "private, no-store"
         return response
