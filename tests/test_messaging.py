@@ -57,5 +57,14 @@ check("still in Alan's sent", len(con.execute("SELECT 1 FROM messages WHERE send
 alan_unread = con.execute("SELECT * FROM messages WHERE recipient='PAC0014' AND del_r=0 AND read_at IS NULL").fetchall()
 check("Alan unread box shows the broadcast", len(alan_unread) == 1, len(alan_unread))
 
+# Older AOG alerts were attributed to the CEO. Keep their recipients and read
+# state, but show them as automated and remove them from the CEO's Sent box.
+legacy = send("PAC0001", "PAC0002", "AOG action · N743PC · case 2",
+              "This automated alert does not release the aircraft or deliver cargo.")
+messaging.migrate(con)
+old_alert = con.execute("SELECT sender,recipient FROM messages WHERE subject='AOG action · N743PC · case 2'").fetchone()
+check("legacy AOG alert is reattributed to the system", legacy == 1 and tuple(old_alert) == ("SYSTEM", "PAC0002"))
+check("legacy AOG alert is absent from CEO Sent", not con.execute("SELECT 1 FROM messages WHERE sender='PAC0001' AND subject LIKE 'AOG action · %'").fetchone())
+
 print("\n" + ("ALL PASS" if not fails else f"{len(fails)} FAILED: {fails}"))
 sys.exit(1 if fails else 0)

@@ -6230,6 +6230,10 @@ function renderHandbook(cfg) {
 /* ================= Staff ================= */
 S.staffTab = "reviews";
 /* ===================== Crew mail ===================== */
+function messageTime(seconds) {
+  if (!Number.isFinite(Number(seconds)) || Number(seconds) <= 0) return "";
+  return new Date(Number(seconds) * 1000).toLocaleString([], { dateStyle: "medium", timeStyle: "short" });
+}
 async function loadMessages() {
   const root = $("#messagesRoot"); if (!root) return;
   const box = S.msgBox || "inbox";
@@ -6253,7 +6257,7 @@ function msgRow(m, box) {
     <span class="msg-dot" aria-hidden="true"></span>
     <span class="msg-who">${who}</span>
     <span class="msg-subj"><b>${esc(m.subject)}</b> <span class="muted">${esc(m.body)}</span></span>
-    <span class="msg-time">${when(m.time)}</span></button>`;
+    <span class="msg-time">${messageTime(m.time)}</span></button>`;
 }
 async function openMessage(id) {
   let dlg = document.getElementById("msgDlg");
@@ -6261,15 +6265,15 @@ async function openMessage(id) {
   dlg.innerHTML = `<p class="muted" style="padding:24px">Loading…</p>`; if (!dlg.open) dlg.showModal();
   try {
     const m = await api("/api/messages/" + id);
-    const meta = m.incoming ? `From ${esc(m.sender_name)} · ${esc(m.sender)}` : `To ${esc(m.recipient_name)} · ${esc(m.recipient)}`;
+    const meta = m.incoming ? `From ${esc(m.sender_name)}${m.sender === "SYSTEM" ? "" : ` · ${esc(m.sender)}`}` : `To ${esc(m.recipient_name)} · ${esc(m.recipient)}`;
     dlg.innerHTML = `<article class="msg-read">
-      <div class="msg-read-head"><b>${esc(m.subject)}</b><div class="muted">${meta} · ${when(m.time)}</div></div>
+      <div class="msg-read-head"><b>${esc(m.subject)}</b><div class="muted">${meta} · ${messageTime(m.time)}</div></div>
       <div class="msg-read-body">${esc(m.body).replace(/\n/g, "<br>")}</div>
       <div class="msg-read-actions">
-        ${m.incoming ? `<button class="btn small" type="button" id="msgReply">Reply</button>` : ""}
+        ${m.incoming && m.replyable !== false ? `<button class="btn small" type="button" id="msgReply">Reply</button>` : ""}
         <button class="btn ghost small" type="button" id="msgDel">Delete</button>
         <button class="btn ghost small" type="button" onclick="this.closest('dialog').close()">Close</button></div></article>`;
-    if (m.incoming) $("#msgReply").onclick = () => { dlg.close(); openCompose(m.sender, "Re: " + m.subject.replace(/^\s*re:\s*/i, "")); };
+    if (m.incoming && m.replyable !== false) $("#msgReply").onclick = () => { dlg.close(); openCompose(m.sender, "Re: " + m.subject.replace(/^\s*re:\s*/i, "")); };
     $("#msgDel").onclick = async () => {
       try { await api("/api/messages/" + id + "/delete", { method: "POST", body: {} }); dlg.close(); loadMessages(); }
       catch (e) { toast(e.message); }

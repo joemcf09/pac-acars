@@ -190,7 +190,6 @@ def notify_staff(con, case, mission, now):
     for row in rows:
         entry = by_pilot.setdefault(row["pilot_id"], {"steps": [], "discord_id": row["discord_id"]})
         entry["steps"].append(roles[row["role"]])
-    ceo = next((row["pilot_id"] for row in rows if row["role"] == "ceo"), "PAC0001")
     subject = f"AOG action · {case['reg']} · case {case['id']}"
     newly_notified = set()
     for pid, entry in by_pilot.items():
@@ -200,7 +199,7 @@ def notify_staff(con, case, mission, now):
                 f"{('Recovery mission ' + mission['id'] + ' is open.') if mission else 'The repair or contractor path is underway.'}\n\n"
                 + "\n".join(entry["steps"]) + "\n\nThis automated alert does not release the aircraft or deliver cargo. Reply to the CEO if you need help.")
         con.execute("INSERT INTO messages (sender,recipient,subject,body,time) VALUES (?,?,?,?,?)",
-                    (ceo, pid, subject, body, now))
+                    ("SYSTEM", pid, subject, body, now))
         if entry["discord_id"]:
             newly_notified.add(str(entry["discord_id"]))
     return sorted(newly_notified)

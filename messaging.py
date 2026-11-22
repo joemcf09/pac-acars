@@ -12,6 +12,10 @@ def migrate(con):
         subject TEXT, body TEXT, time REAL, read_at REAL, del_s INTEGER DEFAULT 0, del_r INTEGER DEFAULT 0)""")
     con.execute("CREATE INDEX IF NOT EXISTS ix_msg_recipient ON messages(recipient, del_r, read_at)")
     con.execute("CREATE INDEX IF NOT EXISTS ix_msg_sender ON messages(sender, del_s)")
+    # Older automated AOG handoffs used the CEO's ID as their sender, which
+    # made them look like mail the CEO wrote and put them in the CEO's Sent box.
+    con.execute("""UPDATE messages SET sender='SYSTEM' WHERE sender!='SYSTEM'
+        AND subject LIKE 'AOG action · %' AND body LIKE '%This automated alert does not release the aircraft%'""")
 
 
 def unread_count(con, pid):
@@ -42,10 +46,11 @@ def register(app, g):
         return s[:140] + ("…" if len(s) > 140 else "")
 
     def _row(r, me, full=False):
-        return {"id": r["id"], "sender": r["sender"], "sender_name": r["sender_name"] or r["sender"],
+        automated = r["sender"] == "SYSTEM"
+        return {"id": r["id"], "sender": r["sender"], "sender_name": "PAC Operations (automated)" if automated else r["sender_name"] or r["sender"],
                 "recipient": r["recipient"], "recipient_name": r["recipient_name"] or r["recipient"],
                 "subject": r["subject"] or "(no subject)", "time": r["time"],
-                "read": r["read_at"] is not None, "incoming": r["recipient"] == me,
+                "read": r["read_at"] is not None, "incoming": r["recipient"] == me, "replyable": not automated,
                 "body": r["body"] if full else _snippet(r["body"])}
 
     LIST_SQL = """SELECT m.*, ps.name AS sender_name, pr.name AS recipient_name FROM messages m
