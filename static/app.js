@@ -383,6 +383,7 @@ function renderMissions() {
   renderBoardCampaigns();
   clearTimeout(S._boardSearchTimer);
   renderBoardTools();
+  renderMissionChoiceBar();
   updateBrowseSummary();
   $("#boardPagination").hidden = S.board === "charter";
   $("#sortBar").hidden = S.board === "charter";
@@ -482,6 +483,7 @@ function renderMissions() {
   if (S.fromHere && S.me?.location && S.board !== "charter") list = list.filter(m => m.origin.icao === S.me.location.icao);
   if (S.simFilter && S.board !== "charter") list = list.filter(m => m.aircraft.some(a => fliesIn(a, S.simFilter)));
   if (S.divFilter && S.board !== "charter") list = list.filter(m => (m.aircraft || []).some(a => divOf(a) === S.divFilter));
+  if (S.boardReadyOnly && S.board !== "charter") list = list.filter(boardReadyAtStation);
   if (S.board !== "charter") {
     const blk = m => m.target_block_min || 0;
     const len = S.lenFilter || "any";
@@ -8453,9 +8455,9 @@ function setCareerSection(section, updateURL = true) {
   });
   if (updateURL) location.hash = 'career/' + section;
 }
-function resetMissionFilters() {
-  Object.assign(S, {parkedOrigin:'',shipmentDestinations:[], shipmentFilterTitle:'', boardCampaignId:'', boardSearch:'', boardCargo:'', boardShortHeavy:false, boardQualifiedOnly:false, boardAvailableOnly:false, boardPage:1, sortBy:'default', fromHere:false, simFilter:'', divFilter:'', acFilter:'', lenFilter:'any', netSearch:'', region:'All', filter:'All', partnerFilter:null, jobKind:'all', netLimit:40});
-  renderPilotStrip(); renderMissions();
+function resetMissionFilters(render = true) {
+  Object.assign(S, {parkedOrigin:'',shipmentDestinations:[], shipmentFilterTitle:'', boardCampaignId:'', boardSearch:'', boardCargo:'', boardShortHeavy:false, boardQualifiedOnly:false, boardAvailableOnly:false, boardReadyOnly:false, boardPage:1, sortBy:'default', fromHere:false, simFilter:'', divFilter:'', acFilter:'', lenFilter:'any', netSearch:'', region:'All', filter:'All', partnerFilter:null, jobKind:'all', netLimit:40});
+  if (render) { renderPilotStrip(); renderMissions(); }
 }
 function travelGuideHTML() {
   return `<div class="journey-travel-grid">
@@ -8543,6 +8545,34 @@ function boardAvailable(m, a) {
 function boardMatchTypes(m) {
   return boardTypes(m).filter(a => (!S.boardQualifiedOnly || boardQualified(m,a)) && (!S.boardAvailableOnly || boardAvailable(m,a)));
 }
+function boardReadyAtStation(m, allTypes = false) {
+  const here = S.me?.location?.icao;
+  const types = allTypes ? (m.aircraft || []).filter(a => S.fleet[a] && !S.fleet[a].retired) : boardTypes(m);
+  return !!here && m.origin?.icao === here && zoneFor(m)?.level !== 'restricted' &&
+    types.some(a => boardQualified(m, a) &&
+      (m.contract || S.settings.enforce_airframes === false || boardAvailable(m, a)));
+}
+function boardNextAction(m) {
+  if (zoneFor(m)?.level === 'restricted') return 'Review airspace restriction';
+  const types = boardTypes(m);
+  if (!S.me || !S.ratings || !S.career) return 'Review eligibility';
+  const qualified = types.filter(a => boardQualified(m, a));
+  if (!qualified.length) return 'Review qualifications';
+  if (S.me.enforce_location && S.me.location?.icao !== m.origin.icao) return `Travel to ${m.origin.icao}`;
+  if (!m.contract && S.settings.enforce_airframes !== false && !qualified.some(a => boardAvailable(m, a))) return 'Arrange an aircraft';
+  return 'Review and plan';
+}
+function renderMissionChoiceBar() {
+  const el = $('#missionChoiceBar'); if (!el) return;
+  el.hidden = S.board === 'charter';
+  if (el.hidden) return;
+  const here = S.me?.location?.icao;
+  const count = here ? missionBoardPool().filter(m => boardReadyAtStation(m, true)).length : 0;
+  el.innerHTML = `<div><span class="kicker">Start from your station</span><strong>${here ? `${count} ${count === 1 ? 'flight' : 'flights'} to review from ${esc(here)}` : 'Station or eligibility still loading'}</strong><small>Current location, ratings and aircraft are checked again when you request a flight.</small></div>
+    <div class="mb-choice-actions"><button type="button" class="btn small" id="boardReadyShortcut" aria-pressed="${!!S.boardReadyOnly}" ${!here ? 'disabled' : ''}>${S.boardReadyOnly ? 'Showing ready flights' : 'Ready from my station →'}</button>${S.boardReadyOnly ? '<button type="button" class="btn ghost small" id="boardShowAll">Show all flights</button>' : ''}</div>`;
+  $('#boardReadyShortcut').onclick = () => { resetMissionFilters(false); S.board = 'all'; S.boardReadyOnly = true; renderPilotStrip(); renderMissions(); $('#manifest').scrollIntoView({block:'start'}); };
+  if ($('#boardShowAll')) $('#boardShowAll').onclick = () => { S.boardReadyOnly = false; renderMissions(); };
+}
 function boardSource(m) {
   if (m.category === 'Checkride' || m.type_checkride || m.id === S.checkrideId) return 'Checkride';
   if (m.contract) return 'Partner crew';
@@ -8557,11 +8587,11 @@ function boardStatus(m) {
   const zq = zoneFor(m);
   if (zq?.level === "restricted") return `Not authorized · ${zq.names.join(", ")} is restricted airspace`;
   const types = boardTypes(m), qualified = types.filter(a => boardQualified(m,a));
-  if (!S.me || !S.ratings) return 'Review qualifications before planning';
+  if (!S.me || !S.ratings || !S.career) return 'Review qualifications before planning';
   if (!qualified.length) return 'Review rank or type-rating requirements';
-  if (!qualified.some(a => boardAvailable(m,a))) return 'Aircraft positioning needed for a qualified type';
   if (S.me.enforce_location && S.me.location?.icao !== m.origin.icao) return `Pilot travel needed · departs ${m.origin.icao}`;
-  return m.contract ? 'Qualified type · partner supplies aircraft' : `Qualified type · aircraft at ${m.origin.icao}`;
+  if (!m.contract && S.settings.enforce_airframes !== false && !qualified.some(a => boardAvailable(m,a))) return 'Aircraft positioning needed for a qualified type';
+  return m.contract ? 'Qualified type · partner supplies aircraft' : S.settings.enforce_airframes === false ? 'Qualified type · aircraft assignment checked when requesting' : `Qualified type · aircraft at ${m.origin.icao}`;
 }
 function boardAccent(m) {
   if (m.urgent) return 'urgent';
@@ -8591,7 +8621,7 @@ function boardCard(m) {
     <strong class="mb-title">${esc(m.title)}</strong><span class="mb-cargo">${esc(m.cargo)}</span>
     <span class="mb-tags">${shedTag(m)}${laneTag(m)}${zoneTag(m)}${m.short_heavy ? `<span class="tag dark">${fmt(m.distance_nm)} NM · Routine delivery</span>` : ""}${boardCampaignLabels(m)}${bonusTags(m)}${freshTags(m)}${m.tour || m.rotation ? `<span class="tag dark">Leg ${esc(m.leg)}/${esc(m.legs)}</span>` : ''}${m.handling ? `<span class="tag grey">${esc(m.handling.label)}</span>` : ''}${m.challenge ? `<span class="tag amber">${esc(m.challenge.label)}</span>` : ''}${m.urgent ? `<span class="tag amber">URGENT ×1.5 · deliver by ${zulu(m.deliver_by)}</span><span>Offer: <span class="countdown" data-countdown="${Number(m.expires)}"></span></span>` : ''}</span>
     <span class="mb-facts"><span>Estimated block<b>${hm(m.target_block_min)}</b></span><span>Recommended types<b>${(m.aircraft || []).map(a=>esc(S.fleet[a]?.icao || a)).join(', ')}</b>${(() => { const ds = [...new Set((m.aircraft || []).map(divOf).filter(Boolean))]; return ds.length ? `<small class="mb-div">${ds.map(d => esc(divShort(d))).join(" · ")}</small>` : ""; })()}</span><span>Cargo load<b>${fmt(m.payload_lbs || 0)} lb</b></span><span>Reward<b>${fmt(m.reward || 0)} points${m.short_heavy ? ` · includes ${fmt(m.handling_points)} handling points` : ""}${m.contract_bonus ? ` · $${fmt(m.contract_bonus)} bonus` : m.ferry_bonus ? ` · $${fmt(m.ferry_bonus)} ferry bonus` : ''}</b></span></span>
-    <span class="mb-status">${esc(boardStatus(m))}</span><span class="mb-card-bottom"><small>Check details before planning</small><b>Review flight →</b></span></button>`;
+    <span class="mb-status"><b>Next: ${esc(boardNextAction(m))}</b><small>${esc(boardStatus(m))}</small></span><span class="mb-card-bottom"><small>Final checks run when you request</small><b>Review flight →</b></span></button>`;
 }
 function boardSearchList(list) {
   if(S.parkedOrigin) list=list.filter(m=>m.origin?.icao===S.parkedOrigin);
@@ -8605,7 +8635,7 @@ function renderBoardTools() {
   el.hidden = S.board === 'charter';
   const categories = [...new Set(missionBoardPool().map(m=>m.category).filter(Boolean))].sort();
   el.innerHTML = `${S.parkedOrigin ? `<p><b>Departures from ${esc(S.parkedOrigin)}</b> · Use Reset filters to browse all airports.</p>` : ""}<div class="mb-search-row"><label>Find a flight<input type="search" id="boardSearch" placeholder="Airport, city, cargo or flight number" value="${esc(S.boardSearch || '')}"></label><label>Cargo work<select id="boardCargo"><option value="">All cargo types</option>${categories.map(c=>`<option ${S.boardCargo===c?'selected':''}>${esc(c)}</option>`).join('')}</select></label></div>
-    <div class="mb-quick"><button type="button" class="chip" data-mb-toggle="boardShortHeavy" aria-pressed="${!!S.boardShortHeavy}">Short-haul heavies · 100–300 NM</button><button type="button" class="chip" data-mb-toggle="boardQualifiedOnly" aria-pressed="${!!S.boardQualifiedOnly}">Qualified recommended types</button><button type="button" class="chip" data-mb-toggle="boardAvailableOnly" aria-pressed="${!!S.boardAvailableOnly}">Aircraft at departure / partner supplied</button><button type="button" class="btn ghost small" id="boardReset">Reset filters</button></div>
+    <div class="mb-quick"><button type="button" class="chip" data-mb-toggle="boardShortHeavy" aria-pressed="${!!S.boardShortHeavy}">Short-haul heavies · 100–300 NM</button><button type="button" class="chip" data-mb-toggle="boardQualifiedOnly" aria-pressed="${!!S.boardQualifiedOnly}">Qualified recommended types</button><button type="button" class="chip" data-mb-toggle="boardAvailableOnly" aria-pressed="${!!S.boardAvailableOnly}">Aircraft at departure / partner supplied</button><button type="button" class="chip" data-mb-toggle="boardReadyOnly" aria-pressed="${!!S.boardReadyOnly}">Ready from my station</button><button type="button" class="btn ghost small" id="boardReset">Reset filters</button></div>
     <p class="mb-note">Filters match the same recommended aircraft type. Availability and qualifications are checked again when booking.</p>`;
   $('#boardSearch').oninput = e => { S.boardSearch=e.target.value; clearTimeout(S._boardSearchTimer); S._boardSearchTimer=setTimeout(()=>{renderMissions();const input=$('#boardSearch');input.focus();input.setSelectionRange(input.value.length,input.value.length);},180); };
   $('#boardCargo').onchange=e=>{S.boardCargo=e.target.value;renderMissions();};
@@ -8618,7 +8648,7 @@ function renderBoardTools() {
   $('#boardSuggestions').querySelectorAll('[data-suggestion]').forEach(b=>b.onclick=()=>selectMission(b.dataset.suggestion));
 }
 function boardPage(list) {
-  const signature=JSON.stringify([S.board,S.filter,S.region,S.netSearch,S.acFilter,S.simFilter,S.divFilter,S.lenFilter,S.sortBy,S.fromHere,S.partnerFilter,S.jobKind,S.boardSearch,S.boardCargo,S.boardShortHeavy,S.boardQualifiedOnly,S.boardAvailableOnly,S.boardCampaignId,list.map(m=>m.id)]);
+  const signature=JSON.stringify([S.board,S.filter,S.region,S.netSearch,S.acFilter,S.simFilter,S.divFilter,S.lenFilter,S.sortBy,S.fromHere,S.partnerFilter,S.jobKind,S.boardSearch,S.boardCargo,S.boardShortHeavy,S.boardQualifiedOnly,S.boardAvailableOnly,S.boardReadyOnly,S.boardCampaignId,list.map(m=>m.id)]);
   if(signature!==S._boardPageKey){S.boardPage=1;S._boardPageKey=signature;}
   const pages=Math.max(1,Math.ceil(list.length/6));S.boardPage=Math.min(Math.max(1,S.boardPage||1),pages);
   const start=(S.boardPage-1)*6,shown=list.slice(start,start+6);

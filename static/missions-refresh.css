@@ -1,0 +1,27 @@
+/* Missions discovery improvements; the existing board and planner remain intact. */
+#view-missions .mb-heading{margin-bottom:12px}
+#view-missions .mb-heading h1{margin-bottom:3px}
+#view-missions .mb-heading p{margin-top:3px}
+#view-missions .pilot-strip{margin-bottom:10px}
+#view-missions .mb-choice-bar{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;background:var(--white);border:1px solid var(--line);border-left:4px solid var(--red);padding:12px 16px;margin:8px 0 14px}
+#view-missions .mb-choice-bar[hidden]{display:none}
+#view-missions .mb-choice-bar>div:first-child{display:flex;flex-direction:column;gap:2px}
+#view-missions .mb-choice-bar strong{font-size:16px}
+#view-missions .mb-choice-bar small{font-size:12px;color:var(--steel)}
+#view-missions .mb-choice-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+#view-missions .mb-choice-actions .btn[aria-pressed="true"]{background:var(--ink);border-color:var(--ink);color:var(--white)}
+#view-missions .journey-help.ux-activity-guide{margin-bottom:9px}
+#view-missions #boardCampaignPanel:not(:empty){margin:10px 0;padding:13px 16px}
+#view-missions .mb-inspiration{margin:10px 0}
+#view-missions .mb-entry{margin:10px 0}
+#view-missions .board-tabs{overflow-x:auto;flex-wrap:nowrap;white-space:nowrap;scrollbar-width:thin}
+#view-missions .board-tabs button{flex:none}
+#view-missions .mb-card{transition:box-shadow .15s ease,transform .15s ease}
+#view-missions .mb-card:hover{box-shadow:0 5px 18px #15171b20;transform:translateY(-2px)}
+#view-missions .mb-status{display:flex;flex-direction:column;gap:3px}
+#view-missions .mb-status b{font-size:13px;color:var(--ink)}
+#view-missions .mb-status small{font-size:11px;color:var(--steel)}
+#view-missions .mb-card-bottom{padding-top:10px;padding-bottom:10px}
+html[data-theme="dark"] #view-missions .mb-choice-actions .btn[aria-pressed="true"]{background:var(--red);border-color:var(--red);color:#fff}
+@media(max-width:650px){#view-missions .mb-choice-actions{width:100%}#view-missions .mb-choice-actions .btn{flex:1}#view-missions .mb-card:hover{transform:none}}
+@media(prefers-reduced-motion:reduce){#view-missions .mb-card{transition:none}}
