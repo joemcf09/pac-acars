@@ -128,6 +128,18 @@ check("takeoff runway with separate pilot data", split_p["takeoff_analysis"].get
 check("rotation speed about 150 kt", 146 <= (ta.get("rotate_ias") or 0) <= 154, ta.get("rotate_ias"))
 check("rotation rate about 2.5°/s", 1.8 <= (ta.get("rotation_rate") or 0) <= 3.2, ta.get("rotation_rate"))
 check("no tail strike", ta.get("tail_strike") is False, ta.get("max_pitch_ground"))
+_takeoff_series = rec.takeoff_series
+rec.takeoff_series = [row[:] for row in _takeoff_series]
+_first_air_t = next(x[0] for x in rec.takeoff_series if x[8] == 0)
+_last_ground = max(i for i, row in enumerate(rec.takeoff_series) if row[8] == 1 and row[0] < _first_air_t)
+rec.takeoff_series[_last_ground][10] = 20.0
+pitch_review = A.build_pirep(rec.booking, rec)
+rec.takeoff_series = _takeoff_series
+check("high recorded ground pitch requests review", pitch_review["review_status"] == "Pending"
+      and pitch_review["takeoff_analysis"]["tail_clearance_warning"] is True, pitch_review["flags"])
+check("pitch alone does not claim a strike or lower the grade", pitch_review["takeoff_analysis"]["tail_strike"] is False
+      and pitch_review["score"] == p["score"], pitch_review["breakdown"])
+check("pitch alone does not charge repairs", "tail_strike_repairs" not in pitch_review["economics"]["costs"], pitch_review["economics"]["costs"])
 check("no touch-back", ta.get("touchback") is False)
 check("grade A", p["grade"] == "A", (p["score"], p["breakdown"]))
 check("no review flags", not p["flags"], p["flags"])

@@ -177,7 +177,7 @@ def analyze_landing(series, td_t, rate, g, airports_to_try, data_dir, gc_distanc
 
 
 def analyze_takeoff(series, off_t, airports_to_try, data_dir, tail_limit=None):
-    """Rotation, liftoff, tail-strike margin, runway used and initial climb from the takeoff samples.
+    """Rotation, liftoff, tail-clearance reference, runway used and initial climb from the takeoff samples.
     Sample: [t, agl, vs, ias, g, lat, lon, hdg, on_ground, gs, pitch]"""
     if not series or len(series) < 5:
         return None
@@ -214,12 +214,17 @@ def analyze_takeoff(series, off_t, airports_to_try, data_dir, tail_limit=None):
             k = next((x for x in series if x[0] > rot[0] and x[10] is not None and x[10] >= target), lo)
             out["rotation_rate"] = round(((k[10] or 0) - p0) / max(0.5, k[0] - rot[0]), 1)
         out["liftoff_pitch"] = round(lo[10] or 0, 1)
-        ground = [x[10] for x in series if x[10] is not None and (x[8] == 1 or x[1] < 5)]
+        # Low AGL does not mean ground contact: the aircraft can be airborne below 5 ft.
+        # Restrict this measurement to the takeoff roll before sustained liftoff.
+        ground = [x[10] for x in roll if x[10] is not None]
         out["max_pitch_ground"] = round(max(ground), 1) if ground else None
         if tail_limit:
             out["tail_limit"] = tail_limit
             out["tail_margin"] = round(tail_limit - (out["max_pitch_ground"] or 0), 1)
-            out["tail_strike"] = out["max_pitch_ground"] is not None and out["max_pitch_ground"] >= tail_limit
+            # Pitch is an aircraft-specific clearance *estimate*, not a contact sensor.
+            # Keep a review cue without asserting damage or triggering a penalty/AOG.
+            out["tail_clearance_warning"] = out["max_pitch_ground"] is not None and out["max_pitch_ground"] >= tail_limit
+            out["tail_strike"] = False
     # roll distance along the path
     dist_m = 0.0
     for a, b in zip(roll, roll[1:] + [lo]):

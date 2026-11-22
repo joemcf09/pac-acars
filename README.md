@@ -156,8 +156,9 @@ All three use the same SimBrief, ACARS, PIREP and logbook flow.
   every 40 minutes (up to three), each using an aircraft already in position.
   Deliver before the deadline for ×1.5 points and full revenue.
 * **Takeoff analysis**: rotation and liftoff speeds, pitch against each type's
-  tail-strike limit, ground roll, runway remaining and initial climb, with a
-  downloadable takeoff card. Tail strikes cost points and ground the aircraft.
+  estimated tail-clearance reference, ground roll, runway remaining and initial
+  climb, with a downloadable takeoff card. Crossing the reference prompts
+  staff review; pitch alone does not prove contact or ground the aircraft.
 * **Flight integrity**: sim-rate acceleration (over 10 s) and long pauses
   (over 10 min in the air) are detected and sent to staff review.
 * **Online flying**: add your VATSIM CID or IVAO VID in Settings. ACARS checks the
