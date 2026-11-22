@@ -383,6 +383,7 @@ function renderMissions() {
   renderBoardCampaigns();
   clearTimeout(S._boardSearchTimer);
   renderBoardTools();
+  renderMissionChoiceBar();
   updateBrowseSummary();
   $("#boardPagination").hidden = S.board === "charter";
   $("#sortBar").hidden = S.board === "charter";
@@ -482,6 +483,7 @@ function renderMissions() {
   if (S.fromHere && S.me?.location && S.board !== "charter") list = list.filter(m => m.origin.icao === S.me.location.icao);
   if (S.simFilter && S.board !== "charter") list = list.filter(m => m.aircraft.some(a => fliesIn(a, S.simFilter)));
   if (S.divFilter && S.board !== "charter") list = list.filter(m => (m.aircraft || []).some(a => divOf(a) === S.divFilter));
+  if (S.boardReadyOnly && S.board !== "charter") list = list.filter(boardReadyAtStation);
   if (S.board !== "charter") {
     const blk = m => m.target_block_min || 0;
     const len = S.lenFilter || "any";
@@ -5671,148 +5673,9 @@ async function renderHome(h, st) {
 
   ${discordWidget(site)}
 
-  <div class="section-h" id="apply"><div><div class="kicker">Join the crew</div><h2>Fly for Pagani Air Cargo</h2></div><button class="btn ghost small" onclick="show('handbook')">Read the handbook</button></div>
-  <div class="apply">
-    <div class="pitch"><h2>Get your wings in red</h2><p style="margin:0">${esc(site.recruiting)}</p>
-      <ol><li>Apply below. Staff review every application.</li><li>Choose a supported training airport for your free 737 line checkride. ACARS grades it.</li><li>Join the line as a Second Officer on the 737 and 727, and work your way to the 747-8F.</li></ol></div>
-    <form id="applyForm" autocomplete="on">
-      <div class="field"><label for="ap_name">Full name</label><input id="ap_name" name="name" required autocomplete="name"></div>
-      <div class="field"><label for="ap_email">Email</label><input id="ap_email" name="email" type="email" required autocomplete="email"></div>
-      <div class="field"><label for="ap_country">Country</label><input id="ap_country" name="country" autocomplete="country-name"></div>
-      <div class="field"><label for="ap_discord">Discord username (optional)</label><input id="ap_discord" name="discord"></div>
-      <div class="field"><label for="ap_sim">Simulator</label><select id="ap_sim" name="simulator"><option>MSFS 2024</option><option>MSFS 2020</option><option>X-Plane 12</option><option>X-Plane 11</option><option>Prepar3D</option></select></div>
-      <div class="field"><label for="ap_exp">Simulator experience</label><select id="ap_exp" name="experience"><option>New to airliners</option><option>Under 100 hours</option><option>100–500 hours</option><option>500+ hours</option><option>Real-world pilot</option></select></div>
-      <div class="field"><label for="ap_hub">Preferred hub</label><select id="ap_hub" name="hub">${hubs.map(([ic, n]) => `<option value="${ic}">${ic} ${esc(n)}</option>`).join("")}</select></div>
-      <div class="field full"><label for="ap_source">Where did you hear about us?</label><select id="ap_source" name="source">
-        <option value="">— Select —</option><option>Reddit</option><option>Simdispatch (VA directory)</option><option>VA-List.com</option>
-        <option>X-Plane Community forum</option><option>X-Plane.org forums</option><option>Flightsim.to</option><option>Hangar Addons</option>
-        <option>My Next Airline</option><option>VATSIM forum</option><option>IVAO forum</option><option>Discord</option>
-        <option>A friend / word of mouth</option><option>Other</option></select></div>
-      <div class="field full"><label for="ap_why">Why do you want to fly with PAC?</label><textarea id="ap_why" name="motivation" rows="3"></textarea></div>
-      <label class="full" style="display:flex;gap:10px;font-size:14px;align-items:flex-start"><input type="checkbox" name="agree" style="margin-top:3px;accent-color:#fff"> I've read the <a href="#handbook" onclick="show('handbook');return false">pilot handbook</a> and will fly by its rules.</label>
-      <p class="full ap-privacy">Staff use your details only to review your application and, if you join, to run your PAC account. See the <a href="#privacy" onclick="show('privacy');return false">privacy policy</a>.</p>
-      <div class="full"><button class="btn light" type="submit" style="background:#fff;color:var(--red);border-color:#fff">Submit application</button></div>
-    </form>
-  </div>
-  ${siteFooter(site)}`;
-  homeLayout();
-  fillHomeCampaigns(); buildBoard($("#fbDep")); buildBoard($("#fbArr")); refreshBoard(); tickClock(); tickCountdowns();
-  bindShots($("#homeRoot"), shots, () => loadHome());
-  const hero = $("#homeRoot .hero");
-  gfHomeStrip();
-  const notices = news.filter(n => n.kind === 'notam');
-  if (S.me && hero && notices.length) hero.insertAdjacentHTML('afterend', `<section class="home-notices" aria-label="Latest company notices"><div class="home-notices-heading"><b>Latest notices</b><span>${notices.length} company notice${notices.length===1?'':'s'} · Select a title to read</span></div>${notices.map(n=>`<details${n.important?' class="notice-important"':''}><summary>${n.important?'<span class="notice-priority">Important</span>':''}${esc(n.title)}</summary><div class="home-notice-body">${esc(n.body || 'No further details.')}<small>${esc(n.author || 'PAC Operations')}${n.time?' · '+new Date(n.time*1000).toLocaleDateString('en-US'):''}</small></div></details>`).join('')}</section>`);
-  if (hero && S.me) hero.insertAdjacentHTML('afterend', `<section class="home-next" id="homeNext">${homeNextHTML(st)}</section>`);
-  if (hero && S.me && !S.me.activity) loadMe().then(() => { const hn = $("#homeNext"); if (hn) hn.innerHTML = homeNextHTML(st); }).catch(() => {});
-  if ($("#heroApply")) $("#heroApply").onclick = e => { e.preventDefault(); $("#apply").scrollIntoView({ behavior: "smooth" }); };
-  document.querySelectorAll("[data-photo]").forEach(b => b.onclick = () => { const a = S.fleet[b.dataset.photo]; openPhoto(a.photo, a.name); });
-  if ($("#applyForm")) $("#applyForm").onsubmit = async e => {
-    e.preventDefault();
-    const fd = Object.fromEntries(new FormData(e.target).entries()); fd.agree = !!e.target.agree.checked;
-    try {
-      await api("/api/applications", { method: "POST", body: fd });
-      e.target.innerHTML = `<div class="full"><h3 style="font-size:22px;margin:0 0 8px">Application received</h3><p style="margin:0">Thanks, ${esc(fd.name.split(" ")[0])}. Staff will review it shortly. Once approved, your next step is the 737 line checkride.</p></div>`;
-    } catch (err) { toast(err.message); }
-  };
-  if (HAS_MAP) {
-    if (S.homeMap) S.homeMap.remove();
-    S.homeDots = [];
-    const base = makeBaseMap($("#homeMap"), { theme: "light", style: S.settings.map_style === "dark" ? "light" : (S.settings.map_style || "light") });
-    S.homeMap = base.map; S.homeMap.setView([30, 5], 2); S.homeMap.scrollWheelZoom.disable(); setTimeout(() => S.homeMap && S.homeMap.invalidateSize(), 200); try { new ResizeObserver(() => S.homeMap && S.homeMap.invalidateSize()).observe($("#homeMap")); } catch (e) { /* older browsers */ }
-    const count = {};
-    S.routes.forEach(r => {
-      L.polyline(gcPath(r.origin, r.destination), { color: "#C80000", weight: 1, opacity: .3, interactive: false }).addTo(S.homeMap);
-      [r.origin, r.destination].forEach(a => count[a.icao] = { a, n: (count[a.icao]?.n || 0) + 1 });
-    });
-    Object.values(count).forEach(({ a, n }) => {
-      const main = a.icao === "KCVG", hub = hubs.some(h => h[0] === a.icao);
-      (S.homeDots ||= []).push([a.icao, L.circleMarker([a.lat, a.lon], { radius: main ? 9 : hub ? 6 : 3, color: "#fff", weight: main ? 3 : 1, fillColor: hub ? "#C80000" : "#1E2126", fillOpacity: 1 })
-        .bindTooltip(`${a.icao} · ${esc(a.city)} (${n})`, { className: "stn-tip", direction: "top" }).addTo(S.homeMap)]);
-    });
-    setTimeout(() => S.homeMap.invalidateSize(), 60);
-    whenHomeMapVisible(() => loadNetworkWx(() => {
-      if (!S.netWx || !S.homeMap) return;
-      (S.homeDots || []).forEach(([ic, mk]) => { const c = wxColor(ic); if (c) mk.setStyle({ color: c, weight: 2.5 }); });
-      wxLegend(S.homeMap);
-    }));
-  }
-}
-
-/* ================= Transfer hours (pilot side) ================= */
-const trDate = t => new Date(t * 1000).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
-async function fillTransfers() {
-  const el = $("#transferPanel");
-  if (!el) return;
-  let d;
-  try { d = await api("/api/transfers"); } catch (e) { el.innerHTML = ""; return; }
-  S.transfers = d;
-  const r = d.rules, last = d.requests[0];
-  const tag = st => `<span class="tag ${st === "Pending" ? "amber" : st === "Approved" ? "green" : ""}">${esc(st)}</span>`;
-  const history = d.requests.map(q => `<div class="tr-hist">
-      <div><b>${q.status === "Approved" ? `${esch(q.credited)} hours credited` : q.status === "Pending" ? "Waiting for staff" : "Not verified"}</b> ${tag(q.status)}
-        <span class="muted small">sent ${trDate(q.submitted)}${q.reviewed_at ? ` · reviewed ${trDate(q.reviewed_at)}` : ""}</span></div>
-      <div class="muted small">${q.sources.map(s => `${esc(s.name)} (${esch(s.hours)} h claimed${q.status === "Approved" ? s.approved ? `, ${esch(s.verified)} verified` : ", not verified" : ""})`).join(" · ")}</div>
-      ${q.note ? `<div class="small">Staff note: ${esc(q.note)}</div>` : ""}</div>`).join("");
-  el.innerHTML = `<section class="panel tr-panel" aria-labelledby="trHead">
-    <div class="tr-top"><div><span class="kicker">Experience from other airlines</span><h2 id="trHead">Transfer hours</h2>
-      <p class="muted" style="margin:4px 0 0;max-width:72ch">Flown at another virtual airline or on VATSIM/IVAO? Send your verified hours and PAC credits <b>half of them, up to ${r.cap} hours</b>, towards rank. That can take you as far as Senior First Officer; Captain is earned at PAC. The checkride, your average score and type ratings still apply, and transfer hours never add pay, points or leaderboard hours.</p></div>
-      <div class="tr-now"><span>Credited now</span><b>${esch(d.transfer_hours)} h</b><small>${d.transfer_hours > r.cap ? "set by staff" : `of ${r.cap} max`}</small></div></div>
-    ${d.can_request ? `<div class="row" style="align-items:center;gap:12px;margin-top:12px"><button class="btn" type="button" id="trOpen">${d.is_appeal ? "Appeal with new proof" : "Request transfer hours"}</button>
-        <span class="muted small">${d.is_appeal ? "This is your one appeal. " : ""}Open until ${trDate(d.closes)}.</span></div>`
-      : d.why_not ? `<p class="small muted" style="margin:12px 0 0">${esc(d.why_not)}</p>` : ""}
-    ${history ? `<div class="tr-history">${history}</div>` : ""}</section>`;
-  const b = $("#trOpen"); if (b) b.onclick = openTransferForm;
-}
-function openTransferForm() {
-  const d = S.transfers, r = d.rules, dlg = $("#transferDlg");
-  $("#trTitle").textContent = d.is_appeal ? "Appeal: transfer hours" : "Request transfer hours";
-  const row = i => `<fieldset class="tr-src" data-src="${i}"><legend>Source ${i + 1}${i ? ` <button type="button" class="btn ghost small" data-src-del="${i}">Remove</button>` : ""}</legend>
-    <div class="tr-grid">
-      <label>Type<select name="kind"><option value="va">Virtual airline</option><option value="network">VATSIM or IVAO</option></select></label>
-      <label>Name<input name="name" maxlength="80" placeholder="e.g. Delta Virtual Airlines" required></label>
-      <label class="wide">Logbook or profile link<input name="url" type="url" maxlength="300" placeholder="https://…" required></label>
-      <label>Hours shown<input name="hours" type="number" min="0.1" step="0.1" required></label>
-      <label>Screenshot showing your name or pilot ID and the hours<input name="proof" type="file" accept="image/png,image/jpeg,image/webp" required></label>
-    </div></fieldset>`;
-  let n = 1;
-  const paint = () => {
-    $("#trBody").innerHTML = `<form id="trForm" class="tr-form">
-      <p class="small" style="margin:0">Each source needs a link to your logbook or profile page and a screenshot of it. <b>The screenshot must show your name or pilot ID together with your hours</b>: many VA systems need a login, so staff may not be able to open the link and will go by the screenshot. If staff can't confirm it's you, they may ask for a quick Discord screen share.</p>
-      <ul class="small muted" style="margin:0;padding-left:18px">
-        <li>Hours at different virtual airlines add up.</li>
-        <li>VATSIM/IVAO hours are usually the same flights as your VA hours, so they don't add on top: staff use whichever total is larger.</li>
-        <li>PAC credits half of the verified total, up to ${r.cap} hours. ${d.is_appeal ? "This is your appeal, so there's no further request after it." : "You get one request and one appeal."}</li>
-      </ul>
-      <div id="trSrcs">${Array.from({ length: n }, (_, i) => row(i)).join("")}</div>
-      ${n < r.max_sources ? `<button type="button" class="btn ghost small" id="trAdd" style="align-self:flex-start">+ Add another source</button>` : ""}
-      <label>Anything staff should know? (optional)<textarea name="comment" maxlength="1000" rows="2" placeholder="e.g. my pilot ID there was DAL1234"></textarea></label>
-      <div class="tr-est small" id="trEst"></div>
-      <div class="auth-err" id="trErr" role="alert"></div>
-      <div class="row"><button class="btn" type="submit">Send to staff</button><button class="btn ghost" type="button" data-tr-cancel>Cancel</button></div></form>`;
-    $("#trAdd") && ($("#trAdd").onclick = () => { keep(); n++; paint(); restore(); });
-    document.querySelectorAll("[data-src-del]").forEach(b => b.onclick = () => { keep(); saved.splice(+b.dataset.srcDel, 1); n--; paint(); restore(); });
-    $("[data-tr-cancel]").onclick = () => dlg.close();
-    $("#trForm").oninput = est;
-    $("#trForm").onsubmit = send;
-    est();
-  };
-  let saved = [];
-  const srcEls = () => [...document.querySelectorAll("#trSrcs [data-src]")];
-  const keep = () => { saved = srcEls().map(f => ({ kind: f.querySelector("[name=kind]").value, name: f.querySelector("[name=name]").value, url: f.querySelector("[name=url]").value, hours: f.querySelector("[name=hours]").value, file: f.querySelector("[name=proof]").files[0] || null })); };
-  const restore = () => srcEls().forEach((f, i) => { const v = saved[i]; if (!v) return;
-    f.querySelector("[name=kind]").value = v.kind; f.querySelector("[name=name]").value = v.name; f.querySelector("[name=url]").value = v.url; f.querySelector("[name=hours]").value = v.hours;
-    if (v.file) { const dt = new DataTransfer(); dt.items.add(v.file); f.querySelector("[name=proof]").files = dt.files; } });
-  const est = () => {
-    let va = 0, net = 0;
-    srcEls().forEach(f => { const h = Number(f.querySelector("[name=hours]").value) || 0; f.querySelector("[name=kind]").value === "network" ? net += h : va += h; });
-    const base = Math.max(va, net), cr = Math.min(r.cap, Math.round(base * r.share * 10) / 10);
-    $("#trEst").innerHTML = base ? `If staff verify everything: <b>${esch(Math.round(base * 10) / 10)} h</b>${va && net ? ` (the larger of ${esch(va)} h VA and ${esch(net)} h network)` : ""} → <b>${esch(cr)} h credited</b>${base * r.share > r.cap ? ` (capped at ${r.cap})` : ""}.` : "";
-  };
-  const send = async e => {
-    e.preventDefault();
-    const btn = e.target.querySelector("[type=submit]"), fd = new FormData(), list = [];
-    srcEls().forEach((f, i) => {
-      list.push({ kind: f.querySelector("[name=kind]").value, name: f.querySelector("[name=name]").value.trim(), url: f.querySelector("[name=url]").value.trim(), hours: f.querySelector("[name=hours]").value });
+  <div class="section-h" id="apply"><div><div class="kicker">Join the crew</div><h2>Fly for Pagani Air Cargo</h2></div><button class="btn ghost small" onclick="show('handbook')">Rea
+... 14410 bytes omitted ...
+t.push({ kind: f.querySelector("[name=kind]").value, name: f.querySelector("[name=name]").value.trim(), url: f.querySelector("[name=url]").value.trim(), hours: f.querySelector("[name=hours]").value });
       const file = f.querySelector("[name=proof]").files[0]; if (file) fd.append(`proof${i}`, file);
     });
     fd.append("sources", JSON.stringify(list));
@@ -8453,9 +8316,9 @@ function setCareerSection(section, updateURL = true) {
   });
   if (updateURL) location.hash = 'career/' + section;
 }
-function resetMissionFilters() {
-  Object.assign(S, {parkedOrigin:'',shipmentDestinations:[], shipmentFilterTitle:'', boardCampaignId:'', boardSearch:'', boardCargo:'', boardShortHeavy:false, boardQualifiedOnly:false, boardAvailableOnly:false, boardPage:1, sortBy:'default', fromHere:false, simFilter:'', divFilter:'', acFilter:'', lenFilter:'any', netSearch:'', region:'All', filter:'All', partnerFilter:null, jobKind:'all', netLimit:40});
-  renderPilotStrip(); renderMissions();
+function resetMissionFilters(render = true) {
+  Object.assign(S, {parkedOrigin:'',shipmentDestinations:[], shipmentFilterTitle:'', boardCampaignId:'', boardSearch:'', boardCargo:'', boardShortHeavy:false, boardQualifiedOnly:false, boardAvailableOnly:false, boardReadyOnly:false, boardPage:1, sortBy:'default', fromHere:false, simFilter:'', divFilter:'', acFilter:'', lenFilter:'any', netSearch:'', region:'All', filter:'All', partnerFilter:null, jobKind:'all', netLimit:40});
+  if (render) { renderPilotStrip(); renderMissions(); }
 }
 function travelGuideHTML() {
   return `<div class="journey-travel-grid">
@@ -8543,6 +8406,34 @@ function boardAvailable(m, a) {
 function boardMatchTypes(m) {
   return boardTypes(m).filter(a => (!S.boardQualifiedOnly || boardQualified(m,a)) && (!S.boardAvailableOnly || boardAvailable(m,a)));
 }
+function boardReadyAtStation(m, allTypes = false) {
+  const here = S.me?.location?.icao;
+  const types = allTypes ? (m.aircraft || []).filter(a => S.fleet[a] && !S.fleet[a].retired) : boardTypes(m);
+  return !!here && m.origin?.icao === here && zoneFor(m)?.level !== 'restricted' &&
+    types.some(a => boardQualified(m, a) &&
+      (m.contract || S.settings.enforce_airframes === false || boardAvailable(m, a)));
+}
+function boardNextAction(m) {
+  if (zoneFor(m)?.level === 'restricted') return 'Review airspace restriction';
+  const types = boardTypes(m);
+  if (!S.me || !S.ratings || !S.career) return 'Review eligibility';
+  const qualified = types.filter(a => boardQualified(m, a));
+  if (!qualified.length) return 'Review qualifications';
+  if (S.me.enforce_location && S.me.location?.icao !== m.origin.icao) return `Travel to ${m.origin.icao}`;
+  if (!m.contract && S.settings.enforce_airframes !== false && !qualified.some(a => boardAvailable(m, a))) return 'Arrange an aircraft';
+  return 'Review and plan';
+}
+function renderMissionChoiceBar() {
+  const el = $('#missionChoiceBar'); if (!el) return;
+  el.hidden = S.board === 'charter';
+  if (el.hidden) return;
+  const here = S.me?.location?.icao;
+  const count = here ? missionBoardPool().filter(m => boardReadyAtStation(m, true)).length : 0;
+  el.innerHTML = `<div><span class="kicker">Start from your station</span><strong>${here ? `${count} ${count === 1 ? 'flight' : 'flights'} to review from ${esc(here)}` : 'Station or eligibility still loading'}</strong><small>Current location, ratings and aircraft are checked again when you request a flight.</small></div>
+    <div class="mb-choice-actions"><button type="button" class="btn small" id="boardReadyShortcut" aria-pressed="${!!S.boardReadyOnly}" ${!here ? 'disabled' : ''}>${S.boardReadyOnly ? 'Showing ready flights' : 'Ready from my station →'}</button>${S.boardReadyOnly ? '<button type="button" class="btn ghost small" id="boardShowAll">Show all flights</button>' : ''}</div>`;
+  $('#boardReadyShortcut').onclick = () => { resetMissionFilters(false); S.board = 'all'; S.boardReadyOnly = true; renderPilotStrip(); renderMissions(); $('#manifest').scrollIntoView({block:'start'}); };
+  if ($('#boardShowAll')) $('#boardShowAll').onclick = () => { S.boardReadyOnly = false; renderMissions(); };
+}
 function boardSource(m) {
   if (m.category === 'Checkride' || m.type_checkride || m.id === S.checkrideId) return 'Checkride';
   if (m.contract) return 'Partner crew';
@@ -8557,11 +8448,11 @@ function boardStatus(m) {
   const zq = zoneFor(m);
   if (zq?.level === "restricted") return `Not authorized · ${zq.names.join(", ")} is restricted airspace`;
   const types = boardTypes(m), qualified = types.filter(a => boardQualified(m,a));
-  if (!S.me || !S.ratings) return 'Review qualifications before planning';
+  if (!S.me || !S.ratings || !S.career) return 'Review qualifications before planning';
   if (!qualified.length) return 'Review rank or type-rating requirements';
-  if (!qualified.some(a => boardAvailable(m,a))) return 'Aircraft positioning needed for a qualified type';
   if (S.me.enforce_location && S.me.location?.icao !== m.origin.icao) return `Pilot travel needed · departs ${m.origin.icao}`;
-  return m.contract ? 'Qualified type · partner supplies aircraft' : `Qualified type · aircraft at ${m.origin.icao}`;
+  if (!m.contract && S.settings.enforce_airframes !== false && !qualified.some(a => boardAvailable(m,a))) return 'Aircraft positioning needed for a qualified type';
+  return m.contract ? 'Qualified type · partner supplies aircraft' : S.settings.enforce_airframes === false ? 'Qualified type · aircraft assignment checked when requesting' : `Qualified type · aircraft at ${m.origin.icao}`;
 }
 function boardAccent(m) {
   if (m.urgent) return 'urgent';
@@ -8591,7 +8482,7 @@ function boardCard(m) {
     <strong class="mb-title">${esc(m.title)}</strong><span class="mb-cargo">${esc(m.cargo)}</span>
     <span class="mb-tags">${shedTag(m)}${laneTag(m)}${zoneTag(m)}${m.short_heavy ? `<span class="tag dark">${fmt(m.distance_nm)} NM · Routine delivery</span>` : ""}${boardCampaignLabels(m)}${bonusTags(m)}${freshTags(m)}${m.tour || m.rotation ? `<span class="tag dark">Leg ${esc(m.leg)}/${esc(m.legs)}</span>` : ''}${m.handling ? `<span class="tag grey">${esc(m.handling.label)}</span>` : ''}${m.challenge ? `<span class="tag amber">${esc(m.challenge.label)}</span>` : ''}${m.urgent ? `<span class="tag amber">URGENT ×1.5 · deliver by ${zulu(m.deliver_by)}</span><span>Offer: <span class="countdown" data-countdown="${Number(m.expires)}"></span></span>` : ''}</span>
     <span class="mb-facts"><span>Estimated block<b>${hm(m.target_block_min)}</b></span><span>Recommended types<b>${(m.aircraft || []).map(a=>esc(S.fleet[a]?.icao || a)).join(', ')}</b>${(() => { const ds = [...new Set((m.aircraft || []).map(divOf).filter(Boolean))]; return ds.length ? `<small class="mb-div">${ds.map(d => esc(divShort(d))).join(" · ")}</small>` : ""; })()}</span><span>Cargo load<b>${fmt(m.payload_lbs || 0)} lb</b></span><span>Reward<b>${fmt(m.reward || 0)} points${m.short_heavy ? ` · includes ${fmt(m.handling_points)} handling points` : ""}${m.contract_bonus ? ` · $${fmt(m.contract_bonus)} bonus` : m.ferry_bonus ? ` · $${fmt(m.ferry_bonus)} ferry bonus` : ''}</b></span></span>
-    <span class="mb-status">${esc(boardStatus(m))}</span><span class="mb-card-bottom"><small>Check details before planning</small><b>Review flight →</b></span></button>`;
+    <span class="mb-status"><b>Next: ${esc(boardNextAction(m))}</b><small>${esc(boardStatus(m))}</small></span><span class="mb-card-bottom"><small>Final checks run when you request</small><b>Review flight →</b></span></button>`;
 }
 function boardSearchList(list) {
   if(S.parkedOrigin) list=list.filter(m=>m.origin?.icao===S.parkedOrigin);
@@ -8605,7 +8496,7 @@ function renderBoardTools() {
   el.hidden = S.board === 'charter';
   const categories = [...new Set(missionBoardPool().map(m=>m.category).filter(Boolean))].sort();
   el.innerHTML = `${S.parkedOrigin ? `<p><b>Departures from ${esc(S.parkedOrigin)}</b> · Use Reset filters to browse all airports.</p>` : ""}<div class="mb-search-row"><label>Find a flight<input type="search" id="boardSearch" placeholder="Airport, city, cargo or flight number" value="${esc(S.boardSearch || '')}"></label><label>Cargo work<select id="boardCargo"><option value="">All cargo types</option>${categories.map(c=>`<option ${S.boardCargo===c?'selected':''}>${esc(c)}</option>`).join('')}</select></label></div>
-    <div class="mb-quick"><button type="button" class="chip" data-mb-toggle="boardShortHeavy" aria-pressed="${!!S.boardShortHeavy}">Short-haul heavies · 100–300 NM</button><button type="button" class="chip" data-mb-toggle="boardQualifiedOnly" aria-pressed="${!!S.boardQualifiedOnly}">Qualified recommended types</button><button type="button" class="chip" data-mb-toggle="boardAvailableOnly" aria-pressed="${!!S.boardAvailableOnly}">Aircraft at departure / partner supplied</button><button type="button" class="btn ghost small" id="boardReset">Reset filters</button></div>
+    <div class="mb-quick"><button type="button" class="chip" data-mb-toggle="boardShortHeavy" aria-pressed="${!!S.boardShortHeavy}">Short-haul heavies · 100–300 NM</button><button type="button" class="chip" data-mb-toggle="boardQualifiedOnly" aria-pressed="${!!S.boardQualifiedOnly}">Qualified recommended types</button><button type="button" class="chip" data-mb-toggle="boardAvailableOnly" aria-pressed="${!!S.boardAvailableOnly}">Aircraft at departure / partner supplied</button><button type="button" class="chip" data-mb-toggle="boardReadyOnly" aria-pressed="${!!S.boardReadyOnly}">Ready from my station</button><button type="button" class="btn ghost small" id="boardReset">Reset filters</button></div>
     <p class="mb-note">Filters match the same recommended aircraft type. Availability and qualifications are checked again when booking.</p>`;
   $('#boardSearch').oninput = e => { S.boardSearch=e.target.value; clearTimeout(S._boardSearchTimer); S._boardSearchTimer=setTimeout(()=>{renderMissions();const input=$('#boardSearch');input.focus();input.setSelectionRange(input.value.length,input.value.length);},180); };
   $('#boardCargo').onchange=e=>{S.boardCargo=e.target.value;renderMissions();};
@@ -8618,7 +8509,7 @@ function renderBoardTools() {
   $('#boardSuggestions').querySelectorAll('[data-suggestion]').forEach(b=>b.onclick=()=>selectMission(b.dataset.suggestion));
 }
 function boardPage(list) {
-  const signature=JSON.stringify([S.board,S.filter,S.region,S.netSearch,S.acFilter,S.simFilter,S.divFilter,S.lenFilter,S.sortBy,S.fromHere,S.partnerFilter,S.jobKind,S.boardSearch,S.boardCargo,S.boardShortHeavy,S.boardQualifiedOnly,S.boardAvailableOnly,S.boardCampaignId,list.map(m=>m.id)]);
+  const signature=JSON.stringify([S.board,S.filter,S.region,S.netSearch,S.acFilter,S.simFilter,S.divFilter,S.lenFilter,S.sortBy,S.fromHere,S.partnerFilter,S.jobKind,S.boardSearch,S.boardCargo,S.boardShortHeavy,S.boardQualifiedOnly,S.boardAvailableOnly,S.boardReadyOnly,S.boardCampaignId,list.map(m=>m.id)]);
   if(signature!==S._boardPageKey){S.boardPage=1;S._boardPageKey=signature;}
   const pages=Math.max(1,Math.ceil(list.length/6));S.boardPage=Math.min(Math.max(1,S.boardPage||1),pages);
   const start=(S.boardPage-1)*6,shown=list.slice(start,start+6);
@@ -10096,3 +9987,4 @@ async function staffRelief(host = $("#staffBody")) {
   });
   body.querySelectorAll("[data-close]").forEach(b => b.onclick = async () => { if (await send(b.dataset.close, "close")) { toast("Mission closed."); staffRelief(host); } });
 }
+
