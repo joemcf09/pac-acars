@@ -43,6 +43,10 @@ def _send(url, payload, image=None, filename="image.png"):
 
 def post(url, payload, image=None, filename="image.png", wait=False):
     """Send in the background (or wait, for the test button). Returns (ok, error) when waiting."""
+    import site_mode
+    if site_mode.staging():                       # the test copy never posts to the real Discord
+        status["last_error"] = site_mode.NOTE
+        return (False, site_mode.NOTE) if wait else None
     if not valid_webhook(url):
         status["last_error"] = "The Discord webhook address isn't valid."
         return (False, status["last_error"]) if wait else None

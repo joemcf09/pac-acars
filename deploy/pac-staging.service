@@ -1,0 +1,31 @@
+# PAC's test copy (staging.pac-va.com): the same program on a copy of the live data, on its own port.
+# PAC_STAGING=1 switches off everything that leaves the server (Discord posts, emails, Hoppie, SayIntentions),
+# so nothing done here reaches pilots, Discord or the live site. deploy/setup_staging.sh installs this as
+# /etc/systemd/system/pac-staging.service.
+
+[Unit]
+Description=Pagani Air Cargo (test copy)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=pac
+WorkingDirectory=/home/pac/pac-staging/current
+Environment=PAC_PUBLIC=1
+Environment=PAC_STAGING=1
+Environment=PAC_HOST=127.0.0.1
+Environment=PAC_PORT=5055
+Environment=PAC_DATA_DIR=/home/pac/pac-staging/shared/data
+ExecStart=/home/pac/pac-staging/current/.venv/bin/python app.py
+Restart=always
+RestartSec=5
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ProtectHome=read-only
+# only the test copy's own data is writable; the live site's files are read-only to it
+ReadWritePaths=/home/pac/pac-staging/shared/data
+
+[Install]
+WantedBy=multi-user.target
