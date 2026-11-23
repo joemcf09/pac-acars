@@ -21,6 +21,9 @@ def _file(data_dir):
 
 
 def logon(data_dir):
+    import site_mode
+    if site_mode.staging():
+        return ""    # the test copy has no Hoppie logon: it must not poll PAC's inbox (taking real requests) or send telexes
     k = os.environ.get("PAC_HOPPIE_LOGON", "").strip()
     if not k:
         try:
@@ -100,6 +103,9 @@ def telex(d, paper, callsign, edno=1, now=None):
 
 def send(code, to, text, timeout=8, station=STATION):
     """Sends a telex. Returns None when it went through, otherwise the reason."""
+    import site_mode
+    if site_mode.staging():
+        return site_mode.NOTE
     if not code:
         return "PAC's Hoppie logon code isn't set up yet."
     body = urllib.parse.urlencode({"logon": code, "from": station, "to": to.upper(), "type": "telex", "packet": text}).encode()

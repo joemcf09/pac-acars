@@ -297,6 +297,7 @@ def public_settings(st=None):
     st["discord_bot_token_set"] = bool((st.get("discord_bot_token") or "").strip())
     st["simbrief_api"] = bool(simbrief_api_key())
     st["hoppie"] = bool(__import__("hoppie").logon(DATA))   # one-click OFP generation (the key itself never leaves the server)
+    st["staging"] = __import__("site_mode").staging()        # the test copy shows a banner and sends nothing out
     for k in SECRET_SETTINGS:
         st.pop(k, None)
     return st
@@ -1489,6 +1490,9 @@ def reset_photo():
 
 
 # ---------------------------------------------------------------- routes
+STAGING = __import__("site_mode").staging()
+
+
 @app.after_request
 def no_stale_app_files(resp):
     if request.path in ("/static/app.js", "/static/app.css") and resp.status_code == 200:
@@ -1501,7 +1505,28 @@ def no_stale_app_files(resp):
     elif request.path.startswith(("/static/fonts/", "/static/ranks/", "/static/partners/", "/static/vendor/", "/static/illustrations/",
                                   "/static/tools/")) and resp.status_code == 200:
         resp.headers["Cache-Control"] = "public, max-age=604800"   # fonts, map library, rank insignia and partner logos rarely change
+    if STAGING:
+        resp.headers["X-Robots-Tag"] = "noindex, nofollow"      # the test copy never shows up in search results
+        if resp.status_code == 200 and resp.mimetype == "text/html":
+            _mark_test_page(resp)
     return resp
+
+
+TEST_BANNER = ('<div id="pac-test-banner" style="position:fixed;left:0;right:0;bottom:0;z-index:2147483647;'
+               'background:#b45309;color:#fff;font:600 13px/1.3 system-ui,sans-serif;text-align:center;'
+               'padding:6px 12px calc(6px + env(safe-area-inset-bottom,0px));pointer-events:none">'
+               'TEST SITE · changes here never reach pac-va.com, and nothing is sent to Discord, email or Hoppie</div>')
+
+
+def _mark_test_page(resp):
+    """On the test copy, every page says so: a strip along the bottom and [TEST] in the tab title."""
+    resp.direct_passthrough = False            # static pages are streamed from disk; read them so they can be marked
+    html = resp.get_data(as_text=True)
+    if "pac-test-banner" in html:
+        return
+    html = html.replace("<title>", "<title>[TEST] ", 1)
+    html = html.replace("</body>", TEST_BANNER + "</body>", 1) if "</body>" in html else html + TEST_BANNER
+    resp.set_data(html)
 
 
 @app.errorhandler(Exception)
@@ -1556,7 +1581,10 @@ SITE_URL = "https://pac-va.com"
 
 @app.get("/robots.txt")
 def robots_txt():
-    """Search engines may read the public pages; the API and dispatch paperwork are not for indexing."""
+    """Search engines may read the public pages; the API and dispatch paperwork are not for indexing.
+    The test copy (staging) is not for indexing at all."""
+    if __import__("site_mode").staging():
+        return app.response_class("User-agent: *\nDisallow: /\n", mimetype="text/plain")
     body = f"User-agent: *\nAllow: /\nDisallow: /api/\nDisallow: /dispatch\n\nSitemap: {SITE_URL}/sitemap.xml\n"
     return app.response_class(body, mimetype="text/plain", headers={"Cache-Control": "public, max-age=86400"})
 

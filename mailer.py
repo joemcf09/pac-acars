@@ -117,6 +117,10 @@ def _attempt(host, port, sec, user, password, msg):
 def send(st, to, subject, text, html=None, wait=False, reply_to=None):
     """Send one letter. Returns (ok, error) when waiting; otherwise sends in the background and returns None.
     If the connection drops (a blocked or fussy port), PAC tries the provider's other port once before giving up."""
+    import site_mode
+    if site_mode.staging():                       # the test copy never emails real pilots
+        status["last_error"] = site_mode.NOTE
+        return (False, site_mode.NOTE) if wait else None
     if not config_ready(st):
         err = "PAC's email account isn't set up yet (Staff › Site and rules › Email)."
         status["last_error"] = err

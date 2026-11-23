@@ -207,6 +207,39 @@ PAC Operations is PAC's own Discord bot. It runs on the same server as its own s
 Pilots link their account in **Settings › Link my Discord account**, which gives them a code for `/link` in Discord.
 `update.sh` restarts the bot with each update. Its log: `journalctl -u pac-discord -n 50`.
 
+## The test copy (staging.pac-va.com)
+
+A second copy of PAC on the same server, for trying changes on real data before pilots see them. It runs the same
+code on a copy of the live data, in its own folder (`/home/pac/pac-staging`), on its own port (5055), as its own
+service (`pac-staging`). Nothing done there reaches the live site, and it never sends anything out: Discord posts,
+emails, Hoppie telexes and SayIntentions updates are switched off by `PAC_STAGING=1`, and the data copy holds no
+webhooks, passwords or keys. Every page shows an orange TEST SITE strip, and search engines are kept out.
+Browsers ask for a login (Caddy's, set up below) before showing anything.
+
+**Once:** in Cloudflare › DNS, add an `A` record named `staging` pointing at the server's IP (proxied, orange cloud,
+like `pac-va.com`). Then from your PAC folder on your PC:
+
+```
+deploy-staging.bat --host 167.172.133.207
+```
+
+The first run sets everything up: it asks you to choose the test site's login name and password, copies the live
+data (without secrets), installs the `pac-staging` service and adds `staging.pac-va.com` to Caddy behind that login.
+The live site keeps running the whole time.
+
+**After that,** the same command updates the test copy, with the same backup, health check and automatic rollback
+as the live deploy. Try a change there first; when it looks right, merge it and run `deploy.bat` for the live site.
+
+To start the test copy over on today's live data (it throws away whatever was done on the test copy):
+
+```
+ssh root@167.172.133.207 /home/pac/pac-staging/current/deploy/refresh_staging_data.sh
+```
+
+The test copy has no Discord bot and doesn't run the mission timer, so its boards don't refill on their own; refresh
+its data to get today's boards. To change its login, edit the `staging.pac-va.com` block in `/etc/caddy/Caddyfile`
+(`caddy hash-password` makes the new hash) and `systemctl reload caddy`.
+
 ## Everyday commands
 
 ```bash

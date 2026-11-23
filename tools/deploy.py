@@ -3,6 +3,8 @@
     deploy.bat                      everything: check, package, upload, restart, verify
     deploy.bat --dry-run            build the package and stop, so you can see what would go up
     deploy.bat --host pac-va.com --user root
+    deploy.bat --staging            the same, to the test copy at staging.pac-va.com (the live site isn't touched;
+                                    the first time, it sets the test copy up and asks for its login password)
 
 What it does, in order, stopping at the first failure:
 
@@ -19,6 +21,7 @@ profile, gallery, backups and the PAC ACARS builds all live on the server.
 """
 import argparse
 import compileall
+import getpass
 import re
 import subprocess
 import sys
@@ -52,6 +55,8 @@ MAX_MB = 60                              # a sane package is a few MB; refuse a 
 
 PAC_DIR = "/home/pac/pac-acars"
 ZIP_REMOTE = "/home/pac/pac-acars.zip"
+STAGING_DIR = "/home/pac/pac-staging"
+STAGING_ZIP = "/home/pac/pac-staging.zip"
 
 
 def remote_update_script(update_sh=f"{PAC_DIR}/current/deploy/update.sh",
@@ -71,6 +76,34 @@ def remote_update_script(update_sh=f"{PAC_DIR}/current/deploy/update.sh",
         f"rm -f {zip_remote} || true; "
         f"exit $rc"
     )
+
+
+def remote_staging_script(first_time):
+    """The test copy's command. The first time, the setup script comes from the uploaded zip itself (there's no
+    release on the server yet) and reads the login name and password from standard input. After that, the test
+    copy's own update_staging.sh runs the normal update pointed at /home/pac/pac-staging and the pac-staging service."""
+    if first_time:
+        run_it = (f"T=$(mktemp -d) && unzip -q {STAGING_ZIP} 'pac-acars/deploy/*' -d $T && sed -i 's/\\r$//' $T/pac-acars/deploy/*.sh "
+                  f"&& chmod +x $T/pac-acars/deploy/*.sh && $T/pac-acars/deploy/setup_staging.sh {STAGING_ZIP}; rc=$?; rm -rf $T; ")
+    else:
+        run_it = (f"sed -i 's/\\r$//' {STAGING_DIR}/current/deploy/*.sh || exit 1; chmod +x {STAGING_DIR}/current/deploy/*.sh || exit 1; "
+                  f"{STAGING_DIR}/current/deploy/update_staging.sh {STAGING_ZIP}; rc=$?; ")
+    return ("set -u; " + run_it
+            + f"chown -R pac:pac {STAGING_DIR} 2>/dev/null || true; rm -f {STAGING_ZIP} || true; exit $rc")
+
+
+def ask_staging_login():
+    print("\n  First time: setting up the test copy at staging.pac-va.com.")
+    print("  Choose the login for it (your browser asks for this before showing the test site).")
+    name = input("  Login name [pac]: ").strip() or "pac"
+    while True:
+        pw = getpass.getpass("  Password (hidden as you type): ")
+        if len(pw) < 10:
+            print("  Use at least 10 characters.")
+            continue
+        if getpass.getpass("  Same password again: ") == pw:
+            return name, pw
+        print("  Those didn't match, try again.")
 
 
 def step(n, text):
@@ -137,8 +170,11 @@ def main():
     ap.add_argument("--host", default="pac-va.com")
     ap.add_argument("--user", default="root")
     ap.add_argument("--dry-run", action="store_true")
+    ap.add_argument("--staging", action="store_true", help="deploy to the test copy (staging.pac-va.com) instead of the live site")
     a = ap.parse_args()
     target = f"{a.user}@{a.host}"
+    if a.staging and not a.dry_run:
+        return deploy_staging(target)
 
     step(1, "Checking every Python file compiles")
     compile_check()
@@ -168,6 +204,30 @@ def main():
     run(["ssh", target, "systemctl is-active pac pac-discord"], "a service did not come back up")
 
     print("\nDone. PAC is updated and running.\n")
+
+
+def deploy_staging(target):
+    print("Deploying to the TEST COPY (staging.pac-va.com). The live site is not touched.")
+    step(1, "Checking every Python file compiles")
+    compile_check()
+    step(2, "Packaging the program files")
+    tmp = Path(tempfile.gettempdir()) / "pac-staging-deploy.zip"
+    package(tmp)
+    probe = subprocess.run(["ssh", target, f"test -e {STAGING_DIR}/current && echo ready || echo new"], capture_output=True, text=True)
+    if probe.returncode != 0:
+        fail("couldn't reach the server over SSH: " + (probe.stderr or "").strip())
+    first_time = probe.stdout.strip() != "ready"
+    login = ask_staging_login() if first_time else None
+    step(3, f"Uploading to {target}")
+    run(["scp", str(tmp), f"{target}:{STAGING_ZIP}"], "the upload failed")
+    step(4, "Setting up the test copy" if first_time else "Updating the test copy (versioned release, auto-rollback on failure)")
+    print("  ssh …", flush=True)
+    stdin = f"{login[0]}\n{login[1]}\n" if login else ""
+    if subprocess.run(["ssh", target, remote_staging_script(first_time)], input=stdin, text=True).returncode != 0:
+        fail("the test copy didn't update (see above). The live site was not touched. Logs:  ssh " + target + " \"journalctl -u pac-staging -n 50\"")
+    step(5, "Confirming the test copy is healthy")
+    run(["ssh", target, "systemctl is-active pac-staging"], "the test copy did not come up")
+    print("\nDone. The test copy is updated: https://staging.pac-va.com\n")
 
 
 if __name__ == "__main__":

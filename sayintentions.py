@@ -223,6 +223,9 @@ def build(pid):
 
 # ---------------------------------------------------------------- sending
 def _post(api_key, va_key, data, timeout=15):
+    import site_mode
+    if site_mode.staging():                       # the test copy never writes into pilots' real SayIntentions setup
+        return False, site_mode.NOTE
     body = urllib.parse.urlencode({"api_key": api_key, "payload": json.dumps({"va_api_key": va_key, **data})}).encode()
     req = urllib.request.Request(ENDPOINT, data=body, headers={"Content-Type": "application/x-www-form-urlencoded",
                                                                "User-Agent": "PAC-VA/1.0 (+https://pac-va.com)"})
