@@ -32,6 +32,8 @@ def boom(*a, **k):
     raise ValueError("bad record")
 
 
+import speedup  # noqa: E402
+speedup._store.clear()          # the start-up data is cached for a few seconds; this request must really be rebuilt
 real = va.mission_board, va.career
 va.mission_board, va.career = boom, boom
 r = c.get("/api/bootstrap")
@@ -39,6 +41,8 @@ va.mission_board, va.career = real
 check("the site still loads when the mission board and career fail", r.status_code == 200, r.status_code)
 check("and says which parts are missing", r.json.get("partial") == ["missions", "career"], r.json.get("partial"))
 check("with safe empty values in their place", r.json["missions"] == [] and r.json["career"] == {} and r.json["routes"])
+r = c.get("/api/bootstrap")
+check("a degraded answer is not cached: the next load is whole again", r.status_code == 200 and "partial" not in r.json, r.json.get("partial"))
 
 print("\nBOOTSTRAP RESILIENCE TEST", "PASSED" if not failures else f"FAILED ({len(failures)}): {failures}")
 sys.exit(1 if failures else 0)

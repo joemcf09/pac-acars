@@ -97,7 +97,7 @@ text = json.dumps(f)
 check("nothing private: no emails, Discord or password", not any(x in text for x in ("@example.com", "bob#1", "password", "pbkdf2", "scrypt")))
 bob = next((p for p in f["pilots"] if p["callsign"] == "PAC0002"), None)
 check("pilots are listed with hours and flights", bob and bob["flights"] == 3 and bob["hours"] == 15.0, bob)
-check("divisions: PAC, Regional (flew the 727) and PRA", bob and bob["divisions"] == ["PAC", "PAC Regional", "PRA"], bob and bob["divisions"])
+check("divisions: PAC, Heritage (flew the 727) and PRA", bob and bob["divisions"] == ["PAC", "PAC Heritage", "PRA"], bob and (bob["divisions"], bob["types"]))
 check("recent flights are listed", bob and len(bob["recent"]) == 3 and bob["recent"][0]["to"] == "PANC")
 check("inactive pilots are left out", all(p["callsign"] != "PAC0003" for p in f["pilots"]))
 hs = f["handoffs"]
@@ -126,6 +126,7 @@ check("no stations: a clear error", guest.get("/api/group/v1/metar", headers={"X
 def boom(url):
     raise weather.WeatherError("Weather is unavailable right now.")
 weather._get = boom
+weather._cache.clear(); weather._last_metar.clear()   # recent and last-known METARs are served through an outage; simulate one with nothing kept
 check("weather down: says so", guest.get(M, headers={"X-Group-Key": g2["key"]}).status_code == 502)
 staff.post("/api/staff/group", json={"enabled": False})
 check("feed off: METARs off too", guest.get(M, headers={"X-Group-Key": g2["key"]}).status_code == 404)

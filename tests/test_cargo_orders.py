@@ -175,11 +175,14 @@ check("in early November, Beaujolais Nouveau and Peruvian berries are in season"
 bj = [r for r in sea if r["s"] == "beaujolais"]
 check("Beaujolais orders carry wine out of France or Frankfurt/Brussels", bj and all(r["origin"][:2] in ("LF", "ED", "EB") for r in bj)
       and any("wine" in (r["commodity"] or "").lower() for r in bj), [tuple(r) for r in bj[:3]])
-check("each season is announced once", sorted(n[0] for n in news) == ["Cargo season: Beaujolais Nouveau", "Cargo season: Peruvian blueberries and asparagus"], [n[0] for n in news])
+# earlier steps run at today's real date, so other seasons may already be announced; these two must be, exactly once each
+nov_seasons = ["Cargo season: Beaujolais Nouveau", "Cargo season: Peruvian blueberries and asparagus"]
+titles = [n[0] for n in news]
+check("each season is announced once", all(titles.count(t) == 1 for t in nov_seasons) and len(titles) == len(set(titles)), titles)
 with A.db() as con:
     O.tick(con, A.ROUTES.values(), A.FLEET, A.dispatch_pilot(), A.settings(), now=nov9 + 3600, force=True)
     again = con.execute("SELECT COUNT(*) FROM news WHERE title LIKE 'Cargo season:%'").fetchone()[0]
-check("…and not again on the next restock", again == 2, again)
+check("…and not again on the next restock", again == len(titles), (again, len(titles)))
 
 print("Warehouses that fill up")
 import uuid as _u

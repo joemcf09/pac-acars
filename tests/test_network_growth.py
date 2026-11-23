@@ -34,7 +34,7 @@ def check(name, cond, detail=""):
 
 print("The scheduled network")
 R = A.ROUTES
-check("about 600 routes", 600 <= len(R) <= 720, len(R))
+check("at least 600 routes (the network keeps growing)", 600 <= len(R) <= 1500, len(R))
 # the routes pilots already fly keep their numbers
 for rid, o, d in [("PAC1001", "KCVG", "KLAX"), ("PAC1061", "TJSJ", "KMIA"), ("PAC2029", "CYUL", "CYFB"), ("PAC3017", "SBKP", "LIMC"),
                   ("PAC4030", "BIKF", "EGSS"), ("PAC5031", "FMMI", "OMDW"), ("PAC6038", "PGUM", "RPLL"), ("PAC7016", "KSEA", "RKSI")]:
@@ -46,9 +46,12 @@ for region in ("Americas", "Middle East & Africa", "Asia-Pacific", "Europe", "Tr
     check(f"{region} has grown", sum(1 for r in R.values() if r["region"] == region) >= 55)
 F = A.FLEET
 longest = max(f["range_nm"] for f in F.values())
+# the High Arctic gravel-kit operation flies the 737-200 into strips shorter than its usual minimum, on purpose and light
+gravel_kit = lambda r, k: k == "B732F" and "gravel kit" in (r.get("briefing") or "").lower()
 bad = [r["id"] for r in R.values() if r["distance_nm"] <= longest for k in r["aircraft"]
-       if F[k]["range_nm"] < r["distance_nm"] * 1.0 or F[k]["min_rwy_ft"] > min(A.AIRPORTS[r["origin"]["icao"]]["rwy_ft"] or 99999,
-                                                                                 A.AIRPORTS[r["destination"]["icao"]]["rwy_ft"] or 99999)]
+       if F[k]["range_nm"] < r["distance_nm"] * 1.0 or (F[k]["min_rwy_ft"] > min(A.AIRPORTS[r["origin"]["icao"]]["rwy_ft"] or 99999,
+                                                                                  A.AIRPORTS[r["destination"]["icao"]]["rwy_ft"] or 99999)
+                                                         and not gravel_kit(r, k))]
 check("every recommended aircraft can fly its route (a few long legacy sectors need a tech stop)", not bad, bad[:10])
 sims = {s: sum(1 for r in R.values() if any(F[k]["sim"] == s for k in r["aircraft"])) for s in ("MSFS", "X-Plane")}
 check("MSFS and X-Plane pilots both have most of the network", min(sims.values()) >= 0.85 * len(R), sims)

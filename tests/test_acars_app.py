@@ -193,6 +193,10 @@ def main():
         call(5050, "POST", "/api/settings", {"enforce_pilot_location": False})
         code, bk, _ = call(5050, "POST", "/api/booking", {"mission_id": "PAC1022", "aircraft": "B733F", "airframe": "N010PC"})
         check("flight booked", code == 200, bk)
+        _, d, _ = call(5050, "GET", "/api/dispatch")       # the captain signs the release before ACARS may start
+        code, sg, _ = call(5050, "POST", "/api/dispatch/sign", {"requested_at": d.get("requested_at"), "revision": d.get("revision"),
+                                                               "reviewed": True, "notoc": True})
+        check("release signed", code == 200, sg)
         import socket
         with socket.socket() as sk:
             if sk.connect_ex(("127.0.0.1", 5070)) == 0:
