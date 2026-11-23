@@ -259,6 +259,27 @@ def tick(con, now=None):
     return events
 
 
+def _charge(con, r, now):
+    """The repair is paid when the aircraft returns to service: the parts and labour as an AOG repair, and, when a
+    contractor had to fly the parts in, the contractor's extra as its own line, so the finance page shows what an
+    unflown recovery mission cost. Once per case. Returns the contractor premium in USD (0 when PAC flew the parts)."""
+    import company
+    cost = float(r.get("cost_usd") or 0)
+    if cost <= 0:
+        return 0
+    company.migrate(con)
+    ref = f"aog-{r['id']}"
+    if con.execute("SELECT 1 FROM company_ledger WHERE ref=? OR ref=?", (ref, ref + "-contractor")).fetchone():
+        return 0
+    base = round(cost / CONTRACTOR_COST_MULT, 2) if r.get("contractor") else cost
+    premium = round(cost - base, 2)
+    company.post(con, "aog_repair", -base, f"AOG repair, {r['reg']} at {r['station']}", ref=ref, when=now)
+    if premium > 0:
+        company.post(con, "aog_contractor", -premium, f"AOG contractor charter, {r['reg']} at {r['station']} (recovery mission not flown)",
+                     ref=ref + "-contractor", when=now)
+    return premium
+
+
 def _return_to_service(con, r, now):
     who = r["delivered_flight"] or "parts on site"
     note = f"Returned to service after AOG recovery ({who})."
@@ -271,10 +292,12 @@ def _return_to_service(con, r, now):
         con.execute("UPDATE airframes SET status='Available', note=NULL, updated=? WHERE reg=? AND status IN ('Maintenance','Inspection','Damaged')",
                     (now, r["reg"]))
     con.execute("UPDATE aog_cases SET status='closed', closed=? WHERE id=?", (now, r["id"]))
+    premium = _charge(con, r, now)
     hours = (now - r["opened"]) / 3600
     con.execute("INSERT INTO news (time, kind, title, body, important, expires, author) VALUES (?,?,?,?,?,?,?)",
                 (now, "event", f"{r['reg']} back in service at {r['station']}",
-                 f"{r['reg']} is back in service after {hours:.0f} hours AOG. {note} Repair cost ${r['cost_usd']:,.0f}.",
+                 f"{r['reg']} is back in service after {hours:.0f} hours AOG. {note} Repair cost ${r['cost_usd']:,.0f}"
+                 + (f", including ${premium:,.0f} for the contractor because nobody flew the recovery mission." if premium else "."),
                  0, now + 5 * 86400, "PAC Maintenance Control"))
     return {"kind": "aog_resolved", "reg": r["reg"], "station": r["station"], "hours": round(hours), "by": who,
             "pilot_id": r["delivered_by"], "cost": r["cost_usd"]}

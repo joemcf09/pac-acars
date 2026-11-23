@@ -3,6 +3,7 @@ appear, keeps the boards moving on quiet days, and the bot posts them within an 
 
 Run from the PAC folder:   python tests/test_dispatch_channel.py
 """
+import json
 import sys
 from pathlib import Path
 
@@ -72,7 +73,7 @@ site = "https://pac-va.com"
 m = DB.dispatch_card(by["mission"], site)
 check("a mission card names the mission and links to the board", m["title"].startswith("📦 New mission · PAC") and m["url"] == site + "/#missions", m["title"])
 check("with route, aircraft, cargo and distance", [f[0] for f in m["fields"]][:4] == ["Route", "Aircraft", "Cargo", "Distance"], m["fields"])
-check("and when it has to be booked by, in Discord's own time format", any(f[0] == "Book by" and f[1].startswith("<t:") for f in m["fields"]), m["fields"])
+check("and when it has to be booked by, with the date, in Discord's own time format", any(f[0] == "Book by" and f[1].startswith("<t:") and ":f>" in f[1] for f in m["fields"]), m["fields"])
 p = DB.dispatch_card(by["partner"], site)
 check("a crew request names the partner airline", p["title"].startswith("🤝 Crew request · ") and by["partner"]["operator"] in p["title"], p["title"])
 check("with its callsign and shortage bonus", {"Callsign", "Shortage bonus"} <= {f[0] for f in p["fields"]}, p["fields"])
@@ -82,6 +83,30 @@ check("an urgent request stands out and says when to deliver", u["title"].starts
 check("descriptions stay short", all(len(DB.dispatch_card(i, site)["description"]) <= 360 for i in new["items"]))
 for card in (m, p, u):
     print("     " + card["title"])
+
+print("Last call before an urgent request closes")
+import time as _t
+with A.db() as con:
+    con.execute("UPDATE urgent SET status='expired' WHERE status='open'")
+    now_ = _t.time()
+    con.execute("INSERT INTO urgent (id, data, created, expires, status) VALUES (?,?,?,?, 'open')",
+                ("PAC8899", json.dumps({**by["urgent_raw"], "id": "PAC8899", "expires": now_ + 4 * 3600}) if by.get("urgent_raw") else json.dumps(
+                    {"id": "PAC8899", "title": "AOG recovery: N1PC at Balice", "category": "Urgent", "priority": "Critical", "urgent": True,
+                     "origin": {"icao": "LIMC"}, "destination": {"icao": "EPKK"}, "aircraft": [], "expires": now_ + 4 * 3600, "deliver_by": now_ + 7 * 3600}),
+                 now_ - 32 * 3600, now_ + 4 * 3600))
+    con.execute("INSERT INTO urgent (id, data, created, expires, status) VALUES (?,?,?,?, 'open')",
+                ("PAC7777", json.dumps({"id": "PAC7777", "title": "Short-notice job", "origin": {"icao": "KCVG"}, "destination": {"icao": "KMIA"},
+                                        "aircraft": [], "expires": now_ + 3 * 3600}), now_ - 3600, now_ + 3 * 3600))
+st, lc = feed(new["last"])
+calls = [i for i in lc["items"] if i.get("last_call")]
+check("an unbooked AOG recovery gets one last call six hours before it closes", [i["id"] for i in calls] == ["PAC8899"], [i["id"] for i in calls])
+card = DB.dispatch_card(calls[0], site) if calls else {"title": "", "description": "", "fields": []}
+check("the card says so, with the closing time", card["title"].startswith("⏰ Last call") and "<t:" in card["description"], card["title"])
+check("and shows the booking deadline with its date", any(f[0] == "Book by" and ":f>" in f[1] for f in card["fields"]), card["fields"])
+st, lc2 = feed(new["last"])
+check("only once", not any(i.get("last_call") for i in lc2["items"]))
+post, _ = DB.dispatch_pick(calls + new["items"], {"missions": True, "partners": True, "urgent": True, "per_hour": 1}, [], 1e10)
+check("a last call goes out ahead of new work", post and post[0].get("last_call"), [i["id"] for i in post])
 
 print("Not flooding the channel")
 items = new["items"]

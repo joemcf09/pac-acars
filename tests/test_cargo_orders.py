@@ -44,7 +44,9 @@ with A.db() as con:
 check("stocking runs at most every 30 minutes", again["created"] == 0, again)
 
 print("A pilot flies one")
-row = next(r for r in rows if r["origin"] == "KCVG")
+# an order PAC flies straight to (truck freight is addressed to a nearby town no PAC route serves)
+flown = {r["destination"]["icao"] for r in A.ROUTES.values() if r["origin"]["icao"] == "KCVG" and r.get("category") == "Scheduled"}
+row = next(r for r in rows if r["origin"] == "KCVG" and r["destination"] in flown)
 route, ac = next((r, a) for r in A.ROUTES.values() if r["origin"]["icao"] == "KCVG" and r["destination"]["icao"] == row["destination"]
                  and r.get("category") == "Scheduled" for a in r["aircraft"] if A.FLEET.get(a, {}).get("max_payload_lbs", 0) >= row["gross_weight_lbs"])
 ls = c.post("/api/plan/loadsheet", json={"mission_id": route["id"], "aircraft": ac, "cargo_transfer_ids": [row["id"]]}).json

@@ -343,7 +343,7 @@ async function renderHome(h, st) {
   <div class="urgent-cards">${S.urgent.map(m => m.relief ? reliefCard(m) : `<div class="urgent-card"><div class="muted" style="font-size:12px;letter-spacing:.08em">${esc(m.urgent_kind.toUpperCase())} · ${esc(m.id)}</div>
     <h3>${esc(m.title)}</h3><div class="rt">${m.origin.icao} → ${m.destination.icao}</div>
     <div class="muted" style="font-size:13px">${esc(S.fleet[m.aircraft[0]]?.name || "")} ${esc(m.suggested_airframe || "")} · ${fmt(m.payload_lbs)} lb</div>
-    <div style="font-size:13px">Offer expires in <span class="countdown" data-countdown="${m.expires}"></span> · deliver by ${zulu(m.deliver_by)}</div>
+    <div style="font-size:13px">Book by ${whenLocal(m.expires)} (<span class="countdown" data-countdown="${m.expires}"></span> left) · deliver by ${whenLocal(m.deliver_by)} (${zulu(m.deliver_by)})</div>
     <button class="btn small" style="align-self:flex-start;position:relative;z-index:1" onclick="flyMission('${m.id}')">Take this flight</button></div>`).join("")}</div>` : ""}
 
   <div class="section-h"><div><div class="kicker">The liveries</div><h2>${(NUM_WORDS[codes.length] || codes.length).toString().replace(/^./, c => c.toUpperCase())} freighters, one red</h2><p>Flown in Microsoft Flight Simulator and X-Plane.</p></div><button class="btn ghost small" onclick="show('fleet')">Fleet details</button></div>

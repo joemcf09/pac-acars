@@ -128,6 +128,15 @@ with A.db() as con:
     aog.tick(con, r2["parts_due"] + 1 + 31 * 3600)
 af = {a["reg"]: a for a in va.airframes()}["N901PC"]
 check("the contractor repair still returns it to service", af["status"] == "Available", af["status"])
+with A.db() as con:
+    led = {r["kind"]: r["amount"] for r in con.execute("SELECT kind, amount FROM company_ledger WHERE ref LIKE ?", (f"aog-{case2['id']}%",))}
+    first = {r["kind"]: r["amount"] for r in con.execute("SELECT kind, amount FROM company_ledger WHERE ref LIKE ?", (f"aog-{case['id']}%",))}
+    aog.tick(con, r2["parts_due"] + 1 + 40 * 3600)
+    again = con.execute("SELECT COUNT(*) FROM company_ledger WHERE ref LIKE ?", (f"aog-{case2['id']}%",)).fetchone()[0]
+check("PAC pays for the repair it flew the parts for", first.get("aog_repair", 0) < 0 and "aog_contractor" not in first, first)
+check("an unflown mission costs the repair plus the contractor's extra", led.get("aog_repair", 0) < 0 and led.get("aog_contractor", 0) < 0
+      and abs(-(led["aog_repair"] + led["aog_contractor"]) - r2["cost_usd"]) < 1, (led, r2["cost_usd"]))
+check("each repair is charged once", again == 2, again)
 
 print("Grounded at a hub, and staff clearing")
 with A.db() as con:

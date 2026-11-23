@@ -164,7 +164,7 @@ def ledger_total(con):
 
 
 LEDGER_LINE = {"aircraft_purchase": "Aircraft purchases", "conversion": "Freighter conversions", "lease": "Aircraft leases",
-               "wet_lease": "Wet leases (ACMI)", "goodwill": "Customer goodwill", "insurance": "Insurance premiums", "insurance_settlement": "Insurance settlements", "hotel": "Crew hotels", "exec_travel": "Executive travel", "hub_opening": "New hub setup", "hub_station": "Hub station costs", "aircraft_sale": "Aircraft sales", "other": "Other"}
+               "wet_lease": "Wet leases (ACMI)", "goodwill": "Customer goodwill", "insurance": "Insurance premiums", "insurance_settlement": "Insurance settlements", "hotel": "Crew hotels", "exec_travel": "Executive travel", "hub_opening": "New hub setup", "hub_station": "Hub station costs", "aog_repair": "AOG repairs", "aog_contractor": "AOG contractor charters", "aircraft_sale": "Aircraft sales", "other": "Other"}
 COST_LINE = {"fuel": "Fuel", "crew": "Crew", "maintenance": "Maintenance", "ownership": "Aircraft ownership", "landing_fees": "Landing fees",
              "navigation": "Navigation", "handling": "Handling", "incidents": "Incidents"}
 

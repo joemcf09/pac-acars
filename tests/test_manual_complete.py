@@ -22,7 +22,10 @@ c.post("/api/settings", json={"enforce_pilot_location": False, "enforce_airframe
                               "require_type_ratings": False, "require_release_signature": False})
 c.get("/api/cargo/overview")
 with A.db() as con:
-    order = next(r for r in con.execute("SELECT * FROM cargo_shipments WHERE booking_key LIKE 'ORDER:%' AND status='AT_STATION' AND current_station='KCVG'"))
+    # an order PAC flies straight to (truck freight is addressed to a nearby town no PAC route serves)
+    flown = {rt["destination"]["icao"] for rt in A.ROUTES.values() if rt["origin"]["icao"] == "KCVG" and rt.get("category") == "Scheduled"}
+    order = next(r for r in con.execute("SELECT * FROM cargo_shipments WHERE booking_key LIKE 'ORDER:%' AND status='AT_STATION' AND current_station='KCVG'")
+                 if r["destination"] in flown)
 route = next(rt for rt in A.ROUTES.values() if rt["origin"]["icao"] == "KCVG" and rt["destination"]["icao"] == order["destination"] and rt.get("category") == "Scheduled")
 ac = next(a for a in route["aircraft"] if A.FLEET.get(a, {}).get("max_payload_lbs", 0) >= order["gross_weight_lbs"] * 2)
 with A.db() as con:
