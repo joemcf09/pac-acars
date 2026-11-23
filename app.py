@@ -2938,7 +2938,7 @@ def cargo_transfer_selection(body, mission, aircraft, ofp=None, booking_key=None
 def build_dispatch_with_transfers(booking, selected):
     booking["cargo_transfer_ids"] = [item["id"] for item in selected]
     booking["cargo_transfer_weight_lbs"] = sum(float(item.get("gross_weight_lbs") or 0) for item in selected)
-    booking["cargo_transfer_unit_count"] = sum(len((item.get("data") or {}).get("unit_details") or []) for item in selected)
+    booking["cargo_transfer_unit_count"] = dispatch.transfer_positions_needed(booking["aircraft"], FLEET, selected)
     manifest = dispatch.generate(booking, FLEET, dispatch_pilot())
     shipments.route_through(manifest, ROUTES.values(), booking.get("manifest_seed") or booking["flight_number"])
     dispatch.attach_transfers(manifest, selected, booking)
@@ -2980,7 +2980,7 @@ def plan_loadsheet():
     fake = {"mission": m, "aircraft": ac_code, "ofp": None, "flight_number": m["id"], "requested_at": time.time(),
             "airframe": airframe, "manifest_seed": seed, "cargo_transfer_ids": [item["id"] for item in transfer_rows],
             "cargo_transfer_weight_lbs": transfer_weight,
-            "cargo_transfer_unit_count": sum(len((item.get("data") or {}).get("unit_details") or []) for item in transfer_rows)}
+            "cargo_transfer_unit_count": dispatch.transfer_positions_needed(ac_code, FLEET, transfer_rows)}
     try:
         d = dispatch.generate(fake, FLEET, dispatch_pilot())
         shipments.route_through(d, ROUTES.values(), seed)
