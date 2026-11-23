@@ -1549,6 +1549,16 @@ def index():
     return send_from_directory(app.static_folder, "index.html")
 
 
+@app.get("/static/app.js")
+def app_js():
+    """The site's script, joined from its pieces in static/app/ (see app_bundle.py)."""
+    import app_bundle
+    text, etag = app_bundle.source()
+    resp = app.response_class(text, mimetype="text/javascript")
+    resp.set_etag(etag)
+    return resp.make_conditional(request)
+
+
 ACADEMY_DIR = Path(app.static_folder) / "academy"
 
 
