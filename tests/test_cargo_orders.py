@@ -117,7 +117,9 @@ c.post("/api/acars/app/complete", json={"record": rec2.export(), "requested_at":
 fr = c.post("/api/pirep", json={"remarks": "late"})
 with A.db() as con:
     f3 = con.execute("SELECT status, current_station FROM cargo_shipments WHERE id=?", (r2["id"],)).fetchone()
-    own = con.execute("SELECT COUNT(*) FROM cargo_shipments WHERE booking_key=? AND status LIKE 'DELIVERED%'", (f"PAC0001:{b2['requested_at']}",)).fetchone()[0]
+    # the flight's own freight arrived: delivered there, or waiting there for its onward connection (some lanes are all transit)
+    own = con.execute("""SELECT COUNT(*) FROM cargo_shipments WHERE booking_key=?
+                         AND (status LIKE 'DELIVERED%' OR current_station=?)""", (f"PAC0001:{b2['requested_at']}", route2["destination"]["icao"])).fetchone()[0]
 check("flying the old booking later still files", fr.status_code == 200 and own > 0, (fr.status_code, fr.json.get("error") if fr.is_json else None, own))
 check("and the released freight stays behind for someone else", f3["status"] == "AT_STATION" and f3["current_station"] == o2, dict(f3))
 

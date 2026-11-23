@@ -1,5 +1,7 @@
 flask>=3.0
 Pillow>=10.0
+# time zone data: Linux has it built in, Windows needs the package (zoneinfo)
+tzdata ; sys_platform == "win32"
 SimConnect>=0.4.26 ; sys_platform == "win32"
 # optional: a native window for the PAC ACARS app
 # pywebview>=5
