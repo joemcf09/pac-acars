@@ -6,3 +6,6 @@
 
 # Keep Academy sample PDFs byte-for-byte intact on Windows checkouts
 static/academy/pac-sample-*.pdf binary
+
+# systemd units are read on the Linux server too
+*.service text eol=lf

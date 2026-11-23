@@ -111,7 +111,7 @@ else:
     check("the first staging deploy runs the setup from the upload", "setup_staging.sh /home/pac/pac-staging.zip" in first)
     check("later staging deploys run the test copy's own updater", "/home/pac/pac-staging/current/deploy/update_staging.sh" in later)
     check("no staging command touches the live folder", "/home/pac/pac-acars/" not in first + later and "pac-discord" not in first + later)
-    env_file = (ROOT / "deploy" / "staging.env").read_text()
+    env_file = (ROOT / "deploy" / "update_staging.sh").read_text()
     check("the staging updater points at the test copy's folder, port and service",
           "PAC_DEPLOY_ROOT=/home/pac/pac-staging" in env_file and ":5055/up" in env_file and "restart pac-staging" in env_file
           and 'PAC_SVC_DISCORD_RESTART=""' in env_file)
