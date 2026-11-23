@@ -50,6 +50,7 @@ built = guest.get(home["vatsim"])
 check("and served as an image", built.status_code == 200 and b"<svg" in built.data[:400], built.status_code)
 check("it's VATSIM's file, unaltered (no scripts, no outside links)",
       not any(x in built.data.lower() for x in (b"<script", b"javascript:", b"onload=", b"href=\"http")))
+built.close()
 check("visitors can't upload one", guest.post("/api/staff/network-logo", data={"file": (io.BytesIO(PNG), "v.png", "image/png")},
                                               content_type="multipart/form-data").status_code == 401)
 r = up(PNG, "VATSIM_Logo_No_Tagline.png", "image/png")
@@ -59,6 +60,7 @@ check("the home page offers it to visitors", bool(url), url)
 img = guest.get(url)
 check("visitors get the file exactly as uploaded", img.status_code == 200 and img.data == PNG, img.status_code)
 check("served as an image only", img.headers.get("X-Content-Type-Options") == "nosniff")
+img.close()   # a served file stays open until its response is closed, and Windows won't replace an open file
 check("a renamed text file is refused", up(b"hello", "logo.png", "image/png").status_code == 400)
 check("a JPEG is refused (the pack has PNG and SVG)", up(PNG, "logo.jpg", "image/jpeg").status_code == 400)
 check("an SVG with a script is refused", up(b'<svg xmlns="http://www.w3.org/2000/svg"><script>alert(1)</script></svg>', "v.svg", "image/svg+xml").status_code == 400)
@@ -67,6 +69,7 @@ check("a clean SVG is accepted", up(svg, "VATSIM.svg", "image/svg+xml").status_c
 s = guest.get(guest.get("/api/va/home").get_json()["network_logos"]["vatsim"])
 check("and replaces the PNG", s.data == svg and not (DATA / "network_logos" / "vatsim.png").exists())
 check("an SVG can't run anything", "sandbox" in s.headers.get("Content-Security-Policy", ""), s.headers.get("Content-Security-Policy"))
+s.close()
 r = staff.delete("/api/staff/network-logo")
 check("removing an upload goes back to the built-in logo", r.status_code == 200 and r.get_json()["logos"]["vatsim"] == "/static/partners/vatsim-logo.svg")
 check("the full backup includes it", "network_logos" in A.USER_DIRS)

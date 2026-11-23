@@ -41,6 +41,10 @@ c = A.app.test_client()
 c.post("/api/auth/setup", json={"password": "Build-Upload-Test-1"})
 for f in A.ACARS_BUILD_DIR.glob("PAC-ACARS-*"):
     f.unlink()
+# an installer built on this PC (static/downloads, from build_acars.bat) would outrank the test's uploads: hide it
+import tempfile  # noqa: E402
+_static = tempfile.mkdtemp(prefix="pac-static-")
+A.app.static_folder = _static
 r = c.post("/api/staff/acars/build", data={"file": (io.BytesIO(ZIP), "PAC-ACARS-1.0.0-portable (1).zip")},
            content_type="multipart/form-data")
 check("upload of a renamed portable zip succeeds", r.status_code == 200, r.get_data(as_text=True))
@@ -50,6 +54,7 @@ check("Downloads page offers it", (j.get("acars") or {}).get("portable", {}).get
 check("no half-upload left behind", not list(A.ACARS_BUILD_DIR.glob("*.part")))
 d = c.get("/api/acars/build/PAC-ACARS-1.0.0-portable.zip")
 check("pilots can download it", d.status_code == 200 and d.data == ZIP, d.status_code)
+d.close()     # a served file stays open until its response is closed, and Windows won't delete an open file
 r = c.post("/api/staff/acars/build", data={"file": (io.BytesIO(EXE), "PAC ACARS.exe")}, content_type="multipart/form-data")
 check("the dist exe is refused", r.status_code == 400 and "dist folder" in r.get_json()["error"])
 c.delete("/api/staff/acars/build/PAC-ACARS-1.0.0-portable.zip")

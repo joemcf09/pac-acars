@@ -23,7 +23,22 @@ ROOT = Path(__file__).resolve().parent.parent
 TESTS = ROOT / "tests"
 # start the real website on :5050 and the ACARS app on :5070, drive a real browser window, and use ROOT/data
 SERIAL_UI = {"test_acars_app", "test_acars_window"}
+# stop and kill process groups (os.killpg, SIGKILL, SIGSTOP): Linux and macOS only. GitHub runs them on every pull request.
+POSIX_ONLY = SERIAL_UI | {"test_acars_handoff"}
+# need a package that is only installed where it's used (discord.py runs on the server, not on Windows PCs)
+NEEDS = {"test_discord_bot": "discord"}
 TIMEOUT = 600
+
+
+def skip_reason(name):
+    if os.name == "nt" and name in POSIX_ONLY:
+        return "Linux only (GitHub runs it on every pull request)"
+    module = NEEDS.get(name)
+    if module:
+        import importlib.util
+        if importlib.util.find_spec(module) is None:
+            return f"needs the {module} package, which isn't installed here (GitHub installs it)"
+    return None
 
 
 def is_pytest(path):
@@ -34,7 +49,8 @@ def run_one(path):
     name = path.stem
     started = time.time()
     with tempfile.TemporaryDirectory(prefix=f"pac-{name}-") as temp:
-        env = dict(os.environ, PYTHONDONTWRITEBYTECODE="1", PYTHONUNBUFFERED="1")
+        # UTF-8 output: tests print emoji, which the Windows console's default code page can't encode
+        env = dict(os.environ, PYTHONDONTWRITEBYTECODE="1", PYTHONUNBUFFERED="1", PYTHONIOENCODING="utf-8", PYTHONUTF8="1")
         if name not in SERIAL_UI:
             data = Path(temp) / "data"
             data.mkdir()
@@ -42,7 +58,7 @@ def run_one(path):
             env["PAC_DATA_DIR"] = str(data)
         cmd = [sys.executable, "-m", "pytest", "-q", "-p", "no:cacheprovider", str(path)] if is_pytest(path) else [sys.executable, str(path)]
         try:
-            p = subprocess.run(cmd, cwd=ROOT, env=env, capture_output=True, text=True, timeout=TIMEOUT)
+            p = subprocess.run(cmd, cwd=ROOT, env=env, capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=TIMEOUT)
             ok, out = p.returncode == 0, (p.stdout or "") + (p.stderr or "")
         except subprocess.TimeoutExpired as e:
             ok, out = False, f"timed out after {TIMEOUT} s\n" + ((e.stdout or b"").decode("utf-8", "replace") if isinstance(e.stdout, bytes) else (e.stdout or ""))
@@ -64,9 +80,13 @@ def main():
     tests = sorted(TESTS.glob("test_*.py"))
     if a.only:
         tests = [t for t in tests if any(w in t.stem for w in a.only)]
+    skipped = [(t.stem, skip_reason(t.stem)) for t in tests if skip_reason(t.stem)]
+    tests = [t for t in tests if not skip_reason(t.stem)]
     serial = [t for t in tests if t.stem in SERIAL_UI and not a.no_ui]
     parallel = [t for t in tests if t.stem not in SERIAL_UI]
     print(f"Running {len(parallel) + len(serial)} test files ({a.j} at a time, then {len(serial)} on their own)\n", flush=True)
+    for name, reason in skipped:
+        print(f"  skip {name}: {reason}", flush=True)
     results = []
     with ThreadPoolExecutor(max_workers=a.j) as ex:
         for name, ok, secs, out in ex.map(run_one, parallel):
@@ -77,7 +97,8 @@ def main():
         results.append((name, ok, secs, out))
         print(f"  {'ok  ' if ok else 'FAIL'} {name} ({secs} s)" + ("" if ok else "\n" + why(out)), flush=True)
     failed = [r[0] for r in results if not r[1]]
-    print(f"\n{len(results) - len(failed)} of {len(results)} test files passed." + (f" Failed: {', '.join(failed)}" if failed else " All green."))
+    print(f"\n{len(results) - len(failed)} of {len(results)} test files passed" + (f", {len(skipped)} skipped." if skipped else ".")
+          + (f" Failed: {', '.join(failed)}" if failed else " All green."))
     sys.exit(1 if failed else 0)
 
 
