@@ -1,0 +1,38 @@
+name: PAC tests
+
+# Every test in tests/, on every pull request into main (and on demand from the Actions tab).
+# tools/run_tests.py runs each test file in its own empty data folder and prints one ok/FAIL line per file.
+
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  tests:
+    name: All tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python -m pip install -r requirements.txt pytest
+      - run: python tools/run_tests.py --no-ui
+
+  acars-app:
+    name: ACARS app (real browser)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python -m pip install -r requirements.txt pytest playwright
+      - run: python -m playwright install --with-deps chromium
+      - run: python tools/run_tests.py acars_app acars_window

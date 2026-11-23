@@ -5,12 +5,13 @@ Run from the PAC folder:   python tests/test_liveries.py
 import io
 import json
 import shutil
+import os
 import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
-DATA = ROOT / "data"
+DATA = Path(os.environ.get("PAC_DATA_DIR") or ROOT / "data")   # the folder the site itself uses
 for _f in ("logbook.db", "settings.json", "secret_key", "site.json", "liveries.json"):
     (DATA / _f).unlink(missing_ok=True)
 shutil.rmtree(DATA / "liveries", ignore_errors=True)

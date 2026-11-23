@@ -43,6 +43,14 @@ check("both pilots can hold a booking", "flight_number" in b1 and "flight_number
 check("each pilot sees only their own", (c1.get("/api/bootstrap").json["booking"] or {}).get("flight_number") == b1["flight_number"]
       and (c2.get("/api/bootstrap").json["booking"] or {}).get("flight_number") == b2["flight_number"])
 
+def sign_release(client):
+    """The captain reviews and signs the dispatch release, which ACARS needs before it starts the flight."""
+    d = client.get("/api/dispatch").json
+    return client.post("/api/dispatch/sign", json={"requested_at": d.get("requested_at"), "revision": d.get("revision"),
+                                                   "reviewed": True, "notoc": True}).status_code
+
+
+check("each captain signs their own release", sign_release(c1) == 200 and sign_release(c2) == 200)
 c1.post("/api/acars/app/start", json={"source": "MSFS", "requested_at": b1["requested_at"]})
 c2.post("/api/acars/app/start", json={"source": "MSFS", "requested_at": b2["requested_at"]})
 r1, r2 = FlightRecorder(b1), FlightRecorder(b2)

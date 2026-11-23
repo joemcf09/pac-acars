@@ -132,6 +132,8 @@ def scenarios(label, env):
         check("the engine opened a window that checks in", p["window_open"] and (p["ui_age_s"] is not None and p["ui_age_s"] < 3), p)
         call(5050, "POST", "/api/settings", {"enforce_pilot_location": False})
         call(5050, "POST", "/api/booking", {"mission_id": "PAC1022", "aircraft": "B733F", "airframe": "N010PC"})
+        d = call(5050, "GET", "/api/dispatch")             # the captain signs the release before ACARS may start
+        call(5050, "POST", "/api/dispatch/sign", {"requested_at": d.get("requested_at"), "revision": d.get("revision"), "reviewed": True, "notoc": True})
         call(5070, "POST", "/api/config", {"demo_speedup": 15})
         check("tracking started", call(5070, "POST", "/api/start", {"source": "Demo"}).get("ok"))
         print("B. the window freezes completely")

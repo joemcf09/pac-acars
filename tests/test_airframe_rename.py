@@ -3,13 +3,14 @@
 Run from the PAC folder:   python tests/test_airframe_rename.py
 """
 import json
+import os
 import sys
 import time
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
-DATA = ROOT / "data"
+DATA = Path(os.environ.get("PAC_DATA_DIR") or ROOT / "data")   # the folder the site itself uses
 for _f in ("logbook.db", "settings.json", "secret_key", "site.json"):
     (DATA / _f).unlink(missing_ok=True)
 

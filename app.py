@@ -1605,6 +1605,9 @@ def bootstrap():
            "rotations": va.ROTATIONS, "rotation_progress": part("rotations", lambda: va.rotation_progress(pid), {})}
     if failed:
         out["partial"] = failed
+        resp = jsonify(out)
+        resp.headers["X-PAC-No-Cache"] = "1"   # a degraded answer must not be served again from the short cache
+        return resp
     return jsonify(out)
 
 

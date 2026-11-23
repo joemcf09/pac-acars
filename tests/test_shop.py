@@ -63,15 +63,18 @@ check("using it moves the pilot for free", r["location"] == "KMIA" and va.balanc
 check("the pass is used up", pilot.post("/api/pilot/jumpseat", json={"to": "KCVG", "kind": "pass"}).status_code == 400)
 for _ in range(5):
     pilot.post("/api/shop/buy", json={"item": "jumpseat_pass"})
-check("holds at most five", pilot.get("/api/shop").get_json()["perks"][0]["owned"] == 5)
+check("holds at most five", next(p for p in pilot.get("/api/shop").get_json()["perks"] if p["id"] == "jumpseat_pass")["owned"] == 5)
 
 print("Aircraft reposition")
 with A.db() as con:
     frame = con.execute("SELECT reg, location FROM airframes WHERE status='Available' AND location!='KMIA' LIMIT 1").fetchone()
 q = pilot.post("/api/shop/reposition/quote", json={"reg": frame["reg"]}).get_json()
-check("quotes base plus distance", q.get("cost", 0) >= 500 and q["to"] == "KMIA", q)
+import shop as SH  # noqa: E402
+check("quotes base plus distance", abs(q.get("regular_cost", 0) - (SH.REPOSITION["base"] + SH.REPOSITION["per_nm"] * q["distance_nm"])) <= 1, q)
+check("…and it goes to the pilot's airport", q["to"] == "KMIA", q)
 bal = va.balance("PAC0002")
-r = pilot.post("/api/shop/reposition", json={"reg": frame["reg"]}).get_json()
+check("paying without the quote you were shown is refused", pilot.post("/api/shop/reposition", json={"reg": frame["reg"]}).status_code >= 400)
+r = pilot.post("/api/shop/reposition", json={"reg": frame["reg"], "quote": q}).get_json()
 with A.db() as con:
     loc = con.execute("SELECT location FROM airframes WHERE reg=?", (frame["reg"],)).fetchone()[0]
 check("the aircraft is moved to the pilot", loc == "KMIA" and round(va.balance("PAC0002")) == round(bal - q["cost"]), (loc, r))

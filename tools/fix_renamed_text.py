@@ -6,6 +6,7 @@ Safe to run more than once; it only touches text, never the airframes themselves
 
 On the server:   ~/pac-acars/.venv/bin/python ~/pac-acars/tools/fix_renamed_text.py N801PC=N738PC N802PC=N739PC ...
 """
+import os
 import sqlite3
 import sys
 from pathlib import Path
@@ -18,7 +19,8 @@ pairs = [a.upper().split("=", 1) for a in sys.argv[1:] if "=" in a]
 if not pairs:
     print(__doc__)
     sys.exit(1)
-con = sqlite3.connect(ROOT / "data" / "logbook.db", timeout=30)
+# the same data folder the site uses: PAC_DATA_DIR when it's set (the server's shared data), else the data folder here
+con = sqlite3.connect(Path(os.environ.get("PAC_DATA_DIR") or ROOT / "data") / "logbook.db", timeout=30)
 with con:
     for old, new in pairs:
         print(f"{old} -> {new}: {va.carry_reg_text(con, old, new)} record(s) updated")

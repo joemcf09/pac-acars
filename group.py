@@ -149,11 +149,14 @@ def _base_url():
     return url
 
 
+CLASSIC_DIVISIONS = ("PAC Heritage", "PAC Regional")   # the classics' division; "PAC Regional" was its name before November 2026
+
+
 def _divisions(row, flown_types):
     divs = ["PAC"]
-    regional = {k for k, v in C["FLEET"].items() if (v.get("division") or "") == "PAC Regional"}
-    if flown_types & regional:
-        divs.append("PAC Regional")
+    classics = {k for k, v in C["FLEET"].items() if (v.get("division") or "") in CLASSIC_DIVISIONS}
+    if flown_types & classics:
+        divs.append("PAC Heritage")
     if row.get("pra"):
         divs.append("PRA")
     return divs

@@ -36,7 +36,12 @@ with A.db() as con:   # three weeks of history: every old number used, all finis
                     (f"PAC{n}", json.dumps({"id": f"PAC{n}"}), created, created + 3600, "expired" if i % 2 else "completed"))
 
 out = {}
-t = threading.Thread(target=lambda: out.update(r=va.urgent_missions()), daemon=True)
+def make_and_read():
+    va.refresh_urgent_missions()      # the scheduled mission worker's job on the server
+    out.update(r=va.urgent_missions())
+
+
+t = threading.Thread(target=make_and_read, daemon=True)
 t.start()
 t.join(10)
 check("new urgent requests are made quickly even with every number used before", not t.is_alive())

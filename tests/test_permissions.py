@@ -57,6 +57,8 @@ PUBLIC_OK = {
              "/api/news", "/api/profile/photo", "/api/va/board", "/api/va/home", "/gallery/<path:name>", "/api/applications",
              # the sign-in page itself, and public pages whose data endpoints still need a sign-in:
              "/badge-login", "/unicom", "/unicom/ivao", "/unicom/flight",
+             "/radio", "/radio/flight",   # the gate-to-gate radio cheat sheet: a static reference page, filled in the browser
+             "/api/academy/attachments/<int:attachment_id>",   # files on published Academy lessons only (404 otherwise), like /api/academy/files
              # email unsubscribe links are public but token-protected (an invalid/absent token returns 400, not a leak):
              "/unsubscribe/monthly", "/unsubscribe/reminders"}
 leaks = []

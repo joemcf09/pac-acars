@@ -15,6 +15,7 @@ for _f in ("logbook.db", "settings.json", "secret_key", "site.json", "bot_secret
 import app as A  # noqa: E402
 import botlink  # noqa: E402
 import discord_bot as DB  # noqa: E402
+import mission_worker  # noqa: E402  (the scheduled job that fills the boards on the server)
 
 failures = []
 
@@ -37,12 +38,14 @@ def feed(after=None):
 print("The feed")
 st, first = feed()
 check("the bot's first ask starts from now, without replaying the board", st == 200 and first["items"] == [] and first.get("last"), first)
+mission_worker.run_once()   # on the server a timer runs this every few minutes
 with A.db() as con:
     counts = {k: con.execute(q).fetchone()[0] for k, q in (
         ("missions", "SELECT COUNT(*) FROM live_missions WHERE status='open'"),
         ("partners", "SELECT COUNT(*) FROM jobs WHERE kind='contract' AND status='open'"),
         ("urgent", "SELECT COUNT(*) FROM urgent WHERE status='open'"))}
-check("asking fills the boards even with nobody signed in", counts["missions"] >= 10 and counts["partners"] >= 4 and counts["urgent"] >= 1, counts)
+check("the scheduled worker fills the boards even with nobody signed in", counts["missions"] >= 10 and counts["partners"] >= 4 and counts["urgent"] >= 1, counts)
+st, first = feed(first["last"])     # the worker's offers, published after the bot started
 st, again = feed(first["last"])
 check("nothing new means nothing to post", again["items"] == [], [i["id"] for i in again["items"]])
 
@@ -51,6 +54,7 @@ with A.db() as con:
     con.execute("UPDATE live_missions SET status='expired' WHERE status='open'")
     con.execute("UPDATE jobs SET status='expired' WHERE kind='contract' AND status='open'")
     con.execute("UPDATE urgent SET status='expired' WHERE status='open'")
+mission_worker.run_once()
 st, new = feed(again["last"])
 kinds = {i["kind"] for i in new["items"]}
 check("new work of every kind comes through", kinds == {"mission", "partner", "urgent"}, kinds)

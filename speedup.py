@@ -54,7 +54,7 @@ def init(app):
                 _store.clear()                      # something changed: everyone gets fresh data
             return resp
         if request.method == "GET" and p in CACHED and resp.status_code == 200 and resp.mimetype == "application/json" \
-                and "Set-Cookie" not in resp.headers and resp.headers.get("X-PAC-Cache") != "hit":
+                and "Set-Cookie" not in resp.headers and resp.headers.get("X-PAC-Cache") != "hit" and not resp.headers.get("X-PAC-No-Cache"):
             key, pilot = _key()
             with _lock:
                 if len(_store) > 500:

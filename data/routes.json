@@ -38130,10 +38130,7 @@
    "lon": -92.1158
   },
   "aircraft": [
-   "B738F",
-   "B733F",
-   "B732F",
-   "B752F"
+   "B732F"
   ],
   "cargo": "Kivalliq regional connection",
   "payload_lbs": 26000,
@@ -38165,10 +38162,7 @@
    "lon": -68.5558
   },
   "aircraft": [
-   "B738F",
-   "B733F",
-   "B732F",
-   "B752F"
+   "B732F"
   ],
   "cargo": "Kivalliq regional connection",
   "payload_lbs": 26000,
