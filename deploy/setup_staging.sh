@@ -32,6 +32,8 @@ LOGIN_NAME="${LOGIN_NAME:-pac}"
 case "$LOGIN_NAME" in *[!A-Za-z0-9._-]*) echo "The login name may only use letters, numbers, dot, dash and underscore."; exit 1;; esac
 
 echo "[1] Folders"
+# an earlier setup could leave folders whose names end in a hidden \r (Windows line endings); remove them
+rm -rf "/home/pac/pac-staging"$'\r' "/home/pac/backups-staging"$'\r'
 mkdir -p "$ROOT/releases" "$ROOT/shared/data" /home/pac/backups-staging
 chown -R pac:pac "$ROOT" /home/pac/backups-staging
 

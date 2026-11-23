@@ -145,7 +145,7 @@ def package(zip_path: Path) -> int:
         for p in files:
             # update.sh looks for a single top-level pac-acars/ folder in the zip
             arc = Path("pac-acars") / p.relative_to(ROOT)
-            if p.suffix == ".sh":
+            if p.suffix in (".sh", ".service"):
                 # Windows checkouts turn line endings into CRLF, and Linux then can't run the script
                 # ("bash\r: No such file or directory"). Always ship shell scripts with LF endings.
                 z.writestr(str(arc).replace("\\", "/"), p.read_bytes().replace(b"\r\n", b"\n"))
