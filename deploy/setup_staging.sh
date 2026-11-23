@@ -25,6 +25,8 @@ command -v rsync >/dev/null || apt-get install -y -qq rsync
 
 read -r LOGIN_NAME || true
 read -r LOGIN_PASS || true
+# Windows sends lines ending in CR LF; the CR is not part of the name or password
+LOGIN_NAME="${LOGIN_NAME%$'\r'}"; LOGIN_PASS="${LOGIN_PASS%$'\r'}"
 LOGIN_NAME="${LOGIN_NAME:-pac}"
 [ -n "${LOGIN_PASS:-}" ] || { echo "No password given for the test site's login."; exit 1; }
 case "$LOGIN_NAME" in *[!A-Za-z0-9._-]*) echo "The login name may only use letters, numbers, dot, dash and underscore."; exit 1;; esac

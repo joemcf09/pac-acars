@@ -222,8 +222,9 @@ def deploy_staging(target):
     run(["scp", str(tmp), f"{target}:{STAGING_ZIP}"], "the upload failed")
     step(4, "Setting up the test copy" if first_time else "Updating the test copy (versioned release, auto-rollback on failure)")
     print("  ssh …", flush=True)
-    stdin = f"{login[0]}\n{login[1]}\n" if login else ""
-    if subprocess.run(["ssh", target, remote_staging_script(first_time)], input=stdin, text=True).returncode != 0:
+    # bytes, not text: on Windows, text mode would turn each \n into \r\n and the server would read "name\r"
+    stdin = f"{login[0]}\n{login[1]}\n".encode() if login else b""
+    if subprocess.run(["ssh", target, remote_staging_script(first_time)], input=stdin).returncode != 0:
         fail("the test copy didn't update (see above). The live site was not touched. Logs:  ssh " + target + " \"journalctl -u pac-staging -n 50\"")
     step(5, "Confirming the test copy is healthy")
     run(["ssh", target, "systemctl is-active pac-staging"], "the test copy did not come up")
