@@ -2,7 +2,7 @@
 # Replace the test copy's data with a fresh copy of the live data. The live site keeps running and is only read.
 # Secrets are removed from the copy (Discord webhooks, the bot token, the email password, the SayIntentions and
 # Hoppie keys, the login cookie key), so even a mistake on the test copy can't post or send as PAC.
-#   sudo /home/pac/pac-staging/current/deploy/refresh_staging_data.sh
+#   sudo bash /home/pac/pac-staging/current/deploy/refresh_staging_data.sh
 set -euo pipefail
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 LIVE="${PAC_LIVE_DATA:-/home/pac/pac-acars/shared/data}"

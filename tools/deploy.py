@@ -72,6 +72,7 @@ def remote_update_script(update_sh=f"{PAC_DIR}/current/deploy/update.sh",
         # off its old release before that directory can be pruned.
         f"PAC_SVC_DISCORD_RESTART='sudo systemctl try-restart pac-discord' {update_sh} {zip_remote}; rc=$?; "
         # cleanup is best-effort and must not affect rc
+        f"chmod +x {pac_dir}/current/deploy/*.sh 2>/dev/null || true; "   # zips made on Windows carry no execute bit
         f"chown -R pac:pac {pac_dir}/releases {pac_dir}/shared {pac_dir}/current {pac_dir}/previous 2>/dev/null || true; "
         f"rm -f {zip_remote} || true; "
         f"exit $rc"
@@ -89,6 +90,7 @@ def remote_staging_script(first_time):
         run_it = (f"sed -i 's/\\r$//' {STAGING_DIR}/current/deploy/*.sh || exit 1; chmod +x {STAGING_DIR}/current/deploy/*.sh || exit 1; "
                   f"{STAGING_DIR}/current/deploy/update_staging.sh {STAGING_ZIP}; rc=$?; ")
     return ("set -u; " + run_it
+            + f"chmod +x {STAGING_DIR}/current/deploy/*.sh 2>/dev/null || true; "   # zips made on Windows carry no execute bit
             + f"chown -R pac:pac {STAGING_DIR} 2>/dev/null || true; rm -f {STAGING_ZIP} || true; exit $rc")
 
 
