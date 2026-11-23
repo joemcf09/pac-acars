@@ -98,6 +98,7 @@ function show(view) {
   scrollTo({ top: 0 });
   if (view === "missions") { renderPilotStrip(); renderMissions(); refreshCore().then(() => { if (!$("#view-missions").hidden) renderMissions(); }); }
   location.hash = view === "career" ? "career/" + (S.careerSection || "overview") : view === "pilots" && S.pilotOpen ? "pilots/" + S.pilotOpen : view;
+  usageView(view);
 }
 document.querySelectorAll("nav button[data-view]").forEach(b => b.onclick = () => show(b.dataset.view));
 // the PAC logo always goes home and back to the top, even when the address already says #home

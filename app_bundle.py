@@ -36,6 +36,17 @@ def source():
         return _cache["text"], _cache["etag"]
 
 
+def locate(line):
+    """Which piece, and which line in it, a line number of the joined /static/app.js falls on: "05-logbook.js:120"."""
+    at = 1
+    for p in pieces():
+        n = p.read_text(encoding="utf-8").count("\n") + 1      # its header line, then its own lines
+        if line < at + n:
+            return f"{p.name}:{max(1, line - at)}"
+        at += n
+    return None
+
+
 def plain_source():
     """The pieces joined with nothing added: what tests search when they look for something in the site's script."""
     return "".join(p.read_text(encoding="utf-8") for p in pieces())
