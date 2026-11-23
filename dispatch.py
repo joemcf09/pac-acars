@@ -161,6 +161,31 @@ def pool_for(cargo, category):
     return pool or ([(what, ["GEN"], None)] if cargo and str(cargo).strip() else GENERAL)
 
 
+def main_positions(code, deck):
+    if code == "B738F":   # the real 737-800SF/BCF: ten full positions (M1-M10) and the small P12 at the back (PAC's M12)
+        return [f"M{i:02d}" for i in range(1, 11)] + ["M12"]
+    return [f"M{i + 1:02d}" for i in range(deck["main"])]
+
+
+def transfer_positions_needed(code, fleet, items):
+    """Main-deck positions to keep free for selected warehouse cargo. One per stored unit, more when a unit is heavier
+    than this aircraft's positions take (attach_transfers splits it), plus any compact bay at the back of the deck,
+    which the load sheet leaves free first but which can't take a full unit."""
+    weights = [int(u.get("weight_lbs") or 0) for item in items or [] for u in ((item.get("data") or {}).get("unit_details") or [])]
+    weights = [w for w in weights if w > 0]
+    if not weights:
+        return 0
+    deck = DECKS.get(code) or {"main": 0, "uld": "PMC", "cap": 13000}
+    main = main_positions(code, deck)
+    import wb
+    caps = wb.position_limits_lbs(code) or {}
+    full = [min(int(deck["cap"]), caps.get(p, int(deck["cap"]))) for p in main if _unit_for_position(code, p, deck["uld"]) != "COMPACT"]
+    ref = min(full) if full else int(deck.get("cap") or 13000)
+    need = sum(-(-w // ref) for w in weights)
+    compact = sum(1 for p in main[-need:] if _unit_for_position(code, p, deck["uld"]) == "COMPACT") if need else 0
+    return need + compact
+
+
 def generate(booking, fleet, pilot, now=None):
     m, ofp = booking["mission"], booking.get("ofp") or {}
     code = booking["aircraft"]
@@ -178,9 +203,7 @@ def generate(booking, fleet, pilot, now=None):
     payload = 0 if ferry else max(0, payload_target - int(booking.get("cargo_transfer_weight_lbs") or 0))
 
     # positions
-    main = [f"M{i + 1:02d}" for i in range(deck["main"])]
-    if code == "B738F":   # the real 737-800SF/BCF: ten full positions (M1-M10) and the small P12 at the back (PAC's M12)
-        main = [f"M{i:02d}" for i in range(1, 11)] + ["M12"]
+    main = main_positions(code, deck)
     lower = ([f"L{i + 1}" for i in range(deck["lower"])] if deck["luld"] != "BULK" else ["FWD BULK", "AFT BULK"][:deck["lower"]])
     positions, dgs = [], []
     if payload > 0:
