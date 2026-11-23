@@ -49,7 +49,7 @@ e = c.get(f"/api/logbook/{pirep('PAC0001', 'MSFS')}").get_json()
 check("the founder's own flight names the founder", bool(e.get("pilot_name")) and e.get("pilot_id") == "PAC0001", e.get("pilot_name"))
 e = c.get(f"/api/logbook/{pirep('EX-PAC0009', 'MSFS')}").get_json()
 check("a removed pilot's flight is credited to a former PAC pilot", e.get("pilot_name") == "Former PAC pilot", e.get("pilot_name"))
-js = (ROOT / "static" / "app.js").read_text(encoding="utf-8")
+js = __import__("app_bundle").plain_source()   # the site script, from its pieces in static/app/
 check("the cards use the flight's pilot and simulator", "src.pilot_name ?" in js and "c.sim || ac.sim" in js)
 
 print("\nFLIGHT CARDS TEST", "PASSED" if not failures else f"FAILED ({len(failures)}): {failures}")

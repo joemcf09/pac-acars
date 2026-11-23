@@ -33,7 +33,20 @@ routes, airports, partners, helpers) so the two modules don't import each other.
 | File | What it does |
 |---|---|
 | `static/index.html` | Page layout and dialogs. |
-| `static/app.js` | All client code: views (home, missions, ACARS, fleet, career, finance, logbook, gallery, handbook, staff, profile), maps, cards and charts. |
+| `static/app/*.js` | All client code, in numbered pieces. Browsers get them as one `/static/app.js`, joined in order by `app_bundle.py`, so it behaves as a single file. |
+| &nbsp;&nbsp;`01-core.js` | Shared helpers (`$`, `esc`, `api`, `toast`), the page state `S`, navigation and settings. |
+| &nbsp;&nbsp;`02-missions.js` | Mission board, conflict zones, network map, charter requests, VATSIM filing. |
+| &nbsp;&nbsp;`03-planning.js` | Flight planning: briefing, aircraft, load sheet, cargo folder, SimBrief and the request. |
+| &nbsp;&nbsp;`04-acars.js` | The ACARS view: flight map, live traffic and radar, status, PIREP. |
+| &nbsp;&nbsp;`05-logbook.js` | Logbook, stats, airframes and maintenance, stations and cargo stock. |
+| &nbsp;&nbsp;`06-pilot-tools.js` | Downloads, Discord / SayIntentions / email boxes, bids, activity, news, gallery, wallet. |
+| &nbsp;&nbsp;`07-cards.js` | Pay statements, live map, shop, finance, badge and licence, takeoff and landing cards, flight detail. |
+| &nbsp;&nbsp;`08-home.js` | Start-up data, the dispatch release gate, home page, transfers, career, roster, handbook, messages. |
+| &nbsp;&nbsp;`09-staff.js` | Staff desks: liveries, media, fleet manager, ops, reviews, applications, airframes, site rules. |
+| &nbsp;&nbsp;`10-fleet-pilots.js` | Fleet page, pilot roster and profiles, livery library, your profile. |
+| &nbsp;&nbsp;`11-boot.js` | Page start-up, theme, sign-in, invites, letters. |
+| &nbsp;&nbsp;`12-features.js` | Pilot briefing, rotation planner, mission board v2, campaigns, debriefs, crew plans, training, group flights, globe view, home layout. |
+| &nbsp;&nbsp;`13-company.js` | Company: P&L, CEO desk, growth, fleet market, complaints, commercial, roles, relief. |
 | `static/app.css` | Styles. |
 | `static/dispatch.html` | The printable dispatch paperwork. |
 

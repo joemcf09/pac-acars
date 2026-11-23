@@ -29,7 +29,7 @@ d = c.get("/api/pilot/dashboard").get_json() or {}
 check("a real flight counts, a demo flight doesn't", d.get("flights_filed") == 1, d.get("flights_filed"))
 html = (ROOT / "static" / "index.html").read_text(encoding="utf-8")
 check("the Learn menu is there with the Academy first", "Learn <span" in html and html.index("PAC Academy") < html.index('data-view="handbook"'))
-js = (ROOT / "static" / "app.js").read_text(encoding="utf-8")
+js = __import__("app_bundle").plain_source()   # the site script, from its pieces in static/app/
 check("home and dashboard sections are wired in", all(x in js for x in ("${whyPacHTML()}", "${startHereHTML(d)}", "loadHappeningNow(now,d)")))
 
 check("home page layout is wired in for visitors and pilots", all(x in js for x in ("homeLayout();", "function fmtLbShort", "fillJoinGroupFlight(d)", "hero-slim")))

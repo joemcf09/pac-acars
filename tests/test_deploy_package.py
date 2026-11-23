@@ -27,7 +27,7 @@ def test_venv_folders_are_not_packaged():
 
 
 def test_program_files_and_reference_data_still_ship():
-    for rel in ("app.py", "analysis.py", "static/app.js", "acars_client/client.py", "acars_client/ui.html",
+    for rel in ("app.py", "analysis.py", "static/app/01-core.js", "app_bundle.py", "acars_client/client.py", "acars_client/ui.html",
                 "deploy/update.sh", "data/routes.json", "data/runways.json"):
         assert _wanted(rel), rel
 
