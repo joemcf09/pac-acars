@@ -717,7 +717,7 @@ function renderPiracy() {
 function renderPrivacy() {
   const mail = esc(contactEmail());
   const sec = (t, b) => `<section><h2>${t}</h2>${b}</section>`;
-  $("#privacyRoot").innerHTML = `<div class="profile-bar"><h1>Privacy policy</h1><span class="muted">Last updated November 3, 2026</span></div>
+  $("#privacyRoot").innerHTML = `<div class="profile-bar"><h1>Privacy policy</h1><span class="muted">Last updated November 23, 2026</span></div>
   <div class="privacy">
     <p class="lead">Pagani Air Cargo (PAC) is a free, non-commercial virtual airline for flight simulator pilots, run by Joseph Pagani. This page explains what information the PAC website and the PAC ACARS app collect, why, who else sees it, and the choices you have. Questions or requests: <a href="mailto:${mail}">${mail}</a>.</p>
     ${sec("What we collect", `<ul>
@@ -725,8 +725,9 @@ function renderPrivacy() {
       <li><b>Your PAC account:</b> pilot ID, name, rank, home base, current location in PAC's network, and anything you add to your profile, such as a photo or bio. Your password is stored only as a salted hash: nobody, staff included, can read it.</li>
       <li><b>Your flights:</b> while PAC ACARS tracks a flight it records what your simulator reports (position, altitude, speeds, phase of flight, fuel, weights and landing data), plus your flight plan, dispatch paperwork, messages to PAC dispatch, and the resulting report, score and logbook entry.</li>
       <li><b>Optional details you choose to add:</b> your VATSIM CID or IVAO VID, SimBrief username, SayIntentions.AI key, problem reports with screenshots, and gallery uploads.</li>
-      <li><b>Technical records:</b> our web server keeps short logs of requests (IP address, browser and the page asked for) to keep the site secure and running. They're overwritten automatically.</li></ul>`)}
-    ${sec("Cookies and storage on your device", `<p>PAC uses <b>one essential cookie</b> to keep you signed in (for up to 30 days if you tick <i>Keep me signed in</i>). The site also saves a few preferences in your browser, such as your theme, design and filters. PAC has <b>no advertising, analytics or tracking cookies</b>, and doesn't follow you around other websites.</p>`)}
+      <li><b>Technical records:</b> our web server keeps short logs of requests (IP address, browser and the page asked for) to keep the site secure and running. They're overwritten automatically.</li>
+      <li><b>Anonymous page counts:</b> to see which parts of the site are used and how fast it loads, the site counts each page you open, whether you were signed in, the kind of screen (phone, tablet or computer), how long the first page took to load, and any error in the site's own script. These are kept only as daily totals, with no cookie, no IP address and no pilot ID. To count different visitors in a day without knowing who they are, PAC mixes your address and browser with a random key that changes daily and is deleted, with these fingerprints, the next day.</li></ul>`)}
+    ${sec("Cookies and storage on your device", `<p>PAC uses <b>one essential cookie</b> to keep you signed in (for up to 30 days if you tick <i>Keep me signed in</i>). The site also saves a few preferences in your browser, such as your theme, design and filters. PAC has <b>no advertising, analytics or tracking cookies</b>, and doesn't follow you around other websites. The anonymous page counts above use no cookie and store nothing on your device.</p>`)}
     ${sec("Why we use it", `<ul><li>To review applications and run your membership: your account, checkrides, ratings, ranks and in-sim pay.</li>
       <li>To track, score and review your flights, and show them in your logbook and stats.</li>
       <li>To run the community: the pilot roster, leaderboards, the live map, news and Discord.</li>
@@ -755,7 +756,7 @@ function consentNotice() {
   if (document.getElementById("consentBar")) return;
   const bar = document.createElement("div");
   bar.id = "consentBar"; bar.className = "consent-bar"; bar.setAttribute("role", "region"); bar.setAttribute("aria-label", "Privacy notice");
-  bar.innerHTML = `<p><b>Your privacy.</b> PAC uses one essential cookie to keep you signed in and saves your preferences on this device. No advertising or tracking. By continuing, you agree to this and to how we handle your information in our <a href="#privacy" onclick="show('privacy');return false">privacy policy</a>.</p>
+  bar.innerHTML = `<p><b>Your privacy.</b> PAC uses one essential cookie to keep you signed in and saves your preferences on this device. No advertising or tracking: page visits are only counted anonymously. By continuing, you agree to this and to how we handle your information in our <a href="#privacy" onclick="show('privacy');return false">privacy policy</a>.</p>
     <div class="row"><button type="button" class="btn small" id="consentOk">OK</button><button type="button" class="btn ghost small" onclick="show('privacy')">Read the policy</button></div>`;
   document.body.append(bar);
   $("#consentOk").onclick = () => { try { localStorage.setItem("pac-consent", "1"); } catch (e) { /* private window */ } bar.remove(); };

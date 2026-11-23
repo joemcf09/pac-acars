@@ -4705,6 +4705,8 @@ import pilot_dashboard
 pilot_dashboard.register(app, globals())
 import operations_health
 operations_health.register(app, globals())
+import usage
+usage.register(app, globals())
 import relief
 relief.register(app, globals())
 import trips

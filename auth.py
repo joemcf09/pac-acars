@@ -30,7 +30,7 @@ PUBLIC_GET = ("/api/academy/", "/api/group/", "/api/conflict-zones", "/api/boots
               "/api/bot/",   # the Discord bot's own API checks its secret itself (botlink.py)
               "/api/partner-photos", "/api/partner-photo/", "/api/public/roster", "/api/public/group-flight", "/api/public/track/", "/api/public/network", "/healthz",
               "/api/group-flight.ics")   # credited Commons photos on landing cards
-PUBLIC_POST = ("/api/applications", "/api/auth/setup", "/api/auth/login", "/api/auth/accept", "/api/auth/token", "/api/auth/logout", "/api/auth/badge/tap", "/api/auth/badge/forget",
+PUBLIC_POST = ("/api/applications", "/api/usage", "/api/auth/setup", "/api/auth/login", "/api/auth/accept", "/api/auth/token", "/api/auth/logout", "/api/auth/badge/tap", "/api/auth/badge/forget",
                "/api/bot/link", "/api/bot/unlink", "/api/bot/weekly/posted", "/api/bot/activity/reminded", "/api/bot/claim")   # the bot API checks its own secret (botlink.py)
 STAFF_PREFIXES = ("/api/staff/",)
 STAFF_EXACT_POST = ("/api/fleet",)  # editing aircraft types and photos on the Fleet page

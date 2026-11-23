@@ -2105,3 +2105,6 @@ html[data-theme="dark"] .cgo-note-list li{background:var(--note-wash);color:var(
 .next-step .btn{flex:none}
 .start-steps li.next{background:rgba(200,0,0,.05);border-radius:8px}
 @media(max-width:560px){.next-step .btn{width:100%}}
+/* Staff › Usage chart */
+.u-guest{fill:#9aa2ae;background:#9aa2ae}.u-pilot{fill:var(--accent);background:var(--accent)}.u-staff{fill:#d97706;background:#d97706}
+.u-legend{margin:6px 0 0;font-size:12.5px}.u-key{display:inline-block;width:10px;height:10px;margin:0 4px 0 10px;vertical-align:-1px}.u-key:first-child{margin-left:0}
