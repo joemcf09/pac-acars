@@ -17,6 +17,8 @@ import time
 from flask import Blueprint, g, jsonify, request, session
 from werkzeug.security import check_password_hash, generate_password_hash
 
+from client_ip import client_ip
+
 bp = Blueprint("auth", __name__)
 C = {}  # db, settings, founder_id: set by init()
 
@@ -221,7 +223,7 @@ def setup():
 @bp.post("/api/auth/login")
 def login():
     b = request.json or {}
-    key = request.remote_addr or "?"
+    key = client_ip()
     if _too_many(key):
         return jsonify({"error": "Too many attempts. Wait 15 minutes and try again."}), 429
     pid = str(b.get("pilot_id") or "").strip().upper()
@@ -336,7 +338,7 @@ def accept():
 def app_key():
     """The PAC ACARS app signs in once and receives a key it keeps (only a hash of it is stored here)."""
     b = request.json or {}
-    key = request.remote_addr or "?"
+    key = client_ip()
     if _too_many(key):
         return jsonify({"error": "Too many attempts. Wait 15 minutes and try again."}), 429
     pid = str(b.get("pilot_id") or "").strip().upper()
@@ -410,7 +412,7 @@ def badge_issue():
 
 @bp.post("/api/auth/badge/tap")
 def badge_tap():
-    key = "badge|" + (request.remote_addr or "?")
+    key = "badge|" + client_ip()
     if _too_many(key):
         return jsonify({"error": "Reader locked. Wait 15 minutes.", "light": "red"}), 429
     r, tok = _badge_pilot()

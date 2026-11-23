@@ -19,7 +19,8 @@ def check(name, cond, detail=""):
 client = A.app.test_client()
 UA = {"User-Agent": "Mozilla/5.0 test"}
 def beacon(body, ip="203.0.113.7", ua=UA):
-    return client.post("/api/usage", json=body, headers={**ua, "CF-Connecting-IP": ip})
+    # as it arrives in production: from a Cloudflare server, with the visitor's address in CF-Connecting-IP
+    return client.post("/api/usage", json=body, headers={**ua, "CF-Connecting-IP": ip}, environ_base={"REMOTE_ADDR": "162.158.10.20"})
 
 r = beacon({"view": "missions", "kind": "pilot", "device": "desktop"})
 check("a guest browser can send a beacon (no sign-in needed)", r.status_code == 204, r.status_code)

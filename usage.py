@@ -175,9 +175,8 @@ def register(app, g):
     @app.post("/api/usage")
     def usage_beacon():
         body = request.get_json(silent=True, force=True) or {}
-        # behind Cloudflare, remote_addr is Cloudflare's edge; the visitor's own address is in CF-Connecting-IP
-        addr = request.headers.get("CF-Connecting-IP") or request.remote_addr
-        record(body, addr, request.headers.get("User-Agent", ""))
+        from client_ip import client_ip      # the visitor's own address, not Cloudflare's
+        record(body, client_ip(), request.headers.get("User-Agent", ""))
         return ("", 204)
 
     @app.get("/api/staff/usage")
