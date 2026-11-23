@@ -233,7 +233,7 @@ as the live deploy. Try a change there first; when it looks right, merge it and 
 To start the test copy over on today's live data (it throws away whatever was done on the test copy):
 
 ```
-ssh root@167.172.133.207 /home/pac/pac-staging/current/deploy/refresh_staging_data.sh
+ssh root@167.172.133.207 bash /home/pac/pac-staging/current/deploy/refresh_staging_data.sh
 ```
 
 The test copy has no Discord bot and doesn't run the mission timer, so its boards don't refill on their own; refresh
