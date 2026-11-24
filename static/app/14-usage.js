@@ -21,7 +21,10 @@ function usageError(message, place) {
   if (!message || ++usageErrors > 5) return;     // a broken page reports its first few errors, not a flood
   usageSend({ error: { message: String(message).slice(0, 200), place: String(place || "").slice(0, 120) } });
 }
+// Browser warnings that aren't bugs: "ResizeObserver loop …" only means a layout settled a frame later.
+const USAGE_IGNORE = /ResizeObserver loop/i;
 window.addEventListener("error", e => {
+  if (USAGE_IGNORE.test(e.message || "")) return;
   const file = e.filename || "";
   if (!file.startsWith(location.origin)) return;   // browser extensions and other sites' scripts aren't PAC's errors
   usageError(e.message, file.replace(location.origin, "").replace(/\?.*$/, "") + ":" + (e.lineno || 0));

@@ -20,6 +20,7 @@ from contextlib import closing
 from pathlib import Path
 
 VIEW_RE = re.compile(r"^[a-z][a-z0-9-]{0,31}$")
+IGNORED_ERRORS = re.compile(r"ResizeObserver loop", re.I)   # a browser warning, not a bug (older pages still send it)
 KINDS = ("guest", "pilot", "staff")
 DEVICES = ("phone", "tablet", "desktop")
 LOAD_BUCKETS = (1000, 2000, 3000, 5000, 8000)          # ms: <1 s, 1–2 s, 2–3 s, 3–5 s, 5–8 s, over 8 s
@@ -113,7 +114,7 @@ def record(body, addr, agent, now=None):
             con.execute("INSERT OR IGNORE INTO loads (day, kind, device, bucket) VALUES (?, ?, ?, ?)", (day, kind, device, bucket))
             con.execute("UPDATE loads SET n = n + 1 WHERE day=? AND kind=? AND device=? AND bucket=?", (day, kind, device, bucket))
         err = body.get("error")
-        if isinstance(err, dict) and err.get("message"):
+        if isinstance(err, dict) and err.get("message") and not IGNORED_ERRORS.search(str(err["message"])):
             msg = re.sub(r"\s+", " ", str(err["message"]))[:200]
             place = re.sub(r"\s+", " ", str(err.get("place") or ""))[:120]
             con.execute("INSERT OR IGNORE INTO errors (day, message, place) VALUES (?, ?, ?)", (day, msg, place))
@@ -149,6 +150,7 @@ def report(days=30, now=None):
             loads.setdefault(r["device"], [0] * (len(LOAD_BUCKETS) + 1))[r["bucket"]] = r["n"]
         errors = [dict(r) for r in con.execute(
             "SELECT message, place, SUM(n) n, MAX(last_at) last_at FROM errors WHERE day >= ? GROUP BY message, place ORDER BY n DESC LIMIT 25", (since,))]
+        errors = [e for e in errors if not IGNORED_ERRORS.search(e["message"] or "")]   # counted before they were ignored
     for e in errors:   # "/static/app.js:51234" -> "/static/app.js:51234 (05-logbook.js:120)", the piece to open
         m = re.match(r"/static/app\.js:(\d+)$", e["place"] or "")
         if m:

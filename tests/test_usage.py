@@ -63,7 +63,9 @@ beacon({"load_ms": 9000, "kind": "guest", "device": "phone"}, ip="198.51.100.42"
 text, _ = app_bundle.source()
 line = text.split("\n").index(next(l for l in text.split("\n") if l.startswith("function renderStaff()"))) + 1
 beacon({"error": {"message": "x is not defined", "place": f"/static/app.js:{line}"}, "kind": "staff"}, ip="198.51.100.43")
+beacon({"error": {"message": "ResizeObserver loop completed with undelivered notifications.", "place": "/#home:0"}, "kind": "pilot"}, ip="198.51.100.44")
 rep = usage.report(7)
+check("browser warnings that aren't bugs are left out", not any("ResizeObserver" in e["message"] for e in rep["errors"]), rep["errors"])
 check("load times fall in their buckets", rep["loads"].get("phone") == [0, 1, 0, 0, 0, 1], rep["loads"])
 err = rep["errors"][0] if rep["errors"] else {}
 check("script errors are counted", err.get("message") == "x is not defined" and err.get("n") == 1, rep["errors"])
