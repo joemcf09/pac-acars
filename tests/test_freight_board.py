@@ -27,7 +27,10 @@ c.get("/api/cargo/overview")
 with A.db() as con:
     con.execute("UPDATE pilots SET discord_id='12345' WHERE id='PAC0001'")
     con.execute("INSERT OR IGNORE INTO pilots (id, name, status) VALUES ('PAC0002','Alex B.','Active')")
-    order = next(r for r in con.execute("SELECT * FROM cargo_shipments WHERE booking_key LIKE 'ORDER:%' AND status='AT_STATION' AND current_station='KCVG'"))
+    # an order PAC flies straight to (truck freight is addressed to a nearby town no PAC route serves)
+    flown = {rt["destination"]["icao"] for rt in A.ROUTES.values() if rt["origin"]["icao"] == "KCVG" and rt.get("category") == "Scheduled"}
+    order = next(r for r in con.execute("SELECT * FROM cargo_shipments WHERE booking_key LIKE 'ORDER:%' AND status='AT_STATION' AND current_station='KCVG'")
+                 if r["destination"] in flown)
 print("Claiming")
 r = c.post(f"/api/cargo/shipments/{order['id']}/claim")
 check("a pilot can hold waiting freight for 24 hours", r.status_code == 200 and r.json["until"] > time.time() + 23 * 3600, r.json)

@@ -267,7 +267,9 @@ def bot_dispatch():
                     items.append(_work_item(kind, data, r["created"]))
         items += _freight_items(con, after, now)
     items.sort(key=lambda x: x["created"])
-    return jsonify({"items": items, "last": max([after] + [x["created"] for x in items]), "settings": dispatch_settings()})
+    last = max([after] + [x["created"] for x in items])
+    return jsonify({"items": items, "last": last, "settings": dispatch_settings()})
+
 
 
 def _freight_items(con, after, now):

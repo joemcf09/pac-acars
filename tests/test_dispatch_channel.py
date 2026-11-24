@@ -72,7 +72,7 @@ site = "https://pac-va.com"
 m = DB.dispatch_card(by["mission"], site)
 check("a mission card names the mission and links to the board", m["title"].startswith("📦 New mission · PAC") and m["url"] == site + "/#missions", m["title"])
 check("with route, aircraft, cargo and distance", [f[0] for f in m["fields"]][:4] == ["Route", "Aircraft", "Cargo", "Distance"], m["fields"])
-check("and when it has to be booked by, in Discord's own time format", any(f[0] == "Book by" and f[1].startswith("<t:") for f in m["fields"]), m["fields"])
+check("and when it has to be booked by, with the date, in Discord's own time format", any(f[0] == "Book by" and f[1].startswith("<t:") and ":f>" in f[1] for f in m["fields"]), m["fields"])
 p = DB.dispatch_card(by["partner"], site)
 check("a crew request names the partner airline", p["title"].startswith("🤝 Crew request · ") and by["partner"]["operator"] in p["title"], p["title"])
 check("with its callsign and shortage bonus", {"Callsign", "Shortage bonus"} <= {f[0] for f in p["fields"]}, p["fields"])

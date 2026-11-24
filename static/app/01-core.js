@@ -10,6 +10,8 @@ const fmt = n => n == null || isNaN(n) ? "–" : Math.round(n).toLocaleString("e
 const hm = min => { if (min == null) return "–"; min = Math.round(min); return `${Math.floor(min/60)}h ${String(min%60).padStart(2,"0")}m`; };
 const hms = s => { s = Math.max(0, Math.round(s||0)); return `${String(Math.floor(s/3600)).padStart(2,"0")}:${String(Math.floor(s%3600/60)).padStart(2,"0")}:${String(s%60).padStart(2,"0")}`; };
 const zulu = t => t ? new Date(t*1000).toISOString().substr(11,5).replace(":","") + "Z" : "––––";
+// a deadline with its day, in the reader's own time: "Mon 23 Nov, 2:55 AM"
+const whenLocal = t => t ? new Date(t * 1000).toLocaleString([], { weekday: "short", day: "numeric", month: "short", hour: "numeric", minute: "2-digit" }) : "–";
 
 let initialCoreNavigation = false;
 const S = { missions: [], fleet: {}, settings: {}, phases: [], booking: null,
