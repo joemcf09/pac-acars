@@ -266,31 +266,10 @@ def bot_dispatch():
                 if (data.get("expires") or float("inf")) >= now:
                     items.append(_work_item(kind, data, r["created"]))
         items += _freight_items(con, after, now)
-        calls = _last_calls(con, now)
     items.sort(key=lambda x: x["created"])
     last = max([after] + [x["created"] for x in items])
-    return jsonify({"items": calls + items, "last": last, "settings": dispatch_settings()})
+    return jsonify({"items": items, "last": last, "settings": dispatch_settings()})
 
-
-LAST_CALL_S = 6 * 3600
-
-
-def _last_calls(con, now):
-    """Urgent requests (AOG recoveries included) that nobody has booked, six hours before they close: one reminder each
-    in the dispatch channel, so the work isn't lost to a contractor just because nobody noticed the deadline. Only for
-    requests open at least twice that long (an AOG recovery has 36 hours): a short-notice job's first post is reminder enough."""
-    out = []
-    for r in con.execute("""SELECT id, data, created FROM urgent WHERE status='open' AND expires > ? AND expires <= ?
-                            AND expires - created >= ?""", (now, now + LAST_CALL_S, 2 * LAST_CALL_S)):
-        data = json.loads(r["data"])
-        if data.get("last_call") or data.get("relief"):
-            continue
-        data["last_call"] = now
-        con.execute("UPDATE urgent SET data=? WHERE id=?", (json.dumps(data), r["id"]))
-        item = _work_item("urgent", data, now)
-        item["last_call"] = True
-        out.append(item)
-    return out
 
 
 def _freight_items(con, after, now):

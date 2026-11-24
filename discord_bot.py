@@ -252,8 +252,6 @@ def dispatch_card(item, site):
         title = f"{'🌸' if item.get('season') else '📦'} Freight waiting · {item['id']} · {item['title']}"
     elif item["kind"] == "urgent" and item.get("relief"):     # calm on purpose: a real disaster, not a race
         title = f"Humanitarian relief · {item['id']} · {item['title']}"
-    elif item["kind"] == "urgent" and item.get("last_call"):
-        title = f"⏰ Last call · {item['id']} · {item['title']}"
     elif item["kind"] == "urgent":
         title = f"🚨 Urgent · {item['id']} · {item['title']}"
     elif item["kind"] == "partner":
@@ -261,8 +259,6 @@ def dispatch_card(item, site):
     else:
         title = f"📦 New mission · {item['id']} · {item['title']}"
     brief = item.get("briefing") or ""
-    if item.get("last_call"):
-        brief = f"Still open and closing <t:{int(item['expires'])}:R>. If nobody books it by then, PAC hands it to a contractor at a higher cost. " + brief
     desc = (f"**{places}**\n" if places else "") + (brief if len(brief) <= 300 else brief[:297].rsplit(" ", 1)[0] + "…")
     load = f"{int(item['payload_lbs']):,} lb" if item.get("payload_lbs") else ""
     if item["kind"] == "freight":
@@ -295,7 +291,7 @@ def dispatch_pick(items, settings, posted_times, now):
     Returns (to_post, skipped). posted_times are the times of posts in the last hour."""
     recent = [t for t in posted_times if now - t < 3600]
     room = max(0, int(settings.get("per_hour", 4)) - len(recent))
-    wanted = sorted((i for i in items if dispatch_wanted(i, settings)), key=lambda i: (not i.get("last_call"), DISPATCH_ORDER[i["kind"]], i["created"]))
+    wanted = sorted((i for i in items if dispatch_wanted(i, settings)), key=lambda i: (DISPATCH_ORDER[i["kind"]], i["created"]))
     return wanted[:room], wanted[room:]
 
 
