@@ -764,7 +764,7 @@ function pacAfterAction(db) {
   const mark = r => r.ok === true ? '<span class="aar-ok">Within plan</span>' : r.ok === false ? '<span class="aar-bad">Outside plan</span>' : '<span class="muted">Not compared</span>';
   return `<section class="aar" data-pd-section="After-action review"><h3>After-action review</h3>
     <div class="aar-cols">
-      <div class="aar-box ${e(cu.tone)}"><small>Customer feedback</small><div style="font-size:13px;font-weight:600;margin:2px 0 6px">${e(String(cu.from || '').split(/,\s*/).slice(0, 3).join(' · '))}</div><p>${e(cu.text)}</p></div>
+      <div class="aar-box ${e(cu.tone)}"><small>${e(cu.label || 'Customer feedback')}</small><div style="font-size:13px;font-weight:600;margin:2px 0 6px">${e(String(cu.from || '').split(/,\s*/).slice(0, 3).join(' · '))}</div><p>${e(cu.text)}</p></div>
       ${db.people ? `<div class="aar-box ${e(db.people.tone)}"><small>People on board</small><p>${e(db.people.text)}</p></div>` : ""}
       <div class="aar-box"><small>Dispatcher debrief</small><p>${e(db.dispatcher)}</p>${(db.takeaways || []).length ? `<ul>${db.takeaways.map(t => `<li>${e(t)}</li>`).join("")}</ul>` : ""}</div>
     </div>

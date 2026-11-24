@@ -55,5 +55,19 @@ try:
     check("and the cargo results carry the condition", db["cargo"][0]["care"]["label"] == "Damaged in transit", db["cargo"][0])
 except Exception as e:
     check("debrief builds with cargo care", False, repr(e))
+
+print("PAC's own freight")
+kit = {"awb": "999-1", "contents": "AOG kit", "shc": [], "shipper": {"name": "PAC Engineering Stores"}, "consignee": {"name": "PAC AOG Team Detroit"},
+       "pieces": 3, "weight_lbs": 800, "destination": {"icao": "KDTW"}, "awb_doc": {}}
+p2 = {"status": "Delivered", "arr": "KDTW", "dep": "KCVG", "flight_number": "PAC8800", "block_min": 50, "payload_lbs": 800, "landing_rate": -120}
+b2 = {"mission": {"origin": {"icao": "KCVG"}, "destination": {"icao": "KDTW"}}, "aircraft": "B763F", "flight_number": "PAC8800", "requested_at": 2,
+      "dispatch": {"shipments": [kit], "deck": {}}}
+try:
+    cu = debrief.build(p2, b2, NS(oooi={"in": 3600}, fuel={}, ofp=None), {"B763F": {}})["customer"]
+    check("an AOG kit to PAC's own team is feedback from colleagues, not a customer", cu["label"] == "From the receiving team"
+          and "book PAC again" not in cu["text"] and "customer" not in cu["text"].lower(), cu)
+    check("a customer delivery is still labelled as customer feedback", db["customer"]["label"] == "Customer feedback", db["customer"])
+except Exception as e:
+    check("debrief builds for PAC's own freight", False, repr(e))
 print(); print("All cargo care checks passed." if not failures else f"{len(failures)} failed: {failures}")
 sys.exit(1 if failures else 0)

@@ -156,7 +156,20 @@ def build(p, booking, rec=None, fleet=None):
             "Delivered within the promised window, documents complete. We'll book PAC again for this lane.",
             "Received on schedule with no exceptions. The handover was smooth.",
         ])
-    customer = {"from": who, "tone": tone, "text": text}
+    # PAC's own freight (AOG kits from PAC Engineering to a PAC AOG team) is received by colleagues, not a customer
+    internal = bool(names) and all(n.startswith("PAC ") for n in names)
+    if internal:
+        if tone == "good":
+            text = rng.choice([
+                "Kit received on time and complete. We're starting the repair now.",
+                "Parts and paperwork all here. Thanks for the quick turnaround; the aircraft is on its way back.",
+                "Received in good order. That saves us hours on the ground.",
+            ])
+        elif not delivered:
+            text = (f"The kit didn't reach {p.get('planned_arr') or 'us'}, so the aircraft stays on the ground. "
+                    + ("It's being held at the diversion airport while Ops arranges onward carriage. " if status == "Diverted" else "")
+                    + "Engineering needs a new arrival time.")
+    customer = {"from": who, "tone": tone, "text": text, "label": "From the receiving team" if internal else "Customer feedback"}
 
     # ---- the dispatcher's summary
     bits = [f"{p.get('flight_number')} operated {p.get('dep')}–{p.get('arr')} in {round(p.get('block_min') or 0)} minutes"]
