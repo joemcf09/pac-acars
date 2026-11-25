@@ -635,7 +635,7 @@ function notamBars(list) {
   // one line on the board: the titles, opened for the full notices (keeps the flights near the top of the page)
   const ns = (list || []).filter(n => n.kind === "notam").slice(0, 3);
   if (!ns.length) return "";
-  const bar = n => `<div class="notam-bar ${n.important ? "important" : ""}"><b class="k">CO NOTAM</b><span><b>${esc(n.title)}</b>${n.body ? ` · ${esc(n.body.length > 260 ? n.body.slice(0, 257).replace(/\s+\S*$/, "") + "…" : n.body)}` : ""}</span></div>`;
+  const bar = n => `<div class="notam-bar ${n.important ? "important" : ""}"><b class="k">CO NOTAM</b><span><b>${esc(n.title)}</b>${n.body ? ` · <span style="white-space:pre-line">${esc(n.body)}</span>` : ""}</span></div>`;
   return `<details class="notam-fold"><summary class="notam-bar ${ns.some(n => n.important) ? "important" : ""}"><b class="k">CO NOTAM${ns.length > 1 ? "S" : ""}</b><span><b>${ns.length} company notice${ns.length === 1 ? "" : "s"}:</b> ${ns.map(n => esc(n.title)).join(" · ")}</span><i class="nf-more">Read</i></summary>${ns.map(bar).join("")}</details>`;
 }
 function newsCards(list) {

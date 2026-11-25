@@ -3594,7 +3594,7 @@ def staff_news():
 def staff_news_save():
     b = request.json or {}
     title = C["clean_text"](b.get("title"), 120)
-    body = C["clean_text"](b.get("body"), 2000)
+    body = C["clean_text"](b.get("body"), 3900)   # what fits in one Discord post
     if not title:
         return jsonify({"error": "Give the post a title."}), 400
     kind = "notam" if b.get("kind") == "notam" else "news"
