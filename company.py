@@ -49,7 +49,7 @@ def playbook_for(con, pid):
     return [{"role": role, "title": ROLES[role][0], "watch": ROLE_PLAYBOOK[role][0],
              "action": ROLE_PLAYBOOK[role][1]} for role in roles if role in ROLES and role in ROLE_PLAYBOOK]
 # which roles may do what (the CEO can always do everything)
-CAN = {"ceo_desk": {"ceo"}, "fleet_market": {"ceo", "fleet_mgr"}, "complaints": {"ceo", "commercial"}, "roles": {"ceo"}}
+CAN = {"ceo_desk": {"ceo"}, "fleet_market": {"ceo"}, "fleet_recs": {"ceo", "fleet_mgr"}, "complaints": {"ceo", "commercial"}, "roles": {"ceo"}}
 
 # ---------------------------------------------------------------------------
 # Scoped staff access.

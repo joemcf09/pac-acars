@@ -443,7 +443,7 @@ def register(app, g):
         """Aircraft offers for the Fleet Manager to recommend from. No company cash is exposed here."""
         with g["db"]() as con:
             fleet_market.migrate(con)
-            if (r := deny(con, "fleet_market")):
+            if (r := deny(con, "fleet_recs")):
                 return r
             return jsonify({"offers": fleet_market.offers(g["FLEET"], app.static_folder), "hubs": list(fleet_market.HUBS)})
 
@@ -451,20 +451,21 @@ def register(app, g):
     def fleet_recs_list():
         with g["db"]() as con:
             migrate(con)
-            if (r := deny(con, "fleet_market")):
+            if (r := deny(con, "fleet_recs")):
                 return r
             rows = [dict(x) for x in con.execute(
                 """SELECT fr.*, p.name by_name, d.name decided_name FROM fleet_recs fr
                    LEFT JOIN pilots p ON p.id=fr.by_pilot LEFT JOIN pilots d ON d.id=fr.decided_by
                    ORDER BY fr.status='pending' DESC, fr.created DESC LIMIT 80""")]
-        return jsonify({"recs": rows, "can_decide": _is_admin()})
+            can_decide = company.may(con, pid(), "fleet_market")
+        return jsonify({"recs": rows, "can_decide": can_decide})
 
     @app.post("/api/staff/fleet-recs")
     def fleet_rec_create():
         b = request.get_json(silent=True); b = b if isinstance(b, dict) else {}
         with g["db"]() as con:
             migrate(con); fleet_market.migrate(con)
-            if (r := deny(con, "fleet_market")):
+            if (r := deny(con, "fleet_recs")):
                 return r
             o = next((x for x in fleet_market.offers(g["FLEET"], app.static_folder) if x["id"] == str(b.get("offer") or "")), None)
             if not o:
@@ -491,6 +492,8 @@ def register(app, g):
         try:
             with g["db"]() as con:
                 migrate(con); fleet_market.migrate(con)
+                if (r := deny(con, "fleet_market")):   # only the CEO spends company money
+                    return r
                 row = con.execute("SELECT * FROM fleet_recs WHERE id=?", (rid,)).fetchone()
                 if not row:
                     return jsonify({"error": "That recommendation is gone."}), 404

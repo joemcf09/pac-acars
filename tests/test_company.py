@@ -139,5 +139,23 @@ if offer:
     r = c.post("/api/staff/market/order", json={"offer": offer["id"], "reg": "N555ZZ", "hub": "KCVG"})
     check("leasing one brings the type back", r.status_code == 200 and not A.FLEET[typ].get("retired"), r.json)
 
+# a staff member who is the Fleet Manager recommends, but only the CEO buys, leases, sells or approves
+with A.db() as con:
+    con.execute("UPDATE pilots SET password_hash='x', status='Active', staff=1 WHERE id='PAC0002'")
+    company.assign(con, "PAC0002", "fleet_mgr")
+    con.commit()
+with c.session_transaction() as s:
+    s["pid"] = "PAC0002"
+check("the Fleet Manager can browse the catalog", c.get("/api/staff/fleet-catalog").status_code == 200)
+check("and see recommendations, without the approve buttons", c.get("/api/staff/fleet-recs").status_code == 200 and c.get("/api/staff/fleet-recs").json["can_decide"] is False)
+check("but can't open the fleet market, even as staff", c.get("/api/staff/market").status_code == 403)
+check("or buy, lease or sell directly", c.post("/api/staff/market/order", json={}).status_code == 403
+      and c.post("/api/staff/market/return/N010PC").status_code == 403)
+check("or approve a recommendation", c.post("/api/staff/market/rec/1", json={"action": "approve"}).status_code in (403, 404))
+check("the Staff page hides the CEO-only tabs from them", c.get("/api/staff/overview").json["is_ceo"] is False)
+with c.session_transaction() as s:
+    s["pid"] = "PAC0001"
+check("the CEO still sees them", c.get("/api/staff/overview").json["is_ceo"] is True)
+
 print("\n" + ("All company checks passed." if not failures else f"{len(failures)} failed: {failures}"))
 sys.exit(1 if failures else 0)
