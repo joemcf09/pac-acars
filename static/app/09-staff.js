@@ -130,7 +130,6 @@ async function fleetRecs(body) {
   try { [cat, data] = await Promise.all([api("/api/staff/fleet-catalog"), api("/api/staff/fleet-recs")]); }
   catch (e) { body.innerHTML = `<div class="notice err">${esc(e.message)}</div>`; return; }
   const offers = cat.offers || [], canDecide = !!data.can_decide;
-  const opt = o => `<option value="${esc(o.id)}" data-way="${o.way}">${esc(o.aircraft_name)} — ${REC_WAY[o.way] || o.way}${o.company_name ? " · " + esc(o.company_name) : ""} · ${recPrice(o)}</option>`;
   const recCard = r => {
     const when = r.created ? new Date(r.created * 1000).toLocaleDateString("en-US", { month: "short", day: "numeric" }) : "";
     const acts = (r.status === "pending" && canDecide)
@@ -140,28 +139,40 @@ async function fleetRecs(body) {
       <p class="muted" style="margin:2px 0;font-size:13px">${REC_WAY[r.way] || r.way} · to ${esc(r.hub)}${r.weeks ? " · " + r.weeks + " wk" : ""} · by ${esc(r.by_name || r.by_pilot)} · ${when}</p>
       ${r.note ? `<p style="margin:4px 0 0">${esc(r.note)}</p>` : ""}${acts}</article>`;
   };
-  body.innerHTML = `<p class="muted" style="max-width:90ch">Recommend an aircraft to buy or lease. The owner reviews each one; approving it places the order and spends company cash. You can't buy aircraft directly.</p>
-    <form class="form-card" id="recForm">
-      <div class="field full"><label for="recOffer">Aircraft offer</label><select id="recOffer" name="offer" required>${offers.map(opt).join("")}</select></div>
-      <div class="field"><label for="recReg">Proposed registration</label><input id="recReg" name="reg" placeholder="N306PC" required></div>
-      <div class="field"><label for="recHub">Deliver to hub</label><select id="recHub" name="hub">${(cat.hubs || []).map(h => `<option>${esc(h)}</option>`).join("")}</select></div>
-      <div class="field" id="recWeeksWrap" hidden><label for="recWeeks">Weeks (wet lease)</label><input id="recWeeks" name="weeks" type="number" min="1" max="12" value="4"></div>
-      <div class="field full"><label for="recNote">Why PAC needs it (note to the owner)</label><textarea id="recNote" name="note" rows="2" maxlength="500" placeholder="Capacity on a growing lane, replacing an aging airframe, a good lease rate…"></textarea></div>
-      <div class="full row"><button class="btn" type="submit">Submit recommendation</button></div>
-    </form>
+  // the same cards as the owner's Fleet market, but the button files a recommendation instead of placing an order
+  const WAY = { new: "Buy new", conversion: "Buy used + convert", used: "Buy used", lease: "Lease", wet: "Wet lease (ACMI)" };
+  const filter = S.recWay || "all";
+  const list = offers.filter(o => filter === "all" || o.way === filter);
+  const price = o => o.price ? money(o.price) : o.monthly ? `${money(o.monthly)} <small>/ month</small>` : `${money(o.weekly)} <small>/ week</small>`;
+  const card = o => `<div class="mkt-card"><div class="mkt-co">${o.logo ? `<img src="${esc(o.logo)}" alt="${esc(o.company_name)}">` : `<span class="mkt-name">${esc(o.company_name || "Second-hand market")}</span>`}<small>${esc(o.company_kind || "Used aircraft")}${o.company_country ? " · " + esc(o.company_country) : ""}</small></div>
+    <div class="mkt-ac"><b>${esc(o.aircraft_name)}</b><span class="tag dark">${esc(WAY[o.way])}</span></div><p class="muted">${esc(o.what)}</p>
+    <div class="mkt-foot"><span class="mkt-price">${price(o)}</span><span class="muted">ready in ${o.lead_days} days</span><button class="btn" type="button" data-rec-offer="${esc(o.id)}">Request for recommendation</button></div></div>`;
+  body.innerHTML = `<p class="muted" style="max-width:90ch">The aircraft PAC could buy or lease. Pick one and send it to the owner as a recommendation; approving it places the order and spends company cash. You can't buy aircraft directly.</p>
+    <div class="mkt-filter">${["all", "new", "conversion", "used", "lease", "wet"].map(k => `<button type="button" class="btn ${filter === k ? "" : "ghost"}" data-rec-way="${k}">${k === "all" ? "All" : WAY[k]}</button>`).join("")}</div>
+    <div class="mkt-grid">${list.map(card).join("") || `<p class="muted">No offers of this kind for PAC's types.</p>`}</div>
+    <div id="recFormHost"></div>
     <h3 style="margin:22px 0 10px">Recommendations</h3>
     ${(data.recs || []).length ? `<div class="rec-grid">${data.recs.map(recCard).join("")}</div>` : `<p class="muted">None yet.</p>`}`;
-  const offSel = body.querySelector("#recOffer"), weeksWrap = body.querySelector("#recWeeksWrap");
-  const toggleWeeks = () => { weeksWrap.hidden = offSel.selectedOptions[0]?.dataset.way !== "wet"; };
-  offSel.onchange = toggleWeeks; toggleWeeks();
-  body.querySelector("#recForm").onsubmit = async e => {
-    e.preventDefault();
-    const f = e.target, payload = { offer: f.offer.value, reg: f.reg.value, hub: f.hub.value, note: f.note.value };
-    if (!weeksWrap.hidden) payload.weeks = f.weeks.value;
-    const btn = f.querySelector("button"); btn.disabled = true;
-    try { await api("/api/staff/fleet-recs", { method: "POST", body: payload }); toast("Recommendation sent to the owner."); fleetRecs(body); }
-    catch (ex) { toast(ex.message); btn.disabled = false; }
-  };
+  body.querySelectorAll("[data-rec-way]").forEach(b => b.onclick = () => { S.recWay = b.dataset.recWay; fleetRecs(body); });
+  body.querySelectorAll("[data-rec-offer]").forEach(b => b.onclick = () => {
+    const o = offers.find(x => x.id === b.dataset.recOffer), host = body.querySelector("#recFormHost");
+    host.innerHTML = `<form class="form-card" id="recForm"><h3 class="full" style="margin:0">Recommend: ${esc(WAY[o.way])}, ${esc(o.aircraft_name)}${o.company_name ? " from " + esc(o.company_name) : ""} · ${price(o)}</h3>
+      <div class="field"><label for="recReg">Proposed registration</label><input id="recReg" name="reg" placeholder="N306PC" maxlength="8" required></div>
+      <div class="field"><label for="recHub">Deliver to hub</label><select id="recHub" name="hub">${(cat.hubs || []).map(h => `<option>${esc(h)}</option>`).join("")}</select></div>
+      ${o.way === "wet" ? `<div class="field"><label for="recWeeks">Weeks (wet lease)</label><input id="recWeeks" name="weeks" type="number" min="1" max="12" value="4"></div>` : ""}
+      <div class="field full"><label for="recNote">Why PAC needs it (note to the owner)</label><textarea id="recNote" name="note" rows="2" maxlength="500" placeholder="Capacity on a growing lane, replacing an aging airframe, a good lease rate…"></textarea></div>
+      <div class="full row"><button class="btn" type="submit">Send recommendation to the owner</button><button class="btn ghost" type="button" id="recCancel">Cancel</button></div></form>`;
+    host.scrollIntoView({ behavior: "smooth" });
+    host.querySelector("#recCancel").onclick = () => { host.innerHTML = ""; };
+    host.querySelector("#recForm").onsubmit = async e => {
+      e.preventDefault();
+      const f = e.target, payload = { offer: o.id, reg: f.reg.value, hub: f.hub.value, note: f.note.value };
+      if (f.weeks) payload.weeks = f.weeks.value;
+      const btn = f.querySelector("button[type=submit]"); btn.disabled = true;
+      try { await api("/api/staff/fleet-recs", { method: "POST", body: payload }); toast("Recommendation sent to the owner."); fleetRecs(body); }
+      catch (ex) { toast(ex.message); btn.disabled = false; }
+    };
+  });
   body.querySelectorAll("[data-rec-ok]").forEach(b => b.onclick = async () => {
     if (!confirm("Approve this and place the order? This spends company cash.")) return;
     b.disabled = true;
