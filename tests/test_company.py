@@ -101,6 +101,11 @@ with A.db() as con:
 c = A.app.test_client()
 check("the staff pages answer", all(c.get(u).status_code in (200, 401, 403, 302) for u in ("/api/staff/ceo", "/api/staff/market", "/api/staff/complaints", "/api/staff/roles")))
 
+# a type staff added themselves has no market price: it's valued like the nearest priced type by payload
+fake = dict(A.FLEET); fake["R722F"] = dict(A.FLEET["B722F"], custom_type=True)
+check("a staff-added type still has a sale price", FM.sale_value("R722F", fake) == FM.sale_value("B722F") > 0)
+check("a sale price never needs the fleet for a market type", FM.sale_value("B722F") == FM.sale_value("B722F", A.FLEET))
+
 # selling PAC's own aircraft; the last one of a type takes the type out of the fleet
 import va  # noqa: E402
 with A.db() as con:
