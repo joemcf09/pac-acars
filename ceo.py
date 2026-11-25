@@ -502,6 +502,7 @@ def register(app, g):
                     con.execute("UPDATE fleet_recs SET status='approved', decided_by=?, decided_at=?, decide_note=? WHERE id=?",
                                 (pid(), time.time(), note, rid))
                     con.commit()
+                    _unretire(row["offer_id"])
                     return jsonify({"ok": True, "ordered": res})
                 if action == "decline":
                     con.execute("UPDATE fleet_recs SET status='declined', decided_by=?, decided_at=?, decide_note=? WHERE id=?",
@@ -523,6 +524,12 @@ def register(app, g):
             return jsonify({"offers": fleet_market.offers(g["FLEET"], app.static_folder), "companies": companies, "cash": cash(con),
                             "fleet": fleet_market.fleet_rows(con), "hubs": list(fleet_market.HUBS), "disclaimer": fleet_market.DISCLAIMER})
 
+    def _unretire(offer_id):
+        """Buying or leasing a type PAC had sold off brings the type back into the fleet."""
+        o = next((x for x in fleet_market.offers(g["FLEET"], app.static_folder) if x["id"] == offer_id), None)
+        if o and g["FLEET"].get(o["aircraft"], {}).get("retired"):
+            g["save_fleet_custom"](o["aircraft"], {"retired": False})
+
     @app.post("/api/staff/market/order")
     def market_order():
         b = request.get_json(silent=True); b = b if isinstance(b, dict) else {}
@@ -531,8 +538,10 @@ def register(app, g):
                 fleet_market.migrate(con)
                 if (r := deny(con, "fleet_market")):
                     return r
-                return jsonify(fleet_market.order(con, b.get("offer"), b.get("reg"), b.get("hub"), b.get("weeks"), cash(con),
-                                                  g["FLEET"], app.static_folder, pid()))
+                out = fleet_market.order(con, b.get("offer"), b.get("reg"), b.get("hub"), b.get("weeks"), cash(con),
+                                         g["FLEET"], app.static_folder, pid())
+            _unretire(str(b.get("offer") or ""))
+            return jsonify(out)
         except ValueError as e:
             return jsonify({"error": str(e)}), 400
 
@@ -543,6 +552,14 @@ def register(app, g):
                 fleet_market.migrate(con)
                 if (r := deny(con, "fleet_market")):
                     return r
-                return jsonify({"note": fleet_market.give_back(con, reg.upper(), pid())})
+                reg = reg.upper()
+                row = con.execute("SELECT type FROM airframes WHERE reg=?", (reg,)).fetchone()
+                note = fleet_market.give_back(con, reg, pid())
+                typ = row[0] if row else None
+                gone = bool(typ) and not con.execute("SELECT 1 FROM airframes WHERE type=?", (typ,)).fetchone()
+            if gone:   # that was the last one: the type leaves PAC's fleet (missions, booking, the fleet page)
+                g["save_fleet_custom"](typ, {"retired": True})
+                note += f". That was PAC's last {g['FLEET'].get(typ, {}).get('name', typ)}, so the type has left the fleet"
+            return jsonify({"note": note, "type_retired": typ if gone else None})
         except ValueError as e:
             return jsonify({"error": str(e)}), 400
