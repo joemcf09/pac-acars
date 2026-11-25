@@ -151,8 +151,8 @@ def report(days=30, now=None):
         errors = [dict(r) for r in con.execute(
             "SELECT message, place, SUM(n) n, MAX(last_at) last_at FROM errors WHERE day >= ? GROUP BY message, place ORDER BY n DESC LIMIT 25", (since,))]
         errors = [e for e in errors if not IGNORED_ERRORS.search(e["message"] or "")]   # counted before they were ignored
-    for e in errors:   # "/static/app.js:51234" -> "/static/app.js:51234 (05-logbook.js:120)", the piece to open
-        m = re.match(r"/static/app\.js:(\d+)$", e["place"] or "")
+    for e in errors:   # "/static/app.js:51234:25" -> "/static/app.js:51234:25 (05-logbook.js:120)", the piece to open
+        m = re.match(r"/static/app\.js:(\d+)(?::\d+)?$", e["place"] or "")
         if m:
             try:
                 import app_bundle

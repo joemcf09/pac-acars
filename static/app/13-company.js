@@ -28,6 +28,7 @@ async function loadCrewRest() {
 async function staffCeo() {
   const body = $("#staffBody"); body.innerHTML = `<p class="muted">Loading the CEO desk…</p>`;
   let d; try { d = await api("/api/staff/ceo"); } catch (e) { body.innerHTML = `<div class="notice err">${esc(e.message)}</div>`; return; }
+  if (!body.isConnected) return;   // another tab was opened while this one loaded
   const hubs = d.hubs.map(h => `<div class="ceo-hub${h.visited_this_quarter ? " done" : ""}"><div class="ceo-hub-h"><b>${esc(h.icao)}</b> ${esc(h.city)}${h.visited_this_quarter ? '<span class="tag green">Visited this quarter</span>' : '<span class="tag amber">Visit due</span>'}</div>
     <div class="ceo-hub-s"><span>Waiting<b>${h.waiting} · ${fmt(h.waiting_lbs)} lb</b></span><span>On time (30 days)<b>${h.on_time_pct == null ? "–" : h.on_time_pct + "%"}</b></span><span>Arrivals<b>${h.arrivals_30d}</b></span></div>
     <div class="muted">Aircraft here: ${Object.entries(h.aircraft).map(([k, v]) => `${v} ${esc(k.toLowerCase())}`).join(", ") || "none"} · last visit ${cDate(h.last_visit)}</div>
@@ -86,6 +87,7 @@ async function staffCeo() {
 async function staffGrowth() {
   const box = $("#growthBox"); if (!box) return;
   let d; try { d = await api("/api/staff/growth"); } catch (e) { box.innerHTML = `<div class="notice err">${esc(e.message)}</div>`; return; }
+  if (!box.isConnected) return;   // another tab was opened while this one loaded
   const a = d.audit;
   const ST = { proposed: '<span class="tag amber">Waiting for its proving flight</span>', proven: '<span class="tag green">Proven: on the schedule</span>', cancelled: '<span class="tag dark">Cancelled</span>' };
   box.innerHTML = `
@@ -112,6 +114,7 @@ async function staffGrowth() {
 async function staffMarket() {
   const body = $("#staffBody"); body.innerHTML = `<p class="muted">Loading the fleet market…</p>`;
   let d; try { d = await api("/api/staff/market"); } catch (e) { body.innerHTML = `<div class="notice err">${esc(e.message)}</div>`; return; }
+  if (!body.isConnected) return;   // another tab was opened while this one loaded
   const WAY = { new: "Buy new", conversion: "Buy used + convert", used: "Buy used", lease: "Lease", wet: "Wet lease (ACMI)" };
   const filter = S.mktWay || "all";
   const list = d.offers.filter(o => filter === "all" || o.way === filter);
@@ -191,6 +194,7 @@ async function commLanes(body) {
 async function staffRoles() {
   const body = $("#staffBody"); body.innerHTML = `<p class="muted">Loading roles…</p>`;
   let d; try { d = await api("/api/staff/roles"); } catch (e) { body.innerHTML = `<div class="notice err">${esc(e.message)}</div>`; return; }
+  if (!body.isConnected) return;   // another tab was opened while this one loaded
   const by = {}; d.holders.forEach(h => (by[h.role] = by[h.role] || []).push(h));
   body.innerHTML = `<p class="muted">Management work follows the role, not the account. Hand a role to a pilot and its tasks move with it. Only the CEO can change roles.</p>
     <div class="table-wrap"><table class="fin-table"><thead><tr><th>Role</th><th>What they own</th><th class="r">Weekly pay</th><th>Held by</th></tr></thead><tbody>
