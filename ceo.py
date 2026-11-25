@@ -522,7 +522,7 @@ def register(app, g):
             companies = {k: {"name": v[0], "kind": v[1], "country": v[2], "logo": fleet_market.logo(k, app.static_folder),
                              "note": fleet_market.NOTES.get(k)} for k, v in fleet_market.COMPANIES.items()}
             return jsonify({"offers": fleet_market.offers(g["FLEET"], app.static_folder), "companies": companies, "cash": cash(con),
-                            "fleet": fleet_market.fleet_rows(con), "hubs": list(fleet_market.HUBS), "disclaimer": fleet_market.DISCLAIMER})
+                            "fleet": fleet_market.fleet_rows(con, g["FLEET"]), "hubs": list(fleet_market.HUBS), "disclaimer": fleet_market.DISCLAIMER})
 
     def _unretire(offer_id):
         """Buying or leasing a type PAC had sold off brings the type back into the fleet."""
@@ -554,7 +554,7 @@ def register(app, g):
                     return r
                 reg = reg.upper()
                 row = con.execute("SELECT type FROM airframes WHERE reg=?", (reg,)).fetchone()
-                note = fleet_market.give_back(con, reg, pid())
+                note = fleet_market.give_back(con, reg, pid(), fleet=g["FLEET"])
                 typ = row[0] if row else None
                 gone = bool(typ) and not con.execute("SELECT 1 FROM airframes WHERE type=?", (typ,)).fetchone()
             if gone:   # that was the last one: the type leaves PAC's fleet (missions, booking, the fleet page)

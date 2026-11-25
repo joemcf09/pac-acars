@@ -170,13 +170,20 @@ def order(con, offer_id, reg, hub, weeks, cash, fleet, static_dir, by, now=None)
     return {"reg": reg, "deliver_at": deliver_at, "deliver_to": deliver_to, "paid": up_front, "way": way}
 
 
-def sale_value(typ):
-    """What PAC gets for selling one of its own aircraft: 60% of the type's used (or new) price."""
-    p = PRICES.get(typ, {})
+def sale_value(typ, fleet=None):
+    """What PAC gets for selling one of its own aircraft: 60% of the type's used (or new) price. A type staff added
+    themselves has no market price, so it's valued like the priced type closest to it in payload."""
+    p = PRICES.get(typ)
+    if not p and fleet and typ in fleet:
+        pl = fleet[typ].get("max_payload_lbs") or 0
+        near = min((t for t in PRICES if t in fleet and t != typ),
+                   key=lambda t: abs((fleet[t].get("max_payload_lbs") or 0) - pl), default=None)
+        p = PRICES.get(near)
+    p = p or {}
     return round((p.get("used") or p.get("new") or 0) * 0.6)
 
 
-def give_back(con, reg, by, now=None):
+def give_back(con, reg, by, now=None, fleet=None):
     """Return a leased or wet-leased aircraft, or sell one PAC owns (bought from the market or part of the original
     fleet) for 60% of its used value."""
     now = now or time.time()
@@ -190,7 +197,7 @@ def give_back(con, reg, by, now=None):
     if r.get("ownership") in ("leased", "wet_lease"):
         note = "returned to " + (COMPANIES.get(r.get("owner_company") or "", ("the lessor",))[0])
     else:   # owned: bought from the market, or one of the aircraft PAC started with
-        val = sale_value(r["type"])
+        val = sale_value(r["type"], fleet)
         company.post(con, "aircraft_sale", val, f"Sold {r['type']} {reg}", reg, by, now)
         note = f"sold for ${val:,.0f}"
     con.execute("DELETE FROM airframes WHERE reg=?", (reg,))
@@ -217,10 +224,10 @@ def tick(con, news, now=None):
         news(f"{r['reg']} wet lease ends", f"The wet-leased {r['type']} {r['reg']} has gone back to its operator.")
 
 
-def fleet_rows(con):
+def fleet_rows(con, fleet=None):
     migrate(con)
     rows = [dict(r) for r in con.execute("""SELECT reg, type, location, status, ownership, owner_company, lease_rate, lease_until, deliver_at
         FROM airframes ORDER BY type, reg""")]
     for r in rows:   # every aircraft PAC owns can be sold; leased ones are returned instead
-        r["sale_value"] = None if r["ownership"] in ("leased", "wet_lease") else sale_value(r["type"])
+        r["sale_value"] = None if r["ownership"] in ("leased", "wet_lease") else sale_value(r["type"], fleet)
     return rows
