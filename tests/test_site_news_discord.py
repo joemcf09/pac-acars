@@ -78,5 +78,14 @@ check("Ops role holder can publish an announcement", announcement.status_code ==
 check("Ops announcement appears in the public site feed", any(n["title"] == "Recovery update" for n in ops.get("/api/news").json))
 check("Ops announcement is queued for Discord", events()[-1]["title"] == "Recovery update")
 
+long_body = ("Runway 18C closed for resurfacing. " * 100).strip()      # about 3,500 characters
+ops.post("/api/staff/news", json={"kind": "notam", "title": "Long NOTAM", "body": long_body, "discord": True})
+saved = next(n for n in ops.get("/api/news").json if n["title"] == "Long NOTAM")
+check("a long NOTAM is kept whole (up to what one Discord post holds)", saved["body"] == long_body, len(saved["body"]))
+check("and goes to Discord whole", events()[-1]["body"] == long_body)
+import app_bundle
+js = app_bundle.plain_source()
+check("the missions board shows the full NOTAM, not a cut-off preview", "n.body.slice(0, 257)" not in js.split("function notamBars")[1].split("function newsCards")[0])
+
 print("\nSITE NEWS DISCORD TEST", "PASSED" if not failures else f"FAILED ({len(failures)}): {failures}")
 sys.exit(1 if failures else 0)
