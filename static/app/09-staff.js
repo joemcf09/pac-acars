@@ -214,7 +214,8 @@ function renderStaff() {
     ["news", "News", 0], ["mx", "Maintenance", d.airframes.reduce((n, a) => n + (a.open_items || []).length, 0)], ["types", "Fleet types", 0], ["pphotos", "Partner photos", 0], ["airframes", "Airframes", d.airframes.filter(a => ["Maintenance", "Inspection", "A-check due", "Heavy check due", "Heavy check", "Damaged"].includes(a.status)).length], ["events", "Events", 0], ["site", "Site and rules", 0]];
   const GROUPS = [["Company", ["ceo", "market", "complaints", "roles"]], ["Pilots", ["reviews", "applications", "transfers", "activity", "engagement", "roster", "support"]],
     ["Operations", ["flightops", "exceptions", "reports", "health", "usage", "events", "news"]], ["Cargo", ["campaigns", "relief", "cargostock"]], ["Fleet", ["airframes", "mx", "types", "pphotos"]], ["Settings", ["site"]]];
-  const T = Object.fromEntries(tabs.map(t => [t[0], t]));
+  const ceoOnly = ["ceo", "market", "roles"];   // the CEO's desk, spending company money and handing out roles
+  const T = Object.fromEntries(tabs.filter(t => d.is_ceo || !ceoOnly.includes(t[0])).map(t => [t[0], t]));
   if (!T[S.staffTab]) S.staffTab = "reviews";
   const groupOf = k => (GROUPS.find(([, ks]) => ks.includes(k)) || GROUPS[0])[0];
   const cur = groupOf(S.staffTab);
@@ -223,7 +224,7 @@ function renderStaff() {
     <div class="staff-groups" role="tablist">${GROUPS.map(([g, ks]) => `<button role="tab" data-sg="${g}" aria-selected="${g === cur}">${g}${gCount(ks) ? `<span class="count">${gCount(ks)}</span>` : ""}</button>`).join("")}</div>
     <div class="staff-tabs" role="tablist">${GROUPS.find(([g]) => g === cur)[1].map(k => T[k]).filter(Boolean).map(([k, t, n]) => `<button role="tab" data-st="${k}" aria-selected="${S.staffTab === k}">${t}${n ? `<span class="count">${n}</span>` : ""}</button>`).join("")}</div>
     <div id="staffBody"></div>`;
-  document.querySelectorAll("[data-sg]").forEach(b => b.onclick = () => { const ks = GROUPS.find(([g]) => g === b.dataset.sg)[1]; S.staffTab = ks.find(k => T[k]?.[2]) || ks[0]; renderStaff(); });
+  document.querySelectorAll("[data-sg]").forEach(b => b.onclick = () => { const ks = GROUPS.find(([g]) => g === b.dataset.sg)[1]; S.staffTab = ks.find(k => T[k]?.[2]) || ks.find(k => T[k]) || ks[0]; renderStaff(); });
   document.querySelectorAll("[data-st]").forEach(b => b.onclick = () => { S.staffTab = b.dataset.st; renderStaff(); });
   ({ ceo: staffCeo, market: staffMarket, complaints: staffComplaints, roles: staffRoles, reports: staffProblemReports, flightops: staffFlightOps, exceptions: staffOpsExceptions, health: staffOperationsHealth, usage: staffUsage, campaigns: staffCargoCampaigns, relief: staffRelief, cargostock: staffCargoStock, reviews: staffReviews, applications: staffApps, transfers: staffTransfers, activity: staffActivity, engagement: staffEngagement, roster: staffRoster, support: staffPilotSupport, news: staffNews, mx: staffMx, types: staffTypes, pphotos: staffPartnerPhotos, airframes: staffAirframes, events: staffEvents, site: staffSite })[S.staffTab]();
 }

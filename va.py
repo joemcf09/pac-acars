@@ -3037,7 +3037,10 @@ def staff_overview():
         c = career(p["id"])
         p.update(rank=c["rank"], hours=c["hours"], flights=c["flights"], avg_score=c["avg_score"], balance=balance(p["id"]))
     s = C["settings"]()
-    return jsonify({"reviews": reviews, "applications": apps, "roster": roster, "airframes": airframes(), "transfer_pending": transfer_pending, "activity_overdue": _overdue_count(), "aborts": C["recent_aborts"]() if "recent_aborts" in C else [],
+    import company
+    with C["db"]() as con:
+        is_ceo = company.may(con, current_pilot_id(), "ceo_desk")
+    return jsonify({"is_ceo": is_ceo, "reviews": reviews, "applications": apps, "roster": roster, "airframes": airframes(), "transfer_pending": transfer_pending, "activity_overdue": _overdue_count(), "aborts": C["recent_aborts"]() if "recent_aborts" in C else [],
                     "events": sorted(load_events(), key=lambda e: e["start"]), "site": site(),
                     "rules": {"enforce_ranks": bool(s.get("enforce_ranks")), "enforce_airframes": bool(s.get("enforce_airframes", True)),
                               "allow_ground_reposition": bool(s.get("allow_ground_reposition", True)),
