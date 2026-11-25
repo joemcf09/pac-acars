@@ -170,8 +170,15 @@ def order(con, offer_id, reg, hub, weeks, cash, fleet, static_dir, by, now=None)
     return {"reg": reg, "deliver_at": deliver_at, "deliver_to": deliver_to, "paid": up_front, "way": way}
 
 
+def sale_value(typ):
+    """What PAC gets for selling one of its own aircraft: 60% of the type's used (or new) price."""
+    p = PRICES.get(typ, {})
+    return round((p.get("used") or p.get("new") or 0) * 0.6)
+
+
 def give_back(con, reg, by, now=None):
-    """Return a leased or wet-leased aircraft (or sell an owned one for 60% of its used value)."""
+    """Return a leased or wet-leased aircraft, or sell one PAC owns (bought from the market or part of the original
+    fleet) for 60% of its used value."""
     now = now or time.time()
     migrate(con)
     r = con.execute("SELECT * FROM airframes WHERE reg=?", (reg,)).fetchone()
@@ -180,14 +187,12 @@ def give_back(con, reg, by, now=None):
     r = dict(r)
     if r["status"] not in ("Available", ON_ORDER, "Heavy check due", "A-check due"):
         raise ValueError(f"{reg} is {r['status'].lower()}. Wait until it's parked and free.")
-    if r.get("ownership") == "owned":
-        val = (PRICES.get(r["type"], {}).get("used") or PRICES.get(r["type"], {}).get("new") or 0) * 0.6
+    if r.get("ownership") in ("leased", "wet_lease"):
+        note = "returned to " + (COMPANIES.get(r.get("owner_company") or "", ("the lessor",))[0])
+    else:   # owned: bought from the market, or one of the aircraft PAC started with
+        val = sale_value(r["type"])
         company.post(con, "aircraft_sale", val, f"Sold {r['type']} {reg}", reg, by, now)
         note = f"sold for ${val:,.0f}"
-    elif r.get("ownership") in ("leased", "wet_lease"):
-        note = "returned to " + (COMPANIES.get(r.get("owner_company") or "", ("the lessor",))[0])
-    else:
-        raise ValueError(f"{reg} came with the original PAC fleet. It can be sold only once it has a purchase record.")
     con.execute("DELETE FROM airframes WHERE reg=?", (reg,))
     return note
 
@@ -214,5 +219,8 @@ def tick(con, news, now=None):
 
 def fleet_rows(con):
     migrate(con)
-    return [dict(r) for r in con.execute("""SELECT reg, type, location, status, ownership, owner_company, lease_rate, lease_until, deliver_at
-        FROM airframes WHERE ownership IS NOT NULL ORDER BY deliver_at DESC""")]
+    rows = [dict(r) for r in con.execute("""SELECT reg, type, location, status, ownership, owner_company, lease_rate, lease_until, deliver_at
+        FROM airframes ORDER BY type, reg""")]
+    for r in rows:   # every aircraft PAC owns can be sold; leased ones are returned instead
+        r["sale_value"] = None if r["ownership"] in ("leased", "wet_lease") else sale_value(r["type"])
+    return rows

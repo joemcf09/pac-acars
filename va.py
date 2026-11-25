@@ -316,7 +316,8 @@ def migrate(con):
     # seed default airframes for any aircraft type that has none yet (new installs and newly added types)
     have_types = {r[0] for r in con.execute("SELECT DISTINCT type FROM airframes")}
     for reg, typ, loc in DEFAULT_AIRFRAMES:
-        if typ not in have_types and not con.execute("SELECT 1 FROM airframes WHERE reg=?", (reg,)).fetchone():
+        if typ not in have_types and not C["FLEET"].get(typ, {}).get("retired") \
+                and not con.execute("SELECT 1 FROM airframes WHERE reg=?", (reg,)).fetchone():   # a sold-off type stays gone
             con.execute("INSERT INTO airframes (reg, type, location, status, updated) VALUES (?,?,?,?,?)", (reg, typ, loc, "Available", time.time()))
     if not con.execute("SELECT 1 FROM events LIMIT 1").fetchone():
         for e in DEFAULT_EVENTS:

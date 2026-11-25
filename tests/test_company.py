@@ -100,5 +100,39 @@ with A.db() as con:
 
 c = A.app.test_client()
 check("the staff pages answer", all(c.get(u).status_code in (200, 401, 403, 302) for u in ("/api/staff/ceo", "/api/staff/market", "/api/staff/complaints", "/api/staff/roles")))
+
+# selling PAC's own aircraft; the last one of a type takes the type out of the fleet
+import va  # noqa: E402
+with A.db() as con:
+    con.execute("UPDATE pilots SET password_hash='x', status='Active', staff=1 WHERE id='PAC0001'")
+    rows = con.execute("SELECT type, reg, ownership FROM airframes WHERE COALESCE(ownership,'') NOT IN ('leased','wet_lease')").fetchall()
+by_type = {}
+for t, reg, own in rows:
+    by_type.setdefault(t, []).append(reg)
+typ = min(by_type, key=lambda t: len(by_type[t]))
+with c.session_transaction() as s:
+    s["pid"] = "PAC0001"
+m = c.get("/api/staff/market").json
+mine = [f for f in m["fleet"] if f["type"] == typ]
+check("the market page lists the original fleet with a sale price", mine and all(f["sale_value"] == FM.sale_value(typ) > 0 for f in mine), mine)
+with A.db() as con:
+    cash0 = company.ledger_total(con)
+regs = by_type[typ]
+for i, reg in enumerate(regs):
+    r = c.post(f"/api/staff/market/return/{reg}").json
+    if i < len(regs) - 1:
+        check("selling one of several leaves the type in the fleet", not r.get("type_retired") and not A.FLEET[typ].get("retired"), r)
+check("an original-fleet aircraft can be sold, for 60% of the used price", "sold for" in r.get("note", ""), r)
+with A.db() as con:
+    check("the sale is paid into the ledger", round(company.ledger_total(con) - cash0) == FM.sale_value(typ) * len(regs))
+check("selling the last one takes the type out of the fleet", r.get("type_retired") and A.FLEET[typ].get("retired") and "left the fleet" in r["note"], r)
+with A.db() as con:
+    va.migrate(con)
+    check("a restart doesn't bring the sold type back", not con.execute("SELECT 1 FROM airframes WHERE type=?", (typ,)).fetchone())
+offer = next((o for o in FM.offers(A.FLEET, A.app.static_folder) if o["aircraft"] == typ and o["way"] == "lease"), None)
+if offer:
+    r = c.post("/api/staff/market/order", json={"offer": offer["id"], "reg": "N555ZZ", "hub": "KCVG"})
+    check("leasing one brings the type back", r.status_code == 200 and not A.FLEET[typ].get("retired"), r.json)
+
 print("\n" + ("All company checks passed." if not failures else f"{len(failures)} failed: {failures}"))
 sys.exit(1 if failures else 0)
