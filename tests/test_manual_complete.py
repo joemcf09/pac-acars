@@ -52,14 +52,17 @@ a = c.post(f"/api/staff/reviews/{rid}", json={"action": "accept", "note": "Scree
 check("staff accept it with the complete box ticked", a.status_code == 200, a.json)
 with A.db() as con:
     sh = con.execute("SELECT status, current_station FROM cargo_shipments WHERE id=?", (order["id"],)).fetchone()
-    own = con.execute("SELECT COUNT(*) FROM cargo_shipments WHERE booking_key=? AND status LIKE 'DELIVERED%'", (f"PAC0001:{b['requested_at']}",)).fetchone()[0]
+    # the flight's own cargo reaches the flight's destination: delivered there, or waiting there for its next leg
+    # (connecting freight, e.g. KCVG → KDFW bound for PANC, stays AT_STATION at KDFW)
+    own = con.execute("SELECT COUNT(*) FROM cargo_shipments WHERE booking_key=? AND current_station=? AND (status LIKE 'DELIVERED%' OR status='AT_STATION')",
+                      (f"PAC0001:{b['requested_at']}", route["destination"]["icao"])).fetchone()[0]
     frame = con.execute("SELECT location, status FROM airframes WHERE reg=?", (tail,)).fetchone()
     loc = con.execute("SELECT location FROM pilots WHERE id='PAC0001'").fetchone()[0]
     bk = con.execute("SELECT COUNT(*) FROM bookings WHERE pilot_id='PAC0001'").fetchone()[0]
     rep = con.execute("SELECT score, review_status FROM pireps WHERE id=?", (rid,)).fetchone()
 dest = route["destination"]["icao"]
 check("the picked-up order is delivered", sh["status"].startswith("DELIVERED") and sh["current_station"] == dest, dict(sh))
-check("the flight's own cargo is delivered", own > 0, own)
+check("the flight's own cargo reaches its destination", own > 0, own)
 check("the aircraft is at the arrival airport and free", frame["location"] == dest and frame["status"] == "Available", dict(frame))
 check("the pilot is at the arrival airport", loc == dest, loc)
 check("the booking is closed", bk == 0, bk)
