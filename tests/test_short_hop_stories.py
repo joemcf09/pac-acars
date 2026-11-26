@@ -16,6 +16,11 @@ check("every story has a unique key", len(keys) == len(set(keys)))
 check("every story fills in both cities", all("{dc}" in s["story"] and s["story"].format(oc="A", dc="B") for s in S.SCENARIOS))
 check("every story has handling notes", all(s.get("notes") for s in S.SCENARIOS))
 
+CATS = {"Heavy lift", "Express", "Premium", "Medical", "Humanitarian", "Special cargo", "Sports & events"}
+check("stories file under the board's existing cargo filters", {s.get("category", "Heavy lift") for s in S.SCENARIOS} <= CATS)
+check("Christmas trees aren't filed as heavy lift", next(s for s in S.SCENARIOS if s["key"] == "xmas_trees").get("category") == "Express")
+check("the generator uses each story's category", "sc.get('category','Heavy lift')" in Path(S.__file__).read_text())
+
 def keys_for(day, dest):
     return {s["key"] for s in S._stories(day, dest, {})}
 
