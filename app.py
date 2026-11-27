@@ -1858,7 +1858,7 @@ def create_booking():
 def flight_zone(m, ofp=None):
     """Conflict-zone assessment of a planned flight: its airports, and the OFP route (or the great circle without one)."""
     pts = (ofp or {}).get("route_points") or None
-    return conflict_zones.assess(m.get("origin"), m.get("destination"), pts, settings(), DATA)
+    return conflict_zones.assess(m.get("origin"), m.get("destination"), pts, settings(), RESOURCE_DATA)
 
 
 @app.get("/api/conflict-zones")
@@ -1868,14 +1868,14 @@ def conflict_zones_api():
     if request.args.get("dep") and request.args.get("arr"):
         a, b = airport_obj(request.args["dep"].upper()), airport_obj(request.args["arr"].upper())
         if a and b:
-            out["assessment"] = conflict_zones.assess(a, b, None, settings(), DATA)
+            out["assessment"] = conflict_zones.assess(a, b, None, settings(), RESOURCE_DATA)
     return jsonify(out)
 
 
 @app.get("/api/conflict-zones/map")
 def conflict_zones_map():
     """Restricted and caution areas as GeoJSON, drawn as a red and amber hatched overlay on PAC's maps."""
-    r = jsonify(conflict_zones.geojson(settings(), DATA))
+    r = jsonify(conflict_zones.geojson(settings(), RESOURCE_DATA))   # country outlines ship with the code, not in pilot data
     r.headers["Cache-Control"] = "public, max-age=300"
     return r
 
@@ -1922,7 +1922,7 @@ def apply_conflict_zones(p, booking, rec):
     track = [[x[0], x[1]] for x in (getattr(rec, "track", None) or []) if x and x[0] is not None]
     dep = {"icao": p.get("dep") or m_["origin"]["icao"], "lat": m_["origin"].get("lat"), "lon": m_["origin"].get("lon")}
     arr = {"icao": p.get("arr") or "", "lat": (rec.last.lat if rec.last else None), "lon": (rec.last.lon if rec.last else None)}
-    z = conflict_zones.assess(dep, arr, track or None, settings(), DATA)
+    z = conflict_zones.assess(dep, arr, track or None, settings(), RESOURCE_DATA)
     planned = conflict_zones.airport_zone(p.get("planned_arr") or m_["destination"]["icao"], conflict_zones.zones(settings())) \
         if conflict_zones.enabled(settings()) else None
     if planned and planned["level"] == "restricted" and not (z and z.get("restricted_airport")):
