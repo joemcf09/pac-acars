@@ -253,10 +253,24 @@ function renderMissionChoiceBar() {
   el.hidden = S.board === 'charter';
   if (el.hidden) return;
   const here = S.me?.location?.icao;
-  const count = here ? missionBoardPool().filter(m => boardReadyAtStation(m, true)).length : 0;
-  el.innerHTML = `<div><span class="kicker">Start from your station</span><strong>${here ? `${count} ${count === 1 ? 'flight' : 'flights'} to review from ${esc(here)}` : 'Station or eligibility still loading'}</strong><small>Current location, ratings and aircraft are checked again when you request a flight.</small></div>
-    <div class="mb-choice-actions"><button type="button" class="btn small" id="boardReadyShortcut" aria-pressed="${!!S.boardReadyOnly}" ${!here ? 'disabled' : ''}>${S.boardReadyOnly ? 'Showing ready flights' : 'Ready from my station →'}</button>${S.boardReadyOnly ? '<button type="button" class="btn ghost small" id="boardShowAll">Show all flights</button>' : ''}</div>`;
-  $('#boardReadyShortcut').onclick = () => { resetMissionFilters(false); S.board = 'all'; S.boardReadyOnly = true; renderPilotStrip(); renderMissions(); $('#manifest').scrollIntoView({block:'start'}); };
+  const pool = here ? missionBoardPool() : [];
+  const count = pool.filter(m => boardReadyAtStation(m, true)).length;
+  const fromHere = pool.filter(m => m.origin?.icao === here).length;   // includes flights that still need an aircraft or a rating
+  const waiting = fromHere - count;
+  const headline = !here ? 'Station or eligibility still loading'
+    : count ? `${count} ${count === 1 ? 'flight' : 'flights'} ready to fly from ${esc(here)}`
+    : `No flights ready to fly from ${esc(here)} right now`;
+  const note = !here ? '' : waiting > 0
+    ? `${waiting} more from ${esc(here)} ${waiting === 1 ? 'needs' : 'need'} an aircraft moved here or a rating first. `
+    : '';
+  const allHere = !count && waiting > 0;   // nothing ready: offer the flights from here instead of an empty list
+  el.innerHTML = `<div><span class="kicker">Start from your station</span><strong>${headline}</strong><small>${note}Current location, ratings and aircraft are checked again when you request a flight.</small></div>
+    <div class="mb-choice-actions"><button type="button" class="btn small" id="boardReadyShortcut" aria-pressed="${!!S.boardReadyOnly}" ${!here || (!count && !waiting) ? 'disabled' : ''}>${S.boardReadyOnly ? 'Showing ready flights' : allHere ? `See the ${waiting} from ${esc(here)} →` : 'Ready from my station →'}</button>${S.boardReadyOnly ? '<button type="button" class="btn ghost small" id="boardShowAll">Show all flights</button>' : ''}</div>`;
+  $('#boardReadyShortcut').onclick = () => {
+    resetMissionFilters(false); S.board = 'all';
+    if (allHere) { S.fromHere = true; S.boardReadyOnly = false; } else { S.boardReadyOnly = true; }
+    renderPilotStrip(); renderMissions(); $('#manifest').scrollIntoView({block:'start'});
+  };
   if ($('#boardShowAll')) $('#boardShowAll').onclick = () => { S.boardReadyOnly = false; renderMissions(); };
 }
 function boardSource(m) {
