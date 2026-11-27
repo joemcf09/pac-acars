@@ -78,11 +78,17 @@ def load_shapes(data_dir):
     if _shapes is None:
         try:
             raw = json.loads((Path(data_dir) / "conflict_zones_shapes.json").read_text(encoding="utf-8"))
-            _shapes = {k: [_prep(r) for r in rings] for k, rings in raw["shapes"].items()}
-        except (OSError, ValueError, KeyError):
-            _shapes = {}
+            shapes = {k: [_prep(r) for r in rings] for k, rings in raw["shapes"].items()}
+        except (OSError, ValueError, KeyError) as e:
+            # without the outlines only the two hand-drawn areas would show: say so, and try again next time
+            print(f"conflict zones: country outlines not loaded from {data_dir} ({e})", flush=True)
+            shapes = None
+        out = dict(shapes or {})
         for k, rings in CUSTOM_SHAPES.items():
-            _shapes[k] = [_prep(r) for r in rings]
+            out[k] = [_prep(r) for r in rings]
+        if shapes is None:
+            return out
+        _shapes = out
     return _shapes
 
 
