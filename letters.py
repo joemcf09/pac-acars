@@ -28,7 +28,7 @@ Your first steps
      and files your report.
   3. Read the pilot handbook. It's short on purpose and tells you how we fly.
   4. Fly your line checkride, PAC001 from Cincinnati to Nashville in the 737-800BCF. Score 80 or better, land
-     no firmer than 600 fpm and no higher than 1.8 G, and you'll be a line pilot. One bounce is allowed.
+     no firmer than 600 fpm and no higher than 2.0 G, and you'll be a line pilot. One bounce is allowed.
 {discord_block}
 Anything you're unsure about, reply to this message or ask in dispatch. Welcome aboard.
 

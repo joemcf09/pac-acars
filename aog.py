@@ -21,7 +21,7 @@ import time
 
 # Thresholds PAC uses after landing (adjustable here). Descent rate in fpm (negative), vertical load in G.
 INSPECT_FPM, DAMAGE_FPM = -600, -1000
-INSPECT_G, DAMAGE_G = 2.0, 2.6
+INSPECT_G, DAMAGE_G = 2.5, 3.0   # Nov 2026: the sim's peak G is spikier than a real accelerometer (Airbus calls 2.6 G a hard landing)
 
 AOG_IDS = range(8800, 8900)          # PAC8800-8899: clear of scheduled routes (to PAC7xxx) and the PAC9xxx specials
 BOOK_WINDOW_H = 36                    # how long the mission stays open before PAC charters a contractor

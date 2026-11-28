@@ -767,7 +767,7 @@ async function loadHandbook() {
   try { S.vaConfig = S.vaConfig || await api("/api/va/config"); renderHandbook(S.vaConfig); } catch (e) { toast(e.message); }
 }
 function renderHandbook(cfg) {
-  const ck = cfg.checkride, rv = cfg.review, tc = cfg.type_checkride || { min_score: 80, min_rate: -600, max_g: 1.8, max_approach_speed_spread: 35, max_sustained_descent_fpm: 1300, min_nm: 250, max_nm: 1000 };
+  const ck = cfg.checkride, rv = cfg.review, tc = cfg.type_checkride || { min_score: 80, min_rate: -600, max_g: 2.0, max_approach_speed_spread: 35, max_sustained_descent_fpm: 1300, min_nm: 250, max_nm: 1000 };
   const sections = [
     ["training-policy", "Company-funded checkrides", trainingPolicyHTML()],
     ["first-flight", "Your first flight", `<p>Start with your qualification or a cargo mission. The guide explains each step and the difference between pilot travel and aircraft delivery.</p><button class="btn" onclick="openPilotGuide()">Open first-flight guide</button>`],
