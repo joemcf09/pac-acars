@@ -40,16 +40,16 @@ JUMPSEAT = {"pac": {"label": "Jumpseat on a PAC freighter", "base": 25, "per_nm"
 AVG_WINDOW = 10          # average score over the last N accepted flights
 AVG_MIN_FLIGHTS = 3      # flights needed before an average counts
 
-REVIEW = {"auto_accept_score": 80, "hard_landing_fpm": -600, "max_landing_g": 1.8, "max_bounces": 1}
+REVIEW = {"auto_accept_score": 80, "hard_landing_fpm": -600, "max_landing_g": 2.0, "max_bounces": 1}
 A_CHECK_HOURS = 500
 
 CHECKRIDE_ID = "PAC001"
-CHECKRIDE = {"aircraft": "B738F", "min_score": 80, "min_rate": -600, "max_g": 1.8}
+CHECKRIDE = {"aircraft": "B738F", "min_score": 80, "min_rate": -600, "max_g": 2.0}
 
 # Type ratings, in real-world families: one checkride covers closely related aircraft
 RATING_FAMILY = {"B738F": "B737", "B732F": "B737", "B733F": "B737", "B722F": "B727", "A306F": "A300", "A332F": "A330", "MD11F": "MD-11",
                  "B752F": "B757/767", "B763F": "B757/767", "B77F": "B777", "B742F": "B747 classic", "B744F": "B747-400", "B748F": "B747-8"}
-TYPE_CHECKRIDE = {"min_score": 80, "min_rate": -600, "max_g": 1.8, "max_approach_speed_spread": 35,
+TYPE_CHECKRIDE = {"min_score": 80, "min_rate": -600, "max_g": 2.0, "max_approach_speed_spread": 35,
                   "max_sustained_descent_fpm": 1300, "min_nm": 250, "max_nm": 1000}
 # Airports kept off checkride routes: fine for line ops, but their terrain or approach makes them a poor place to be
 # graded on a standard company sector. Kodiak (PADQ) points its runway at a mountain with no straight-in go-around.
